@@ -6,6 +6,7 @@
 # STList.
 #
 # NOTE: NEED TO IMPLEMENT GENE LENGTH-BASED NORMALIZATION (TPM?)
+# NOTE: ADD MEAN-VAR PLOT TO THIS FUNCTION
 #
 # @param x, a STList with raw counts.
 # @return x, an updated STList with normalized counts.
