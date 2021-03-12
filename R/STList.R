@@ -2,12 +2,15 @@
 # This function takes a data frame with gene names in the first column and
 # counts from sampled localities in subsequent columns. It also takes a second
 # data frame first column containing the same identifiers of the sampled locations
-# in the first data frame, and x, y positions of the samples. The coordinates data
+# in the first data frame, and x, y positions of the samples. The coordinate data
 # should not have column names. The function returns an STList object to be used
 # in spatial transcriptomics analysis
 #
 # @param counts, the file path or data frame containing gene names and counts.
-# @param coords, the file path ot data frame containing the x, y coordinates.
+# @param coords, the file path or data frame containing the x, y coordinates.
+# @param clinical, the file path or data frame containing clinical data associated
+# with the count data.
+# NOTE: This clinical data frame needs more thinking! What to do with it? format?
 # @return, the STList object containing the counts and coordinates.
 #
 #
@@ -16,11 +19,21 @@
 require('tidyverse')
 require('magrittr')
 
-STList <- function(counts=NULL, coords=NULL, voom_counts=NULL) {
+STList <- function(counts=NULL, coords=NULL, clinical=NULL) {
   # Creates object class, expecting tibbles for counts and coordinates.
   setClass("STList", slots=list(counts="tbl",
                                 coords="tbl",
-                                voom_counts="tbl"))
+                                clinical="tbl",
+                                voom_counts="tbl",
+                                gene_stdev="tbl",
+                                gene_het="list",
+                                gene_krige="list",
+                                cell_deconv="list",
+                                cell_stdev="tbl",
+                                cell_het="list",
+                                cell_krige="list"
+                                ),
+           )
 
   # Test whether counts input is a file path (string) or a data frame.
   # Read file path or assign data frame accordingly.
@@ -69,17 +82,20 @@ STList <- function(counts=NULL, coords=NULL, voom_counts=NULL) {
   }
 
   # Creates STList object from both count and coordinates data.
-  STList_obj <- new("STList", counts=counts_df, coords=coords_df,
-                    voom_counts=tibble())
+  STList_obj <- new("STList",
+                    counts=counts_df,
+                    coords=coords_df,
+                    clinical=tibble(),
+                    voom_counts=tibble(),
+                    gene_stdev=tibble(),
+                    gene_het=list(),
+                    gene_krige=list(),
+                    cell_deconv=list(),
+                    cell_stdev=tibble(),
+                    cell_het=list(),
+                    cell_krige=list()
+                    )
 
   return(STList_obj)
 
 }
-
-
-setMethod("show", signature="STList",
-          function(object){
-            cat("Spatial Transcriptomics List (STList)\n")
-            cat(dim(object@counts)[2], "sampled positions.\n")
-            cat(dim(object@counts)[1], "features/genes.")
-          })

@@ -1,9 +1,11 @@
 ##
 # This function takes a STList and normalize the count data in two steps. In the
 # first step, (edgeR) normalization factors are used to scale the counts from each
-# library. In the second step, limma-voom normalization is applied.
-# The resulting normalized count matrix is stored in the voom_counts slot of the
-# STList.
+# library. In the second step, limma-voom normalization is applied. The resulting
+# normalized count matrix is stored in the voom_counts slot of the STList. The
+# function also calculates gene-wise mean and standard deviation from the normalized
+# counts and stores them in the gene_stdev slot.
+#
 #
 # NOTE: NEED TO IMPLEMENT GENE LENGTH-BASED NORMALIZATION (TPM?)
 # NOTE: ADD MEAN-VAR PLOT TO THIS FUNCTION
@@ -40,10 +42,15 @@ voom_norm <- function(x=NULL) {
   df_voom <- limma::voom(df[-1], design=NULL,lib.size=colSums(df[-1]),
                          normalize.method='none', plot=F)
 
+  # Estimate gene-wise means and variance and store in object.
+  gene_stdevs <- apply(df_voom$E, 1, sd, na.rm=T)
+  gene_means <- rowMeans(df_voom$E, na.rm=T)
+  gene_stdevs_df <- tibble(gene_means, gene_stdevs) %>%
+    add_column(df[1], .before=1)
+  x@gene_stdev <- gene_stdevs_df
+
   # Put back gene names to matrix and store in object.
   df_voom <- as_tibble(df_voom$E) %>% add_column(df[1], .before=1)
-
-  # Save voom transformed counts within STList.
   x@voom_counts <- df_voom
 
   return(x)

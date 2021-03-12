@@ -1,1 +1,1 @@
-# iSTS-dev
+# spatialGE-dev
