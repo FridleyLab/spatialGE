@@ -1,0 +1,8 @@
+./inst/extdata/ST_mel1_rep1_counts_dedup_genes.tsv
+./inst/extdata/ST_mel1_rep2_counts_dedup_genes.tsv
+./inst/extdata/ST_mel2_rep1_counts_dedup_genes.tsv
+./inst/extdata/ST_mel2_rep2_counts_dedup_genes.tsv
+./inst/extdata/ST_mel3_rep1_counts_dedup_genes.tsv
+./inst/extdata/ST_mel3_rep2_counts_dedup_genes.tsv
+./inst/extdata/ST_mel4_rep1_counts_dedup_genes.tsv
+./inst/extdata/ST_mel4_rep2_counts_dedup_genes.tsv
