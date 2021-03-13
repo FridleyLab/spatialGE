@@ -1,13 +1,16 @@
 ##
-# This function takes a data frame with gene names in the first column and
-# counts from sampled localities in subsequent columns. It also takes a second
-# data frame first column containing the same identifiers of the sampled locations
-# in the first data frame, and x, y positions of the samples. The coordinate data
-# should not have column names. The function returns an STList object to be used
-# in spatial transcriptomics analysis
+# This function takes two files with with file paths of count matrices and
+# coordinates, one per line. The files containing the counts must have gene names
+# in the first column and counts from sampled localities in subsequent columns.
+# The coordinate files must have a first column containing the same identifiers
+# of the sampled locations as in in the corresponding count file, and x, y positions
+# of the samples. The coordinate data should not have column names. The function
+# returns an STList object to be used in spatial transcriptomics analysis.
 #
-# @param counts, the file path or data frame containing gene names and counts.
-# @param coords, the file path or data frame containing the x, y coordinates.
+# @param countfiles, the path of a file containing filepaths (one per line) of the
+# files containing the count data.
+# @param coords, the path of a file containing filepaths (one per line) of the
+# files containing the coordinate data.
 # @param clinical, the file path or data frame containing clinical data associated
 # with the count data.
 # NOTE: This clinical data frame needs more thinking! What to do with it? format?
