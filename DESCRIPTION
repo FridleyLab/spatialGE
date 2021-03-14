@@ -16,4 +16,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports:
 	tidyverse,
-	magrittr
+	magrittr,
+	edgeR,
+	limma,
+	xCell

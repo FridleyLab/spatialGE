@@ -1,16 +1,15 @@
 ##
-# This function takes a STList and normalize the count data in two steps. In the
-# first step, (edgeR) normalization factors are used to scale the counts from each
-# library. In the second step, limma-voom normalization is applied. The resulting
-# normalized count matrix is stored in the voom_counts slot of the STList. The
-# function also calculates gene-wise mean and standard deviation from the normalized
-# counts and stores them in the gene_stdev slot.
-#
+# This function takes a STList and normalize the count data matricies within it
+# in two steps. In the first step, (edgeR) normalization factors are used to scale
+# the counts from each library/spot. In the second step, limma-voom normalization
+# is applied. The resulting normalized count matrix is stored in the voom_counts
+# slot of the STList. The function also calculates gene-wise mean and standard
+# deviation from the normalized counts and stores them in the gene_stdev slot.
 #
 # NOTE: NEED TO IMPLEMENT GENE LENGTH-BASED NORMALIZATION (TPM?)
 # NOTE: ADD MEAN-VAR PLOT TO THIS FUNCTION
 #
-# @param x, a STList with raw counts.
+# @param x, a STList with raw count matrices.
 # @return x, an updated STList with normalized counts.
 #
 #
@@ -33,6 +32,9 @@ voom_norm <- function(x=NULL) {
 
   # Loop through count matrices in STList
   for(i in 1:length(x@counts)){
+
+    # Show progress.
+    cat(paste0("Normalizing spatial array #", i, "...\n"))
 
     # Calculate edgeR normalization factors.
     norm_factors <- edgeR::calcNormFactors(x@counts[[i]][-1], method='TMM',

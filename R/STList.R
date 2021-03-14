@@ -33,7 +33,7 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
                                 gene_het="list",
                                 gene_krige="list",
                                 cell_deconv="list",
-                                cell_stdev="tbl",
+                                cell_stdev="list",
                                 cell_het="list",
                                 cell_krige="list"
   ),
@@ -125,7 +125,7 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
                     gene_het=list(),
                     gene_krige=list(),
                     cell_deconv=list(),
-                    cell_stdev=tibble::tibble(),
+                    cell_stdev=list(),
                     cell_het=list(),
                     cell_krige=list()
   )
