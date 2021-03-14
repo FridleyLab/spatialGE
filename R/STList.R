@@ -28,8 +28,8 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
   setClass("STList", slots=list(counts="list",
                                 coords="list",
                                 clinical="tbl",
-                                voom_counts="tbl",
-                                gene_stdev="tbl",
+                                voom_counts="list",
+                                gene_stdev="list",
                                 gene_het="list",
                                 gene_krige="list",
                                 cell_deconv="list",
@@ -45,8 +45,8 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
   }
 
   # Get count and coord filepaths and test there is an equal number of both.
-  count_fpaths <- scan(countfiles, what=character(), quiet=T)
-  coord_fpaths <- scan(coordfiles, what=character(), quiet=T)
+  count_fpaths <- readLines(countfiles) #, what=character(), quiet=T)
+  coord_fpaths <- readLines(coordfiles) #, what=character(), quiet=T)
   if(length(count_fpaths) != length(coord_fpaths)){
     stop("The number of count files is different to the number of coordinate files.")
   }
@@ -120,8 +120,8 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
                     counts=counts_df_list,
                     coords=coords_df_list,
                     clinical=tibble::tibble(),
-                    voom_counts=tibble::tibble(),
-                    gene_stdev=tibble::tibble(),
+                    voom_counts=list(),
+                    gene_stdev=list(),
                     gene_het=list(),
                     gene_krige=list(),
                     cell_deconv=list(),

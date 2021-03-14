@@ -16,42 +16,58 @@
 #
 # Load 'tidyverse' for tibble manipulation.
 # Load 'edgeR' and 'limma' for normalization.
-require('tidyverse')
-require('edgeR')
-require('limma')
+# require('tidyverse')
+# require('edgeR')
+# require('limma')
+require('magrittr')
 
 voom_norm <- function(x=NULL) {
-  # Calculate edgeR normalization factors.
-  norm_factors <- calcNormFactors(x@counts[-1], method='TMM', lib.size=NULL)
 
-  # Create new object to store the size-corrected counts.
-  df <- c()
-
-  # Divide each count value by their respective column (sample) normalization
-  # factor.
-  for(raw_col in names(x@counts[-1])){
-    df <- bind_cols(df, as_tibble(
-      x@counts[raw_col] /norm_factors[raw_col]))
+  # Test if an STList has been input.
+  if(is.null(x) | !is(x, 'STList')){
+    stop("The input must be a STList.")
   }
 
-  # Replace gene names.
-  # NOTE: This step may not be necessary as gene names are replaced also at the end.
-  df <- df %>% add_column(x@counts[1], .before=1)
+  # Create list to store normalized counts.
+  # counts_df_list <- list()
 
-  # Apply voom transformation to count data.
-  df_voom <- limma::voom(df[-1], design=NULL,lib.size=colSums(df[-1]),
-                         normalize.method='none', plot=F)
+  # Loop through count matrices in STList
+  for(i in 1:length(x@counts)){
 
-  # Estimate gene-wise means and variance and store in object.
-  gene_stdevs <- apply(df_voom$E, 1, sd, na.rm=T)
-  gene_means <- rowMeans(df_voom$E, na.rm=T)
-  gene_stdevs_df <- tibble(gene_means, gene_stdevs) %>%
-    add_column(df[1], .before=1)
-  x@gene_stdev <- gene_stdevs_df
+    # Calculate edgeR normalization factors.
+    norm_factors <- edgeR::calcNormFactors(x@counts[[i]][-1], method='TMM',
+                                           lib.size=NULL)
 
-  # Put back gene names to matrix and store in object.
-  df_voom <- as_tibble(df_voom$E) %>% add_column(df[1], .before=1)
-  x@voom_counts <- df_voom
+    # Create new object to store the size-corrected counts.
+    df <- c()
+
+    # Divide each count value by their respective column (sample) normalization
+    # factor.
+    for(raw_col in names(x@counts[[i]][-1])){
+      df <- bind_cols(df, as_tibble(
+        x@counts[[i]][raw_col] / norm_factors[raw_col]))
+    }
+
+    # Replace gene names.
+    # NOTE: This step may not be necessary as gene names are replaced also at the end.
+    df <- df %>% tibble::add_column(x@counts[[i]][1], .before=1)
+
+    # Apply voom transformation to count data.
+    df_voom <- limma::voom(df[-1], design=NULL,lib.size=colSums(df[-1]),
+                           normalize.method='none', plot=F)
+
+    # Estimate gene-wise means and variance and store in object.
+    gene_stdevs <- apply(df_voom$E, 1, sd, na.rm=T)
+    gene_means <- rowMeans(df_voom$E, na.rm=T)
+    gene_stdevs_df <- tibble::tibble(gene_means, gene_stdevs) %>%
+      tibble::add_column(df[1], .before=1)
+    x@gene_stdev[[i]] <- gene_stdevs_df
+
+    # Put back gene names to matrix and store in object.
+    df_voom <- tibble::as_tibble(df_voom$E) %>%
+      tibble::add_column(df[1], .before=1)
+    x@voom_counts[[i]] <- df_voom
+  }
 
   return(x)
 

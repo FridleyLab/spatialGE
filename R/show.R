@@ -11,7 +11,7 @@
 setMethod("show", signature="STList",
           function(object){
             cat("Spatial Transcriptomics List (STList)\n")
-            cat(length(test@counts), "spatial arrays.\n")
+            cat(length(object@counts), "spatial arrays.\n")
 #            cat((dim(object@counts)[2]-1), "sampled positions.\n")
 #            cat(dim(object@counts)[1], "features/genes.")
           })
