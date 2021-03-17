@@ -115,11 +115,22 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
 
   }
 
+  if(!is.null(clinical)){
+    clinical_df <- readr::read_delim(clinical, delim=",",
+                                     col_types=readr::cols())
+    if(nrow(clinical_df) != length(count_fpaths)){
+      stop("The number of rows in the clinical data is not the same as the
+             number of spatial arrays.")
+    }
+  }else{
+    clinical_df <- tibble::tibble()
+  }
+
   # Creates STList object from both count and coordinates data.
   STList_obj <- new("STList",
                     counts=counts_df_list,
                     coords=coords_df_list,
-                    clinical=tibble::tibble(),
+                    clinical=clinical_df,
                     voom_counts=list(),
                     gene_stdev=list(),
                     gene_het=list(),

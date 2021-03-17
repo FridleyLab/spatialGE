@@ -9,9 +9,14 @@
 # require('tidyverse')
 
 setMethod("show", signature="STList",
-          function(object){
+          function(x){
             cat("Spatial Transcriptomics List (STList)\n")
-            cat(length(object@counts), "spatial arrays.\n")
-#            cat((dim(object@counts)[2]-1), "sampled positions.\n")
-#            cat(dim(object@counts)[1], "features/genes.")
-          })
+            cat(length(x@counts), "spatial arrays.\n")
+#            cat((dim(x@counts)[2]-1), "sampled positions.\n")
+#            cat(dim(x@counts)[1], "features/genes.")
+            if(!is.null(x@clinical)){
+              cat(paste0((ncol(x@clinical)-1),
+                " variables in clinical data."))
+            }
+          }
+)
