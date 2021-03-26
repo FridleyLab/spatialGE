@@ -69,7 +69,8 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
     # Test if a filepath to save plots is available.
     if(!is.null(saveplot)){
       dir.create(paste0(saveplot, "/quilt_plots"), recursive=T, showWarnings=F)
-      pdf(file=paste0(saveplot, "/quilt_plots/spat_array_", i, ".pdf"))
+      pdf(file=paste0(saveplot, "/quilt_plots/spat_array_", i, ".pdf"),
+          height=9)
       print(
         ggpubr::ggarrange(plotlist=qp_list, nrow=row_col[1], ncol=row_col[2]))
       dev.off()
