@@ -35,7 +35,9 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
                                 cell_deconv="list",
                                 cell_stdev="list",
                                 cell_het="list",
-                                cell_krige="list"
+                                cell_krige="list",
+                                prediction_grid="list",
+                                prediction_border="list"
   ),
   )
 
@@ -138,7 +140,9 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
                     cell_deconv=list(),
                     cell_stdev=list(),
                     cell_het=list(),
-                    cell_krige=list()
+                    cell_krige=list(),
+                    prediction_grid=list(),
+                    prediction_border=list()
   )
 
   return(STList_obj)

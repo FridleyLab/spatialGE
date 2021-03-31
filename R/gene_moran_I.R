@@ -37,7 +37,7 @@ gene_moran_I <- function(x=NULL, genes=NULL, who=NULL) {
     # moran_est_ape <- Moran.I(gene_exp, subj_dists_inv, scaled=T)
 
     # Estimate statistic.
-    moran_est <- spdep::moran.test(gene_expr, mat2listw(subj_dists_inv))
+    moran_est <- spdep::moran.test(gene_expr, spdep::mat2listw(subj_dists_inv))
 
     # Test if list to store spatial heterogeneity statistics, and create one if
     # needed.

@@ -1,18 +1,17 @@
 ##
 # This function produces a quilt plot for a series of HUGO gene names and subjects.
-# The plots
 #
 # @param x, an STList with voom-norm counts.
 # @param genes, a vector of gene names (one or several) to plot.
 # @param plot_who, a vector of subject indexes as ordered within the STList, to
 # plot genes from. If NULL, will plot for all subjects.
 # @color_pal, a scheme from 'khroma'.
-# @param saveplot, a file path where quilt plots will be saved. if NULL, plots
+# @param saveplot, a file path where quilt plots will be saved. If NULL, plots
 # are printed to console
 #
 #
 plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
-                            color_pal='PRGn', saveplot=NULL){
+                            color_pal='sunset', saveplot=NULL){
 
   #  moran_est <- round(as.vector(x@gene_het[[gene]]$morans_I$estimate[[1]]), 2)
   #  geary_est <- round(as.vector(x@gene_het[[gene]]$gearys_C$estimate[[1]]), 2)
@@ -29,7 +28,7 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
   }
 
   # Test if voom normalized counts are available.
-  if (is_empty(stlists@voom_counts)) {
+  if (is_empty(x@voom_counts)) {
     stop(paste("There are not normalized matrices in this STList."))
   }
 
@@ -48,6 +47,8 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
         values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
         df <- bind_cols(x@coords[[i]][,-1], as_tibble(values))
         colnames(df) <- c('x_pos', 'y_pos', 'values')
+
+        # The color palette function in khroma is created by quilt_p() function.
         qp <- quilt_p(data_f=df, leg_name="norm_expr", color_pal=color_pal,
                       title_name=gene)
       } else{

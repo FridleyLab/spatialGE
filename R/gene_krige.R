@@ -37,7 +37,7 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
   }
 
   # Test if voom normalized counts are available.
-  if (is_empty(stlists@voom_counts)) {
+  if (is_empty(x@voom_counts)) {
     stop(paste("There are not normalized matrices in this STList."))
   }
 
@@ -84,10 +84,10 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
 
       # Create concave hull to use as delimiter of sampled area. Needs to be
       # done before converting data frame to spatial object.
-      conc_hull <- concaveman(as.matrix(gene_geo_df[1:2]))
+      x@prediction_border[[i]] <- concaveman::concaveman(as.matrix(gene_geo_df[1:2]))
 
       # Create geodata object from expression and coordinate data
-      gene_geo <- as.geodata(gene_geo_df, coords.col=c(1,2), data.col=3)
+      gene_geo <- geoR::as.geodata(gene_geo_df, coords.col=c(1,2), data.col=3)
 
       # Create a grid finer than the sampled locations to predict locations.
       gene_geo_grid <-expand.grid(
@@ -95,8 +95,10 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
         seq((min(x@coords[[i]][[3]])-1), (max(x@coords[[i]][[3]])+1), by=res)
       )
 
+      x@prediction_grid[[i]] <- gene_geo_grid
+
       # Add concave hull to geodata.
-      gene_geo$borders <- conc_hull
+      #gene_geo$borders <- conc_hull
 
       # OC <- output.control(simulations=TRUE, n.pred=10,
       #                      quantile=c(0.1, 0.25, 0.5, 0.75, 0.9),

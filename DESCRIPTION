@@ -23,6 +23,7 @@ Imports:
 	geoR,
 	RColorBrewer,
 	khroma,
+	ggpubr,
 	concaveman,
 	spdep
 	

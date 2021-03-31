@@ -34,7 +34,7 @@ gene_geary_C <- function(x=NULL, genes=NULL, who=NULL) {
     gene_expr <- unlist(x@voom_counts[[who]][x@voom_counts[[who]][[1]] == gene, -1])
 
     # Estimate statistic.
-    geary_est <- spdep::geary.test(gene_expr, mat2listw(subj_dists_inv))
+    geary_est <- spdep::geary.test(gene_expr, spdep::mat2listw(subj_dists_inv))
 
     # Test if list to store spatial heterogeneity statistics, and create one if
     # needed.
