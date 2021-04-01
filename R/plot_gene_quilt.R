@@ -28,7 +28,7 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
   }
 
   # Test if voom normalized counts are available.
-  if (is_empty(x@voom_counts)) {
+  if (rlang::is_empty(x@voom_counts)) {
     stop(paste("There are not normalized matrices in this STList."))
   }
 
@@ -45,7 +45,7 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
       if (any(x@voom_counts[[i]]$gene == gene)) {
         # Create data frame of gene and plot.
         values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
-        df <- bind_cols(x@coords[[i]][,-1], as_tibble(values))
+        df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
         colnames(df) <- c('x_pos', 'y_pos', 'values')
 
         # The color palette function in khroma is created by quilt_p() function.

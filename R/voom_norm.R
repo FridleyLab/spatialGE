@@ -46,7 +46,7 @@ voom_norm <- function(x=NULL) {
     # Divide each count value by their respective column (sample) normalization
     # factor.
     for(raw_col in names(x@counts[[i]][-1])){
-      df <- bind_cols(df, as_tibble(
+      df <- dplyr::bind_cols(df, tibble::as_tibble(
         x@counts[[i]][raw_col] / norm_factors[raw_col]))
     }
 

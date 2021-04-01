@@ -16,19 +16,12 @@
 # require('concaveman')
 # require('geoR')
 # require('RColorBrewer')
-
+require('rlang')
 gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
     stop("Please, enter one or more genes to plot.")
-  }
-
-  # If genes='top', get names of 10 genes with the highest standard deviation.
-  if(length(genes) == 1){
-    if(genes == 'top'){
-      genes <- x@gene_stdev[[i]]$gene[order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T)][1:10]
-    }
   }
 
   # Test if no specific subject plot was requested.
@@ -43,6 +36,13 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
 
   # Loop through each normalized count matrix.
   for (i in who) {
+
+    # If genes='top', get names of 10 genes with the highest standard deviation.
+    if(length(genes) == 1){
+      if(genes == 'top'){
+        genes <- x@gene_stdev[[i]]$gene[order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T)][1:10]
+      }
+    }
 
     # Loop through genes.
     for(gene in genes){
@@ -59,6 +59,8 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
         if(length(x@gene_krige[[gene]]) < i){
           x@gene_krige[[gene]][[i]] <- list(ord=NULL,
                                             univ=NULL)
+        }else{
+          next
         }
       }else{
         x@gene_krige[[gene]] <- list()
@@ -66,13 +68,13 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
                                           univ=NULL)
       }
 
-      # Extract expression data for a goven gene.
+      # Extract expression data for a given gene.
       gene_expr <- x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene, -1]
 
       # Transpose expression data to turn it into a column. Then turn library
       # names into a column and assign column names (first row).
       gene_expr <- as.data.frame(t(gene_expr))
-      gene_expr <- gene_expr %>% rownames_to_column(., var='position')
+      gene_expr <- gene_expr %>% tibble::rownames_to_column(., var='position')
       #colnames(gene_expr) <- gene_expr[1,]
       colnames(gene_expr)[2] <- 'gene_expr'
       #gene_expr <- as.data.frame(gene_expr[-1,])
@@ -95,6 +97,7 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
         seq((min(x@coords[[i]][[3]])-1), (max(x@coords[[i]][[3]])+1), by=res)
       )
 
+      # Store prediction grid in STList.
       x@prediction_grid[[i]] <- gene_geo_grid
 
       # Add concave hull to geodata.
@@ -108,29 +111,29 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
       # estimation.
       if(univ == F){
         # NOTE: Need to check how to decide on init.cov.pars
-        gene_geo_lhood <- likfit(gene_geo, trend='cte', ini.cov.pars=c(1, 0.15))
+        gene_geo_lhood <- geoR::likfit(gene_geo, trend='cte', ini.cov.pars=c(1, 0.15))
 
         # Specify control (and output) parameters for ordinary kriging.
-        KC <- krige.control(obj.model=gene_geo_lhood)
+        KC <- geoR::krige.control(obj.model=gene_geo_lhood)
 
         # Perform ordinary kriging.
-        gene_krig <- krige.conv(gene_geo, locations=gene_geo_grid, krige=KC)
+        gene_krig <- geoR::krige.conv(gene_geo, locations=gene_geo_grid, krige=KC)
 
         x@gene_krige[[gene]][[i]][['ord']] <- gene_krig
 
       }else if(univ == T){
         # NOTE: Need to use regression analysis of variogram to get values for
         # nugget.
-        gene_geo_lhood <- likfit(gene_geo, trend='cte',
+        gene_geo_lhood <- geoR::likfit(gene_geo, trend='cte',
                                  ini.cov.pars=c(1000, 500), nug=100)
 
         # Specify control (and output) parameters for universal kriging.
-        KC <- krige.control(type.krige="OK", obj.m=gene_geo_lhood,
+        KC <- geoR::krige.control(type.krige="OK", obj.m=gene_geo_lhood,
                             trend.d="cte",
                             trend.l="cte")
 
         # Perform universal kriging.
-        gene_krig <- krige.conv(gene_geo, locations=gene_geo_grid, krige=KC
+        gene_krig <- geoR::krige.conv(gene_geo, locations=gene_geo_grid, krige=KC
                                 #output = OC
         )
 
@@ -138,9 +141,9 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.1, who=NULL){
       }
 
       # Calculate spatial heterogeneity statistics.
-      x <- gene_moran_I(x, genes=gene, who=i)
-      x <- gene_geary_C(x, genes=gene, who=i)
-      x <- gene_getis_Gi(x, genes=gene, who=i)
+      x <- gene_moran_I(x, genes=gene, subj=i)
+      x <- gene_geary_C(x, genes=gene, subj=i)
+      x <- gene_getis_Gi(x, genes=gene, subj=i)
 
     }
 

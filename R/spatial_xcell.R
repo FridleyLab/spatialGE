@@ -12,7 +12,7 @@
 # require('xCell')
 # require('janitor')
 require('magrittr')
-require('xCell')
+require('xCell') # Needs to be 'required' because of databases loaded by packages.
 
 spatial_xcell <- function(x=NULL){
 

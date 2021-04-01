@@ -12,6 +12,7 @@
 # @return, a ggplot object.
 #
 #
+require('ggplot2')
 quilt_p <- function(data_f=NULL, color_pal="PRGn", leg_name='',
                     title_name=''){
 

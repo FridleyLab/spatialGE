@@ -28,7 +28,7 @@ plot_gene_krige <-
 
     # Prepare color palette
     col_fn <- khroma::colour(color_pal)
-    color_pal <- as.vector(col_fn(5))
+    color_pal <- as.vector(col_fn(9))
 
     # Loop through each of ythe subjects.
     for (i in plot_who) {
