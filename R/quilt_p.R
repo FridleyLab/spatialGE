@@ -13,7 +13,7 @@
 #
 #
 require('ggplot2')
-quilt_p <- function(data_f=NULL, color_pal="PRGn", leg_name='',
+quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
                     title_name=''){
 
   # Creates color palette function.
@@ -28,7 +28,7 @@ quilt_p <- function(data_f=NULL, color_pal="PRGn", leg_name='',
     labs(color=leg_name) +
     theme_classic() +
     ggtitle(title_name) +
-    theme(legend.position="bottom")
+    theme(legend.position="right")
 
   return(p)
 

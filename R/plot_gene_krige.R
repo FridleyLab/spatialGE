@@ -12,9 +12,8 @@
 #
 # require('geoR')
 # require('RColorBrewer')
-plot_gene_krige <-
-  function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
-           color_pal='sunset', saveplot=NULL){
+plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
+           color_pal='YlOrBr', saveplot=NULL){
 
     # Test that a gene name was entered.
     if (is.null(genes)) {
@@ -26,61 +25,109 @@ plot_gene_krige <-
       plot_who <- c(1:length(x@counts))
     }
 
-    # Prepare color palette
-    col_fn <- khroma::colour(color_pal)
-    color_pal <- as.vector(col_fn(9))
+  if(!is.null(saveplot)){
+    if(dir.exists(paste0(saveplot, "/krige_plots"))){
+      unlink(paste0(saveplot, "/krige_plots"), recursive=T)
+    }
+  }
 
-    # Loop through each of ythe subjects.
+    # Loop through each of the subjects.
     for (i in plot_who) {
+
+      # Create list of plots for a given subject.
+      kp_list <- list()
 
       # Loop though genes to plot.
       for (gene in genes) {
 
-        assign("color_palGb", color_pal, envir=.GlobalEnv)
+          if(length(x@gene_krige[[gene]]) >= i){
+            if(is.null(x@gene_krige[[gene]][[i]])){
+              cat(paste0(gene, " kriging for subject ", i, " is not present in STList\n"))
+              next
+            }
+          }else{
+            cat(paste0(gene, " kriging for subject ", i, " is not present in STList\n"))
+            next
+          }
 
+        # Create data frame with coordinates and kriging values.
+        df <- dplyr::bind_cols(x@prediction_grid[[i]],
+                        krige=x@gene_krige[[gene]][[i]][[krige_type]]$predict)
+        names(df) <- c("x_pos", "y_pos", "krige")
+
+        # Get coordinates of bounding box enclosing the predicted grid.
+        bbox<-rbind(
+          c(min(x@prediction_grid[[i]]$Var1), max(x@prediction_grid[[i]]$Var2)),
+          c(max(x@prediction_grid[[i]]$Var1), max(x@prediction_grid[[i]]$Var2)),
+          c(max(x@prediction_grid[[i]]$Var1), min(x@prediction_grid[[i]]$Var2)),
+          c(min(x@prediction_grid[[i]]$Var1), min(x@prediction_grid[[i]]$Var2))
+        )
+        bbox <- as.data.frame(bbox)
+        names(bbox) <- c("V1", "V2")
+
+        # Create SpatialPolygon object with the bounding box.
+        bbox_sp <- sp::SpatialPolygons(
+          list(sp::Polygons(list(sp::Polygon(bbox)), "id")))
+
+        # Create Spatial Polygon with the inner tissue border (concave hull)
+        mask_sp <- sp::SpatialPolygons(
+          list(sp::Polygons(list(sp::Polygon(x@prediction_border[[i]])), "id")))
+
+        # Substract the concave hull from the bounding box, yielding a SpatialPolygon
+        # object. The convert to
+        bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
+
+        # Get spatial statistics.
         moran_est <- round(as.vector(x@gene_het[[gene]][[i]]$morans_I$estimate[[1]]), 2)
         geary_est <- round(as.vector(x@gene_het[[gene]][[i]]$gearys_C$estimate[[1]]), 2)
         getis_est <- round(as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
 
+        # Construct title.
         if(krige_type == 'ord'){
-          title <- paste0(gene, ", subj ", i, " - ordinary kriging voom-norm counts\nMorans I=",
+          titlekrige <- paste0(gene, ", subj ", i, " - ordinary kriging voom-norm counts\nMorans I=",
                           moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
                           getis_est)
-          assign('stlist', x@gene_krige[[gene]][[i]]$ord, envir=.GlobalEnv)
         }
         else if(krige_type == 'univ'){
-          title <- paste0(gene, ", subj ", i, " - universal kriging voom-norm counts\nMorans I=",
+          titlekrige <- paste0(gene, ", subj ", i, " - universal kriging voom-norm counts\nMorans I=",
                           moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
                           getis_est)
-          assign('stlist', x@gene_krige[[gene]][[i]]$univ, envir=.GlobalEnv)
         }
 
-        assign("titlekrige", title, envir=.GlobalEnv)
+        kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
+                      title_name=titlekrige)
 
-        ymin <- (min(x@coords[[i]][,3]) - 4)
-        ymax <- (max(x@coords[[i]][,3]) + 1)
+        # Append plot to list.
+        kp_list[[gene]] <- kp
 
-        assign('yminGb', ymin, envir=.GlobalEnv)
-        assign('ymaxGb', ymax, envir=.GlobalEnv)
-
-        image(stlist, col=color_palGb,
-              locations=x@prediction_grid[[i]],
-              borders=x@prediction_border[[i]],
-              ylim=c(yminGb, ymaxGb),
-              xlab="X Position", ylab="Y Position", main=titlekrige,
-              y.leg=c((min(x@coords[[i]][,3]) - 3), (min(x@coords[[i]][,3]) - 2)),
-              x.leg=c((min(x@coords[[i]][,2])), (max(x@coords[[i]][,2])))
-              #          scale.vals=c(round(min(stlist$predict) + (min(stlist$predict) * 0.05), 2),
-              #                     round(max(stlist$predict) - (max(stlist$predict) * 0.05), 2))
-        )
-
-        rm(list=c(
-          'color_palGb',
-          'titlekrige',
-          'stlist',
-          'yminGb',
-          'ymaxGb'),
-          envir=.GlobalEnv)
       }
-    }
+
+      # Define number of columns and rows in plot and size.
+      row_col <- c(2, 2)
+      w_pdf=9
+      h_pdf=9
+      if(length(genes) == 2){
+        row_col <- c(1, 2)
+        w_pdf=9
+        h_pdf=5
+      }else if(length(genes) == 1){
+        row_col <- c(1, 1)
+        w_pdf=7
+        h_pdf=7
+      }
+
+      # Test if a filepath to save plots is available.
+      if(!is.null(saveplot)){
+        dir.create(paste0(saveplot, "/krige_plots"), recursive=T, showWarnings=F)
+        pdf(file=paste0(saveplot, "/krige_plots/spat_array_", i, ".pdf"),
+            width=w_pdf, height=h_pdf)
+        print(
+          ggpubr::ggarrange(plotlist=kp_list, nrow=row_col[1], ncol=row_col[2]))
+        dev.off()
+      }else{
+        # Print plots to console.
+        print(ggpubr::ggarrange(plotlist=kp_list,
+                                nrow=row_col[1], ncol=row_col[2]))
+      }
   }
+}

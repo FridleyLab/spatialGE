@@ -26,6 +26,10 @@ spatial_xcell <- function(x=NULL){
     stop("The STList does not have normalized counts.")
   }
 
+  # Get number of cores available for deconvolution.
+  cores <- parallel::detectCores()
+
+
   for(i in 1:length(x@voom_counts)){
 
     # Creates list for a given spatial array.
@@ -48,12 +52,26 @@ spatial_xcell <- function(x=NULL){
     cat(paste0("Applying xCell to spatial array #", i, "...\n"))
 
     # Perform xCell analysis and make cell names as column (no rownames).
-    # NOTE: Applies `janitor` to clean cell names.
-    df_xcell <- xCellAnalysis(df, rnaseq=T)
+    # NOTE1: Applies `janitor` to clean cell names.
+    # NOTE 2: Before modifying names, it runs p-value estimation form xCell.
+    df_xcell <- xCellAnalysis(df, rnaseq=T, parallel.sz=cores)
+
+    xcell_pval <- xCellSignifcanceRandomMatrix(df_xcell, df, spill=xCell.data$spill)
+
     cell_names <- rownames(df_xcell) %>%
       janitor::make_clean_names(.)
     df_xcell <- tibble::as_tibble(df_xcell) %>%
       tibble::add_column(cell_names, .before=1)
+
+    # Extract values for a given cell type.
+    # NOTE: This part was planned to get stromal spots...
+    xcell_pval <- xcell_pval$pvals['B-cells', ]
+    xcell_pval_df <- tibble::as_tibble(xcell_pval)
+    xcell_pval_df <- tibble::add_column(tibble::as_tibble(names(xcell_pval)),
+                                        .data=xcell_pval_df,
+                                        .before = 1, .name_repair='minimal')
+    colnames(xcell_pval_df) <- c("name", "xcell_pval")
+    x@cell_deconv[[i]]$pvals <- xcell_pval_df
 
     # Remove immune, stroma, and microenvironment xCell scores.
     scores_xCell <- grep("immune_score|stroma_score|microenvironment_score",

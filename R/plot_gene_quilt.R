@@ -11,7 +11,7 @@
 #
 #
 plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
-                            color_pal='sunset', saveplot=NULL){
+                            color_pal='YlOrBr', saveplot=NULL){
 
   #  moran_est <- round(as.vector(x@gene_het[[gene]]$morans_I$estimate[[1]]), 2)
   #  geary_est <- round(as.vector(x@gene_het[[gene]]$gearys_C$estimate[[1]]), 2)
@@ -32,6 +32,12 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
     stop(paste("There are not normalized matrices in this STList."))
   }
 
+  if(!is.null(saveplot)){
+    if(dir.exists(paste0(saveplot, "/quilt_plots"))){
+      unlink(paste0(saveplot, "/quilt_plots"), recursive=T)
+    }
+  }
+
   # Loop through each normalized count matrix.
   for (i in plot_who) {
 
@@ -50,7 +56,7 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
 
         # The color palette function in khroma is created by quilt_p() function.
         qp <- quilt_p(data_f=df, leg_name="norm_expr", color_pal=color_pal,
-                      title_name=gene)
+                      title_name=paste0(gene, " - ", "subj ", i))
       } else{
         # If gene is not in the matrix, move to next gene.
         cat(paste(gene, "is not a gene in the normalized count matrix."))
@@ -61,17 +67,25 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
       qp_list[[gene]] <- qp
     }
 
-    # Define number of columns and rows in plot
+    # Define number of columns and rows in plot and size.
     row_col <- c(2, 2)
-    if(length(genes) < 4){
-      row_col <- n2mfrow(length(genes), asp=2)
+    w_pdf=9
+    h_pdf=9
+    if(length(genes) == 2){
+      row_col <- c(1, 2)
+      w_pdf=9
+      h_pdf=5
+    }else if(length(genes) == 1){
+      row_col <- c(1, 1)
+      w_pdf=7
+      h_pdf=7
     }
 
     # Test if a filepath to save plots is available.
     if(!is.null(saveplot)){
       dir.create(paste0(saveplot, "/quilt_plots"), recursive=T, showWarnings=F)
       pdf(file=paste0(saveplot, "/quilt_plots/spat_array_", i, ".pdf"),
-          height=9)
+          width=w_pdf, height=h_pdf)
       print(
         ggpubr::ggarrange(plotlist=qp_list, nrow=row_col[1], ncol=row_col[2]))
       dev.off()
