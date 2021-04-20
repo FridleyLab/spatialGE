@@ -35,8 +35,9 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
     ylab("Y Position") +
     labs(fill=leg_name) +
     ggtitle(title_name) +
-    ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white",
-                              color='white', size=2) +
+    ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"#,
+                              #color='white', size=0
+                              ) +
     theme_classic() +
     theme(legend.position="right", plot.title=element_text(size=10))
 

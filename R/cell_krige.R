@@ -13,20 +13,22 @@
 # @return x, a STList including an spatial interpolation object.
 #
 #
-# require('concaveman')
-# require('geoR')
-# require('RColorBrewer')
 require('rlang')
-cell_krige <- function(x=NULL, cells='top', univ=F, res=0.1, who=NULL){
+cell_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
-    stop("Please, enter one or more xCell names to plot.")
+    stop("Please, enter one or more cell names to plot.")
   }
 
   # Test if no specific subject plot was requested.
   if (is.null(who)) {
     who <- c(1:length(x@cell_deconv))
+  }
+
+  # Test if deconvoluted data are available.
+  if (is_empty(x@cell_deconv)) {
+    stop(paste("There are no deconvolution results in this STList."))
   }
 
   # Loop through each deconvolution results table.
@@ -68,7 +70,7 @@ cell_krige <- function(x=NULL, cells='top', univ=F, res=0.1, who=NULL){
                                           univ=NULL)
       }
 
-      # If 'stroma score' is being krige, then get data from corresponding slot.
+      # If 'stroma score' is being kriged, then get data from corresponding slot.
       if(cell != 'stroma_score'){
         # Extract abundance/score data for a given cell.
         cell_abund <- x@cell_deconv[[i]]$transf_deconv_matrix[
@@ -106,10 +108,11 @@ cell_krige <- function(x=NULL, cells='top', univ=F, res=0.1, who=NULL){
       )
 
       # Store prediction grid in STList.
-      x@prediction_grid[[i]] <- cell_geo_grid
-
-      # Add concave hull to geodata.
-      #cell_geo$borders <- conc_hull
+      if(univ){
+        x@cell_krige[[cell]][[i]]$univ_grid <- cell_geo_grid
+      }else{
+        x@cell_krige[[cell]][[i]]$ord_grid <- cell_geo_grid
+      }
 
       # OC <- output.control(simulations=TRUE, n.pred=10,
       #                      quantile=c(0.1, 0.25, 0.5, 0.75, 0.9),

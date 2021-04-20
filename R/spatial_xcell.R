@@ -56,22 +56,21 @@ spatial_xcell <- function(x=NULL){
     # NOTE 2: Before modifying names, it runs p-value estimation form xCell.
     df_xcell <- xCellAnalysis(df, rnaseq=T, parallel.sz=cores)
 
-    xcell_pval <- xCellSignifcanceRandomMatrix(df_xcell, df, spill=xCell.data$spill)
+    cat("Calculating p-values...\n\n")
+
+    # Extract values for a given cell type.
+    # NOTE: This part was planned to get stromal spots...
+    xcell_pval <- xCellSignifcanceBetaDist(df_xcell, rnaseq=T)
 
     cell_names <- rownames(df_xcell) %>%
       janitor::make_clean_names(.)
     df_xcell <- tibble::as_tibble(df_xcell) %>%
       tibble::add_column(cell_names, .before=1)
 
-    # Extract values for a given cell type.
-    # NOTE: This part was planned to get stromal spots...
-    xcell_pval <- xcell_pval$pvals['B-cells', ]
-    xcell_pval_df <- tibble::as_tibble(xcell_pval)
-    xcell_pval_df <- tibble::add_column(tibble::as_tibble(names(xcell_pval)),
-                                        .data=xcell_pval_df,
-                                        .before = 1, .name_repair='minimal')
-    colnames(xcell_pval_df) <- c("name", "xcell_pval")
-    x@cell_deconv[[i]]$pvals <- xcell_pval_df
+    xcell_pval <- tibble::as_tibble(xcell_pval)
+    xcell_pval <- xcell_pval %>%
+      tibble::add_column(cell_names[1:64], .before=1)
+    colnames(xcell_pval) <- colnames(df_xcell)
 
     # Remove immune, stroma, and microenvironment xCell scores.
     scores_xCell <- grep("immune_score|stroma_score|microenvironment_score",
@@ -99,7 +98,10 @@ spatial_xcell <- function(x=NULL){
     cell_stdevs_df <- tibble::tibble(cell_means, cell_stdevs) %>%
       tibble::add_column(df_xcell_NoPurityScores[, 1], .before=1)
     names(cell_stdevs_df)[1] <- 'cell'
-    x@cell_stdev[[i]] <- cell_stdevs_df
+    x@cell_stdev[[i]] <-
+
+    # Store p-values.
+    x@cell_deconv[[i]]$pvals <- xcell_pval
   }
 
   return(x)

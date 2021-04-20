@@ -11,7 +11,7 @@
 #
 #
 plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
-                            color_pal='YlOrBr', saveplot=NULL){
+                            color_pal='YlOrBr', saveplot=F){
 
   #  moran_est <- round(as.vector(x@gene_het[[gene]]$morans_I$estimate[[1]]), 2)
   #  geary_est <- round(as.vector(x@gene_het[[gene]]$gearys_C$estimate[[1]]), 2)
@@ -32,11 +32,11 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
     stop(paste("There are not normalized matrices in this STList."))
   }
 
-  if(!is.null(saveplot)){
-    if(dir.exists(paste0(saveplot, "/quilt_plots"))){
-      unlink(paste0(saveplot, "/quilt_plots"), recursive=T)
-    }
-  }
+  # if(!is.null(saveplot)){
+  #   if(dir.exists(paste0(saveplot))){
+  #     unlink(paste0(saveplot), recursive=T)
+  #   }
+  # }
 
   # Loop through each normalized count matrix.
   for (i in plot_who) {
@@ -74,7 +74,7 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
     if(length(genes) == 2){
       row_col <- c(1, 2)
       w_pdf=9
-      h_pdf=5
+      h_pdf=4.5
     }else if(length(genes) == 1){
       row_col <- c(1, 1)
       w_pdf=7
@@ -82,12 +82,12 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
     }
 
     # Test if a filepath to save plots is available.
-    if(!is.null(saveplot)){
-      dir.create(paste0(saveplot, "/quilt_plots"), recursive=T, showWarnings=F)
-      pdf(file=paste0(saveplot, "/quilt_plots/spat_array_", i, ".pdf"),
+    if(saveplot){
+      #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
+      pdf(file=paste0("gene_quilt_spat_array_", i, ".pdf"),
           width=w_pdf, height=h_pdf)
-      print(
-        ggpubr::ggarrange(plotlist=qp_list, nrow=row_col[1], ncol=row_col[2]))
+      print(ggpubr::ggarrange(plotlist=qp_list,
+                              nrow=row_col[1], ncol=row_col[2]))
       dev.off()
     }else{
       # Print plots to console.
