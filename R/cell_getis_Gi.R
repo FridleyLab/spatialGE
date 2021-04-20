@@ -32,7 +32,7 @@ cell_getis_Gi <- function(x=NULL, cells=NULL, subj=NULL) {
     cell_data <- unlist(x@cell_deconv[[subj]]$transf_deconv_matrix[x@cell_deconv[[subj]]$transf_deconv_matrix[[1]] == cell, -1])
 
     # Estimate statistic.
-    getis_est <- spdep::globalG.test(cell_data, spdep::mat2listw(subj_dists_inv))
+    getis_est <- spdep::globalG.test(cell_data, spdep::mat2listw(subj_dists_inv, style='B'))
 
     # Test if list to store spatial heterogeneity statistics, and create one if
     # needed.

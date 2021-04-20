@@ -30,7 +30,7 @@ gene_getis_Gi <- function(x=NULL, genes=NULL, subj=NULL) {
         gene_expr <- unlist(x@voom_counts[[subj]][x@voom_counts[[subj]][[1]] == gene, -1])
 
         # Estimate statistic.
-        getis_est <- spdep::globalG.test(gene_expr, spdep::mat2listw(subj_dists_inv))
+        getis_est <- spdep::globalG.test(gene_expr, spdep::mat2listw(subj_dists_inv, style='B'))
 
         # Test if list to store spatial heterogeneity statistics, and create one if
         # needed.

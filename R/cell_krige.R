@@ -118,17 +118,24 @@ cell_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
       #                      quantile=c(0.1, 0.25, 0.5, 0.75, 0.9),
       #                      threshold = 350)
 
+      # Provide info progress.
+      cat(paste0("Performing spatial interpolation ('kriging') of ", cell, " for subject ", i, "...\n"))
+
       # Create controls for either ordinary or universal kriging, and perform
       # estimation.
       if(univ == F){
         # NOTE: Need to check how to decide on init.cov.pars
-        cell_geo_lhood <- geoR::likfit(cell_geo, trend='cte', ini.cov.pars=c(1, 0.15))
+        cell_geo_lhood <- geoR::likfit(cell_geo, trend='cte',
+                                       ini.cov.pars=c(1, 0.15),
+                                       messages=F)
 
         # Specify control (and output) parameters for ordinary kriging.
         KC <- geoR::krige.control(obj.model=cell_geo_lhood)
+        OC <- geoR::output.control(messages=F)
 
         # Perform ordinary kriging.
-        cell_krig <- geoR::krige.conv(cell_geo, locations=cell_geo_grid, krige=KC)
+        cell_krig <- geoR::krige.conv(cell_geo, locations=cell_geo_grid,
+                                      krige=KC, output=OC)
 
         x@cell_krige[[cell]][[i]][['ord']] <- cell_krig
 
@@ -136,17 +143,18 @@ cell_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
         # NOTE: Need to use regression analysis of variogram to get values for
         # nugget.
         cell_geo_lhood <- geoR::likfit(cell_geo, trend='cte',
-                                 ini.cov.pars=c(1000, 500), nug=100)
+                                 ini.cov.pars=c(1000, 500), nug=100,
+                                 messages=F)
 
         # Specify control (and output) parameters for universal kriging.
         KC <- geoR::krige.control(type.krige="OK", obj.m=cell_geo_lhood,
                             trend.d="cte",
                             trend.l="cte")
+        OC <- geoR::output.control(messages=F)
 
         # Perform universal kriging.
-        cell_krig <- geoR::krige.conv(cell_geo, locations=cell_geo_grid, krige=KC
-                                #output = OC
-        )
+        cell_krig <- geoR::krige.conv(cell_geo, locations=cell_geo_grid,
+                                      krige=KC, output=OC)
 
         x@cell_krige[[cell]][[i]][['ord']] <- cell_krig
       }
