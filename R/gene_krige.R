@@ -1,16 +1,23 @@
-# This function performs spatial interpolation of normalized gene counts. This
-# function takes a STList and a list of gene names or the token 'top' for the 10
-# genes with the highest variation. It also calculates spatial heterogeneity
-# measures for the genes. The function can perform ordinary or universal kriging.
-# The result can be plotted using the plot_gene_krige() function.
-#
-# @param x, a STList with normalized counts
-# @plot_who, a vector of HUGO names or 'top'. If 'top', kriging for the 10 genes
-# with highest standard deviation is estimated.
-# @univ, a logical stating whether or not to perform universal or ordinary kriging.
-# @res, a number to adjust the resolution of the plot. Fractions of 1 lead to
-# more resolution.
-# @return x, a STList including an spatial interpolation object.
+##
+#' Performs spatial interpolation ('kriging') of normalized gene counts in spatially-resolved
+#' transcriptomics data.
+#'
+#' This function takes a STList and a vector of gene names, or the token 'top' for the 10
+#' genes with the highest standard deviation. It also calculates spatial heterogeneity
+#' statistics for the genes counts. The function can perform ordinary or universal kriging.
+#' The result can be plotted using the plot_gene_krige() function.
+#'
+#' @param x, a STList with normalized counts
+#' @param genes, a vector of HUGO names or 'top'. If 'top' (default), kriging for the 10
+#' genes with highest standard deviation is estimated.
+#' @param univ, a logical stating whether or not to perform universal or ordinary kriging.
+#' Default is FALSE (ordinary kriging).
+#' @param res, a double to adjust the resolution of the plot. Fractions of 1 lead to
+#' more resolution. Default is res=0.2.
+#' @param who, the spatial arrays for which krginig will be performed. If NULL (Default),
+#' all arrays are kriged.
+#' @return x, a STList including spatial interpolations.
+#' @export
 #
 #
 require('rlang')

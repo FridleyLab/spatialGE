@@ -1,15 +1,16 @@
 ##
-# This function takes an STList and a vector with cell names (from xCell, for example)
-# and returns Getis-Ord Gi for each element of the vector.
+#' This function takes an STList and a vector with cell names (from xCell, for
+#' example) and returns Getis-Ord Gi for each element of the vector.
+#'
+#' @param x, a STList with deconvoluted cell data.
+#' @param cells, a vector of cell names present in the deconvolution matrix.
+#' @param subj, an integer indicating the spatial array for which the statistic
+#' will be calculated.
+#' @return x, a STList including the values corresponding to Getis-Ord Gi for each
+#' cell in cells.
+#' @export
 #
-# @param x, a STList with cell data.
-# @return x, a STList including the values corresponding to Getis-Ord Gi for each cell
 #
-#
-# Load 'tidyverse' for tibble manipulation.
-# Load 'spdep' for estimation of spatial heterogeneity.
-#require('tidyverse')
-#require('spdep')
 cell_getis_Gi <- function(x=NULL, cells=NULL, subj=NULL) {
 
   # Test if normalized cell data are available.

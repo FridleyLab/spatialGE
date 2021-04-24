@@ -1,11 +1,14 @@
 ##
-# This function takes an STList and a vector with HUGO gene names and returns
-# Getis-Ord Gi for each element of the vector.
-#
-# @param x, a STList with normalized counts.
-# @param genes, a vector with gene names in the count matrix.
-# @param subj, the index of the spatial array within the STList.
-# @return x, a STList including the values corresponding to Getis-Ord Gi for each gene.
+#' This function takes an STList and a vector with HUGO gene names and returns
+#' Getis-Ord Gi for each element of the vector.
+#'
+#' @param x, a STList with normalized gene counts.
+#' @param genes, a vector with gene names in the normalized count matrix.
+#' @param subj, the index of the spatial array for which the statistic
+#' will be calculated.
+#' @return x, a STList including the values corresponding to Getis-Ord Gi for each
+#' gene in genes.
+#' @export
 #
 #
 gene_getis_Gi <- function(x=NULL, genes=NULL, subj=NULL) {

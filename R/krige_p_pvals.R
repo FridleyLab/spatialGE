@@ -1,20 +1,23 @@
 ##
-# Function to produce a "kriging plot" from a data frame with three columns:
-# x coordinates, y coordinates, and prdicted kriging values. The data frame has
-# column names 'x_pos', 'y_pos', and 'krige'. The function also takes a
-# SpatialPolygons object to mask the predicted grid to the area of the tissue.
-# It also takes a color palette name from the 'khroma' package. Finally, it
-# takes a name for the color legend title.
-#
-# @param data_f, a data with three columns: x coordinates, y coordinates, and
-# the kriging prediction values to be plotted.
-# @param mask, an object of class SpatialPolygons containing a large polygon
-# encasing all the predicted grid, and a smalle polygon drawing the concave hull
-# of the tissue shape.
-# @param color_pal, a scheme from 'khroma'.
-# @param leg_name, a short name for the legend title.
-# @param title_name, a short name for the plot title.
-# @return, a ggplot object.
+#' Function to produce a "kriging plot" from a data frame with three columns:
+#' x coordinates, y coordinates, and predicted kriging values. The data frame has
+#' column names 'x_pos', 'y_pos', and 'krige'. The function also takes a
+#' SpatialPolygons object to mask the predicted grid to the area of the tissue.
+#' It also takes a color palette name from the 'khroma' package. Finally, it
+#' takes a name for the color legend title.
+#'
+#' @param data_f, a data with three columns: x coordinates, y coordinates, and
+#' the kriging prediction values to be plotted.
+#' @param mask, an object of class SpatialPolygons containing a large polygon
+#' encasing all the predicted grid, and a smaller polygon drawing the concave hull
+#' of the tissue shape.
+#' @param color_pal, a scheme from 'khroma'.
+#' @param leg_name, a short name for the legend title.
+#' @param title_name, a short name for the plot title.
+#' @param x, a STList from where coordinates will be taken.
+#' @param plot_who, an integer indicating the spatial array to be plotted.
+#' @param cell, a cell name from a deconvoluted matrix.
+#' @return, a ggplot object.
 #
 #
 require('ggplot2')

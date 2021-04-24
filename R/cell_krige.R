@@ -1,16 +1,24 @@
-# This function performs spatial interpolation of deconvoluted cell scores. This
-# function takes a STList and a list of cell names or the token 'top' for the 5
-# cells with the highest variation. It also calculates spatial heterogeneity
-# measures for the genes. The function can perform ordinary or universal kriging.
-# The result can be plotted using the plot_cell_krige() function.
+##
+#' Performs spatial interpolation ('kriging') of deconvoluted cell scores in spatially-resolved
+#' transcriptomics data.
+#'
+#' This function takes a STList and a vector of xCell cell names, or the token 'top' for
+#' the 10 cells with the highest standard deviation. It also calculates spatial heterogeneity
+#' statistics for the cell scores. The function can perform ordinary or universal kriging.
+#' The result can be plotted using the plot_cell_krige() function. The stroma score from
+#' xCell is automatically kriged.
 #
-# @param x, a STList with normalized counts
-# @plot_who, a vector of cell names or 'top'. If 'top', kriging for the 5 cells
-# with highest standard deviation is estimated.
-# @univ, a logical stating whether or not to perform universal or ordinary kriging.
-# @res, a number to adjust the resolution of the plot. Fractions of 1 lead to
-# more resolution.
-# @return x, a STList including an spatial interpolation object.
+#' @param x, a STList with transformed xCell scores.
+#' @param cells, a vector of cell names or 'top'. If 'top' (default), kriging for the 10
+#' cells with highest standard deviation is estimated.
+#' @param univ, a logical stating whether or not to perform universal or ordinary kriging.
+#' Default is FALSE (ordinary kriging).
+#' @param res, a double to adjust the resolution of the plot. Fractions of 1 lead to
+#' more resolution. Default is res=0.2.
+#' @param who, the spatial arrays for which krginig will be performed. If NULL (Default),
+#' all arrays are kriged.
+#' @return x, a STList including spatial interpolations.
+#' @export
 #
 #
 require('rlang')

@@ -1,29 +1,43 @@
 Package: spatialGE-dev
-Title: What the Package Does (One Line, Title Case)
+Title: Visualization and Analysis of Spatial Heterogeneity in Spatially-Resolved Transcriptomics Data
 Version: 0.0.0.9000
-Authors@R: 
-    person(given = "First",
-           family = "Last",
+Authors@R: c(
+    person(given = "Oscar",
+           family = "Ospina",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to
-    pick a license
+           email = "Oscar.Ospina@Moffitt.org",
+           comment = c(ORCID = "0000-0001-5986-4207"))
+    person(given = "Brooke",
+           family = "Fridley",
+           role = c("aut", "cre"),
+           email = "Brooke.Fridley@Moffitt.org",
+           comment = c(ORCID = "0000-0001-7739-7956"))
+           )
+Description: An R package for the visualization and analysis of spatially resolved transcriptomics data. The functions in spatialGE allow for the study of gene expression in tissue sections via spatial interpolation, RNA-Seq data deconvolution, and autocorrelation statistics, as well as correlation with clinical/phenotype data.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports:
-	tidyverse,
-	magrittr,
-	edgeR,
-	limma,
-	xCell,
-	geoR,
-	RColorBrewer,
-	khroma,
-	ggpubr,
 	concaveman,
-	spdep
-	
+	dplyr,
+	edgeR,
+	geoR,
+	ggplot2,
+	ggpolypath,
+	ggpubr,
+	janitor,
+	khroma,
+	limma,
+	magrittr,
+	progress,
+	raster,
+	RColorBrewer,
+	readr,
+	rlang,
+	sp,
+	spdep,
+	tibble,
+	tidyverse,
+	xCell
