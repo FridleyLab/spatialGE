@@ -1,26 +1,27 @@
 ##
-# This function takes a STList and normalize the count data matricies within it
-# in two steps. In the first step, (edgeR) normalization factors are used to scale
-# the counts from each library/spot. In the second step, limma-voom normalization
-# is applied. The resulting normalized count matrix is stored in the voom_counts
-# slot of the STList. The function also calculates gene-wise mean and standard
-# deviation from the normalized counts and stores them in the gene_stdev slot.
+#' @title voom_norm
+#' @description Applies voom to ST data.
+#' @details
+#' This function takes a STList and normalize the count data matrices within it
+#' in two steps. In the first step, (edgeR) normalization factors are used to scale
+#' the counts from each library/spot. In the second step, limma-voom normalization
+#' is applied. The resulting normalized count matrix is stored in the voom_counts
+#' slot of the STList. The function also calculates gene-wise mean and standard
+#' deviation from the normalized counts and stores them in the gene_stdev slot.
+#'
+#' NOTE_1: NEED TO IMPLEMENT GENE LENGTH-BASED NORMALIZATION (TPM?)
+#' NOTE_1_2: It does not seem like using lenghts improve or change a lot the
+#' kriging surfaces (at least visually).
+#' NOTE2: ADD MEAN-VAR PLOT TO THIS FUNCTION
+#'
+#' @param x, a STList with raw count matrices.
+#' @return x, an STList with normalized counts.
+#' @export
 #
-# NOTE: NEED TO IMPLEMENT GENE LENGTH-BASED NORMALIZATION (TPM?)
-# NOTE: ADD MEAN-VAR PLOT TO THIS FUNCTION
 #
-# @param x, a STList with raw count matrices.
-# @return x, an updated STList with normalized counts.
-#
-#
-# Load 'tidyverse' for tibble manipulation.
-# Load 'edgeR' and 'limma' for normalization.
-# require('tidyverse')
-# require('edgeR')
-# require('limma')
-require('magrittr')
-
 voom_norm <- function(x=NULL) {
+
+  require('magrittr')
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){

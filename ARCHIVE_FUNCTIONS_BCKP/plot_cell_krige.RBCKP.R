@@ -1,29 +1,17 @@
 ##
-#' @title plot_cell_krige
-#' @description Produces a kriging plot from cell scores.
-#' @details
-#' This function produces a kriging plot for a series of cell names and spatial
-#' arrays.
-#'
-#' @param x, an STList with kriging objects for the cells selected.
-#' @param cells, a vector of cell names within a deconvolution matrix (one or
-#' several) to plot.
-#' @param krige_type, either 'ord' (ordinary; default), or 'univ' (universal)
-#' kriging. Data for the respective kriging must be generated previously with
-#' cell_krige().
-#' @param plot_who, a vector of subject indexes as ordered within the STList, to
-#' plot cells from. If NULL, will plot for all subjects.
-#' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
-#' @param saveplot, logical indicating whether or not save plots in a PDF file.
-#' The PDFs are saved in the working directory. Default is FALSE, meaning plots
-#' are printed to console.
-#' @param pvalues, logical indicating whether or not dots where a given cell was
-#' predicted to be significantly abundant (p<0.05). Default is FALSE.
-#' @export
+# This function produces a kriging plot for a series of cell names and subjects.
+#
+# @param x, an STList with kriging objects for the cells selected.
+# @param genes, a vector of cell names (one or several) to plot.
+# @param plot_who, a vector of subject indexes as ordered within the STList, to
+# plot cells from. If NULL, will plot for all subjects.
+# @color_pal, a scheme from 'khroma'.
+# @param saveplot, a file path where quilt plots will be saved. If NULL, plots
+# are printed to console
 #
 #
 plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
-           color_pal='YlOrBr', saveplot=F, pvalues=F){
+           color_pal='YlOrBr', saveplot=NULL, pvalues=F){
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
@@ -35,11 +23,11 @@ plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
     plot_who <- c(1:length(x@counts))
   }
 
-  # if(!is.null(saveplot)){
-  #   if(dir.exists(paste0(saveplot))){
-  #     unlink(paste0(saveplot), recursive=T)
-  #   }
-  # }
+  if(!is.null(saveplot)){
+    if(dir.exists(paste0(saveplot, "/cell_krige_plots"))){
+      unlink(paste0(saveplot, "/cell_krige_plots"), recursive=T)
+    }
+  }
 
   # Loop through each of ythe subjects.
   for (i in plot_who) {
@@ -74,10 +62,10 @@ plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
 
       # Get coordinates of bounding box enclosing the predicted grid.
       bbox<-rbind(
-        c(min(predict_grid$Var1)-1, max(predict_grid$Var2)+1),
-        c(max(predict_grid$Var1)+1, max(predict_grid$Var2)+1),
-        c(max(predict_grid$Var1)+1, min(predict_grid$Var2)-1),
-        c(min(predict_grid$Var1)-1, min(predict_grid$Var2)-1)
+        c(min(predict_grid$Var1), max(predict_grid$Var2)),
+        c(max(predict_grid$Var1), max(predict_grid$Var2)),
+        c(max(predict_grid$Var1), min(predict_grid$Var2)),
+        c(min(predict_grid$Var1), min(predict_grid$Var2))
       )
       bbox <- as.data.frame(bbox)
       names(bbox) <- c("V1", "V2")
@@ -134,16 +122,17 @@ plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
 
       # Append plot to list.
       kp_list[[cell]] <- kp
+
     }
 
     # Define number of columns and rows in plot and size.
     row_col <- c(2, 2)
-    w_pdf=9
+    w_pdf=11
     h_pdf=9
     if(length(cells) == 2){
       row_col <- c(1, 2)
-      w_pdf=9
-      h_pdf=4.5
+      w_pdf=11
+      h_pdf=5
     }else if(length(cells) == 1){
       row_col <- c(1, 1)
       w_pdf=7
@@ -151,17 +140,17 @@ plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
     }
 
     # Test if a filepath to save plots is available.
-    if(saveplot){
-      #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("cell_krige_spat_array_", i, ".pdf"),
+    if(!is.null(saveplot)){
+      dir.create(paste0(saveplot, "/cell_krige_plots"), recursive=T, showWarnings=F)
+      pdf(file=paste0(saveplot, "/cell_krige_plots/spat_array_", i, ".pdf"),
           width=w_pdf, height=h_pdf)
-      print(ggpubr::ggarrange(plotlist=kp_list,
-                          nrow=row_col[1], ncol=row_col[2]))
+      print(
+        ggpubr::ggarrange(plotlist=kp_list, nrow=row_col[1], ncol=row_col[2]))
       dev.off()
     }else{
       # Print plots to console.
       print(ggpubr::ggarrange(plotlist=kp_list,
-                          nrow=row_col[1], ncol=row_col[2]))
+                              nrow=row_col[1], ncol=row_col[2]))
     }
   }
 }

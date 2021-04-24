@@ -1,8 +1,11 @@
 ##
+#' @title gene_moran_I
+#' @description Calculates Moran's I from ST data.
+#' @details
 #' This function takes an STList and a vector with HUGO gene names and returns
 #' Morans' I for each element of the vector.
 #'
-#' @param x, a STList with normalized gene counts.
+#' @param x, an STList with normalized gene counts.
 #' @param genes, a vector with gene names in the normalized count matrix.
 #' @param subj, the index of the spatial array for which the statistic
 #' will be calculated.

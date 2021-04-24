@@ -1,13 +1,19 @@
 ##
-# This function produces a quilt plot for a series of HUGO gene names and subjects.
-#
-# @param x, an STList with voom-norm counts.
-# @param genes, a vector of gene names (one or several) to plot.
-# @param plot_who, a vector of subject indexes as ordered within the STList, to
-# plot genes from. If NULL, will plot for all subjects.
-# @color_pal, a scheme from 'khroma'.
-# @param saveplot, a file path where quilt plots will be saved. If NULL, plots
-# are printed to console
+#' @title plot_gene_quilt
+#' @description Produces a quilt plot from ST data.
+#' @details
+#' This function produces a quilt plot for a series of HUGO gene names and spatial
+#' arrays
+#'
+#' @param x, an STList with voom-norm counts.
+#' @param genes, a vector of gene names (one or several) to plot.
+#' @param plot_who, a vector of subject indexes as ordered within the STList, to
+#' plot genes from. If NULL, will plot for all subjects.
+#' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
+#' @param saveplot, logical indicating whether or not save plots in a PDF file.
+#' The PDFs are saved in the working directory. Default is FALSE, meaning plots
+#' are printed to console.
+#' @export
 #
 #
 plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,

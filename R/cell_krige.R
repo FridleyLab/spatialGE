@@ -1,14 +1,15 @@
 ##
-#' Performs spatial interpolation ('kriging') of deconvoluted cell scores in spatially-resolved
-#' transcriptomics data.
-#'
+#' @title cell_krige
+#' @description Performs spatial interpolation ('kriging') of deconvoluted cell
+#' scores in spatially-resolved transcriptomics data.
+#' @details
 #' This function takes a STList and a vector of xCell cell names, or the token 'top' for
 #' the 10 cells with the highest standard deviation. It also calculates spatial heterogeneity
 #' statistics for the cell scores. The function can perform ordinary or universal kriging.
 #' The result can be plotted using the plot_cell_krige() function. The stroma score from
 #' xCell is automatically kriged.
-#
-#' @param x, a STList with transformed xCell scores.
+#'
+#' @param x, an STList with transformed xCell scores.
 #' @param cells, a vector of cell names or 'top'. If 'top' (default), kriging for the 10
 #' cells with highest standard deviation is estimated.
 #' @param univ, a logical stating whether or not to perform universal or ordinary kriging.
@@ -21,8 +22,9 @@
 #' @export
 #
 #
-require('rlang')
 cell_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
+
+  require('rlang')
 
   # Test that a cell name was entered.
   if (is.null(cells)) {

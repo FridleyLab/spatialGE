@@ -1,13 +1,22 @@
 ##
-# This function produces a kriging plot for a series of HUGO gene names and subjects.
-#
-# @param x, an STList with kriging objects for the genes selected.
-# @param genes, a vector of gene names (one or several) to plot.
-# @param plot_who, a vector of subject indexes as ordered within the STList, to
-# plot genes from. If NULL, will plot for all subjects.
-# @color_pal, a scheme from 'khroma'.
-# @param saveplot, a file path where quilt plots will be saved. If NULL, plots
-# are printed to console
+#' @title plot_gene_krige
+#' @description Produces a kriging plot from ST data.
+#' @details
+#' This function produces a kriging plot for a series of HUGO gene names and
+#' spatial arrays.
+#'
+#' @param x, an STList with kriging objects for the genes selected.
+#' @param genes, a vector of gene names (one or several) to plot.
+#' @param krige_type, either 'ord' (ordinary; default), or 'univ' (universal)
+#' kriging. Data for the respective kriging must be generated previously with
+#' cell_krige().
+#' @param plot_who, a vector of subject indexes as ordered within the STList, to
+#' plot genes from. If NULL, will plot for all subjects.
+#' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
+#' @param saveplot, logical indicating whether or not save plots in a PDF file.
+#' The PDFs are saved in the working directory. Default is FALSE, meaning plots
+#' are printed to console.
+#' @export
 #
 #
 plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,

@@ -1,4 +1,4 @@
-Package: spatialGE-dev
+Package: spatialGEdev
 Title: Visualization and Analysis of Spatial Heterogeneity in Spatially-Resolved Transcriptomics Data
 Version: 0.0.0.9000
 Authors@R: c(
@@ -6,10 +6,10 @@ Authors@R: c(
            family = "Ospina",
            role = c("aut", "cre"),
            email = "Oscar.Ospina@Moffitt.org",
-           comment = c(ORCID = "0000-0001-5986-4207"))
+           comment = c(ORCID = "0000-0001-5986-4207")),
     person(given = "Brooke",
            family = "Fridley",
-           role = c("aut", "cre"),
+           role = c("aut"),
            email = "Brooke.Fridley@Moffitt.org",
            comment = c(ORCID = "0000-0001-7739-7956"))
            )
@@ -41,3 +41,7 @@ Imports:
 	tibble,
 	tidyverse,
 	xCell
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

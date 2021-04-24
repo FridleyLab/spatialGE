@@ -1,8 +1,11 @@
 ##
+#' @title cell_moran_I
+#' @description Calculates Moran's I from cell deconvolution scores in ST data.
+#' @details
 #' This function takes an STList and a vector with cell names (from xCell, for
 #' example) and returns Moran's I for each element of the vector.
 #'
-#' @param x, a STList with deconvoluted cell data.
+#' @param x, an STList with deconvoluted cell data.
 #' @param cells, a vector of cell names present in the deconvolution matrix.
 #' @param subj, an integer indicating the spatial array for which the statistic
 #' will be calculated.

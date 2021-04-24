@@ -1,28 +1,33 @@
 ##
+#' @title krige_p_pvals
+#' @description Creates a kriging plot from ST data with xCell pvalues.
+#' @details
 #' Function to produce a "kriging plot" from a data frame with three columns:
 #' x coordinates, y coordinates, and predicted kriging values. The data frame has
 #' column names 'x_pos', 'y_pos', and 'krige'. The function also takes a
 #' SpatialPolygons object to mask the predicted grid to the area of the tissue.
 #' It also takes a color palette name from the 'khroma' package. Finally, it
-#' takes a name for the color legend title.
+#' takes a name for the color legend title. Finally, the function overlays dots
+#' for spots in which significant p-values (<0.05) were observed for a cell type.
 #'
 #' @param data_f, a data with three columns: x coordinates, y coordinates, and
 #' the kriging prediction values to be plotted.
 #' @param mask, an object of class SpatialPolygons containing a large polygon
 #' encasing all the predicted grid, and a smaller polygon drawing the concave hull
 #' of the tissue shape.
-#' @param color_pal, a scheme from 'khroma'.
+#' @param color_pal, a scheme from 'khroma'. Defaul is 'YlOrBr'
 #' @param leg_name, a short name for the legend title.
 #' @param title_name, a short name for the plot title.
-#' @param x, a STList from where coordinates will be taken.
+#' @param x, an STList from where coordinates will be taken.
 #' @param plot_who, an integer indicating the spatial array to be plotted.
 #' @param cell, a cell name from a deconvoluted matrix.
 #' @return, a ggplot object.
 #
 #
-require('ggplot2')
 krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
                     title_name='', x=NULL, plot_who=NULL, cell=NULL){
+
+  require('ggplot2')
 
   # Creates color palette function.
   p_palette <- khroma::colour(color_pal)

@@ -1,30 +1,33 @@
 ##
-# This function takes two files with with file paths of count matrices and
-# coordinates, one per line. The files containing the counts must have gene names
-# in the first column and counts from sampled localities in subsequent columns.
-# The coordinate files must have a first column containing the same identifiers
-# of the sampled locations as in in the corresponding count file, and x, y positions
-# of the samples. The coordinate data should not have column names. The function
-# returns an STList object to be used in spatial transcriptomics analysis.
+#' @title STList
+#' @description Creates an STList object.
+#' @details
+#' This function takes two files with with file paths of count matrices and
+#' coordinates, one per line. The files containing the counts must have gene names
+#' in the first column and counts from sampled localities in subsequent columns.
+#' The coordinate files must have a first column containing the same identifiers
+#' of the sampled locations as in in the corresponding count file, and x, y positions
+#' of the samples. The coordinate data should not have column names. The function
+#' returns an STList object to be used in spatial transcriptomics analysis.
+#' Additionally, the function can also take a comma separated file with clinical
+#' or phenotype data from the samples.
+#'
+#' @param countfiles, the path of a file containing filepaths (one per line) of the
+#' files containing the count data.
+#' @param coords, the path of a file containing filepaths (one per line) of the
+#' files containing the coordinate data.
+#' @param clinical, the file path or data frame containing clinical data associated
+#' with the count data.
+#' NOTE: This clinical data frame needs more thinking! What to do with it? format?
+#' @return x, the STList object containing the counts and coordinates.
+#' @export
 #
-# @param countfiles, the path of a file containing filepaths (one per line) of the
-# files containing the count data.
-# @param coords, the path of a file containing filepaths (one per line) of the
-# files containing the coordinate data.
-# @param clinical, the file path or data frame containing clinical data associated
-# with the count data.
-# NOTE: This clinical data frame needs more thinking! What to do with it? format?
-# @return, the STList object containing the counts and coordinates.
 #
-#
-# Load 'tidyverse' for tibble manipulation.
-# Load 'magrittr' in case piping was not enabled by 'tidyverse'
-# require('tidyverse')
-require('magrittr')
-
 STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
 
-  # Creates object class, expecting tibbles for counts and coordinates.
+  require('magrittr')
+
+  # Creates object class.
   setClass("STList", slots=list(counts="list",
                                 coords="list",
                                 clinical="tbl",

@@ -1,4 +1,7 @@
 ##
+#' @title krige_p
+#' @description Creates a kriging plot from ST data.
+#' @details
 #' Function to produce a "kriging plot" from a data frame with three columns:
 #' x coordinates, y coordinates, and predicted kriging values. The data frame has
 #' column names 'x_pos', 'y_pos', and 'krige'. The function also takes a
@@ -11,15 +14,16 @@
 #' @param mask, an object of class SpatialPolygons containing a large polygon
 #' encasing all the predicted grid, and a smaller polygon drawing the concave hull
 #' of the tissue shape.
-#' @param color_pal, a scheme from 'khroma'.
+#' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
 #' @param leg_name, a short name for the legend title.
 #' @param title_name, a short name for the plot title.
 #' @return, a ggplot object.
 #
 #
-require('ggplot2')
 krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
                     title_name=''){
+
+  require('ggplot2')
 
   # Creates color palette function.
   p_palette <- khroma::colour(color_pal)

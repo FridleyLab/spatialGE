@@ -1,13 +1,20 @@
 ##
-# This function produces a quilt plot for a series cell names and subjects.
-#
-# @param x, an STList with cell deconvolution matrices.
-# @param cells, a vector of cell names (one or several) to plot.
-# @param plot_who, a vector of subject indexes as ordered within the STList, to
-# plot genes from. If NULL, will plot for all subjects.
-# @color_pal, a scheme from 'khroma'.
-# @param saveplot, a file path where quilt plots will be saved. If NULL, plots
-# are printed to console
+#' @title plot_cell_quilt
+#' @description Produces a quilt plot from cell scores.
+#' @details
+#' This function produces a quilt plot for a series cell names and spatial
+#' arrays.
+#'
+#' @param x, an STList with deconvolution matrices containing the cell names.
+#' @param cells, a vector of cell names within a deconvolution matrix (one or
+#' several) to plot.
+#' @param plot_who, a vector of subject indexes as ordered within the STList, to
+#' plot cells from. If NULL, will plot for all subjects.
+#' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
+#' @param saveplot, logical indicating whether or not save plots in a PDF file.
+#' The PDFs are saved in the working directory. Default is FALSE, meaning plots
+#' are printed to console.
+#' @export
 #
 #
 plot_cell_quilt <- function(x = NULL, cells=NULL, plot_who=NULL,

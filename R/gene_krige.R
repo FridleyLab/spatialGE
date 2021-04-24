@@ -1,13 +1,14 @@
 ##
-#' Performs spatial interpolation ('kriging') of normalized gene counts in spatially-resolved
-#' transcriptomics data.
-#'
+#' @title gene_krige
+#' @description Performs spatial interpolation ('kriging') of normalized gene
+#' counts in spatially-resolved transcriptomics data.
+#' @details
 #' This function takes a STList and a vector of gene names, or the token 'top' for the 10
 #' genes with the highest standard deviation. It also calculates spatial heterogeneity
 #' statistics for the genes counts. The function can perform ordinary or universal kriging.
 #' The result can be plotted using the plot_gene_krige() function.
 #'
-#' @param x, a STList with normalized counts
+#' @param x, an STList with normalized counts
 #' @param genes, a vector of HUGO names or 'top'. If 'top' (default), kriging for the 10
 #' genes with highest standard deviation is estimated.
 #' @param univ, a logical stating whether or not to perform universal or ordinary kriging.
@@ -20,8 +21,9 @@
 #' @export
 #
 #
-require('rlang')
 gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
+
+  require('rlang')
 
   # Test that a gene name was entered.
   if (is.null(genes)) {

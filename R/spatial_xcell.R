@@ -1,20 +1,21 @@
 ##
-# This function applies xCell to the stored normalized matrices in order to obtain
-# cell scores for each of the library/spots. The results are stored as untransformed,
-# and square-root transformed scores. Stroma/Tumor scores are stored in a different
-# slot.
+#' @title spatial_xcell
+#' @description Applies xCell to ST data.
+#' @details
+#' This function applies xCell to the stored normalized matrices in order to obtain
+#' cell scores for each of the library/spots. The results are stored as untransformed,
+#' and square-root transformed scores. Stroma/Tumor scores are stored in a different
+#' slot.
+#'
+#' @param x, a STList with normalized count matrices.
+#' @return x, an updated STList with xCell scores.
+#' @export
 #
-# @param x, a STList with normalized count matrices.
-# @return x, an updated STList with xCell scores.
 #
-#
-# require('tidyverse')
-# require('xCell')
-# require('janitor')
-require('magrittr')
-require('xCell') # Needs to be 'required' because of databases loaded by packages.
-
 spatial_xcell <- function(x=NULL){
+
+  require('magrittr')
+  require('xCell') # Needs to be 'required' because of databases loaded by packages.
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){
