@@ -10,21 +10,21 @@
 #
 #
 # Set object class.
-setClass("STList", slots=list(counts="list",
-                              coords="list",
-                              clinical="tbl",
-                              voom_counts="list",
-                              gene_stdev="list",
-                              gene_het="list",
-                              gene_krige="list",
-                              cell_deconv="list",
-                              cell_stdev="list",
-                              cell_het="list",
-                              cell_krige="list",
-                              prediction_grid="list",
-                              prediction_border="list"
-),
-)
+# setClass("STList", slots=list(counts="list",
+#                               coords="list",
+#                               clinical="tbl",
+#                               voom_counts="list",
+#                               gene_stdev="list",
+#                               gene_het="list",
+#                               gene_krige="list",
+#                               cell_deconv="list",
+#                               cell_stdev="list",
+#                               cell_het="list",
+#                               cell_krige="list",
+#                               prediction_grid="list",
+#                               prediction_border="list"
+# ),
+# )
 
 setMethod("show", signature="STList",
           function(object){
@@ -32,7 +32,7 @@ setMethod("show", signature="STList",
             cat(length(object@counts), "spatial arrays.\n")
 #            cat((dim(x@counts)[2]-1), "sampled positions.\n")
 #            cat(dim(x@counts)[1], "features/genes.")
-            if(!is_empty(object@clinical)){
+            if(!rlang::is_empty(object@clinical)){
               cat(paste0((ncol(object@clinical)-1),
                 " variables in clinical data."))
             }

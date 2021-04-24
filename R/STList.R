@@ -27,22 +27,22 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
 
   require('magrittr')
 
-  # Creates object class.
-  setClass("STList", slots=list(counts="list",
-                                coords="list",
-                                clinical="tbl",
-                                voom_counts="list",
-                                gene_stdev="list",
-                                gene_het="list",
-                                gene_krige="list",
-                                cell_deconv="list",
-                                cell_stdev="list",
-                                cell_het="list",
-                                cell_krige="list",
-                                prediction_grid="list",
-                                prediction_border="list"
-  ),
-  )
+  # # Creates object class.
+  # setClass("STList", slots=list(counts="list",
+  #                               coords="list",
+  #                               clinical="tbl",
+  #                               voom_counts="list",
+  #                               gene_stdev="list",
+  #                               gene_het="list",
+  #                               gene_krige="list",
+  #                               cell_deconv="list",
+  #                               cell_stdev="list",
+  #                               cell_het="list",
+  #                               cell_krige="list",
+  #                               prediction_grid="list",
+  #                               prediction_border="list"
+  # ),
+  # )
 
   # Test if counts and coords are NULL. If so, print error.
   if(is.null(countfiles) | is.null(coordfiles)){
