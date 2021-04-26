@@ -1,4 +1,4 @@
-# spatialGEdev <img src="spatialGE_logo.png" align="right" height="139" />
+# spatialGEdev <img src="figures/spatialGE_logo.png" align="right" height="139" />
 
 An R package for the visualization and analysis of spatially resolved transcriptomics data.
 The functions in spatialGE allow for the study of gene expression in tissue sections via 
