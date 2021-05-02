@@ -75,23 +75,24 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
 
     # Define number of columns and rows in plot and size.
     row_col <- c(2, 2)
-    w_pdf=9
-    h_pdf=9
+#    w_pdf=9
+#    h_pdf=9
     if(length(genes) == 2){
       row_col <- c(1, 2)
-      w_pdf=9
-      h_pdf=4.5
+#      w_pdf=9
+#      h_pdf=4.5
     }else if(length(genes) == 1){
       row_col <- c(1, 1)
-      w_pdf=7
-      h_pdf=7
+#      w_pdf=7
+#      h_pdf=7
     }
 
     # Test if a filepath to save plots is available.
     if(saveplot){
       #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("gene_quilt_spat_array_", i, ".pdf"),
-          width=w_pdf, height=h_pdf)
+      pdf(file=paste0("gene_quilt_spat_array_", i, ".pdf")#,
+          #width=w_pdf, height=h_pdf
+          )
       print(ggpubr::ggarrange(plotlist=qp_list,
                               nrow=row_col[1], ncol=row_col[2]))
       dev.off()

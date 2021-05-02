@@ -42,6 +42,7 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
     ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"#,
                               #color='white', size=0
                               ) +
+    coord_fixed() +
     theme_classic() +
     theme(legend.position="right", plot.title=element_text(size=10))
 

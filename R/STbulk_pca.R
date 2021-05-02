@@ -1,5 +1,5 @@
 ##
-#' @title STBulk_pca
+#' @title STbulk_pca
 #' @description Perform and plot a PCA of simulated bulk RNA-Seq ST data.
 #' @details
 #' This function takes an STList and optionally the name of a clinical variable
@@ -24,6 +24,9 @@ STbulk_pca <- function(x=NULL, clinvar=NULL) {
 
   if(!is.null(clinvar)){
     clinvar_vals <- as.character(x@clinical[[clinvar]])
+    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='var_vals')
+  }else{
+    clinvar_vals <- as.character(1:length(x@counts))
     clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='var_vals')
   }
 
@@ -69,7 +72,7 @@ STbulk_pca <- function(x=NULL, clinvar=NULL) {
 
   pca_expr <- prcomp(bulkvoom_mx, scale=TRUE)
 
-  pca_tbl <- tibble::as.tibble(pca_expr$x)
+  pca_tbl <- tibble::as_tibble(pca_expr$x)
   pca_tbl <- pca_tbl %>%
     tibble::add_column(clinvar_vals, .before=1)
 

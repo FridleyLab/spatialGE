@@ -33,6 +33,7 @@ quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
     labs(color=leg_name) +
     theme_classic() +
     ggtitle(title_name) +
+    coord_fixed() +
     theme(legend.position="right")
 
   return(p)
