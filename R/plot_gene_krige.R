@@ -132,8 +132,9 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
     # Test if a filepath to save plots is available.
     if(saveplot){
       #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("gene_krige_spat_array_", i, ".pdf"),
-          width=w_pdf, height=h_pdf)
+      pdf(file=paste0("gene_krige_spat_array_", i, ".pdf")#,
+          #width=w_pdf, height=h_pdf
+          )
       print(ggpubr::ggarrange(plotlist=kp_list,
                               nrow=row_col[1], ncol=row_col[2]))
       dev.off()
