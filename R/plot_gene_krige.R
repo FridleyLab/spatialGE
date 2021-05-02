@@ -96,6 +96,20 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
       geary_est <- round(as.vector(x@gene_het[[gene]][[i]]$gearys_C$estimate[[1]]), 2)
       getis_est <- round(as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
 
+      moran_p <- as.vector(x@gene_het[[gene]][[i]]$morans_I$p.value)
+      geary_p <- as.vector(x@gene_het[[gene]][[i]]$gearys_C$p.value)
+      getis_p <- as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$p.value)
+
+      if(moran_p < 0.05){
+        moran_est <- paste0(moran_est, '*')
+      }
+      if(geary_p < 0.05){
+        geary_est <- paste0(geary_est, '*')
+      }
+      if(getis_p < 0.05){
+        getis_est <- paste0(getis_est, '*')
+      }
+
       # Construct title.
       if(krige_type == 'ord'){
         titlekrige <- paste0(gene, ", subj ", i, " - ordinary kriging voom-norm counts\nMorans I=",

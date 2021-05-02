@@ -44,7 +44,7 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
                               ) +
     coord_fixed() +
     theme_classic() +
-    theme(legend.position="right", plot.title=element_text(size=10))
+    theme(legend.position="right", plot.title=element_text(size=8))
 
   return(p)
 
