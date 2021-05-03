@@ -99,6 +99,21 @@ plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
         moran_est <- round(as.vector(x@cell_het[[cell]][[i]]$morans_I$estimate[[1]]), 2)
         geary_est <- round(as.vector(x@cell_het[[cell]][[i]]$gearys_C$estimate[[1]]), 2)
         getis_est <- round(as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
+
+        moran_p <- as.vector(x@gene_het[[gene]][[i]]$morans_I$p.value)
+        geary_p <- as.vector(x@gene_het[[gene]][[i]]$gearys_C$p.value)
+        getis_p <- as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$p.value)
+
+        if(moran_p < 0.05){
+          moran_est <- paste0(moran_est, '*')
+        }
+        if(geary_p < 0.05){
+          geary_est <- paste0(geary_est, '*')
+        }
+        if(getis_p < 0.05){
+          getis_est <- paste0(getis_est, '*')
+        }
+
       }
 
       # Construct title.
@@ -138,23 +153,24 @@ plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
 
     # Define number of columns and rows in plot and size.
     row_col <- c(2, 2)
-    w_pdf=9
-    h_pdf=9
+#    w_pdf=9
+#    h_pdf=9
     if(length(cells) == 2){
       row_col <- c(1, 2)
-      w_pdf=9
-      h_pdf=4.5
+#      w_pdf=9
+#      h_pdf=4.5
     }else if(length(cells) == 1){
       row_col <- c(1, 1)
-      w_pdf=7
-      h_pdf=7
+#      w_pdf=7
+#      h_pdf=7
     }
 
     # Test if a filepath to save plots is available.
     if(saveplot){
       #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("cell_krige_spat_array_", i, ".pdf"),
-          width=w_pdf, height=h_pdf)
+      pdf(file=paste0("cell_krige_spat_array_", i, ".pdf")#,
+          #width=w_pdf, height=h_pdf
+          )
       print(ggpubr::ggarrange(plotlist=kp_list,
                           nrow=row_col[1], ncol=row_col[2]))
       dev.off()
