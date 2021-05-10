@@ -22,8 +22,8 @@
 #' @export
 #
 #
-plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
-           color_pal='YlOrBr', saveplot=F, pvalues=F){
+plot_purity_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
+           color_pal='YlOrBr', saveplot=F){
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
@@ -100,9 +100,9 @@ plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
         geary_est <- round(as.vector(x@cell_het[[cell]][[i]]$gearys_C$estimate[[1]]), 2)
         getis_est <- round(as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
 
-        moran_p <- as.vector(x@cell_het[[cell]][[i]]$morans_I$p.value)
-        geary_p <- as.vector(x@cell_het[[cell]][[i]]$gearys_C$p.value)
-        getis_p <- as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$p.value)
+        moran_p <- as.vector(x@gene_het[[gene]][[i]]$morans_I$p.value)
+        geary_p <- as.vector(x@gene_het[[gene]][[i]]$gearys_C$p.value)
+        getis_p <- as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$p.value)
 
         if(moran_p < 0.05){
           moran_est <- paste0(moran_est, '*')

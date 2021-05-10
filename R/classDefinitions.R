@@ -7,10 +7,11 @@ setClass("STList", slots=list(counts="list",
                               gene_het="list",
                               gene_krige="list",
                               cell_deconv="list",
-                              cell_stdev="list",
+                              #cell_stdev="list",
                               cell_het="list",
                               cell_krige="list",
-                              prediction_grid="list",
+                              #purity_krige="list",
+                              #prediction_grid="list",
                               prediction_border="list"
 ),
 )

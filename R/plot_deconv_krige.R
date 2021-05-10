@@ -1,5 +1,5 @@
 ##
-#' @title plot_cell_krige
+#' @title plot_deconv_krige
 #' @description Produces a kriging plot from cell scores.
 #' @details
 #' This function produces a kriging plot for a series of cell names and spatial
@@ -22,7 +22,7 @@
 #' @export
 #
 #
-plot_cell_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
+plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
            color_pal='YlOrBr', saveplot=F, pvalues=F){
 
   # Test that a cell name was entered.

@@ -12,7 +12,7 @@
 #' @export
 #
 #
-STbulk_pca <- function(x=NULL, clinvar=NULL) {
+STbulk_pca <- function(x=NULL, clinvar=NULL, color_pal="vibrant") {
 
   require('magrittr')
   require('ggplot2')
@@ -24,10 +24,10 @@ STbulk_pca <- function(x=NULL, clinvar=NULL) {
 
   if(!is.null(clinvar)){
     clinvar_vals <- as.character(x@clinical[[clinvar]])
-    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='var_vals')
+    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name=as.character(clinvar))
   }else{
     clinvar_vals <- as.character(1:length(x@counts))
-    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='var_vals')
+    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name=as.character(clinvar))
   }
 
   # Create data frame to store "bulk counts".
@@ -76,8 +76,26 @@ STbulk_pca <- function(x=NULL, clinvar=NULL) {
   pca_tbl <- pca_tbl %>%
     tibble::add_column(clinvar_vals, .before=1)
 
+  # Get color palette and number of colors needed.
+  p_palette <- khroma::colour(color_pal)
+  n_cats <- nlevels(as.factor(pca_tbl[[clinvar]]))
+
+  cat_cols <- as.vector(p_palette(n_cats))
+  names(cat_cols) <- levels(as.factor(pca_tbl[[clinvar]]))
+  cat_shapes <- (16:25)[1:n_cats]
+  names(cat_shapes) <- levels(as.factor(pca_tbl[[clinvar]]))
+
+# assign('test', pca_tbl, envir = .GlobalEnv)
+ # assign('clin', clinvar, envir = .GlobalEnv)
+
   ggplot(pca_tbl) +
-    geom_point(aes(x=PC1, y=PC2, col=var_vals)) +
+    geom_point(aes(x=PC1, y=PC2,
+                   shape=get(clinvar),
+                   color=get(clinvar)),
+               size=3) +
+    scale_color_manual(clinvar, values=cat_cols) +
+    scale_shape_manual(clinvar, values=cat_shapes) +
+    coord_fixed() +
     theme_classic()
 
 }

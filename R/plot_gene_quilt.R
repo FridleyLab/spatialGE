@@ -17,7 +17,7 @@
 #
 #
 plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
-                            color_pal='YlOrBr', saveplot=F){
+                            color_pal='YlOrBr', purity=F, saveplot=F){
 
   #  moran_est <- round(as.vector(x@gene_het[[gene]]$morans_I$estimate[[1]]), 2)
   #  geary_est <- round(as.vector(x@gene_het[[gene]]$gearys_C$estimate[[1]]), 2)
@@ -60,9 +60,16 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
         df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
         colnames(df) <- c('x_pos', 'y_pos', 'values')
 
+        if(purity){
+          df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+          qp <- quilt_p_purity(data_f=df, leg_name="norm_expr", color_pal=color_pal,
+                               title_name=paste0(gene, " - ", "subj ", i))
+        }else{
         # The color palette function in khroma is created by quilt_p() function.
-        qp <- quilt_p(data_f=df, leg_name="norm_expr", color_pal=color_pal,
-                      title_name=paste0(gene, " - ", "subj ", i))
+          qp <- quilt_p(data_f=df, leg_name="norm_expr", color_pal=color_pal,
+                        title_name=paste0(gene, " - ", "subj ", i))
+        }
+
       } else{
         # If gene is not in the matrix, move to next gene.
         cat(paste(gene, "is not a gene in the normalized count matrix."))

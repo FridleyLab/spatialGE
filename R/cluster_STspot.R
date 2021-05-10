@@ -1,17 +1,15 @@
 ##
-#' @title STspot_pca
-#' @description Perform and plot a PCA of simulated bulk RNA-Seq ST data.
+#' @title cluster_STspot
+#' @description Perform {INSERT CLUSTER ALGORITHM HERE :|} of spots within ST array.
 #' @details
-#' This function takes an STList and optionally the name of a clinical variable
-#' and performs PCA on simulated bulk RNA-Seq from ST data. The counts are simulated
-#' by summing all counts from an array for a given gene.
+#' yadda yadda yadda
 #'
 #' @param x, an STList.
 #' @param who, an integer indicating the spatial array to be analyzed.
 #' @export
 #
 #
-STspot_pca <- function(x=NULL, who=NULL) {
+cluster_STspot <- function(x=NULL, who=NULL) {
 
   require('magrittr')
   require('ggplot2')

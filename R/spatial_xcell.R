@@ -4,12 +4,11 @@
 #' @details
 #' This function applies xCell to the stored normalized matrices in order to obtain
 #' cell scores for each of the library/spots. The results are stored as untransformed,
-#' and square-root transformed scores. Stroma/Tumor scores are stored in a different
-#' slot.
+#' square-root transformed scores, and p-values. Standard deviations are calculated
+#' for each cell type.
 #'
 #' @param x, a STList with normalized count matrices.
 #' @return x, an updated STList with xCell scores.
-#' @export
 #
 #
 spatial_xcell <- function(x=NULL){
@@ -30,24 +29,18 @@ spatial_xcell <- function(x=NULL){
   # Get number of cores available for deconvolution.
   cores <- parallel::detectCores()
 
+  # Create slot to store xCell results.
+  x@cell_deconv[['xCell']] <- list()
 
   for(i in 1:length(x@voom_counts)){
 
-    # Creates list for a given spatial array.
-    x@cell_deconv[[i]] <- list()
-
-    # Store name of deconvolution method.
-    x@cell_deconv[[i]]$deconv_method <- 'xCell'
+    # Create slot for spatial array within xCell slot.
+    x@cell_deconv[['xCell']][[i]] <- list()
 
     # Extract count data.
     gene_names <- x@voom_counts[[i]]$gene
     df <- as.matrix(x@voom_counts[[i]][, -1])
     rownames(df) <- gene_names
-
-    # # Filter out genes with low variance.
-    # gene_var_mask <- y@gene_stdev$gene_stdevs <= 1.9
-    # discarded_genes <- sum(gene_var_mask)
-    # df <- df[!gene_var_mask, ]
 
     # Show progress.
     cat(paste0("Applying xCell to spatial array #", i, "...\n"))
@@ -77,32 +70,34 @@ spatial_xcell <- function(x=NULL){
     scores_xCell <- grep("immune_score|stroma_score|microenvironment_score",
                           unlist(df_xcell[, 1]))
     df_xcell_NoPurityScores <- df_xcell[-scores_xCell, ]
-    df_xcell_PurityScores <- df_xcell[scores_xCell, ]
+#    df_xcell_PurityScores <- df_xcell[scores_xCell, ]
 
     # Store untransformed and transformed scores.
-    x@cell_deconv[[i]]$deconv_matrix <- df_xcell_NoPurityScores
+    x@cell_deconv[['xCell']][[i]][['scores']] <- df_xcell_NoPurityScores
     df_xcell_sqrt <- sqrt(df_xcell_NoPurityScores[, -1])
     df_xcell_sqrt <- df_xcell_sqrt %>%
       tibble::add_column(df_xcell_NoPurityScores[, 1], .before=1)
-    x@cell_deconv[[i]]$transf_deconv_matrix <- df_xcell_sqrt
+    x@cell_deconv[['xCell']][[i]][['sqrt_scores']] <- df_xcell_sqrt
+
+    # Store p-values.
+    x@cell_deconv[['xCell']][[i]][['pvals']] <- xcell_pval
 
     # Store transformed tumor/stroma scores.
-    df_xcell_purity_sqrt <- sqrt(df_xcell_PurityScores[, -1])
-    df_xcell_purity_sqrt <- df_xcell_purity_sqrt %>%
-      tibble::add_column(df_xcell_PurityScores[, 1], .before=1)
-    x@cell_deconv[[i]]$transf_tumorstroma <- df_xcell_purity_sqrt
+#    df_xcell_purity_sqrt <- sqrt(df_xcell_PurityScores[, -1])
+#    df_xcell_purity_sqrt <- df_xcell_purity_sqrt %>%
+#      tibble::add_column(df_xcell_PurityScores[, 1], .before=1)
+#    x@cell_deconv[[i]]$transf_tumorstroma <- df_xcell_purity_sqrt
 
     # Calculate cell means and standard deviations, and store in object.
     cell_stdevs <- apply(as.data.frame(
-      x@cell_deconv[[i]]$transf_deconv_matrix[, -1]), 1, sd, na.rm=T)
-    cell_means <- rowMeans(x@cell_deconv[[i]]$transf_deconv_matrix[, -1], na.rm=T)
+      x@cell_deconv$xCell[[i]]$sqrt_scores[, -1]), 1, sd, na.rm=T)
+    cell_means <- rowMeans(
+      x@cell_deconv$xCell[[i]]$sqrt_scores[, -1], na.rm=T)
     cell_stdevs_df <- tibble::tibble(cell_means, cell_stdevs) %>%
       tibble::add_column(df_xcell_NoPurityScores[, 1], .before=1)
     names(cell_stdevs_df)[1] <- 'cell'
-    x@cell_stdev[[i]] <-
+    x@cell_deconv[['xCell']][[i]][['cell_stdev']] <- cell_stdevs_df
 
-    # Store p-values.
-    x@cell_deconv[[i]]$pvals <- xcell_pval
   }
 
   return(x)
