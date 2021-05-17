@@ -9,6 +9,7 @@ plot_gene_quilt(
   genes = NULL,
   plot_who = NULL,
   color_pal = "YlOrBr",
+  purity = F,
   saveplot = F
 )
 }

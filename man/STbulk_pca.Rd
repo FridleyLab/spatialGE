@@ -2,9 +2,9 @@
 % Please edit documentation in R/STbulk_pca.R
 \name{STbulk_pca}
 \alias{STbulk_pca}
-\title{STBulk_pca}
+\title{STbulk_pca}
 \usage{
-STbulk_pca(x = NULL, clinvar = NULL)
+STbulk_pca(x = NULL, clinvar = NULL, color_pal = "vibrant")
 }
 \arguments{
 \item{x, }{an STList.}

@@ -18,6 +18,6 @@ Applies xCell to ST data.
 \details{
 This function applies xCell to the stored normalized matrices in order to obtain
 cell scores for each of the library/spots. The results are stored as untransformed,
-and square-root transformed scores. Stroma/Tumor scores are stored in a different
-slot.
+square-root transformed scores, and p-values. Standard deviations are calculated
+for each cell type.
 }
