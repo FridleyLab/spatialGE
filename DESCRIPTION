@@ -41,8 +41,9 @@ Imports:
 	spdep,
 	tibble,
 	tidyverse,
-	xCell
+	xCell,
+	rmarkdown
 Suggests: 
     knitr,
     rmarkdown
-VignetteBuilder: knitr
+VignetteBuilder: knitr, rmarkdown

@@ -1,6 +1,6 @@
 ---
 title: "spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis"
-output: rmarkdown::melanoma_ST_vignette
+output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{spatialGE_tutorial}
   %\VignetteEngine{knitr::rmarkdown}
@@ -29,7 +29,7 @@ if("devtools" %in% rownames(installed.packages()) == FALSE) {
 
 After making sure `devtools` is installed, proceed to install `spatialGE`:
 ```{r}
-devtools::install_github("fridleylab/spatialGEdev", build_vignettes=TRUE)
+#devtools::install_github("fridleylab/spatialGEdev")
 ```
 
 To use `spatialGE`, load the package using the command:
@@ -111,5 +111,28 @@ object.
 ```{r}
 melanoma <- voom_norm(melanoma)
 ```
+
+## Visualization of gene expression from spatially-resolved transcriptomics data
+After normalization, expression of specific genes can be visualized using 'quilt' 
+plots. The function `plot_gene_quilt()` re-creates the shape of the spatial array
+and shows the scaled normalized expression of a gene. We have adopted the color 
+palettes from the package `khroma`. The color palette can be passed using the 
+argument `color_pal`. The default behavior of the function produces plots for all 
+spatial arrays in the STList, but we can define who should be plotted using the 
+argument `plot_who`.
+
+Let's produce a quilt plot for the gene CAPG and SOX10, two genes known to be 
+expressed in melanoma.
+```{r}
+plot_gene_quilt(melanoma, genes=c('CAPG', 'SOX10'), 
+                color_pal="YlOrBr", plot_who=1)
+```
+
+We can see that gene expression patterns of both genes is different, with a more
+compartmentalized pattern in CAPG, compared to SOX10. The area of lower CAPG
+expression corresponds to the melanoma pocket detected by Thrane et al. (see Figure 3
+of their study).
+
+## Spatial interpolation ('kriging') of gene expression
 
 
