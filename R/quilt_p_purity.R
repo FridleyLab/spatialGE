@@ -24,19 +24,19 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
   # Creates color palette function.
   p_palette <- khroma::colour(color_pal)
 
-  tumor_df <- data_f[data_f$cluster == 1, ]
-  stroma_df <- data_f[data_f$cluster == 2, ]
+  data_f$values <- data_f$values/max(data_f$values)
 
   # Create plot.
   p <- ggplot() +
-    geom_point(data=tumor_df, aes(x=x_pos, y=y_pos, fill=values, stroke=0), shape=24) +
-    geom_point(data=stroma_df, aes(x=x_pos, y=y_pos, fill=values, stroke=0), shape=22) +
+    geom_point(data=data_f, aes(x=x_pos, y=y_pos, fill=values, shape=as.factor(cluster), color=as.factor(cluster)), stroke=0.2) +
     scale_fill_gradientn(colours=p_palette(5)) +
+    scale_color_manual(values=c('white', 'gray50')) +
+    scale_shape_manual(values=c(21, 22)) +
+    guides(color=guide_legend(override.aes=list(color='black', stroke=0.5, size=2))) +
     xlab("X Position") +
     ylab("Y Position") +
-    labs(color=leg_name) +
+    labs(fill=leg_name, shape='tumor/stroma', color='tumor/stroma', title=title_name) +
     theme_classic() +
-    ggtitle(title_name) +
     coord_fixed() +
     theme(legend.position="right")
 

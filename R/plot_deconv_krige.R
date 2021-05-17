@@ -23,7 +23,7 @@
 #
 #
 plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
-           color_pal='YlOrBr', saveplot=F, pvalues=F){
+           color_pal='YlOrBr', saveplot=F, pvalues=F, purity=F){
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
@@ -139,10 +139,19 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
         }
       }
 
-      if(pvalues){
-        kp <- krige_p_pvals(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
+      if(purity | pvalues){
+        if(purity){
+          tumorstroma_df <- dplyr::bind_cols(x@coords[[i]],
+                                           cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+          kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
+                             tumorstroma=tumorstroma_df,
+                             leg_name="pred_score", title_name=titlekrige)
+        } else if(pvalues){
+          kp <- krige_p_pvals(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
                             title_name=titlekrige, x=x, plot_who=i, cell=cell)
-      }else{
+        }
+
+     } else{
         kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
                       title_name=titlekrige)
       }

@@ -17,7 +17,7 @@
 cell_moran_I <- function(x=NULL, cells=NULL, subj=NULL) {
 
   # Test if normalized cell data are available.
-  if(is_empty(x@cell_deconv[[subj]]$transf_deconv_matrix)){
+  if(is_empty(x@cell_deconv$xCell[[subj]]$sqrt_scores)){
     stop("There are no normalized cell data in STList.")
   }
 
@@ -28,12 +28,12 @@ cell_moran_I <- function(x=NULL, cells=NULL, subj=NULL) {
 
   for(cell in cells){
     # Test if cell name exists in normalized data.
-    if(!any(x@cell_deconv[[subj]]$transf_deconv_matrix[[1]] == cell)){
+    if(!any(x@cell_deconv$xCell[[subj]]$sqrt_scores[[1]] == cell)){
       stop(paste(cell, "is not a cell name in the normalized data."))
     }
 
     # Extract cell data (deconvoluted matrix) for a given cell.
-    cell_data <- unlist(x@cell_deconv[[subj]]$transf_deconv_matrix[x@cell_deconv[[subj]]$transf_deconv_matrix[[1]] == cell, -1])
+    cell_data <- unlist(x@cell_deconv$xCell[[subj]]$sqrt_scores[x@cell_deconv$xCell[[subj]]$sqrt_scores[[1]] == cell, -1])
 
     # Estimate statistic.
     moran_est <- spdep::moran.test(cell_data, spdep::mat2listw(subj_dists_inv))

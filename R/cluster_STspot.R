@@ -22,7 +22,7 @@ cluster_STspot <- function(x=NULL, who=NULL) {
   }
 
   # TEMPORARY VARIABLE... Intended to be part of a loop later.
-  who=3
+  who=1
   method='brunet'
   seed=123465
   #seed ='ica'
@@ -69,14 +69,17 @@ cluster_STspot <- function(x=NULL, who=NULL) {
   # bulkvoom_df <- bulkvoom_df %>%
   #   tibble::add_column(bulkcounts_df[, 1], .before=1)
 
-  bulkvoom_df <- x@voom_counts[[who]]
+  #bulkvoom_df <- x@voom_counts[[who]]
+  bulkvoom_df <- x@counts[[who]]
 
   spotlibs <- c('gene')
-  for(voomcol in 2:length(bulkvoom_df[, -1])){
+  for(voomcol in 2:ncol(bulkvoom_df[, -1])){
     if(sum(x@counts[[who]][, voomcol] > 0) > 500){
       spotlibs <- append(spotlibs, names(bulkvoom_df)[voomcol])
     }
   }
+
+  bulkvoom_df <- x@voom_counts[[who]]
 
   bulkvoom_subset_df <- bulkvoom_df[, names(bulkvoom_df) %in% spotlibs]
 
@@ -127,7 +130,7 @@ clustplots[[rank]] <- p1
 
 }
 
-pdf('~/Desktop/nmf_clusters_Subj3.pdf', width=9, height=5.5)
+pdf('~/Desktop/new_nmf_clusters_Subj3.pdf', width=9, height=5.5)
 gridExtra::grid.arrange(clustplots[[2]], clustplots[[3]], clustplots[[4]], clustplots[[5]])
 dev.off()
 

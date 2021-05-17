@@ -85,14 +85,13 @@ STbulk_pca <- function(x=NULL, clinvar=NULL, color_pal="vibrant") {
   cat_shapes <- (16:25)[1:n_cats]
   names(cat_shapes) <- levels(as.factor(pca_tbl[[clinvar]]))
 
-# assign('test', pca_tbl, envir = .GlobalEnv)
- # assign('clin', clinvar, envir = .GlobalEnv)
-
+# NOTE: INSTEAD OF NUMBERS, WOULD BE GREAT TO HAVE SAMPLE ID PLOTTED
   ggplot(pca_tbl) +
     geom_point(aes(x=PC1, y=PC2,
                    shape=get(clinvar),
                    color=get(clinvar)),
-               size=3) +
+               size=5) +
+    ggrepel::geom_text_repel(aes(x=PC1, y=PC2, label=as.character(1:length(x@counts)))) +
     scale_color_manual(clinvar, values=cat_cols) +
     scale_shape_manual(clinvar, values=cat_shapes) +
     coord_fixed() +

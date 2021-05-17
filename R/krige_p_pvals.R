@@ -32,12 +32,14 @@ krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='
   # Creates color palette function.
   p_palette <- khroma::colour(color_pal)
 
+  data_f$krige <- data_f$krige/max(data_f$krige)
+
   # Convert the SpatialPolygon mask into a data frame.
   mask_df <- fortify(mask)
 
   # Create data freame of points to be plotted where xCells scores were significant (p<0.05).
   cell_pvals <- unlist(
-    x@cell_deconv[[plot_who]]$pvals[x@cell_deconv[[plot_who]]$pvals$cell_names == cell, ])
+    x@cell_deconv$xCell[[plot_who]]$pvals[x@cell_deconv$xCell[[plot_who]]$pvals$cell_names == cell, ])
   cell_coords <- x@coords[[plot_who]]
   pvals_df <- dplyr::bind_cols(cell_coords, pval=cell_pvals[-1])
   pvals_sign <- pvals_df[pvals_df$pval < 0.05, ]
@@ -53,7 +55,7 @@ krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='
     ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"#,
                               #color='white', size=1.5
                               ) +
-    geom_point(data=pvals_sign, aes(x=X2, y=X3), size=0.5) +
+    geom_point(data=pvals_sign, aes(x=X2, y=X3), shape=1, alpha=0.25, size=0.5) +
     coord_fixed() +
     theme_classic() +
     theme(legend.position="right", plot.title=element_text(size=8))

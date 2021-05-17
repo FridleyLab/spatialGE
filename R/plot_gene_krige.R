@@ -20,7 +20,7 @@
 #
 #
 plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
-           color_pal='YlOrBr', saveplot=F){
+           color_pal='YlOrBr', purity=F, saveplot=F){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
@@ -122,9 +122,16 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
                              getis_est)
       }
 
-      kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
+      if(purity){
+        tumorstroma_df <- dplyr::bind_cols(x@coords[[i]],
+                                           cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+        kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
+                             tumorstroma=tumorstroma_df,
+                             leg_name="pred_expr", title_name=titlekrige)
+      } else{
+        kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
                     title_name=titlekrige)
-
+      }
       # Append plot to list.
       kp_list[[gene]] <- kp
     }
