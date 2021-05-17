@@ -29,7 +29,7 @@ if("devtools" %in% rownames(installed.packages()) == FALSE) {
 
 After making sure `devtools` is installed, proceed to install `spatialGE`:
 ```{r}
-devtools::install_github("fridleylab/spatialGEdev")
+devtools::install_github("fridleylab/spatialGEdev", build_vignettes=TRUE)
 ```
 
 To use `spatialGE`, load the package using the command:
@@ -67,9 +67,49 @@ clinical file must match that of the file paths.
 The example files in this tutorial can be downloaded from the GitHub repository (https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata), but can be 
 loaded into the STList using the following commands:
 ```{r}
+count_files <- system.file("extdata", "fpaths_count_files.txt", package = "spatialGEdev")
+coord_files <- system.file("extdata", "fpaths_mapping_files.txt", package = "spatialGEdev")
+clin_file <- system.file("extdata", "thrane_clinical.csv", package = "spatialGEdev")
 
+melanoma <- STList(countfiles = count_files, 
+                   coordfiles = coord_files,
+                   clinical = clin_file
+)
 ```
 
+The `melanoma` object is an STList, and contains the count data, spot coordinates,
+and clinical data.
+```{r}
+melanoma
+```
 
+## Exploring variation between spatial arrays
+The function `STbulk_pca()` allows for a quick snapshot of the variation in gene
+expression among samples. The function creates 'bulk' RNA-Seq data sets by combining
+all counts from a spatial array. Then, it applies limma-voom normalization to these
+'bulk' RNA-Seq libraries and performs a PCA. Note that spatial (x,y) coordinate 
+information is not included in this analysis, which is intended as a tool for 
+data exploration. In this case, we apply the function to look for agreement between
+samples from the same patient: it is expected that tissue slices from the same patient
+are more similar between them, than slices from other patients. The `STbulk_pca()`
+allows to map a clinical variable to the PCA (gender in this example), by including
+the exact name of the column from the clinical/phenotype file.
+```{r}
+STbulk_pca(melanoma, clinvar='Gender')
+```
+
+## Data normalization of spatially-resolved transcriptomic data
+Many normalization methods are available for both bulk and single-cell
+RNA-Seq data. In `spatialGE`, we apply limma-voom normalization to RNA-Seq libraries 
+from each of the spots in order to obtain a gaussian-shape normal distribution
+required by most methods in this package. Many of the methods implemented in `spatialGE`
+have been borrowed from the field of geostatistics, which often require this kind
+of data normalization.
+
+Normalization is achieved by applying the function `voom_norm()` to the `melanoma`
+object.
+```{r}
+melanoma <- voom_norm(melanoma)
+```
 
 
