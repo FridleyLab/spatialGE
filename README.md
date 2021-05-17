@@ -6,7 +6,6 @@ gene expression in tissue sections via spatial interpolation, RNA-Seq data decon
 and autocorrelation statistics, as well as correlation with clinical/phenotype data. 
 
 ## Installation
-
 The spatialGE repository is available at GitHub and can be installed via `devtools`.
 ```
 devtools::install_github("fridleylab/spatialGEdev")
