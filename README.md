@@ -10,3 +10,6 @@ The spatialGE repository is available at GitHub and can be installed via `devtoo
 ```
 devtools::install_github("fridleylab/spatialGEdev")
 ```
+
+For a tutorial on how to use `spatialGE`, please go to:
+https://fridleylab.github.io/spatialGEdev/
