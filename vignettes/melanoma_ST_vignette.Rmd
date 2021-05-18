@@ -34,7 +34,7 @@ After making sure `devtools` is installed, proceed to install `spatialGE`:
 
 To use `spatialGE`, load the package using the command:
 ```{r setup}
-library(spatialGEdev)
+#library(spatialGEdev)
 ```
 
 ## Spatially-resolved expression of melanoma stage III tumor biopsies
@@ -67,9 +67,9 @@ clinical file must match that of the file paths.
 The example files in this tutorial can be downloaded from the GitHub repository (https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata), but can be 
 loaded into the STList using the following commands:
 ```{r}
-count_files <- system.file("extdata", "fpaths_count_files.txt", package = "spatialGEdev")
-coord_files <- system.file("extdata", "fpaths_mapping_files.txt", package = "spatialGEdev")
-clin_file <- system.file("extdata", "thrane_clinical.csv", package = "spatialGEdev")
+#count_files <- system.file("extdata", "fpaths_count_files.txt", package = "spatialGEdev")
+#coord_files <- system.file("extdata", "fpaths_mapping_files.txt", package = "spatialGEdev")
+#clin_file <- system.file("extdata", "thrane_clinical.csv", package = "spatialGEdev")
 
 melanoma <- STList(countfiles = count_files, 
                    coordfiles = coord_files,
@@ -133,6 +133,24 @@ compartmentalized pattern in CAPG, compared to SOX10. The area of lower CAPG
 expression corresponds to the melanoma pocket detected by Thrane et al. (see Figure 3
 of their study).
 
-## Spatial interpolation ('kriging') of gene expression
+### Spatial interpolation ('kriging') of gene expression
+We can predict a smooth surface of the gene expression in a spatial array. In 
+`spatialGE`, this prediction is achieved by a type of spatial interpolation widely
+used on geographic data. The method named 'kriging' allows for the estimation of 
+the normalized gene expression value of the unsampled areas between spots, or spots 
+for which a RNA-Seq library failed to provide data. Estimating a transcriptomic 
+surface via kriging assumes that gene expression of two given points is
+correlated with the physical distance between them.
+
+The function `gene_krige()` performs kriging of gene expression via the `geoR`
+package:
+```{r}
+melanoma <- gene_krige(melanoma, genes=c('CAPG', 'SOX10'), who = 1)
+```
+The surface can be visualized using the `plot_gene_krige()` function:
+```{r}
+plot_gene_krige(melanoma, genes=c('CAPG', 'SOX10'), plot_who=1)
+```
+
 
 

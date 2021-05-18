@@ -39,13 +39,14 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
     scale_fill_gradientn(colors=p_palette(5)) +
     xlab("X Position") +
     ylab("Y Position") +
-    labs(fill=leg_name) +
-    ggtitle(title_name) +
+    labs(fill=leg_name, title=title_name) +
     ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"#,
                               #color='white', size=0
                               ) +
     coord_fixed() +
     theme_classic() +
+    scale_x_reverse() +
+    scale_y_reverse() +
     theme(legend.position="right", plot.title=element_text(size=8))
 
   return(p)

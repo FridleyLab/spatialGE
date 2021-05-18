@@ -88,7 +88,7 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
       # Sort expression data using the order in the mapping file. Then add
       # coordinates data to expression data frame.
       gene_expr <- gene_expr[match(x@coords[[i]][[1]], gene_expr[[1]]), ]
-      gene_geo_df <- cbind(x@coords[[i]][2:3], as.numeric(gene_expr[[2]]))
+      gene_geo_df <- cbind(x@coords[[i]][c(3,2)], as.numeric(gene_expr[[2]]))
 
       # Create concave hull to use as delimiter of sampled area. Needs to be
       # done before converting data frame to spatial object.
@@ -99,8 +99,8 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
 
       # Create a grid finer than the sampled locations to predict locations.
       gene_geo_grid <-expand.grid(
-        seq((min(x@coords[[i]][[2]])-1), (max(x@coords[[i]][[2]])+1), by=res),
-        seq((min(x@coords[[i]][[3]])-1), (max(x@coords[[i]][[3]])+1), by=res)
+        seq((min(x@coords[[i]][[3]])-1), (max(x@coords[[i]][[3]])+1), by=res),
+        seq((min(x@coords[[i]][[2]])-1), (max(x@coords[[i]][[2]])+1), by=res)
       )
 
       # Store prediction grid in STList.

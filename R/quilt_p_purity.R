@@ -28,15 +28,21 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
 
   # Create plot.
   p <- ggplot() +
-    geom_point(data=data_f, aes(x=x_pos, y=y_pos, fill=values, shape=as.factor(cluster), color=as.factor(cluster)), stroke=0.2) +
+    #geom_point(data=data_f, aes(x=x_pos, y=y_pos, fill=values, shape=as.factor(cluster), color=as.factor(cluster)), stroke=0.2) +
+    geom_point(data=data_f, aes(x=x_pos, y=y_pos, fill=values, shape=as.factor(cluster), color=values), stroke=1, size=0.5) +
     scale_fill_gradientn(colours=p_palette(5)) +
-    scale_color_manual(values=c('white', 'gray50')) +
-    scale_shape_manual(values=c(21, 22)) +
-    guides(color=guide_legend(override.aes=list(color='black', stroke=0.5, size=2))) +
+    #scale_color_manual(values=c('white', 'gray50')) +
+    scale_color_gradientn(colours=p_palette(5)) +
+    #scale_shape_manual(values=c(21, 22)) +
+    scale_shape_manual(values=c(3, 15)) +
+    #guides(color=guide_legend(override.aes=list(color='black', stroke=0.5, size=2))) +
     xlab("X Position") +
     ylab("Y Position") +
-    labs(fill=leg_name, shape='tumor/stroma', color='tumor/stroma', title=title_name) +
+    #labs(fill=leg_name, shape='tumor/stroma', color='tumor/stroma', title=title_name) +
+    labs(fill=leg_name, shape='tumor/stroma', title=title_name, color=leg_name) +
     theme_classic() +
+    scale_x_reverse() +
+    scale_y_reverse() +
     coord_fixed() +
     theme(legend.position="right")
 

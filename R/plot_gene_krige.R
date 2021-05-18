@@ -136,19 +136,21 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
       kp_list[[gene]] <- kp
     }
 
-    # Define number of columns and rows in plot and size.
-    row_col <- c(2, 2)
-#    w_pdf=9
-#    h_pdf=9
-    if(length(genes) == 2){
-      row_col <- c(1, 2)
-#      w_pdf=9
-#      h_pdf=4.5
-    }else if(length(genes) == 1){
-      row_col <- c(1, 1)
-#      w_pdf=7
-#      h_pdf=7
-    }
+#     # Define number of columns and rows in plot and size.
+#     row_col <- c(2, 2)
+# #    w_pdf=9
+# #    h_pdf=9
+#     if(length(genes) == 2){
+#       row_col <- c(1, 2)
+# #      w_pdf=9
+# #      h_pdf=4.5
+#     }else if(length(genes) == 1){
+#       row_col <- c(1, 1)
+# #      w_pdf=7
+# #      h_pdf=7
+#     }
+
+    row_col <- c(1, 1)
 
     # Test if a filepath to save plots is available.
     if(saveplot){

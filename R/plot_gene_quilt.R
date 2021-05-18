@@ -58,11 +58,11 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
         # Create data frame of gene and plot.
         values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
         df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
-        colnames(df) <- c('x_pos', 'y_pos', 'values')
+        colnames(df) <- c('y_pos', 'x_pos', 'values')
 
         if(purity){
           df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
-          qp <- quilt_p_purity(data_f=df, leg_name="norm_expr", color_pal=color_pal,
+          qp <- quilt_p_purity2(data_f=df, leg_name="norm_expr", color_pal=color_pal,
                                title_name=paste0(gene, " - ", "subj ", i))
         }else{
         # The color palette function in khroma is created by quilt_p() function.
@@ -80,24 +80,26 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
       qp_list[[gene]] <- qp
     }
 
-    # Define number of columns and rows in plot and size.
-    row_col <- c(2, 2)
-#    w_pdf=9
-#    h_pdf=9
-    if(length(genes) == 2){
-      row_col <- c(1, 2)
-#      w_pdf=9
-#      h_pdf=4.5
-    }else if(length(genes) == 1){
-      row_col <- c(1, 1)
-#      w_pdf=7
-#      h_pdf=7
-    }
+#     # Define number of columns and rows in plot and size.
+#     row_col <- c(2, 2)
+# #    w_pdf=9
+# #    h_pdf=9
+#     if(length(genes) == 2){
+#       row_col <- c(1, 2)
+# #      w_pdf=9
+# #      h_pdf=4.5
+#     }else if(length(genes) == 1){
+#       row_col <- c(1, 1)
+# #      w_pdf=7
+# #      h_pdf=7
+#     }
+
+    row_col <- c(1, 1)
 
     # Test if a filepath to save plots is available.
     if(saveplot){
       #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("gene_quilt_spat_array_", i, ".pdf")#,
+      pdf(file=paste0("gene_quilt_spat_array_", i, ".pdf"), width=10, height=10#,
           #width=w_pdf, height=h_pdf
           )
       print(ggpubr::ggarrange(plotlist=qp_list,

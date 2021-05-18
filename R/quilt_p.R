@@ -32,9 +32,10 @@ quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
     scale_color_gradientn(colours=p_palette(5)) +
     xlab("X Position") +
     ylab("Y Position") +
-    labs(color=leg_name) +
+    labs(color=leg_name, title=title_name) +
     theme_classic() +
-    ggtitle(title_name) +
+    scale_x_reverse() +
+    scale_y_reverse() +
     coord_fixed() +
     theme(legend.position="right")
 

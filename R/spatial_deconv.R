@@ -15,7 +15,7 @@
 #
 spatial_deconv <- function(x=NULL, method='xcell'){
 
-  if(is.null(thrane@cell_deconv[['ESTIMATE']])){
+  if(is.null(x@cell_deconv[['ESTIMATE']])){
     cat('This will take some time...\n')
     x <- spatial_purity(x)
     x <- cluster_purity(x)
