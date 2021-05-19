@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>STList — STList • spatialGEdev</title>
+<title>STList: Creation of STList objects — STList • spatialGEdev</title>
 
 
 <!-- jquery -->
@@ -39,7 +39,7 @@
 
 
 
-<meta property="og:title" content="STList — STList" />
+<meta property="og:title" content="STList: Creation of STList objects — STList" />
 <meta property="og:description" content="Creates an STList object." />
 
 
@@ -115,7 +115,7 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>STList</h1>
+    <h1>STList: Creation of STList objects</h1>
     
     <div class="hidden name"><code>STList.Rd</code></div>
     </div>
@@ -131,36 +131,41 @@
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>countfiles, </th>
-      <td><p>the path of a file containing filepaths (one per line) of the
-files containing the count data.</p></td>
+      <td><p>the path of a file containing file paths (one per line) of the
+count data files. Count files must be tab-separated.</p></td>
     </tr>
     <tr>
       <th>clinical, </th>
-      <td><p>the file path or data frame containing clinical data associated
-with the count data.
-NOTE: This clinical data frame needs more thinking! What to do with it? format?</p></td>
+      <td><p>the file path of a file containing a table with clinical/phenotype
+variables associated with the spatial arrays. The order of rows must match that of
+the count and coordinate file paths. the first column is the user-defined ID of the
+arrays.</p></td>
     </tr>
     <tr>
       <th>coords, </th>
-      <td><p>the path of a file containing filepaths (one per line) of the
-files containing the coordinate data.</p></td>
+      <td><p>the path of a file containing file paths (one per line) of the
+coordinate data files. Coordinate files must be tab-separated.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>x, the STList object containing the counts and coordinates.</p>
+    <p>x, the STList object containing the counts and coordinates, and optionally
+the clinical data.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes two files with with file paths of count matrices and
+    <p>This function takes two files containing file paths of count matrices and
 coordinates, one per line. The files containing the counts must have gene names
 in the first column and counts from sampled localities in subsequent columns.
 The coordinate files must have a first column containing the same identifiers
 of the sampled locations as in in the corresponding count file, and x, y positions
-of the samples. The coordinate data should not have column names. The function
-returns an STList object to be used in spatial transcriptomics analysis.
-Additionally, the function can also take a comma separated file with clinical
-or phenotype data from the samples.</p>
+of the samples in the next two columns. The coordinate data must not have column
+names. The function returns an STList object to be used in later analyses with
+spatialGE. Additionally, the function can also take a comma separated file with
+clinical or phenotype data from the samples. This clinical file has data for each
+array (in the same order as the count and coordinate file paths), and the first
+row has names of clinical variables. The first column contains the user-defined
+array IDs.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
