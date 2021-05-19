@@ -109,20 +109,20 @@
 <a href="#creating-an-stlist-spatial-transcriptomics-list" class="anchor"></a>Creating an STList (Spatial Transcriptomics List)</h2>
 <p>Raw and processed data are stored in an STList (an R S4 class object). The STList can be created with the function <code><a href="../reference/STList.html">STList()</a></code>, which takes minimally two files: 1. A text file containing file paths of gene raw count matrices, one per line. The gene count matrices must be tab-separated, with gene names in the first column, and spots in subsequent columns. Matrices of different for each tissue slice are allowed, but duplicated gene names are not. 2. A text file containing file paths of x,y coordinates for each spot, one per line. The order of the coordinate file paths must match that of the raw count matrices.</p>
 <p>Optionally, the user can provide a table with clinical/phenotype data associated with each spatial array. This table is a comma-separated file with sample ID in the first column, and relevant variables in subsequent columns. The order of the rows in the clinical file must match that of the file paths.</p>
-<p>The example files in this tutorial can be downloaded from the GitHub repository (<a href="https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata" class="uri">https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata</a>), but can be loaded into the STList using the following commands:</p>
+<p>The example files in this tutorial can be downloaded from the GitHub repository (<a href="https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata" class="uri">https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata</a>). They are also stored in you local <code>spatialGE</code> installation:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">count_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"fpaths_count_files.txt"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span>
 <span class="va">coord_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"fpaths_mapping_files.txt"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span>
-<span class="va">clin_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"thrane_clinical.csv"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span>
-
-<span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STList.html">STList</a></span><span class="op">(</span>countfiles <span class="op">=</span> <span class="va">count_files</span>, 
+<span class="va">clin_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"thrane_clinical.csv"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span></code></pre></div>
+<p>We can load the files into an STList object like so:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STList.html">STList</a></span><span class="op">(</span>countfiles <span class="op">=</span> <span class="va">count_files</span>, 
                    coordfiles <span class="op">=</span> <span class="va">coord_files</span>,
                    clinical <span class="op">=</span> <span class="va">clin_file</span>
 <span class="op">)</span>
-<span class="co">#&gt; Loading required package: magrittr</span>
 <span class="co">#&gt; Creating STList...</span></code></pre></div>
 <p>The <code>melanoma</code> object is an STList, and contains the count data, spot coordinates, and clinical data.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span>
 <span class="co">#&gt; Spatial Transcriptomics List (STList)</span>
 <span class="co">#&gt; 8 spatial arrays.</span>
@@ -131,18 +131,19 @@
 <div id="exploring-variation-between-spatial-arrays" class="section level2">
 <h2 class="hasAnchor">
 <a href="#exploring-variation-between-spatial-arrays" class="anchor"></a>Exploring variation between spatial arrays</h2>
-<p>The function <code><a href="../reference/STbulk_pca.html">STbulk_pca()</a></code> allows for a quick snapshot of the variation in gene expression among samples. The function creates ‘bulk’ RNA-Seq data sets by combining all counts from a spatial array. Then, it applies limma-voom normalization to these ‘bulk’ RNA-Seq libraries and performs a PCA. Note that spatial (x,y) coordinate information is not included in this analysis, which is intended as a tool for data exploration. In this case, we apply the function to look for agreement between samples from the same patient: it is expected that tissue slices from the same patient are more similar between them, than slices from other patients. The <code><a href="../reference/STbulk_pca.html">STbulk_pca()</a></code> allows to map a clinical variable to the PCA (gender in this example), by including the exact name of the column from the clinical/phenotype file.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/STbulk_pca.html">STbulk_pca</a></span><span class="op">(</span><span class="va">melanoma</span>, clinvar<span class="op">=</span><span class="st">'Gender'</span><span class="op">)</span>
+<p>The function <code>STbulk_pca()</code> allows for a quick snapshot of the variation in gene expression among samples. The function creates ‘bulk’ RNA-Seq data sets by combining all counts from a spatial array. Then, it applies limma-voom normalization to these ‘bulk’ RNA-Seq libraries and performs a PCA. Note that spatial (x,y) coordinate information is not included in this analysis, which is intended as a tool for data exploration. In this case, we apply the function to look for agreement between samples from the same patient: it is expected that tissue slices from the same patient are more similar between them, than slices from other patients. The <code>STbulk_pca()</code> allows to map a clinical variable to the PCA (gender in this example), by including the exact name of the column from the clinical/phenotype file.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/bulk_pca.html">bulk_pca</a></span><span class="op">(</span><span class="va">melanoma</span>, clinvar<span class="op">=</span><span class="st">'Gender'</span><span class="op">)</span>
+<span class="co">#&gt; Loading required package: magrittr</span>
 <span class="co">#&gt; Loading required package: ggplot2</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-6-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-7-1.png" width="700"></p>
 </div>
 <div id="data-normalization-of-spatially-resolved-transcriptomic-data" class="section level2">
 <h2 class="hasAnchor">
 <a href="#data-normalization-of-spatially-resolved-transcriptomic-data" class="anchor"></a>Data normalization of spatially-resolved transcriptomic data</h2>
 <p>Many normalization methods are available for both bulk and single-cell RNA-Seq data. In <code>spatialGE</code>, we apply limma-voom normalization to RNA-Seq libraries from each of the spots in order to obtain a gaussian-shape normal distribution required by most methods in this package. Many of the methods implemented in <code>spatialGE</code> have been borrowed from the field of geostatistics, which often require this kind of data normalization.</p>
 <p>Normalization is achieved by applying the function <code><a href="../reference/voom_norm.html">voom_norm()</a></code> to the <code>melanoma</code> object.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/voom_norm.html">voom_norm</a></span><span class="op">(</span><span class="va">melanoma</span><span class="op">)</span>
 <span class="co">#&gt; Normalizing spatial array #1...</span>
 <span class="co">#&gt; Normalizing spatial array #2...</span>
@@ -158,24 +159,22 @@
 <a href="#visualization-of-gene-expression-from-spatially-resolved-transcriptomics-data" class="anchor"></a>Visualization of gene expression from spatially-resolved transcriptomics data</h2>
 <p>After normalization, expression of specific genes can be visualized using ‘quilt’ plots. The function <code><a href="../reference/plot_gene_quilt.html">plot_gene_quilt()</a></code> re-creates the shape of the spatial array and shows the scaled normalized expression of a gene. We have adopted the color palettes from the package <code>khroma</code>. The color palette can be passed using the argument <code>color_pal</code>. The default behavior of the function produces plots for all spatial arrays in the STList, but we can define who should be plotted using the argument <code>plot_who</code>.</p>
 <p>Let’s produce a quilt plot for the gene CAPG and SOX10, two genes known to be expressed in melanoma.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="../reference/plot_gene_quilt.html">plot_gene_quilt</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, 
-                color_pal<span class="op">=</span><span class="st">"YlOrBr"</span>, plot_who<span class="op">=</span><span class="fl">1</span><span class="op">)</span>
-<span class="co">#&gt; $`1`</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-8-1.png" width="700"></p>
-<pre><code>#&gt; 
-#&gt; $`2`</code></pre>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-8-2.png" width="700"></p>
-<pre><code>#&gt; 
-#&gt; attr(,"class")
-#&gt; [1] "list"      "ggarrange"</code></pre>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="../reference/plot_gene_quilt.html">plot_gene_quilt</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, color_pal<span class="op">=</span><span class="st">"YlOrBr"</span>, plot_who<span class="op">=</span><span class="fl">1</span><span class="op">)</span>
+<span class="co">#&gt; $`1`</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $`2`</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; attr(,"class")</span>
+<span class="co">#&gt; [1] "list"      "ggarrange"</span></code></pre></div>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-9-1.png" width="50%"><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-9-2.png" width="50%"></p>
 <p>We can see that gene expression patterns of both genes is different, with a more compartmentalized pattern in CAPG, compared to SOX10. The area of lower CAPG expression corresponds to the melanoma pocket detected by Thrane et al. (see Figure 3 of their study).</p>
 <div id="spatial-interpolation-kriging-of-gene-expression" class="section level3">
 <h3 class="hasAnchor">
 <a href="#spatial-interpolation-kriging-of-gene-expression" class="anchor"></a>Spatial interpolation (‘kriging’) of gene expression</h3>
 <p>We can predict a smooth surface of the gene expression in a spatial array. In <code>spatialGE</code>, this prediction is achieved by a type of spatial interpolation widely used on geographic data. The method named ‘kriging’ allows for the estimation of the normalized gene expression value of the unsampled areas between spots, or spots for which a RNA-Seq library failed to provide data. Estimating a transcriptomic surface via kriging assumes that gene expression of two given points is correlated with the physical distance between them.</p>
 <p>The function <code><a href="../reference/gene_krige.html">gene_krige()</a></code> performs kriging of gene expression via the <code>geoR</code> package:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_krige.html">gene_krige</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, who <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>
 <span class="co">#&gt; Loading required package: rlang</span>
 <span class="co">#&gt; </span>
@@ -186,17 +185,18 @@
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of gene CAPG for subject 1...</span>
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of gene SOX10 for subject 1...</span></code></pre></div>
 <p>The surface can be visualized using the <code><a href="../reference/plot_gene_krige.html">plot_gene_krige()</a></code> function:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/plot_gene_krige.html">plot_gene_krige</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, plot_who<span class="op">=</span><span class="fl">1</span><span class="op">)</span>
 <span class="co">#&gt; Loading required namespace: rgeos</span>
 <span class="co">#&gt; $`1`</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-10-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-11-1.png" width="700"></p>
 <pre><code>#&gt; 
 #&gt; $`2`</code></pre>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-10-2.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-11-2.png" width="700"></p>
 <pre><code>#&gt; 
 #&gt; attr(,"class")
 #&gt; [1] "list"      "ggarrange"</code></pre>
+<p>By looking at the transcriptomic surfaces of the tho genes, it is easier to detect pockets of higher (or lower) expression within the tissue.</p>
 </div>
 </div>
   </div>

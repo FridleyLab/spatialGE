@@ -98,7 +98,7 @@ are more similar between them, than slices from other patients. The `STbulk_pca(
 allows to map a clinical variable to the PCA (gender in this example), by including
 the exact name of the column from the clinical/phenotype file.
 ```{r}
-STbulk_pca(melanoma, clinvar='Gender')
+bulk_pca(melanoma, clinvar='Gender')
 ```
 
 ## Data normalization of spatially-resolved transcriptomic data
