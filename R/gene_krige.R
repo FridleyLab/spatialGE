@@ -36,8 +36,8 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
   }
 
   # Test if voom normalized counts are available.
-  if (is_empty(x@voom_counts)) {
-    stop(paste("There are not normalized matrices in this STList."))
+  if (rlang::is_empty(x@voom_counts)) {
+    stop("There are not normalized matrices in this STList.")
   }
 
   # Loop through each normalized count matrix.
@@ -55,8 +55,7 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
 
       # Test that a normalized matrix for a gene is present.
       if(!any(x@voom_counts[[i]]$gene == gene)){
-        cat(paste(gene, "is not a gene in the normalized count matrix from
-                  subject", i, "."))
+        cat(paste(gene, "is not a gene in the normalized count matrix from subject", i, "."))
         next
       }
 

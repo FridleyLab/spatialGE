@@ -1,5 +1,5 @@
 ##
-#' @title bulk_pca: Performs PCA on "bulk" spatial array.
+#' @title bulk_pca: Performs PCA on "bulk" spatial array
 #' @description Perform and plot a PCA of simulated bulk RNA-Seq from spatial
 #' transcriptomics data.
 #' @details
