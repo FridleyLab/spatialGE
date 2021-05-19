@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>voom_norm — voom_norm • spatialGEdev</title>
+<title>voom_norm: Normalization of ST arrays — voom_norm • spatialGEdev</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="voom_norm — voom_norm" />
-<meta property="og:description" content="Applies voom to ST data." />
+<meta property="og:title" content="voom_norm: Normalization of ST arrays — voom_norm" />
+<meta property="og:description" content="Applies limma-voom normalization to spatial transcriptomics arrays data." />
 
 
 
@@ -115,13 +115,13 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>voom_norm</h1>
+    <h1>voom_norm: Normalization of ST arrays</h1>
     
     <div class="hidden name"><code>voom_norm.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Applies voom to ST data.</p>
+    <p>Applies limma-voom normalization to spatial transcriptomics arrays data.</p>
     </div>
 
     <pre class="usage"><span class='fu'>voom_norm</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
@@ -131,7 +131,7 @@
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>x, </th>
-      <td><p>a STList with raw count matrices.</p></td>
+      <td><p>an STList with raw count matrices.</p></td>
     </tr>
     </table>
 
@@ -140,16 +140,13 @@
     <p>x, an STList with normalized counts.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes a STList and normalize the count data matrices within it
+    <p>This function takes an STList and normalize the count data matrices within it
 in two steps. In the first step, (edgeR) normalization factors are used to scale
 the counts from each library/spot. In the second step, limma-voom normalization
 is applied. The resulting normalized count matrix is stored in the voom_counts
-slot of the STList. The function also calculates gene-wise mean and standard
-deviation from the normalized counts and stores them in the gene_stdev slot.</p>
-<p>NOTE_1: NEED TO IMPLEMENT GENE LENGTH-BASED NORMALIZATION (TPM?)
-NOTE_1_2: It does not seem like using lenghts improve or change a lot the
-kriging surfaces (at least visually).
-NOTE2: ADD MEAN-VAR PLOT TO THIS FUNCTION</p>
+slot of the STList. The function also calculates gene-wise standard deviation from
+the normalized counts and stores them in the gene_stdev slot.</p>
+<p>NOTE1: ADD MEAN-VAR PLOT TO THIS FUNCTION??</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

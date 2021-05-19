@@ -10,7 +10,8 @@ plot_gene_quilt(
   plot_who = NULL,
   color_pal = "YlOrBr",
   purity = F,
-  saveplot = F
+  saveplot = F,
+  scaled = F
 )
 }
 \arguments{

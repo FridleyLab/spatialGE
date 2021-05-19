@@ -2,35 +2,40 @@
 % Please edit documentation in R/STList.R
 \name{STList}
 \alias{STList}
-\title{STList}
+\title{STList: Creation of STList objects}
 \usage{
 STList(countfiles = NULL, coordfiles = NULL, clinical = NULL)
 }
 \arguments{
-\item{countfiles, }{the path of a file containing filepaths (one per line) of the
-files containing the count data.}
+\item{countfiles, }{the path of a file containing file paths (one per line) of the
+count data files. Count files must be tab-separated.}
 
-\item{clinical, }{the file path or data frame containing clinical data associated
-with the count data.
-NOTE: This clinical data frame needs more thinking! What to do with it? format?}
+\item{clinical, }{the file path of a file containing a table with clinical/phenotype
+variables associated with the spatial arrays. The order of rows must match that of
+the count and coordinate file paths. the first column is the user-defined ID of the
+arrays.}
 
-\item{coords, }{the path of a file containing filepaths (one per line) of the
-files containing the coordinate data.}
+\item{coords, }{the path of a file containing file paths (one per line) of the
+coordinate data files. Coordinate files must be tab-separated.}
 }
 \value{
-x, the STList object containing the counts and coordinates.
+x, the STList object containing the counts and coordinates, and optionally
+the clinical data.
 }
 \description{
 Creates an STList object.
 }
 \details{
-This function takes two files with with file paths of count matrices and
+This function takes two files containing file paths of count matrices and
 coordinates, one per line. The files containing the counts must have gene names
 in the first column and counts from sampled localities in subsequent columns.
 The coordinate files must have a first column containing the same identifiers
 of the sampled locations as in in the corresponding count file, and x, y positions
-of the samples. The coordinate data should not have column names. The function
-returns an STList object to be used in spatial transcriptomics analysis.
-Additionally, the function can also take a comma separated file with clinical
-or phenotype data from the samples.
+of the samples in the next two columns. The coordinate data must not have column
+names. The function returns an STList object to be used in later analyses with
+spatialGE. Additionally, the function can also take a comma separated file with
+clinical or phenotype data from the samples. This clinical file has data for each
+array (in the same order as the count and coordinate file paths), and the first
+row has names of clinical variables. The first column contains the user-defined
+array IDs.
 }

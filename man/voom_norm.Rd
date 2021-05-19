@@ -2,29 +2,26 @@
 % Please edit documentation in R/voom_norm.R
 \name{voom_norm}
 \alias{voom_norm}
-\title{voom_norm}
+\title{voom_norm: Normalization of ST arrays}
 \usage{
 voom_norm(x = NULL)
 }
 \arguments{
-\item{x, }{a STList with raw count matrices.}
+\item{x, }{an STList with raw count matrices.}
 }
 \value{
 x, an STList with normalized counts.
 }
 \description{
-Applies voom to ST data.
+Applies limma-voom normalization to spatial transcriptomics arrays data.
 }
 \details{
-This function takes a STList and normalize the count data matrices within it
+This function takes an STList and normalize the count data matrices within it
 in two steps. In the first step, (edgeR) normalization factors are used to scale
 the counts from each library/spot. In the second step, limma-voom normalization
 is applied. The resulting normalized count matrix is stored in the voom_counts
-slot of the STList. The function also calculates gene-wise mean and standard
-deviation from the normalized counts and stores them in the gene_stdev slot.
+slot of the STList. The function also calculates gene-wise standard deviation from
+the normalized counts and stores them in the gene_stdev slot.
 
-NOTE_1: NEED TO IMPLEMENT GENE LENGTH-BASED NORMALIZATION (TPM?)
-NOTE_1_2: It does not seem like using lenghts improve or change a lot the
-kriging surfaces (at least visually).
-NOTE2: ADD MEAN-VAR PLOT TO THIS FUNCTION
+NOTE1: ADD MEAN-VAR PLOT TO THIS FUNCTION??
 }
