@@ -1,20 +1,17 @@
 ##
-#' @title voom_norm
-#' @description Applies voom to ST data.
+#' @title voom_norm: Normalization of ST arrays
+#' @description Applies limma-voom normalization to spatial transcriptomics arrays data.
 #' @details
-#' This function takes a STList and normalize the count data matrices within it
+#' This function takes an STList and normalize the count data matrices within it
 #' in two steps. In the first step, (edgeR) normalization factors are used to scale
 #' the counts from each library/spot. In the second step, limma-voom normalization
 #' is applied. The resulting normalized count matrix is stored in the voom_counts
-#' slot of the STList. The function also calculates gene-wise mean and standard
-#' deviation from the normalized counts and stores them in the gene_stdev slot.
+#' slot of the STList. The function also calculates gene-wise standard deviation from
+#' the normalized counts and stores them in the gene_stdev slot.
 #'
-#' NOTE_1: NEED TO IMPLEMENT GENE LENGTH-BASED NORMALIZATION (TPM?)
-#' NOTE_1_2: It does not seem like using lenghts improve or change a lot the
-#' kriging surfaces (at least visually).
-#' NOTE2: ADD MEAN-VAR PLOT TO THIS FUNCTION
+#' NOTE1: ADD MEAN-VAR PLOT TO THIS FUNCTION??
 #'
-#' @param x, a STList with raw count matrices.
+#' @param x, an STList with raw count matrices.
 #' @return x, an STList with normalized counts.
 #' @export
 #
@@ -51,24 +48,19 @@ voom_norm <- function(x=NULL) {
         x@counts[[i]][raw_col] / norm_factors[raw_col]))
     }
 
-    # Replace gene names.
-    # NOTE: This step may not be necessary as gene names are replaced also at the end.
-    df <- df %>% tibble::add_column(x@counts[[i]][1], .before=1)
-
     # Apply voom transformation to count data.
-    df_voom <- limma::voom(df[-1], design=NULL,lib.size=colSums(df[-1]),
+    df_voom <- limma::voom(df, design=NULL,lib.size=colSums(df),
                            normalize.method='none', plot=F)
 
-    # Estimate gene-wise means and variance and store in object.
+    # Estimate gene-wise standard deviations and store in object.
     gene_stdevs <- apply(df_voom$E, 1, sd, na.rm=T)
-    gene_means <- rowMeans(df_voom$E, na.rm=T)
-    gene_stdevs_df <- tibble::tibble(gene_means, gene_stdevs) %>%
-      tibble::add_column(df[1], .before=1)
+    gene_stdevs_df <- tibble::tibble(gene_stdevs) %>%
+      tibble::add_column(x@counts[[i]][, 1], .before=1)
     x@gene_stdev[[i]] <- gene_stdevs_df
 
     # Put back gene names to matrix and store in object.
     df_voom <- tibble::as_tibble(df_voom$E) %>%
-      tibble::add_column(df[1], .before=1)
+      tibble::add_column(x@counts[[i]][, 1], .before=1)
     x@voom_counts[[i]] <- df_voom
   }
 

@@ -17,7 +17,7 @@
 #
 #
 plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
-                            color_pal='YlOrBr', purity=F, saveplot=F){
+                            color_pal='YlOrBr', purity=F, saveplot=F, scaled=F){
 
   #  moran_est <- round(as.vector(x@gene_het[[gene]]$morans_I$estimate[[1]]), 2)
   #  geary_est <- round(as.vector(x@gene_het[[gene]]$gearys_C$estimate[[1]]), 2)
@@ -35,7 +35,7 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
 
   # Test if voom normalized counts are available.
   if (rlang::is_empty(x@voom_counts)) {
-    stop(paste("There are not normalized matrices in this STList."))
+    stop(paste("There are no normalized matrices in this STList."))
   }
 
   # if(!is.null(saveplot)){
@@ -43,6 +43,26 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
   #     unlink(paste0(saveplot), recursive=T)
   #   }
   # }
+
+  # Store maximum expression value in case 'scaled' is required.
+  if(scaled){
+    maxvalue <- c()
+    for (i in plot_who) {
+      for (gene in genes) {
+        # Test if gene name exists in normalized count matrix.
+        if (any(x@voom_counts[[i]]$gene == gene)) {
+          # Create data frame of gene and plot.
+          values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
+          maxvalue <- append(maxvalue, max(values))
+        } else{
+          # If gene is not in the matrix, move to next gene.
+          cat(paste(gene, "is not a gene in the normalized count matrix."))
+          next
+        }
+      }
+    }
+    maxvalue <- max(maxvalue)
+  }
 
   # Loop through each normalized count matrix.
   for (i in plot_who) {
@@ -56,7 +76,11 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL,
       # Test if gene name exists in normalized count matrix.
       if (any(x@voom_counts[[i]]$gene == gene)) {
         # Create data frame of gene and plot.
-        values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
+        if(scaled){
+          values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])/maxvalue
+        } else{
+          values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
+        }
         df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
         colnames(df) <- c('y_pos', 'x_pos', 'values')
 

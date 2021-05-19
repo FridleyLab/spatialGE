@@ -1,48 +1,34 @@
 ##
-#' @title STList
+#' @title STList: Creation of STList objects
 #' @description Creates an STList object.
 #' @details
-#' This function takes two files with with file paths of count matrices and
+#' This function takes two files containing file paths of count matrices and
 #' coordinates, one per line. The files containing the counts must have gene names
 #' in the first column and counts from sampled localities in subsequent columns.
 #' The coordinate files must have a first column containing the same identifiers
 #' of the sampled locations as in in the corresponding count file, and x, y positions
-#' of the samples. The coordinate data should not have column names. The function
-#' returns an STList object to be used in spatial transcriptomics analysis.
-#' Additionally, the function can also take a comma separated file with clinical
-#' or phenotype data from the samples.
+#' of the samples in the next two columns. The coordinate data must not have column
+#' names. The function returns an STList object to be used in later analyses with
+#' spatialGE. Additionally, the function can also take a comma separated file with
+#' clinical or phenotype data from the samples. This clinical file has data for each
+#' array (in the same order as the count and coordinate file paths), and the first
+#' row has names of clinical variables. The first column contains the user-defined
+#' array IDs.
 #'
-#' @param countfiles, the path of a file containing filepaths (one per line) of the
-#' files containing the count data.
-#' @param coords, the path of a file containing filepaths (one per line) of the
-#' files containing the coordinate data.
-#' @param clinical, the file path or data frame containing clinical data associated
-#' with the count data.
-#' NOTE: This clinical data frame needs more thinking! What to do with it? format?
-#' @return x, the STList object containing the counts and coordinates.
+#' @param countfiles, the path of a file containing file paths (one per line) of the
+#' count data files. Count files must be tab-separated.
+#' @param coords, the path of a file containing file paths (one per line) of the
+#' coordinate data files. Coordinate files must be tab-separated.
+#' @param clinical, the file path of a file containing a table with clinical/phenotype
+#' variables associated with the spatial arrays. The order of rows must match that of
+#' the count and coordinate file paths. the first column is the user-defined ID of the
+#' arrays.
+#' @return x, the STList object containing the counts and coordinates, and optionally
+#' the clinical data.
 #' @export
 #
 #
 STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
-
-  require('magrittr')
-
-  # # Creates object class.
-  # setClass("STList", slots=list(counts="list",
-  #                               coords="list",
-  #                               clinical="tbl",
-  #                               voom_counts="list",
-  #                               gene_stdev="list",
-  #                               gene_het="list",
-  #                               gene_krige="list",
-  #                               cell_deconv="list",
-  #                               cell_stdev="list",
-  #                               cell_het="list",
-  #                               cell_krige="list",
-  #                               prediction_grid="list",
-  #                               prediction_border="list"
-  # ),
-  # )
 
   # Test if counts and coords are NULL. If so, print error.
   if(is.null(countfiles) | is.null(coordfiles)){
@@ -72,6 +58,7 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
     pb$tick()
     Sys.sleep(1 / length(count_fpaths))
 
+    # Get file paths for a specific array.
     counts <- count_fpaths[i]
     coords <- coord_fpaths[i]
 
@@ -86,13 +73,12 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
     coords_df <- readr::read_delim(coords, delim="\t", col_types=readr::cols(),
                                    progress=F, col_names=F)
 
-    # Column names of the count data are simplified using the clean_names()
-    # function.
+    # Column names of the count data are simplified using the clean_names() function.
     # NOTE: May need to reconsider use later.
-    counts_df <- counts_df %>% janitor::clean_names()
+    counts_df <- janitor::clean_names(counts_df)
 
-    # Clean sample names in coordinates data using the clean_names(), so that it
-    # mirrors the column names in the count data frame.
+    # Clean sample names in coordinates data using the clean_names(), so that they
+    # mirror the column names in the count data frame.
     # NOTE: May need to reconsider use later.
     coords_df[, 1] <- janitor::make_clean_names(unlist(coords_df[, 1]))
 
@@ -115,14 +101,15 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
       stop("There are duplicated feature/gene names in the data.")
     }
 
+    # Store count and coordinate matrices in lists.
     counts_df_list[[i]] <- counts_df
     coords_df_list[[i]] <- coords_df
 
   }
 
+  # Test if clinical data is available.
   if(!is.null(clinical)){
-    clinical_df <- readr::read_delim(clinical, delim=",",
-                                     col_types=readr::cols())
+    clinical_df <- readr::read_delim(clinical, delim=",", col_types=readr::cols())
     if(nrow(clinical_df) != length(count_fpaths)){
       stop("The number of rows in the clinical data is not the same as the
              number of spatial arrays.")
@@ -141,11 +128,8 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
                     gene_het=list(),
                     gene_krige=list(),
                     cell_deconv=list(),
-                    #cell_stdev=list(),
                     cell_het=list(),
                     cell_krige=list(),
-                    #purity_krige=list(),
-                    #prediction_grid=list(),
                     prediction_border=list()
   )
 

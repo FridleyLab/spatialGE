@@ -24,7 +24,7 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
   # Creates color palette function.
   p_palette <- khroma::colour(color_pal)
 
-  data_f$values <- data_f$values/max(data_f$values)
+  #data_f$values <- data_f$values/max(data_f$values)
 
   # Create plot.
   p <- ggplot() +

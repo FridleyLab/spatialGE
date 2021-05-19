@@ -1,5 +1,5 @@
 Package: spatialGEdev
-Title: Visualization and Analysis of Spatial Heterogeneity in Spatially-Resolved Transcriptomics Data
+Title: Visualization and Analysis of Spatial Heterogeneity in Spatially-Resolved Gene Expression
 Version: 0.0.0.9000
 Authors@R: c(
     person(given = "Oscar",
