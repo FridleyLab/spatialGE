@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>plot_cell_quilt — plot_cell_quilt • spatialGEdev</title>
+<title>plot_cell_quilt: Deconvolution scores at each spot from an spatial array — plot_cell_quilt • spatialGEdev</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,9 @@
 
 
 
-<meta property="og:title" content="plot_cell_quilt — plot_cell_quilt" />
-<meta property="og:description" content="Produces a quilt plot from cell scores." />
+<meta property="og:title" content="plot_cell_quilt: Deconvolution scores at each spot from an spatial array — plot_cell_quilt" />
+<meta property="og:description" content="Plot cell type deconvolution scores at each spot (quilt plot) within a
+spatially-resolved transcriptomic array." />
 
 
 
@@ -115,13 +116,14 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>plot_cell_quilt</h1>
+    <h1>plot_cell_quilt: Deconvolution scores at each spot from an spatial array</h1>
     
     <div class="hidden name"><code>plot_cell_quilt.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Produces a quilt plot from cell scores.</p>
+    <p>Plot cell type deconvolution scores at each spot (quilt plot) within a
+spatially-resolved transcriptomic array.</p>
     </div>
 
     <pre class="usage"><span class='fu'>plot_cell_quilt</span><span class='op'>(</span>
@@ -129,7 +131,9 @@
   cells <span class='op'>=</span> <span class='cn'>NULL</span>,
   plot_who <span class='op'>=</span> <span class='cn'>NULL</span>,
   color_pal <span class='op'>=</span> <span class='st'>"YlOrBr"</span>,
-  saveplot <span class='op'>=</span> <span class='cn'>F</span>
+  purity <span class='op'>=</span> <span class='cn'>F</span>,
+  saveplot <span class='op'>=</span> <span class='cn'>F</span>,
+  scaled <span class='op'>=</span> <span class='cn'>F</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -151,7 +155,11 @@ plot cells from. If NULL, will plot for all subjects.</p></td>
     </tr>
     <tr>
       <th>color_pal, </th>
-      <td><p>a scheme from 'khroma'. Default is 'YlOrBr'.</p></td>
+      <td><p>a scheme from 'khroma'. Default is 'YlOrBr'.'</p></td>
+    </tr>
+    <tr>
+      <th>purity, </th>
+      <td><p>logical, whether tumor/stroma classes should be plotted.</p></td>
     </tr>
     <tr>
       <th>saveplot, </th>
@@ -159,12 +167,19 @@ plot cells from. If NULL, will plot for all subjects.</p></td>
 The PDFs are saved in the working directory. Default is FALSE, meaning plots
 are printed to console.</p></td>
     </tr>
+    <tr>
+      <th>scaled, </th>
+      <td><p>logical, indicating if expression values should be scaled with
+respect to the highest value among all genes to plot. WARNING: Color legends
+are not scaled between plots, but values are.</p></td>
+    </tr>
     </table>
 
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>This function produces a quilt plot for a series cell names and spatial
-arrays.</p>
+arrays within an STList. The function can also plot tumor/stroma classifications
+if ESTIMATE deconvolution results are present in the STList.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
