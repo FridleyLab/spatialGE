@@ -140,7 +140,7 @@ argument `plot_who`.
 Let's produce a quilt plot for the gene CAPG and SOX10, two genes known to be 
 expressed in melanoma.
 ```{r}
-quilts1 <- plot_gene_quilt(melanoma, genes=c('CAPG', 'SOX10'), color_pal="YlOrBr", plot_who=1, purity = T)
+quilts1 <- plot_gene_quilt(melanoma, genes=c('CAPG', 'SOX10'), color_pal="YlOrBr", plot_who=1)
 ggpubr::ggarrange(plotlist=quilts1, nrow=1, ncol=2)
 ```
 
