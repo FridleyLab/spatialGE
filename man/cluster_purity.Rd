@@ -12,9 +12,10 @@ cluster_purity(x = NULL)
 \item{who, }{an integer indicating the spatial array to be analyzed.}
 }
 \description{
-Perform model-based clustering (using BIC) to define stromal/tumor
-clusters from ESTIMATE purity scores.
+Perform model-based clustering to define stromal/tumor clusters from
+ESTIMATE purity scores.
 }
 \details{
-yada yada yada
+Takes ESTIMATE tumor purity scores and performs model-based clustering. The function
+only evaluates k=2, to separate between likely tumor and stromal spots.
 }

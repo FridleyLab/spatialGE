@@ -1,13 +1,14 @@
 ##
-#' @title spatial_deconv
-#' @description Applies deconvolution methods to ST data.
+#' @title spatial_deconv: Deconvolution of ST data
+#' @description Applies gene expression deconvolution methods to data from spatial
+#' arrays. Produces ESTIMATE tumor/stroma classes via model-based clustering.
 #' @details
-#' This function applies deconvolution methods (xCell by default) to the stored
+#' This function applies deconvolution methods (xCell and ESTIMATE, for now) to the stored
 #' normalized matrices in order to obtain cell scores for each of the library/spots.
-#' The results are stored as untransformed, and square-root transformed scores.
-#' The method ESTIMATE is automatically applied regardless of the selected method.
+#' The results are stored witin the STList. The method ESTIMATE is automatically
+#' applied regardless of the selected method.
 #'
-#' @param x, a STList with normalized count matrices. If 'none', only ESTIMATE is
+#' @param x, an STList with normalized count matrices. If 'none', only ESTIMATE is
 #' applied.
 #' @return x, an updated STList with deconvolution scores.
 #' @export
@@ -15,13 +16,15 @@
 #
 spatial_deconv <- function(x=NULL, method='xcell'){
 
+  method=tolower(method)
+
   if(is.null(x@cell_deconv[['ESTIMATE']])){
     cat('This will take some time...\n')
     x <- spatial_purity(x)
     x <- cluster_purity(x)
   }
 
-  if(method == 'none'){
+  if(method == 'none' | method == 'estimate'){
     cat('Only ESTIMATE was applied to the spatial arrays.')
   }
 

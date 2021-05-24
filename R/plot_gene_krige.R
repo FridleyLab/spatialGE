@@ -1,8 +1,8 @@
 ##
-#' @title plot_gene_krige
-#' @description Produces a kriging plot from ST data.
+#' @title plot_gene_krige: Visualize transcriptomic surfaces
+#' @description Produces a transcriptomic surfaces from kriging interpolation of ST data.
 #' @details
-#' This function produces a kriging plot for a series of HUGO gene names and
+#' This function produces a transcriptomic surface plot for a series of HUGO gene names and
 #' spatial arrays.
 #'
 #' @param x, an STList with kriging objects for the genes selected.
@@ -11,16 +11,21 @@
 #' kriging. Data for the respective kriging must be generated previously with
 #' cell_krige().
 #' @param plot_who, a vector of subject indexes as ordered within the STList, to
-#' plot genes from. If NULL, will plot for all subjects.
+#' plot genes from. If NULL, will plot all subjects.
 #' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
-#' @param saveplot, logical indicating whether or not save plots in a PDF file.
+#' @param purity, logical, whether or not annotate tumor and stroma spots based on
+#' ESTIMATE tumor purity scores.
+#' @param saveplot, logical, indicating whether or not save plots in a PDF file.
 #' The PDFs are saved in the working directory. Default is FALSE, meaning plots
 #' are printed to console.
+#' @param scaled, logical, indicating if expression values should be scaled with
+#' respect to the highest value among all genes to plot. WARNING: Color legends
+#' are not scaled between plots, but values are.
 #' @export
 #
 #
 plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
-           color_pal='YlOrBr', purity=F, saveplot=F){
+                            color_pal='YlOrBr', purity=F, saveplot=F, scaled=F){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
@@ -32,11 +37,26 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
     plot_who <- c(1:length(x@counts))
   }
 
-  # if(!is.null(saveplot)){
-  #   if(dir.exists(paste0(saveplot))){
-  #     unlink(paste0(saveplot), recursive=T)
-  #   }
-  # }
+  # Store maximum expression value in case 'scaled' is required.
+  if(scaled){
+    maxvalue <- c()
+    for (i in plot_who) {
+      for (gene in genes) {
+        # Test if kriging exists for a gene and subject.
+        if (rlang::has_name(x@gene_krige, gene)){
+          if(length(x@gene_krige[[gene]]) >= i){
+            if (rlang::has_name(x@gene_krige[[gene]][[i]], krige_type)){
+            # Find maximum expression value for each spatial array.
+            values <- x@gene_krige[[gene]][[i]][[krige_type]]$predict
+            maxvalue <- append(maxvalue, max(values))
+          }
+        }
+      }
+      # Find maximum value among selected spatial arrays.
+      maxvalue <- max(maxvalue)
+    }
+    }
+  }
 
   # Loop through each of the subjects.
   for (i in plot_who) {
@@ -65,8 +85,13 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
       }
 
       # Create data frame with coordinates and kriging values.
-      df <- dplyr::bind_cols(predict_grid,
-                             krige=x@gene_krige[[gene]][[i]][[krige_type]]$predict)
+      if(scaled){
+        krige_vals <- (x@gene_krige[[gene]][[i]][[krige_type]]$predict)/maxvalue
+      } else{
+        krige_vals <- x@gene_krige[[gene]][[i]][[krige_type]]$predict
+      }
+
+      df <- dplyr::bind_cols(predict_grid, krige=krige_vals)
       names(df) <- c("x_pos", "y_pos", "krige")
 
       # Get coordinates of bounding box enclosing the predicted grid.
@@ -115,8 +140,7 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
         titlekrige <- paste0(gene, ", subj ", i, " - ordinary kriging voom-norm counts\nMorans I=",
                              moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
                              getis_est)
-      }
-      else if(krige_type == 'univ'){
+      } else if(krige_type == 'univ'){
         titlekrige <- paste0(gene, ", subj ", i, " - universal kriging voom-norm counts\nMorans I=",
                              moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
                              getis_est)
@@ -130,41 +154,39 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
                              leg_name="pred_expr", title_name=titlekrige)
       } else{
         kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
-                    title_name=titlekrige)
+                      title_name=titlekrige)
       }
       # Append plot to list.
       kp_list[[gene]] <- kp
     }
 
-#     # Define number of columns and rows in plot and size.
-#     row_col <- c(2, 2)
-# #    w_pdf=9
-# #    h_pdf=9
-#     if(length(genes) == 2){
-#       row_col <- c(1, 2)
-# #      w_pdf=9
-# #      h_pdf=4.5
-#     }else if(length(genes) == 1){
-#       row_col <- c(1, 1)
-# #      w_pdf=7
-# #      h_pdf=7
-#     }
+    #     # Define number of columns and rows in plot and size.
+    #     row_col <- c(2, 2)
+    # #    w_pdf=9
+    # #    h_pdf=9
+    #     if(length(genes) == 2){
+    #       row_col <- c(1, 2)
+    # #      w_pdf=9
+    # #      h_pdf=4.5
+    #     }else if(length(genes) == 1){
+    #       row_col <- c(1, 1)
+    # #      w_pdf=7
+    # #      h_pdf=7
+    #     }
 
     row_col <- c(1, 1)
 
-    # Test if a filepath to save plots is available.
+    # Test if plot should be saved to PDF.
     if(saveplot){
-      #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("gene_krige_spat_array_", i, ".pdf")#,
-          #width=w_pdf, height=h_pdf
-          )
+      # Print plots to PDF.
+      pdf(file=paste0("gene_krige_spatarray_", i, ".pdf"))#,
+      #width=w_pdf, height=h_pdf
       print(ggpubr::ggarrange(plotlist=kp_list,
                               nrow=row_col[1], ncol=row_col[2]))
       dev.off()
-    }else{
+    } else{
       # Print plots to console.
-      print(ggpubr::ggarrange(plotlist=kp_list,
-                              nrow=row_col[1], ncol=row_col[2]))
+       return(kp_list)
     }
   }
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/gene_krige.R
 \name{gene_krige}
 \alias{gene_krige}
-\title{gene_krige}
+\title{gene_krige: Spatial interpolation of gene expression}
 \usage{
 gene_krige(x = NULL, genes = "top", univ = F, res = 0.2, who = NULL)
 }
@@ -12,8 +12,8 @@ gene_krige(x = NULL, genes = "top", univ = F, res = 0.2, who = NULL)
 \item{genes, }{a vector of HUGO names or 'top'. If 'top' (default), kriging for the 10
 genes with highest standard deviation is estimated.}
 
-\item{univ, }{a logical stating whether or not to perform universal or ordinary kriging.
-Default is FALSE (ordinary kriging).}
+\item{univ, }{a logical stating whether or not to perform universal kriging.
+The default is FALSE, meaning that ordinary kriging will be performed.}
 
 \item{res, }{a double to adjust the resolution of the plot. Fractions of 1 lead to
 more resolution. Default is res=0.2.}

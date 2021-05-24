@@ -32,8 +32,6 @@ krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='
   # Creates color palette function.
   p_palette <- khroma::colour(color_pal)
 
-  data_f$krige <- data_f$krige/max(data_f$krige)
-
   # Convert the SpatialPolygon mask into a data frame.
   mask_df <- fortify(mask)
 

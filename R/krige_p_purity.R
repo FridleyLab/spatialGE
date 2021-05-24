@@ -29,11 +29,6 @@ krige_p_purity <- function(data_f=NULL, tumorstroma=NULL,
   # Creates color palette function.
   p_palette <- khroma::colour(color_pal)
 
-#  tumor_df <- tumorstroma[tumorstroma$cluster == 1, ]
-#  stroma_df <- tumorstroma[tumorstroma$cluster == 2, ]
-
-  data_f$krige <- data_f$krige/max(data_f$krige)
-
   # Convert the SpatialPolygon mask into a data frame.
   mask_df <- fortify(mask)
 

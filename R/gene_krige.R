@@ -1,5 +1,5 @@
 ##
-#' @title gene_krige
+#' @title gene_krige: Spatial interpolation of gene expression
 #' @description Performs spatial interpolation ('kriging') of normalized gene
 #' counts in spatially-resolved transcriptomics data.
 #' @details
@@ -11,8 +11,8 @@
 #' @param x, an STList with normalized counts
 #' @param genes, a vector of HUGO names or 'top'. If 'top' (default), kriging for the 10
 #' genes with highest standard deviation is estimated.
-#' @param univ, a logical stating whether or not to perform universal or ordinary kriging.
-#' Default is FALSE (ordinary kriging).
+#' @param univ, a logical stating whether or not to perform universal kriging.
+#' The default is FALSE, meaning that ordinary kriging will be performed.
 #' @param res, a double to adjust the resolution of the plot. Fractions of 1 lead to
 #' more resolution. Default is res=0.2.
 #' @param who, the spatial arrays for which krginig will be performed. If NULL (Default),
@@ -22,8 +22,6 @@
 #
 #
 gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
-
-  require('rlang')
 
   # Test that a gene name was entered.
   if (is.null(genes)) {

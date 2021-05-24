@@ -17,7 +17,7 @@
 gene_geary_C <- function(x=NULL, genes=NULL, subj=NULL) {
 
   # Test if voom normalized counts are available.
-  if(is_empty(x@voom_counts[[subj]])){
+  if(rlang::is_empty(x@voom_counts[[subj]])){
     cat(paste0("\nThere are no normalized counts in STList for array ", i, ".\n"))
   }else{
 

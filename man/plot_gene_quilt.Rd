@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_gene_quilt.R
 \name{plot_gene_quilt}
 \alias{plot_gene_quilt}
-\title{plot_gene_quilt}
+\title{plot_gene_quilt: Gene expression at each spot from an spatial array}
 \usage{
 plot_gene_quilt(
   x = NULL,
@@ -17,21 +17,30 @@ plot_gene_quilt(
 \arguments{
 \item{x, }{an STList with voom-norm counts.}
 
-\item{genes, }{a vector of gene names (one or several) to plot.}
+\item{genes, }{a vector of one or more gene names to plot.}
 
-\item{plot_who, }{a vector of subject indexes as ordered within the STList, to
-plot genes from. If NULL, will plot for all subjects.}
+\item{plot_who, }{a vector of numbers indicating the  spatial arrays to plot
+genes from. If NULL, will plot all spatial arrays. The numbers in the vector
+will match the order in which the arrays were specified when creating the STList.}
 
 \item{color_pal, }{a scheme from 'khroma'. Default is 'YlOrBr'.}
 
-\item{saveplot, }{logical indicating whether or not save plots in a PDF file.
+\item{purity, }{logical, whether tumor/stroma classes should be plotted.}
+
+\item{saveplot, }{logical, indicating whether or not save plots in a PDF file.
 The PDFs are saved in the working directory. Default is FALSE, meaning plots
 are printed to console.}
+
+\item{scaled, }{logical, indicating if expression values should be scaled with
+respect to the highest value among all genes to plot. WARNING: Color legends
+are not scaled between plots, but values are.}
 }
 \description{
-Produces a quilt plot from ST data.
+Plot gene expression levels at each spot (quilt plot) within a
+spatially-resolved transcriptomic array.
 }
 \details{
 This function produces a quilt plot for a series of HUGO gene names and spatial
-arrays
+arrays within an STList. The function can also plot tumor/stroma classifications
+from ESTIMATE deconvolution results.
 }

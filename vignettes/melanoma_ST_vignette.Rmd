@@ -35,6 +35,11 @@ After making sure `devtools` is installed, proceed to install `spatialGE`:
 To use `spatialGE`, load the package using the command:
 ```{r setup}
 # library(spatialGEdev)
+
+fx_dir <- list.files(path="~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R", 
+           full.names=T)
+fx_dir <- grep(".R$", fx_dir, value=T)
+sapply(fx_dir, FUN=source)
 ```
 
 ## Spatially-resolved expression of melanoma stage III tumor biopsies
@@ -70,6 +75,10 @@ stored in you local `spatialGE` installation:
 # count_files <- system.file("extdata", "fpaths_count_files.txt", package = "spatialGEdev")
 # coord_files <- system.file("extdata", "fpaths_mapping_files.txt", package = "spatialGEdev")
 # clin_file <- system.file("extdata", "thrane_clinical.csv", package = "spatialGEdev")
+
+count_files <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/fpaths_count_files.txt"
+coord_files <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/fpaths_mapping_files.txt"
+clin_file <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/thrane_clinical.csv"
 ```
 
 We can load the files into an STList object like so:
@@ -126,12 +135,13 @@ argument `plot_who`.
 
 Let's produce a quilt plot for the gene CAPG and SOX10, two genes known to be 
 expressed in melanoma.
-```{r, fig.show="hold", out.width="50%"}
-plot_gene_quilt(melanoma, genes=c('CAPG', 'SOX10'), color_pal="YlOrBr", plot_who=3)
+```{r}
+quilts1 <- plot_gene_quilt(melanoma, genes=c('CAPG', 'SOX10'), color_pal="YlOrBr", plot_who=1, purity = T)
+ggpubr::ggarrange(plotlist=quilts1, nrow=1, ncol=2)
 ```
 
-We can see that gene expression patterns of both genes is different, with a more
-compartmentalized pattern in CAPG, compared to SOX10. The area of lower CAPG
+We can see that gene expression patterns of both genes are different, with a more
+dispersed pattern in CAPG, compared to SOX10. The large area of lower CAPG
 expression corresponds to the melanoma pocket detected by Thrane et al. (see Figure 3
 of their study).
 
@@ -147,14 +157,63 @@ correlated with the physical distance between them.
 The function `gene_krige()` performs kriging of gene expression via the `geoR`
 package:
 ```{r}
-melanoma <- gene_krige(melanoma, genes=c('CAPG', 'SOX10'), who = 1)
+melanoma <- gene_krige(melanoma, genes=c('CAPG', 'SOX10'), who=c(1, 3))
 ```
 
 The surface can be visualized using the `plot_gene_krige()` function:
 ```{r}
-plot_gene_krige(melanoma, genes=c('CAPG', 'SOX10'), plot_who=1)
+kriges1 <- plot_gene_krige(melanoma, genes=c('CAPG', 'SOX10'), plot_who=1)
+ggpubr::ggarrange(plotlist=kriges1, nrow=1, ncol=2)
 ```
 
 By looking at the transcriptomic surfaces of the tho genes, it is easier to detect
-pockets of higher (or lower) expression within the tissue.
+pockets of higher (or lower) expression within the tissue. It is now more evident that
+expression of CAPG is lower on the left (melanoma) portion of the tumor slice, compared
+to the rest of the slice.
+
+In the transcriptomic surface plots, `spatialGE` outputs three spatial heterogeneity 
+statistics: Moran's I, Geary's C, and Getis-Ord Gi.
+
+```{r echo=F}
+sphet_info <- tibble::tibble("Low"=c('Dispersion', 'Clustering', '"Cold spots"'),
+"Statistic"=c('Moran’s I', 'Geary’s C', 'Getis-Ord Gi'),
+"High"=c('Clustering', 'Dispersion', '“Hot spots”')
+)
+
+knitr::kable(sphet_info, align='c', caption='Heterogeneity statitstics in `spatialGE`', format = 'html') 
+```
+
+In this case, the two genes showed almost the same values for all three statistics.
+A slightly lower Moran's I for CAPG is a result of higher dispersion of spots with
+high expression values through the slice surface. Both Moran's I and Geary's C showed
+statistical significance (_p_<0.05) after a permutation test (performed with `spdep`). 
+
+A higher difference in Moran's I can be seen for one of the tissue slices of patient 2.
+With a higher Moran's I, CAPG shows expression concentrated in the center right and
+lower left of the tissue. For SOX10, expression is almost uniform for the lower half
+of the tissue slice.
+```{r}
+kriges2 <- plot_gene_krige(melanoma, genes=c('CAPG', 'SOX10'), plot_who=3)
+ggpubr::ggarrange(plotlist=kriges2, nrow=1, ncol=2)
+```
+
+## Gene expression deconvolution in spatial arrays
+Many gene expression deconvolution methods are available, and their use will depend
+largely on the question and biological system to be studied. In `spatialGE`, we have
+implemented xCell to provide a qualitatuve snapshot of the cell composition within a
+spatial array. Decovolution in xCell focuses on immunological cell types, which is of
+crucial importance in the study of tumor microenvironment. 
+
+Let's apply xCell to the spatial arrays:
+```{r}
+melanoma <- spatial_deconv(melanoma, method='xcell')
+```
+
+With the function `plot_cell_quilt()`, we can visualize the cell type scores 
+inferred by xCell. For example, B cells and lymphatic endothelial cells.
+```{r}
+quilts2 <- plot_cell_quilt(melanoma, cells=c('b_cells', 'ly_endothelial_cells'), color_pal="YlOrBr", plot_who=1, purity=T)
+ggpubr::ggarrange(plotlist=quilts2, nrow=1, ncol=2)
+```
+
 

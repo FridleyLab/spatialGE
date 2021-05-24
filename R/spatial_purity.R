@@ -2,7 +2,7 @@
 #' @title spatial_purity
 #' @description Applies ESTIMATE to ST data.
 #' @details
-#' This function applies ESTIMATED to the stored normalized matrices in order to \
+#' This function applies ESTIMATED to the stored normalized matrices in order to
 #' obtain purity scores for each of the library/spots.
 #'
 #' @param x, a STList with normalized count matrices.
@@ -12,7 +12,7 @@
 spatial_purity <- function(x=NULL){
 
   require('magrittr')
-  require('estimate') # Needs to be 'required' because of databases loaded by packages.
+  require('estimate') # Needs to be 'required' because of databases loaded by package.
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){

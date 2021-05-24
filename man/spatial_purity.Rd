@@ -16,6 +16,6 @@ x, an updated STList with ESTIMATE purity scores.
 Applies ESTIMATE to ST data.
 }
 \details{
-This function applies ESTIMATED to the stored normalized matrices in order to \
+This function applies ESTIMATED to the stored normalized matrices in order to
 obtain purity scores for each of the library/spots.
 }

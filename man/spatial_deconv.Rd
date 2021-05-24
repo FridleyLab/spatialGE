@@ -2,23 +2,24 @@
 % Please edit documentation in R/spatial_deconv.R
 \name{spatial_deconv}
 \alias{spatial_deconv}
-\title{spatial_deconv}
+\title{spatial_deconv: Deconvolution of ST data}
 \usage{
 spatial_deconv(x = NULL, method = "xcell")
 }
 \arguments{
-\item{x, }{a STList with normalized count matrices. If 'none', only ESTIMATE is
+\item{x, }{an STList with normalized count matrices. If 'none', only ESTIMATE is
 applied.}
 }
 \value{
 x, an updated STList with deconvolution scores.
 }
 \description{
-Applies deconvolution methods to ST data.
+Applies gene expression deconvolution methods to data from spatial
+arrays. Produces ESTIMATE tumor/stroma classes via model-based clustering.
 }
 \details{
-This function applies deconvolution methods (xCell by default) to the stored
+This function applies deconvolution methods (xCell and ESTIMATE, for now) to the stored
 normalized matrices in order to obtain cell scores for each of the library/spots.
-The results are stored as untransformed, and square-root transformed scores.
-The method ESTIMATE is automatically applied regardless of the selected method.
+The results are stored witin the STList. The method ESTIMATE is automatically
+applied regardless of the selected method.
 }

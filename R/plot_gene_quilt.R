@@ -5,7 +5,7 @@
 #' @details
 #' This function produces a quilt plot for a series of HUGO gene names and spatial
 #' arrays within an STList. The function can also plot tumor/stroma classifications
-#' if ESTIMATE deconvolution results are present in the STList.
+#' from ESTIMATE deconvolution results.
 #'
 #' @param x, an STList with voom-norm counts.
 #' @param genes, a vector of one or more gene names to plot.
@@ -17,6 +17,9 @@
 #' @param saveplot, logical, indicating whether or not save plots in a PDF file.
 #' The PDFs are saved in the working directory. Default is FALSE, meaning plots
 #' are printed to console.
+#' @param scaled, logical, indicating if expression values should be scaled with
+#' respect to the highest value among all genes to plot. WARNING: Color legends
+#' are not scaled between plots, but values are.
 #' @export
 #
 #
@@ -86,7 +89,7 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
         if(purity){
           if(!(rlang::is_empty(melanoma@cell_deconv))){
           df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
-          qp <- quilt_p_purity2(data_f=df, leg_name="norm_expr", color_pal=color_pal,
+          qp <- quilt_p_purity(data_f=df, leg_name="norm_expr", color_pal=color_pal,
                                 title_name=paste0(gene, " - ", "subj ", i))
           } else{
             stop("No tumor/stroma classification in the STList.")
@@ -133,10 +136,7 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
       dev.off()
     } else{
       # Print plots to console.
-      for(p in 1:length(qp_list)){
-        print(qp_list[[p]])
-      }
+        return(qp_list)
     }
-
   }
 }

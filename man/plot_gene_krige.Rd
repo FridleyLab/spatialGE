@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_gene_krige.R
 \name{plot_gene_krige}
 \alias{plot_gene_krige}
-\title{plot_gene_krige}
+\title{plot_gene_krige: Visualize transcriptomic surfaces}
 \usage{
 plot_gene_krige(
   x = NULL,
@@ -11,7 +11,8 @@ plot_gene_krige(
   plot_who = NULL,
   color_pal = "YlOrBr",
   purity = F,
-  saveplot = F
+  saveplot = F,
+  scaled = F
 )
 }
 \arguments{
@@ -24,18 +25,25 @@ kriging. Data for the respective kriging must be generated previously with
 cell_krige().}
 
 \item{plot_who, }{a vector of subject indexes as ordered within the STList, to
-plot genes from. If NULL, will plot for all subjects.}
+plot genes from. If NULL, will plot all subjects.}
 
 \item{color_pal, }{a scheme from 'khroma'. Default is 'YlOrBr'.}
 
-\item{saveplot, }{logical indicating whether or not save plots in a PDF file.
+\item{purity, }{logical, whether or not annotate tumor and stroma spots based on
+ESTIMATE tumor purity scores.}
+
+\item{saveplot, }{logical, indicating whether or not save plots in a PDF file.
 The PDFs are saved in the working directory. Default is FALSE, meaning plots
 are printed to console.}
+
+\item{scaled, }{logical, indicating if expression values should be scaled with
+respect to the highest value among all genes to plot. WARNING: Color legends
+are not scaled between plots, but values are.}
 }
 \description{
-Produces a kriging plot from ST data.
+Produces a transcriptomic surfaces from kriging interpolation of ST data.
 }
 \details{
-This function produces a kriging plot for a series of HUGO gene names and
+This function produces a transcriptomic surface plot for a series of HUGO gene names and
 spatial arrays.
 }
