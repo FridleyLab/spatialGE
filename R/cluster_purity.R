@@ -6,13 +6,15 @@
 #' Takes ESTIMATE tumor purity scores and performs model-based clustering. The function
 #' only evaluates k=2, to separate between likely tumor and stromal spots.
 #'
-#' @param x, an STList.
-#' @param who, an integer indicating the spatial array to be analyzed.
+#' @param x, an STList with ESTIMATE scores.
+#' @return x, an STList with tumor/stroma classifications.
 #
 #
 cluster_purity <- function(x=NULL) {
 
-  require('mclust') #Mclust can't call mclust if the library is not loaded.
+  suppressMessages(
+    require('mclust') #Mclust can't call mclust if the library is not loaded.
+  )
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){
@@ -29,8 +31,8 @@ cluster_purity <- function(x=NULL) {
     estimate_mx <- t(as.matrix(estimate_df[1, -1]))
 
     # Perform clustering.
-    BIC <- mclust::mclustBIC(estimate_mx, G=c(2))
-    clust_mod <- mclust::Mclust(estimate_mx, x=BIC, G=c(2))
+    BIC <- mclust::mclustBIC(estimate_mx, G=c(2), verbose=F)
+    clust_mod <- mclust::Mclust(estimate_mx, x=BIC, G=c(2), verbose=F)
 
     #factoextra::fviz_mclust(clust_mod, "BIC", palette = "jco")
 

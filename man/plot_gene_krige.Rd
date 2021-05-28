@@ -41,7 +41,7 @@ respect to the highest value among all genes to plot. WARNING: Color legends
 are not scaled between plots, but values are.}
 }
 \description{
-Produces a transcriptomic surfaces from kriging interpolation of ST data.
+Produces a transcriptomic surface from kriging interpolation of ST data.
 }
 \details{
 This function produces a transcriptomic surface plot for a series of HUGO gene names and

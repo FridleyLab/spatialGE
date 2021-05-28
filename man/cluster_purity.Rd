@@ -7,9 +7,10 @@
 cluster_purity(x = NULL)
 }
 \arguments{
-\item{x, }{an STList.}
-
-\item{who, }{an integer indicating the spatial array to be analyzed.}
+\item{x, }{an STList with ESTIMATE scores.}
+}
+\value{
+x, an STList with tumor/stroma classifications.
 }
 \description{
 Perform model-based clustering to define stromal/tumor clusters from

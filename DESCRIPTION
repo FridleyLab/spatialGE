@@ -41,8 +41,8 @@ Imports:
 	spdep,
 	tibble,
 	tidyverse,
-	xCell,
-	rmarkdown
+	wordspace,
+	xCell
 Suggests: 
     knitr,
     rmarkdown

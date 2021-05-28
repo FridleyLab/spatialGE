@@ -1,29 +1,35 @@
 ##
-#' @title plot_deconv_krige
-#' @description Produces a kriging plot from cell scores.
+#' @title plot_deconv_krige: Visualize spatial interpolation of deconvolution scores
+#' @description Produces a spatial interpolation surface from kriging of gene expression
+#' deconvolution scores in ST data.
 #' @details
-#' This function produces a kriging plot for a series of cell names and spatial
-#' arrays.
+#' This function produces a spatial interpolation surface plot for a series of
+#' cell names and spatial arrays.
 #'
 #' @param x, an STList with kriging objects for the cells selected.
-#' @param cells, a vector of cell names within a deconvolution matrix (one or
-#' several) to plot.
+#' @param cells, a vector of cell names (one or several) within a deconvolution
+#' matrix  to plot.
 #' @param krige_type, either 'ord' (ordinary; default), or 'univ' (universal)
 #' kriging. Data for the respective kriging must be generated previously with
 #' cell_krige().
 #' @param plot_who, a vector of subject indexes as ordered within the STList, to
 #' plot cells from. If NULL, will plot for all subjects.
 #' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
+#' @param purity, logical, whether or not annotate tumor and stroma spots based on
+#' ESTIMATE tumor purity scores.
 #' @param saveplot, logical indicating whether or not save plots in a PDF file.
 #' The PDFs are saved in the working directory. Default is FALSE, meaning plots
 #' are printed to console.
 #' @param pvalues, logical indicating whether or not dots where a given cell was
 #' predicted to be significantly abundant (p<0.05). Default is FALSE.
+#' @param scaled, logical, indicating if expression values should be scaled with
+#' respect to the highest value among all genes to plot. WARNING: Color legends
+#' are not scaled between plots, but values are.
 #' @export
 #
 #
 plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
-           color_pal='YlOrBr', saveplot=F, pvalues=F, purity=F){
+           color_pal='YlOrBr', saveplot=F, pvalues=F, purity=F, scaled=T){
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
@@ -35,11 +41,26 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
     plot_who <- c(1:length(x@counts))
   }
 
-  # if(!is.null(saveplot)){
-  #   if(dir.exists(paste0(saveplot))){
-  #     unlink(paste0(saveplot), recursive=T)
-  #   }
-  # }
+  # Store maximum expression value in case 'scaled' is required.
+  if(scaled){
+    maxvalue <- c()
+    for (i in plot_who) {
+      for (cell in cells) {
+        # Test if kriging exists for a cell and subject.
+        if (rlang::has_name(x@cell_krige, cell)){
+          if(length(x@cell_krige[[cell]]) >= i){
+            if (rlang::has_name(x@cell_krige[[cell]][[i]], krige_type)){
+              # Find maximum expression value for each spatial array.
+              values <- x@cell_krige[[cell]][[i]][[krige_type]]$predict
+              maxvalue <- append(maxvalue, max(values))
+            }
+          }
+        }
+        # Find maximum value among selected spatial arrays.
+        maxvalue <- max(maxvalue)
+      }
+    }
+  }
 
   # Loop through each of ythe subjects.
   for (i in plot_who) {
@@ -68,8 +89,13 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
       }
 
       # Create data frame with coordinates and kriging values.
-      df <- dplyr::bind_cols(predict_grid,
-                             krige=x@cell_krige[[cell]][[i]][[krige_type]]$predict)
+      if(scaled){
+        krige_vals <- (x@cell_krige[[cell]][[i]][[krige_type]]$predict)/maxvalue
+      } else{
+        krige_vals <- x@cell_krige[[cell]][[i]][[krige_type]]$predict
+      }
+
+      df <- dplyr::bind_cols(predict_grid, krige=krige_vals)
       names(df) <- c("x_pos", "y_pos", "krige")
 
       # Get coordinates of bounding box enclosing the predicted grid.
@@ -95,98 +121,82 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
       bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
 
       # Get spatial statistics.
-      if(cell != 'stroma_score'){
-        moran_est <- round(as.vector(x@cell_het[[cell]][[i]]$morans_I$estimate[[1]]), 2)
-        geary_est <- round(as.vector(x@cell_het[[cell]][[i]]$gearys_C$estimate[[1]]), 2)
-        getis_est <- round(as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
+      moran_est <- round(as.vector(x@cell_het[[cell]][[i]]$morans_I$estimate[[1]]), 2)
+      geary_est <- round(as.vector(x@cell_het[[cell]][[i]]$gearys_C$estimate[[1]]), 2)
+      getis_est <- round(as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
 
-        moran_p <- as.vector(x@cell_het[[cell]][[i]]$morans_I$p.value)
-        geary_p <- as.vector(x@cell_het[[cell]][[i]]$gearys_C$p.value)
-        getis_p <- as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$p.value)
+      moran_p <- as.vector(x@cell_het[[cell]][[i]]$morans_I$p.value)
+      geary_p <- as.vector(x@cell_het[[cell]][[i]]$gearys_C$p.value)
+      getis_p <- as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$p.value)
 
-        if(moran_p < 0.05){
-          moran_est <- paste0(moran_est, '*')
-        }
-        if(geary_p < 0.05){
-          geary_est <- paste0(geary_est, '*')
-        }
-        if(getis_p < 0.05){
-          getis_est <- paste0(getis_est, '*')
-        }
-
+      if(moran_p < 0.05){
+        moran_est <- paste0(moran_est, '*')
+      }
+      if(geary_p < 0.05){
+        geary_est <- paste0(geary_est, '*')
+      }
+      if(getis_p < 0.05){
+        getis_est <- paste0(getis_est, '*')
       }
 
       # Construct title.
-      if(cell != 'stroma_score'){
-        if(krige_type == 'ord'){
-          titlekrige <- paste0(cell, ", subj ", i, " - ordinary kriging square root-norm scores\nMorans I=",
-                               moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
-                               getis_est)
-        }
-        else if(krige_type == 'univ'){
-          titlekrige <- paste0(cell, ", subj ", i, " - universal kriging square root-norm scores\nMorans I=",
-                               moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
-                               getis_est)
-        }
-      # The following titles for "stroma score". In the future, purity scores will
-      # replace the spatial statistics.
-      }else {
-        if(krige_type == 'ord'){
-          titlekrige <- paste0(cell, ", subj ", i, " - ordinary kriging square root-norm scores")
-        }
-        else if(krige_type == 'univ'){
-          titlekrige <- paste0(cell, ", subj ", i, " - universal kriging square root-norm scores")
-        }
+      if(krige_type == 'ord'){
+        titlekrige <- paste0(cell, ", subj ", i, " - ordinary kriging square root-norm scores\nMorans I=",
+                             moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
+                             getis_est)
+      } else if(krige_type == 'univ'){
+        titlekrige <- paste0(cell, ", subj ", i, " - universal kriging square root-norm scores\nMorans I=",
+                             moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
+                             getis_est)
       }
 
       if(purity | pvalues){
         if(purity){
           tumorstroma_df <- dplyr::bind_cols(x@coords[[i]],
-                                           cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+                                             cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
           kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
-                             tumorstroma=tumorstroma_df,
-                             leg_name="pred_score", title_name=titlekrige)
+                               tumorstroma=tumorstroma_df,
+                               leg_name="pred_score", title_name=titlekrige)
         } else if(pvalues){
           kp <- krige_p_pvals(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
-                            title_name=titlekrige, x=x, plot_who=i, cell=cell)
+                              title_name=titlekrige, x=x, plot_who=i, cell=cell)
         }
 
-     } else{
+      } else{
         kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
                       title_name=titlekrige)
       }
-
       # Append plot to list.
       kp_list[[cell]] <- kp
     }
 
-    # Define number of columns and rows in plot and size.
-    row_col <- c(2, 2)
-#    w_pdf=9
-#    h_pdf=9
-    if(length(cells) == 2){
-      row_col <- c(1, 2)
-#      w_pdf=9
-#      h_pdf=4.5
-    }else if(length(cells) == 1){
-      row_col <- c(1, 1)
-#      w_pdf=7
-#      h_pdf=7
-    }
+    #     # Define number of columns and rows in plot and size.
+    #     row_col <- c(2, 2)
+    # #    w_pdf=9
+    # #    h_pdf=9
+    #     if(length(cells) == 2){
+    #       row_col <- c(1, 2)
+    # #      w_pdf=9
+    # #      h_pdf=4.5
+    #     }else if(length(cells) == 1){
+    #       row_col <- c(1, 1)
+    # #      w_pdf=7
+    # #      h_pdf=7
+    #     }
 
-    # Test if a filepath to save plots is available.
+    row_col <- c(1, 1)
+
+    # Test if plot should be saved to PDF.
     if(saveplot){
-      #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("cell_krige_spat_array_", i, ".pdf")#,
+      # Print plots to PDF.
+      pdf(file=paste0("cell_krige_spatarray_", i, ".pdf"))#,
           #width=w_pdf, height=h_pdf
-          )
       print(ggpubr::ggarrange(plotlist=kp_list,
-                          nrow=row_col[1], ncol=row_col[2]))
+                             nrow=row_col[1], ncol=row_col[2]))
       dev.off()
     }else{
       # Print plots to console.
-      print(ggpubr::ggarrange(plotlist=kp_list,
-                          nrow=row_col[1], ncol=row_col[2]))
+      return(kp_list)
     }
   }
 }

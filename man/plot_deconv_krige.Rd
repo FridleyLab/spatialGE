@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_deconv_krige.R
 \name{plot_deconv_krige}
 \alias{plot_deconv_krige}
-\title{plot_deconv_krige}
+\title{plot_deconv_krige: Visualize spatial interpolation of deconvolution scores}
 \usage{
 plot_deconv_krige(
   x = NULL,
@@ -12,14 +12,15 @@ plot_deconv_krige(
   color_pal = "YlOrBr",
   saveplot = F,
   pvalues = F,
-  purity = F
+  purity = F,
+  scaled = T
 )
 }
 \arguments{
 \item{x, }{an STList with kriging objects for the cells selected.}
 
-\item{cells, }{a vector of cell names within a deconvolution matrix (one or
-several) to plot.}
+\item{cells, }{a vector of cell names (one or several) within a deconvolution
+matrix  to plot.}
 
 \item{krige_type, }{either 'ord' (ordinary; default), or 'univ' (universal)
 kriging. Data for the respective kriging must be generated previously with
@@ -36,11 +37,19 @@ are printed to console.}
 
 \item{pvalues, }{logical indicating whether or not dots where a given cell was
 predicted to be significantly abundant (p<0.05). Default is FALSE.}
+
+\item{purity, }{logical, whether or not annotate tumor and stroma spots based on
+ESTIMATE tumor purity scores.}
+
+\item{scaled, }{logical, indicating if expression values should be scaled with
+respect to the highest value among all genes to plot. WARNING: Color legends
+are not scaled between plots, but values are.}
 }
 \description{
-Produces a kriging plot from cell scores.
+Produces a spatial interpolation surface from kriging of gene expression
+deconvolution scores in ST data.
 }
 \details{
-This function produces a kriging plot for a series of cell names and spatial
-arrays.
+This function produces a spatial interpolation surface plot for a series of
+cell names and spatial arrays.
 }

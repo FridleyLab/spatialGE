@@ -130,7 +130,8 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
                     cell_deconv=list(),
                     cell_het=list(),
                     cell_krige=list(),
-                    prediction_border=list()
+                    prediction_border=list(),
+                    st_clusters=list()
   )
 
   return(STList_obj)

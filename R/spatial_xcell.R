@@ -48,9 +48,12 @@ spatial_xcell <- function(x=NULL){
     # Perform xCell analysis and make cell names as column (no rownames).
     # NOTE1: Applies `janitor` to clean cell names.
     # NOTE 2: Before modifying names, it runs p-value estimation form xCell.
-    df_xcell <- xCellAnalysis(df, rnaseq=T, parallel.sz=cores)
 
-    cat("Calculating p-values...\n\n")
+    invisible(capture.output(
+      df_xcell <- xCellAnalysis(df, rnaseq=T, parallel.sz=cores)
+    ))
+
+    cat(paste0("\nCalculating p-values for spatial array #", i, "...\n"))
 
     # Extract values for a given cell type.
     # NOTE: This part was planned to get stromal spots...

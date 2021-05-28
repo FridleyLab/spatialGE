@@ -17,7 +17,7 @@
 cell_moran_I <- function(x=NULL, cells=NULL, subj=NULL) {
 
   # Test if normalized cell data are available.
-  if(is_empty(x@cell_deconv$xCell[[subj]]$sqrt_scores)){
+  if(rlang::is_empty(x@cell_deconv$xCell[[subj]]$sqrt_scores)){
     stop("There are no normalized cell data in STList.")
   }
 

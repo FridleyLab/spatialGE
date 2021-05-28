@@ -1,6 +1,6 @@
 ##
 #' @title plot_gene_krige: Visualize transcriptomic surfaces
-#' @description Produces a transcriptomic surfaces from kriging interpolation of ST data.
+#' @description Produces a transcriptomic surface from kriging interpolation of ST data.
 #' @details
 #' This function produces a transcriptomic surface plot for a series of HUGO gene names and
 #' spatial arrays.
@@ -46,15 +46,15 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
         if (rlang::has_name(x@gene_krige, gene)){
           if(length(x@gene_krige[[gene]]) >= i){
             if (rlang::has_name(x@gene_krige[[gene]][[i]], krige_type)){
-            # Find maximum expression value for each spatial array.
-            values <- x@gene_krige[[gene]][[i]][[krige_type]]$predict
-            maxvalue <- append(maxvalue, max(values))
+              # Find maximum expression value for each spatial array.
+              values <- x@gene_krige[[gene]][[i]][[krige_type]]$predict
+              maxvalue <- append(maxvalue, max(values))
+            }
           }
         }
+        # Find maximum value among selected spatial arrays.
+        maxvalue <- max(maxvalue)
       }
-      # Find maximum value among selected spatial arrays.
-      maxvalue <- max(maxvalue)
-    }
     }
   }
 
@@ -180,7 +180,7 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
     if(saveplot){
       # Print plots to PDF.
       pdf(file=paste0("gene_krige_spatarray_", i, ".pdf"))#,
-      #width=w_pdf, height=h_pdf
+         #width=w_pdf, height=h_pdf
       print(ggpubr::ggarrange(plotlist=kp_list,
                               nrow=row_col[1], ncol=row_col[2]))
       dev.off()

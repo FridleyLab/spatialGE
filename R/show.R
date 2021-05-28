@@ -6,7 +6,6 @@
 #' object.
 #'
 #' @param object, an STList object to show summary from.
-#' @export
 #
 #
 # Set object class.

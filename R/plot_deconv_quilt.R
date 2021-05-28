@@ -1,24 +1,30 @@
 ##
-#' @title plot_deconv_quilt
-#' @description Produces a quilt plot from cell scores.
+#' @title plot_deconv_quilt: Deconvolution scores at each spot from an spatial array
+#' @description Plot cell type deconvolution scores at each spot (quilt plot) within a
+#' spatially-resolved transcriptomic array.
 #' @details
 #' This function produces a quilt plot for a series cell names and spatial
-#' arrays.
+#' arrays within an STList. The function can also plot tumor/stroma classifications
+#' if ESTIMATE deconvolution results are present in the STList.
 #'
 #' @param x, an STList with deconvolution matrices containing the cell names.
 #' @param cells, a vector of cell names within a deconvolution matrix (one or
 #' several) to plot.
 #' @param plot_who, a vector of subject indexes as ordered within the STList, to
 #' plot cells from. If NULL, will plot for all subjects.
-#' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
+#' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.'
+#' @param purity, logical, whether tumor/stroma classes should be plotted.
 #' @param saveplot, logical indicating whether or not save plots in a PDF file.
 #' The PDFs are saved in the working directory. Default is FALSE, meaning plots
 #' are printed to console.
+#' @param scaled, logical, indicating if expression values should be scaled with
+#' respect to the highest value among all genes to plot. WARNING: Color legends
+#' are not scaled between plots, but values are.
 #' @export
 #
 #
-plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL,
-                            color_pal='YlOrBr', saveplot=F){
+plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr',
+                            purity=F, saveplot=F,  scaled=F){
 
   #  moran_est <- round(as.vector(x@gene_het[[gene]]$morans_I$estimate[[1]]), 2)
   #  geary_est <- round(as.vector(x@gene_het[[gene]]$gearys_C$estimate[[1]]), 2)
@@ -36,14 +42,25 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL,
 
   # Test if voom normalized counts are available.
   if (rlang::is_empty(x@cell_deconv)) {
-    stop(paste("There are not deconvolution matrices in this STList."))
+    stop("There are not deconvolution matrices in this STList.")
   }
 
-  # if(!is.null(saveplot)){
-  #   if(dir.exists(paste0(saveplot))){
-  #     unlink(paste0(saveplot), recursive=T)
-  #   }
-  # }
+  # Store maximum cell score value in case 'scaled' is required.
+  if(scaled){
+    maxvalue <- c()
+    for (i in plot_who) {
+      for (cell in cells) {
+        # Test if cell name exists in normalized count matrix.
+        if (any(x@cell_deconv$xCell[[i]]$sqrt_scores$cell_names == cell)) {
+          # Find maximum score value for each spatial array.
+          values <- unlist(x@cell_deconv$xCell[[i]]$sqrt_scores[x@cell_deconv$xCell[[i]]$sqrt_scores$cell_names == cell, ][,-1])
+          maxvalue <- append(maxvalue, max(values))
+        }
+      }
+    }
+    # Find maximum value among selected spatial arrays.
+    maxvalue <- max(maxvalue)
+  }
 
   # Loop through each normalized count matrix.
   for (i in plot_who) {
@@ -54,65 +71,72 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL,
     # Loop though genes to plot.
     for (cell in cells) {
 
-      if(cell != 'stroma_score'){
-        # Test if gene name exists in normalized count matrix.
-        if (any(x@cell_deconv[[i]]$transf_deconv_matrix$cell_names == cell)) {
-          # Create data frame of gene and plot.
-          values <- unlist(x@cell_deconv[[i]]$transf_deconv_matrix[x@cell_deconv[[i]]$transf_deconv_matrix$cell_names == cell,][,-1])
-          df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
-          colnames(df) <- c('x_pos', 'y_pos', 'values')
-
-          # The color palette function in khroma is created by quilt_p() function.
-          qp <- quilt_p(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
-                        title_name=paste0(cell, " - ", "subj ", i))
+      # Test if gene name exists in normalized count matrix.
+      if (any(x@cell_deconv$xCell[[i]]$sqrt_scores$cell_names == cell)) {
+        # If scaled, standardize expression. If not, return expression values as they are.
+        if(scaled){
+          values <- unlist(x@cell_deconv$xCell[[i]]$sqrt_scores[x@cell_deconv$xCell[[i]]$sqrt_scores$cell_names == cell,][,-1])/maxvalue
         } else{
-          # If gene is not in the matrix, move to next gene.
-          cat(paste(cell, "is not a cell type in the deconvoluted matrix."))
-          next
+          values <- unlist(x@cell_deconv$xCell[[i]]$sqrt_scores[x@cell_deconv$xCell[[i]]$sqrt_scores$cell_names == cell,][,-1])
         }
-      }else if(cell == 'stroma_score'){
-        if (any(x@cell_deconv[[i]]$transf_tumorstroma$cell_names == cell)) {
-          # Create data frame of gene and plot.
-          values <- unlist(x@cell_deconv[[i]]$transf_tumorstroma[x@cell_deconv[[i]]$transf_tumorstroma$cell_names == cell,][,-1])
-          df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
-          colnames(df) <- c('x_pos', 'y_pos', 'values')
 
+        # Create data frame of gene and plot.
+        df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
+        colnames(df) <- c('y_pos', 'x_pos', 'values')
+
+        # If purity=T, get tumor/stroma classifications and add to data frame.
+        # Then call the quilt plot function.
+        if(purity){
+          if(!(rlang::is_empty(melanoma@cell_deconv))){
+            df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+            qp <- quilt_p_purity(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
+                                  title_name=paste0(cell, " - ", "subj ", i))
+          } else{
+            stop("No tumor/stroma classification in the STList.")
+          }
+        } else{
           # The color palette function in khroma is created by quilt_p() function.
           qp <- quilt_p(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
                         title_name=paste0(cell, " - ", "subj ", i))
         }
+
+      } else{
+        # If gene is not in the matrix, move to next gene.
+        cat(paste(cell, "is not a cell type in the deconvoluted matrix."))
+        next
       }
 
       # Append plot to list.
       qp_list[[cell]] <- qp
     }
 
-    # Define number of columns and rows in plot and size.
-    row_col <- c(2, 2)
-    w_pdf=9
-    h_pdf=9
-    if(length(cells) == 2){
-      row_col <- c(1, 2)
-      w_pdf=9
-      h_pdf=4.5
-    }else if(length(cells) == 1){
-      row_col <- c(1, 1)
-      w_pdf=7
-      h_pdf=7
-    }
+    # # Define number of columns and rows in plot and size.
+    # row_col <- c(2, 2)
+    # w_pdf=9
+    # h_pdf=9
+    # if(length(cells) == 2){
+    #   row_col <- c(1, 2)
+    #   w_pdf=9
+    #   h_pdf=4.5
+    # }else if(length(cells) == 1){
+    #   row_col <- c(1, 1)
+    #   w_pdf=7
+    #   h_pdf=7
+    # }
+
+    row_col <- c(1, 1)
 
     # Test if a filepath to save plots is available.
     if(saveplot){
       #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("cell_quilt_spat_array_", i, ".pdf"),
-          width=w_pdf, height=h_pdf)
+      pdf(file=paste0("cell_quilt_spatarray_", i, ".pdf"), width=10, height=10)#,
+          #width=w_pdf, height=h_pdf
       print(ggpubr::ggarrange(plotlist=qp_list,
                               nrow=row_col[1], ncol=row_col[2]))
       dev.off()
     }else{
       # Print plots to console.
-      print(ggpubr::ggarrange(plotlist=qp_list,
-                              nrow=row_col[1], ncol=row_col[2]))
+      return(qp_list)
     }
   }
 }

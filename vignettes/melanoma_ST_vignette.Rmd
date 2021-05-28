@@ -33,15 +33,15 @@ After making sure `devtools` is installed, proceed to install `spatialGE`:
 ```
 
 To use `spatialGE`, load the package using the command:
-```{r setup}
-library(spatialGEdev)
+```{r}
+# library(spatialGEdev)
 ```
 
-```{r echo=FALSE}
-# fx_dir <- list.files(path="~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R", 
-#            full.names=T)
-# fx_dir <- grep(".R$", fx_dir, value=T)
-# sapply(fx_dir, FUN=source)
+```{r include=F}
+fx_dir <- list.files(path="~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R",
+           full.names=T)
+fx_dir <- grep(".R$", fx_dir, value=T)
+sapply(fx_dir, FUN=source, verbose=F)
 ```
 
 ## Spatially-resolved expression of melanoma stage III tumor biopsies
@@ -74,15 +74,15 @@ clinical file must match that of the file paths.
 The example files in this tutorial can be downloaded from the GitHub repository (https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata). They are also
 stored in you local `spatialGE` installation:
 ```{r}
-count_files <- system.file("extdata", "fpaths_count_files.txt", package = "spatialGEdev")
-coord_files <- system.file("extdata", "fpaths_mapping_files.txt", package = "spatialGEdev")
-clin_file <- system.file("extdata", "thrane_clinical.csv", package = "spatialGEdev")
+# count_files <- system.file("extdata", "fpaths_count_files.txt", package = "spatialGEdev")
+# coord_files <- system.file("extdata", "fpaths_mapping_files.txt", package = "spatialGEdev")
+# clin_file <- system.file("extdata", "thrane_clinical.csv", package = "spatialGEdev")
 ```
 
 ```{r echo=F}
-# count_files <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/fpaths_count_files.txt"
-# coord_files <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/fpaths_mapping_files.txt"
-# clin_file <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/thrane_clinical.csv"
+count_files <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/fpaths_count_files.txt"
+coord_files <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/fpaths_mapping_files.txt"
+clin_file <- "~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/short_test_version_3subjs/thrane_clinical.csv"
 ```
 
 We can load the files into an STList object like so:
@@ -184,7 +184,7 @@ sphet_info <- tibble::tibble("Low"=c('Dispersion', 'Clustering', '"Cold spots"')
 "High"=c('Clustering', 'Dispersion', '“Hot spots”')
 )
 
-knitr::kable(sphet_info, align='c', caption='Heterogeneity statitstics in `spatialGE`', format = 'html') 
+knitr::kable(sphet_info, align='c', caption='Heterogeneity statitstics in `spatialGE`', format='simple') 
 ```
 
 In this case, the two genes showed almost the same values for all three statistics.
@@ -216,8 +216,90 @@ melanoma <- spatial_deconv(melanoma, method='xcell')
 With the function `plot_cell_quilt()`, we can visualize the cell type scores 
 inferred by xCell. For example, B cells and lymphatic endothelial cells.
 ```{r}
-quilts2 <- plot_cell_quilt(melanoma, cells=c('b_cells', 'ly_endothelial_cells'), color_pal="YlOrBr", plot_who=1, purity=T)
+quilts2 <- plot_deconv_quilt(melanoma, cells=c('b_cells', 'ly_endothelial_cells'), 
+                           color_pal="YlOrBr", plot_who=1, purity=T)
 ggpubr::ggarrange(plotlist=quilts2, nrow=1, ncol=2)
 ```
 
+By plotting the tumor/stroma classification of the spots, the differences in cell
+scores can quiclky be detected. Melanoma areas (squares) show lower B cell and 
+endothelial cell scores, as expected. Nonetheless, some B cell infiltration is 
+observed in the melanoma pocket (darker squares on the left portion of the graph on
+the left).
 
+Similar plots can be generated for gene expression, asopposed to deconvolution 
+scores, with the  `plot_gene_quilt()` function:
+```{r}
+quilts3 <- plot_gene_quilt(melanoma, genes=c('CAPG', 'SOX10'), color_pal="YlOrBr", 
+                           plot_who=1, purity=T)
+ggpubr::ggarrange(plotlist=quilts3, nrow=1, ncol=2)
+```
+
+Spatial interpolation of cell scores is also possible with the `deconv_krige()`
+function:
+```{r}
+melanoma <- deconv_krige(melanoma, cells=c('b_cells', 'ly_endothelial_cells'), 
+                         who=c(1, 3))
+```
+
+We plot the surfaces using the `plot_deconv_krige()` function.
+```{r}
+kriges3 <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'ly_endothelial_cells'),
+                           color_pal="YlOrBr", plot_who=1)
+ggpubr::ggarrange(plotlist=kriges3, nrow=1, ncol=2)
+```
+
+Cell scores in xCell are accompanied by p-values to support the significance of the
+scores. The p-values are calculated automatically during deconvolution in `spatialGE`, and
+we can plot them using the `pvalue` option:
+```{r}
+kriges4 <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'ly_endothelial_cells'),
+                           color_pal="YlOrBr", plot_who=1, pvalues=T)
+ggpubr::ggarrange(plotlist=kriges4, nrow=1, ncol=2)
+```
+
+As expected, xCell scores for the lymphatic endothelial cells are significant almost 
+exclusively outside the melanoma area. B cells are present throughout the
+tissue, but less abundant in the melanoma pocket.
+
+The `plot_deconv_krige()` also allows annotation of tumor spots:
+```{r}
+kriges5 <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'ly_endothelial_cells'),
+                           color_pal="YlOrBr", plot_who=1, purity=T)
+ggpubr::ggarrange(plotlist=kriges5, nrow=1, ncol=2)
+```
+
+## Spatially-informed clustering of spots
+We can now perform hierarchical clustering to detect differences in gene expression
+across the tissue. In `spatialGE`, we use weighted average matrices to capture the 
+the transcriptomic differences between the spots. The transcriptomic (euclidean) 
+distance matrix is calculated and scaled. Following, scaled euclidean distances are
+computed for the spatial distances between spots. The user defines a weight, from 0 to 1,
+to apply to the spatial distances. The higher the weight, the less biologically 
+meaningful the clustering is given that the groups will only reflect the physical
+distances between the spots and less information on the transcriptomic profiles will be
+used. After many tests, we have found that weights between 0.1 - 0.25 should be 
+enough to capture the tissue heterogeneity. This approach to dspatial clustering can
+be performed using the `cluster_STspot()` function:
+```{r}
+melanoma <- cluster_STspot(melanoma, ks='dtc', weights=0.1, purity=T)
+```
+
+Results of clustering can be plotted via the `plot_STclusters()` function:
+```{r}
+cluster_p <- plot_STclusters(melanoma, purity=T, plot_who=c(1,3))
+# for(i in 1:2){
+#  print(ggpubr::ggarrange(plotlist=cluster_p[[i]], nrow=2, ncol=2))
+# }
+ggpubr::ggarrange(plotlist=cluster_p, nrow=1, ncol=2)
+```
+
+We have used here the dynamicTreeCut (`dtc` option) to select the number of clusters,
+but users can define their own range of k to evaluate. The two tissues plotted here, 
+show compartmentalization, but in the sample on the left, the lymnphoid tissue on the
+right portion of the tissue is shown in yellow.
+
+## Summary
+`spatialGE` provides a suite of tools for the study of tissue heterogeneity via
+spatial transcriptomics. These tools are designed for exploratory analysis, and
+can be specially useful to understand the immune landscape of tumors.

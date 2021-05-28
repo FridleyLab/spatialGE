@@ -2,7 +2,7 @@
 % Please edit documentation in R/deconv_krige.R
 \name{deconv_krige}
 \alias{deconv_krige}
-\title{deconv_krige}
+\title{deconv_krige: Spatial interpolation of gene expression deconvolution scores}
 \usage{
 deconv_krige(x = NULL, cells = "top", univ = F, res = 0.2, who = NULL)
 }
@@ -18,20 +18,19 @@ Default is FALSE (ordinary kriging).}
 \item{res, }{a double to adjust the resolution of the plot. Fractions of 1 lead to
 more resolution. Default is res=0.2.}
 
-\item{who, }{the spatial arrays for which krginig will be performed. If NULL (Default),
+\item{who, }{the spatial arrays for which kriging will be performed. If NULL (Default),
 all arrays are kriged.}
 }
 \value{
-x, a STList including spatial interpolations.
+x, an STList including spatial interpolations.
 }
 \description{
-Performs spatial interpolation ('kriging') of deconvoluted cell
-scores in spatially-resolved transcriptomics data.
+Performs spatial interpolation ('kriging') of cell scores from
+gene expression deconvolution in spatially-resolved transcriptomics data.
 }
 \details{
 This function takes a STList and a vector of xCell cell names, or the token 'top' for
 the 10 cells with the highest standard deviation. It also calculates spatial heterogeneity
 statistics for the cell scores. The function can perform ordinary or universal kriging.
-The result can be plotted using the plot_cell_krige() function. The stroma score from
-xCell is automatically kriged.
+The result can be plotted using the plot_deconv_krige() function.
 }

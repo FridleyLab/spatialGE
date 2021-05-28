@@ -38,6 +38,7 @@ Function to produce a "kriging plot" from a data frame with three columns:
 x coordinates, y coordinates, and predicted kriging values. The data frame has
 column names 'x_pos', 'y_pos', and 'krige'. The function also takes a
 SpatialPolygons object to mask the predicted grid to the area of the tissue.
-It also takes a color palette name from the 'khroma' package. Finally, it
-takes a name for the color legend title.
+It also takes a color palette name from the 'khroma' package and a name for the
+color legend title. The function requires also a dataframe indicating which
+spots are tumor or stroma.
 }

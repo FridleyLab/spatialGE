@@ -2,18 +2,39 @@
 % Please edit documentation in R/cluster_STspot.R
 \name{cluster_STspot}
 \alias{cluster_STspot}
-\title{cluster_STspot}
+\title{cluster_STspot: Detect spot clusters on ST arrays}
 \usage{
-cluster_STspot(x = NULL, who = NULL)
+cluster_STspot(
+  x = NULL,
+  weights = 0.1,
+  method = "ward.D",
+  ks = "dtc",
+  spotfilter = 500
+)
 }
 \arguments{
-\item{x, }{an STList.}
+\item{x, }{an STList with normalized expression data.}
 
-\item{who, }{an integer indicating the spatial array to be analyzed.}
+\item{weights, }{a double \link{0-1} indicating the weight to be applied to spatial
+distances.}
+
+\item{method, }{the linkage method applied to hierarchical clustering. It is passed
+to \code{hclust} and defaults to 'ward.D'.}
+
+\item{ks, }{the range of k values to assess. Defaults to \code{dtc}, meaning \code{cutreeDynamic}
+is applied.}
+
+\item{spotfilter, }{the number of genes with more than zero counts for a spot to be
+included in the clustering analysis. The lower this number, the slower the analysis.}
 }
 \description{
-Perform {INSERT CLUSTER ALGORITHM HERE :|} of spots within ST array.
+Perform spatially-informed hierarchical clustering of spots within a
+spatial array using a genetic distance matrix weighted by spatial distances.
 }
 \details{
-yadda yadda yadda
+The function takes an STList and calculates euclidean distances of normalized
+gene expression and spatial distances. Then, it calculates the weighted average
+between the two distances to perform hierarchical clustering. The user can define
+how much weight the spatial distance should have (values between 0.1 to 025
+work reasonably well).
 }

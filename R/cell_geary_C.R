@@ -17,7 +17,7 @@
 cell_geary_C <- function(x=NULL, cells=NULL, subj=NULL) {
 
   # Test if normalized cell data are available.
-  if(is_empty(x@cell_deconv$xCell[[subj]]$sqrt_scores)){
+  if(rlang::is_empty(x@cell_deconv$xCell[[subj]]$sqrt_scores)){
     stop("There are no normalized cell data in STList.")
   }
 
@@ -33,8 +33,7 @@ cell_geary_C <- function(x=NULL, cells=NULL, subj=NULL) {
     }
 
     # Extract cell data (deconvoluted matrix) for a given cell.
-    cell_data <- unlist(x@cell_deconv$xCell[[subj]]$sqrt_scores[
-      x@cell_deconv$xCell[[subj]]$sqrt_scores[[1]] == cell, -1])
+    cell_data <- unlist(x@cell_deconv$xCell[[subj]]$sqrt_scores[x@cell_deconv$xCell[[subj]]$sqrt_scores[[1]] == cell, -1])
 
     # Estimate statistic.
     geary_est <- spdep::geary.test(cell_data, spdep::mat2listw(subj_dists_inv))

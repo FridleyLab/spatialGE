@@ -1,3 +1,4 @@
 /Users/4472525/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/ST_mel1_rep1_counts_dedup_genes.tsv
 /Users/4472525/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/ST_mel1_rep2_counts_dedup_genes.tsv
 /Users/4472525/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/ST_mel2_rep1_counts_dedup_genes.tsv
+/Users/4472525/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/inst/extdata/ST_mel2_rep2_counts_dedup_genes.tsv

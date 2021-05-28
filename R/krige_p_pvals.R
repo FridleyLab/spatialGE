@@ -53,7 +53,9 @@ krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='
     ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"#,
                               #color='white', size=1.5
                               ) +
-    geom_point(data=pvals_sign, aes(x=X2, y=X3), shape=1, alpha=0.25, size=0.5) +
+    geom_point(data=pvals_sign, aes(x=X3, y=X2), shape=1, alpha=0.25, size=0.5) +
+    scale_x_reverse() +
+    scale_y_reverse() +
     coord_fixed() +
     theme_classic() +
     theme(legend.position="right", plot.title=element_text(size=8))

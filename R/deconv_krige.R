@@ -1,13 +1,12 @@
 ##
-#' @title deconv_krige
-#' @description Performs spatial interpolation ('kriging') of deconvoluted cell
-#' scores in spatially-resolved transcriptomics data.
+#' @title deconv_krige: Spatial interpolation of gene expression deconvolution scores
+#' @description Performs spatial interpolation ('kriging') of cell scores from
+#' gene expression deconvolution in spatially-resolved transcriptomics data.
 #' @details
 #' This function takes a STList and a vector of xCell cell names, or the token 'top' for
 #' the 10 cells with the highest standard deviation. It also calculates spatial heterogeneity
 #' statistics for the cell scores. The function can perform ordinary or universal kriging.
-#' The result can be plotted using the plot_cell_krige() function. The stroma score from
-#' xCell is automatically kriged.
+#' The result can be plotted using the plot_deconv_krige() function.
 #'
 #' @param x, an STList with transformed xCell scores.
 #' @param cells, a vector of cell names or 'top'. If 'top' (default), kriging for the 10
@@ -16,15 +15,13 @@
 #' Default is FALSE (ordinary kriging).
 #' @param res, a double to adjust the resolution of the plot. Fractions of 1 lead to
 #' more resolution. Default is res=0.2.
-#' @param who, the spatial arrays for which krginig will be performed. If NULL (Default),
+#' @param who, the spatial arrays for which kriging will be performed. If NULL (Default),
 #' all arrays are kriged.
-#' @return x, a STList including spatial interpolations.
+#' @return x, an STList including spatial interpolations.
 #' @export
 #
 #
 deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
-
-  require('rlang')
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
@@ -37,34 +34,27 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
   }
 
   # Test if deconvoluted data are available.
-  if (is_empty(x@cell_deconv)) {
+  if (rlang::is_empty(x@cell_deconv)) {
     stop(paste("There are no deconvolution results in this STList."))
   }
 
-  # Loop through each deconvolution results table.
+  # Loop through each deconvolution matrix.
   for (i in who) {
 
     # If cells='top', get names of 10 cell types with the highest standard deviation.
     if(length(cells) == 1){
       if(cells == 'top'){
-        cells <- x@cell_deconv$xCell[[i]]$cell_stdev$cell[order(
-          x@cell_deconv$xCell[[i]]$cell_stdev, decreasing=T)][1:10]
+        cells <- x@cell_deconv$xCell[[i]]$cell_stdev$cell[order(x@cell_deconv$xCell[[i]]$cell_stdev, decreasing=T)][1:10]
       }
     }
-
-    # Append "stromal score"
-    #cells <- append(cells, 'stroma_score')
 
     # Loop through cells.
     for(cell in cells){
 
       # Test that the cell name is present in the deconvolution matrix.
       if(!any(x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell)){
-        if(cell != 'stroma_score'){
-          cat(paste(cell, "is not a cell in the", names(x@cell_deconv)[2],
-                    "deconvolution matrix."))
-          next
-        }
+        cat(paste(cell, "is not a cell in the", names(x@cell_deconv)[2], "deconvolution matrix."))
+        next
       }
 
       # Test if slot for cell kriging is already present. Else, create it.
@@ -81,16 +71,8 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
                                           univ=NULL)
       }
 
-      # If 'stroma score' is being kriged, then get data from corresponding slot.
-      if(cell != 'stroma_score'){
-        # Extract abundance/score data for a given cell.
-        cell_abund <- x@cell_deconv$xCell[[i]]$sqrt_scores[
-          x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell, -1]
-      }#else{
-#        cell_abund <- x@cell_deconv[[i]]$transf_tumorstroma[
-#          x@cell_deconv[[i]]$transf_tumorstroma[[1]] == cell, -1]
-#        cell_abund <- sqrt(cell_abund)
-#      }
+      # Extract abundance/score data for a given cell.
+      cell_abund <- x@cell_deconv$xCell[[i]]$sqrt_scores[x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell, -1]
 
       # Transpose abundance/score data to turn it into a column. Then turn library
       # names into a column and assign column names (first row).
@@ -103,7 +85,7 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
       # Sort cell data using the order in the mapping file. Then add
       # coordinates data to expression data frame.
       cell_abund <- cell_abund[match(x@coords[[i]][[1]], cell_abund[[1]]), ]
-      cell_geo_df <- cbind(x@coords[[i]][2:3], as.numeric(cell_abund[[2]]))
+      cell_geo_df <- cbind(x@coords[[i]][c(3,2)], as.numeric(cell_abund[[2]]))
 
       # Create concave hull to use as delimiter of sampled area. Needs to be
       # done before converting data frame to spatial object.
@@ -114,8 +96,8 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
 
       # Create a grid finer than the sampled locations to predict locations.
       cell_geo_grid <-expand.grid(
-        seq((min(x@coords[[i]][[2]])-1), (max(x@coords[[i]][[2]])+1), by=res),
-        seq((min(x@coords[[i]][[3]])-1), (max(x@coords[[i]][[3]])+1), by=res)
+        seq((min(x@coords[[i]][[3]])-1), (max(x@coords[[i]][[3]])+1), by=res),
+        seq((min(x@coords[[i]][[2]])-1), (max(x@coords[[i]][[2]])+1), by=res)
       )
 
       # Store prediction grid in STList.
@@ -170,12 +152,10 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
         x@cell_krige[[cell]][[i]][['ord']] <- cell_krig
       }
 
-      if(cell != 'stroma_score'){
         # Calculate spatial heterogeneity statistics.
-        x <- cell_moran_I(x, cells=cell, subj=i)
-        x <- cell_geary_C(x, cells=cell, subj=i)
-        x <- cell_getis_Gi(x, cells=cell, subj=i)
-      }
+      x <- cell_moran_I(x, cells=cell, subj=i)
+      x <- cell_geary_C(x, cells=cell, subj=i)
+      x <- cell_getis_Gi(x, cells=cell, subj=i)
 
     }
 
