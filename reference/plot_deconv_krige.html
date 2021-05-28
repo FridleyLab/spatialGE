@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>plot_deconv_krige — plot_deconv_krige • spatialGEdev</title>
+<title>plot_deconv_krige: Visualize spatial interpolation of deconvolution scores — plot_deconv_krige • spatialGEdev</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,9 @@
 
 
 
-<meta property="og:title" content="plot_deconv_krige — plot_deconv_krige" />
-<meta property="og:description" content="Produces a kriging plot from cell scores." />
+<meta property="og:title" content="plot_deconv_krige: Visualize spatial interpolation of deconvolution scores — plot_deconv_krige" />
+<meta property="og:description" content="Produces a spatial interpolation surface from kriging of gene expression
+deconvolution scores in ST data." />
 
 
 
@@ -115,13 +116,14 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>plot_deconv_krige</h1>
+    <h1>plot_deconv_krige: Visualize spatial interpolation of deconvolution scores</h1>
     
     <div class="hidden name"><code>plot_deconv_krige.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Produces a kriging plot from cell scores.</p>
+    <p>Produces a spatial interpolation surface from kriging of gene expression
+deconvolution scores in ST data.</p>
     </div>
 
     <pre class="usage"><span class='fu'>plot_deconv_krige</span><span class='op'>(</span>
@@ -132,7 +134,8 @@
   color_pal <span class='op'>=</span> <span class='st'>"YlOrBr"</span>,
   saveplot <span class='op'>=</span> <span class='cn'>F</span>,
   pvalues <span class='op'>=</span> <span class='cn'>F</span>,
-  purity <span class='op'>=</span> <span class='cn'>F</span>
+  purity <span class='op'>=</span> <span class='cn'>F</span>,
+  scaled <span class='op'>=</span> <span class='cn'>T</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -144,8 +147,8 @@
     </tr>
     <tr>
       <th>cells, </th>
-      <td><p>a vector of cell names within a deconvolution matrix (one or
-several) to plot.</p></td>
+      <td><p>a vector of cell names (one or several) within a deconvolution
+matrix  to plot.</p></td>
     </tr>
     <tr>
       <th>krige_type, </th>
@@ -173,12 +176,23 @@ are printed to console.</p></td>
       <td><p>logical indicating whether or not dots where a given cell was
 predicted to be significantly abundant (p&lt;0.05). Default is FALSE.</p></td>
     </tr>
+    <tr>
+      <th>purity, </th>
+      <td><p>logical, whether or not annotate tumor and stroma spots based on
+ESTIMATE tumor purity scores.</p></td>
+    </tr>
+    <tr>
+      <th>scaled, </th>
+      <td><p>logical, indicating if expression values should be scaled with
+respect to the highest value among all genes to plot. WARNING: Color legends
+are not scaled between plots, but values are.</p></td>
+    </tr>
     </table>
 
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function produces a kriging plot for a series of cell names and spatial
-arrays.</p>
+    <p>This function produces a spatial interpolation surface plot for a series of
+cell names and spatial arrays.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

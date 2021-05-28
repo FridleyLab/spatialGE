@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>deconv_krige — deconv_krige • spatialGEdev</title>
+<title>deconv_krige: Spatial interpolation of gene expression deconvolution scores — deconv_krige • spatialGEdev</title>
 
 
 <!-- jquery -->
@@ -39,9 +39,9 @@
 
 
 
-<meta property="og:title" content="deconv_krige — deconv_krige" />
-<meta property="og:description" content="Performs spatial interpolation ('kriging') of deconvoluted cell
-scores in spatially-resolved transcriptomics data." />
+<meta property="og:title" content="deconv_krige: Spatial interpolation of gene expression deconvolution scores — deconv_krige" />
+<meta property="og:description" content="Performs spatial interpolation ('kriging') of cell scores from
+gene expression deconvolution in spatially-resolved transcriptomics data." />
 
 
 
@@ -116,14 +116,14 @@ scores in spatially-resolved transcriptomics data." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>deconv_krige</h1>
+    <h1>deconv_krige: Spatial interpolation of gene expression deconvolution scores</h1>
     
     <div class="hidden name"><code>deconv_krige.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Performs spatial interpolation ('kriging') of deconvoluted cell
-scores in spatially-resolved transcriptomics data.</p>
+    <p>Performs spatial interpolation ('kriging') of cell scores from
+gene expression deconvolution in spatially-resolved transcriptomics data.</p>
     </div>
 
     <pre class="usage"><span class='fu'>deconv_krige</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, cells <span class='op'>=</span> <span class='st'>"top"</span>, univ <span class='op'>=</span> <span class='cn'>F</span>, res <span class='op'>=</span> <span class='fl'>0.2</span>, who <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
@@ -152,21 +152,20 @@ more resolution. Default is res=0.2.</p></td>
     </tr>
     <tr>
       <th>who, </th>
-      <td><p>the spatial arrays for which krginig will be performed. If NULL (Default),
+      <td><p>the spatial arrays for which kriging will be performed. If NULL (Default),
 all arrays are kriged.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>x, a STList including spatial interpolations.</p>
+    <p>x, an STList including spatial interpolations.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>This function takes a STList and a vector of xCell cell names, or the token 'top' for
 the 10 cells with the highest standard deviation. It also calculates spatial heterogeneity
 statistics for the cell scores. The function can perform ordinary or universal kriging.
-The result can be plotted using the plot_cell_krige() function. The stroma score from
-xCell is automatically kriged.</p>
+The result can be plotted using the plot_deconv_krige() function.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
