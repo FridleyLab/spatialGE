@@ -27,7 +27,7 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
   #data_f$values <- data_f$values/max(data_f$values)
 
   # Create plot.
-  p <- ggplot() +
+  p1 <- ggplot() +
     #geom_point(data=data_f, aes(x=x_pos, y=y_pos, fill=values, shape=as.factor(cluster), color=as.factor(cluster)), stroke=0.2) +
     geom_point(data=data_f, aes(x=x_pos, y=y_pos, fill=values, shape=as.factor(cluster), color=values), stroke=1, size=0.5) +
     scale_fill_gradientn(colours=p_palette(5)) +
@@ -46,6 +46,24 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
     coord_fixed() +
     theme(legend.position="right")
 
-  return(p)
+  p2 <- ggplot() +
+    geom_point(data=data_f, aes(x=x_pos, y=y_pos, color=as.factor(cluster), shape=as.factor(cluster)), size=0.7) +
+    scale_shape_manual(values=c(3, 15)) +
+    scale_color_manual(values=c('gray60', 'black')) +
+    xlab("X Position") +
+    ylab("Y Position") +
+    labs(shape='tumor/stroma', color='tumor/stroma') +
+    theme_classic() +
+    scale_x_reverse() +
+    scale_y_reverse() +
+    coord_fixed()
+
+  purity_p_list <- list()
+  purity_p_list[['p1']] <- p1
+  purity_p_list[['p2']] <- p2
+
+  purity_gb <- gridExtra::arrangeGrob(grobs=purity_p_list, heights = c(1, 1), layout_matrix = rbind(c(1), c(2)))
+
+  return(purity_gb)
 
 }

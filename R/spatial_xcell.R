@@ -43,7 +43,7 @@ spatial_xcell <- function(x=NULL){
     rownames(df) <- gene_names
 
     # Show progress.
-    cat(paste0("Applying xCell to spatial array #", i, "...\n"))
+    cat(paste0("\nApplying xCell to spatial array #", i, "...\n"))
 
     # Perform xCell analysis and make cell names as column (no rownames).
     # NOTE1: Applies `janitor` to clean cell names.
@@ -58,12 +58,14 @@ spatial_xcell <- function(x=NULL){
     # Extract values for a given cell type.
     # NOTE: This part was planned to get stromal spots...
     xcell_pval <- xCellSignifcanceBetaDist(df_xcell, rnaseq=T)
+    colnames(xcell_pval) <- names(x@voom_counts[[i]][-1])
 
     cell_names <- rownames(df_xcell) %>%
       janitor::make_clean_names(.)
     df_xcell <- tibble::as_tibble(df_xcell) %>%
       tibble::add_column(cell_names, .before=1)
 
+	#NOTE: Make sure .name_repair is not doing something weird here...
     xcell_pval <- tibble::as_tibble(xcell_pval)
     xcell_pval <- xcell_pval %>%
       tibble::add_column(cell_names[1:64], .before=1)
