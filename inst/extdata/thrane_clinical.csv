@@ -1,0 +1,5 @@
+sampleID,Gender,BRAF_status,NRAS_statuds,CDKN2A_status,Survival,RIN
+1A,Male,mut,wt,hd,10+ years,6.2
+1B,Male,mut,wt,hd,10+ years,6.2
+2A,Female,wt,wt,hd,401 days,7.1
+2B,Female,wt,wt,hd,401 days,7.1
