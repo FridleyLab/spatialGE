@@ -112,18 +112,25 @@
 <p>Optionally, the user can provide a table with clinical/phenotype data associated with each spatial array. This table is a comma-separated file with sample ID in the first column, and relevant variables in subsequent columns. The order of the rows in the clinical file must match that of the file paths.</p>
 <p>The example files in this tutorial can be downloaded from the GitHub repository (<a href="https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata" class="uri">https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata</a>). They are also stored in your local <code>spatialGE</code> installation:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">count_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"fpaths_count_files.txt"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span>
-<span class="va">coord_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"fpaths_mapping_files.txt"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span>
-<span class="va">clin_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"thrane_clinical.csv"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span></code></pre></div>
-<p>We can load the files into an STList object like so:</p>
+<code class="sourceCode R"><span class="va">data_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span></code></pre></div>
+<p>We then create two files (<code>fpaths_count_files.txt</code> and <code>fpaths_mapping_files.txt</code>), containing the file paths where the count and coordinate files are stored. Those two files will be the input to later create the Spatial Transcriptomics List (STList).</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STList.html">STList</a></span><span class="op">(</span>countfiles <span class="op">=</span> <span class="va">count_files</span>, 
-                   coordfiles <span class="op">=</span> <span class="va">coord_files</span>,
+<code class="sourceCode R"><span class="va">count_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">grep</a></span><span class="op">(</span><span class="st">"genes"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="va">data_files</span>, full.names<span class="op">=</span><span class="cn">T</span><span class="op">)</span>, value<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/base/write.html">write</a></span><span class="op">(</span><span class="va">count_files</span>, file<span class="op">=</span><span class="st">"fpaths_count_files.txt"</span><span class="op">)</span>
+<span class="va">coord_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">grep</a></span><span class="op">(</span><span class="st">"mapping"</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="va">data_files</span>, full.names<span class="op">=</span><span class="cn">T</span><span class="op">)</span>, value<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/base/write.html">write</a></span><span class="op">(</span><span class="va">coord_files</span>, file<span class="op">=</span><span class="st">"fpaths_mapping_files.txt"</span><span class="op">)</span></code></pre></div>
+<p>We also locate the file containing the clinical variables. This is a single file containing a comma-separated table, with one row per each of the count files. An additional first row contains the names of the variables. The first column is the sample ID of each spatial array.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">clin_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"thrane_clinical.csv"</span>, package <span class="op">=</span> <span class="st">"spatialGEdev"</span><span class="op">)</span></code></pre></div>
+<p>We can load the files into an STList object like so:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STList.html">STList</a></span><span class="op">(</span>countfiles <span class="op">=</span> <span class="st">"fpaths_count_files.txt"</span>, 
+                   coordfiles <span class="op">=</span> <span class="st">"fpaths_mapping_files.txt"</span>,
                    clinical <span class="op">=</span> <span class="va">clin_file</span>
 <span class="op">)</span>
 <span class="co">#&gt; Creating STList...</span></code></pre></div>
 <p>The <code>melanoma</code> object is an STList, and contains the count data, spot coordinates, and clinical data.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span>
 <span class="co">#&gt; Spatial Transcriptomics List (STList)</span>
 <span class="co">#&gt; 4 spatial arrays.</span>
@@ -133,18 +140,18 @@
 <h2 class="hasAnchor">
 <a href="#exploring-variation-between-spatial-arrays" class="anchor"></a>Exploring variation between spatial arrays</h2>
 <p>The function <code>STbulk_pca()</code> allows for a quick snapshot of the variation in gene expression among samples. The function creates ‘bulk’ RNA-Seq data sets by combining all counts from a spatial array. Then, it applies limma-voom normalization to these ‘bulk’ RNA-Seq libraries and performs a PCA. Note that spatial (x,y) coordinate information is not included in this analysis, which is intended as a tool for data exploration. In this case, we apply the function to look for agreement between samples from the same patient: it is expected that tissue slices from the same patient are more similar between them, than slices from other patients. The <code>STbulk_pca()</code> allows to map a clinical variable to the PCA (gender in this example), by including the exact name of the column from the clinical/phenotype file.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/bulk_pca.html">bulk_pca</a></span><span class="op">(</span><span class="va">melanoma</span>, clinvar<span class="op">=</span><span class="st">'Gender'</span><span class="op">)</span>
 <span class="co">#&gt; Loading required package: magrittr</span>
 <span class="co">#&gt; Loading required package: ggplot2</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-8-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-10-1.png" width="700"></p>
 </div>
 <div id="data-normalization-of-spatially-resolved-transcriptomic-data" class="section level2">
 <h2 class="hasAnchor">
 <a href="#data-normalization-of-spatially-resolved-transcriptomic-data" class="anchor"></a>Data normalization of spatially-resolved transcriptomic data</h2>
 <p>Many normalization methods are available for both bulk and single-cell RNA-Seq data. In <code>spatialGE</code>, we apply limma-voom normalization to RNA-Seq libraries from each of the spots in order to obtain a gaussian-shape normal distribution required by most methods in this package. Many of the methods implemented in <code>spatialGE</code> have been borrowed from the field of geostatistics, which often require this kind of data normalization.</p>
 <p>Normalization is achieved by applying the function <code><a href="../reference/voom_norm.html">voom_norm()</a></code> to the <code>melanoma</code> object.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/voom_norm.html">voom_norm</a></span><span class="op">(</span><span class="va">melanoma</span><span class="op">)</span>
 <span class="co">#&gt; Normalizing spatial array #1...</span>
 <span class="co">#&gt; Normalizing spatial array #2...</span>
@@ -156,28 +163,28 @@
 <a href="#visualization-of-gene-expression-from-spatially-resolved-transcriptomics-data" class="anchor"></a>Visualization of gene expression from spatially-resolved transcriptomics data</h2>
 <p>After normalization, expression of specific genes can be visualized using ‘quilt’ plots. The function <code><a href="../reference/plot_gene_quilt.html">plot_gene_quilt()</a></code> re-creates the shape of the spatial array and shows the scaled normalized expression of a gene. We have adopted the color palettes from the package <code>khroma</code>. The color palette can be passed using the argument <code>color_pal</code>. The default behavior of the function produces plots for all spatial arrays in the STList, but we can define who should be plotted using the argument <code>plot_who</code>.</p>
 <p>Let’s produce a quilt plot for the gene CAPG and SOX10, two genes known to be expressed in melanoma.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">quilts1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_gene_quilt.html">plot_gene_quilt</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, color_pal<span class="op">=</span><span class="st">"YlOrBr"</span>, plot_who<span class="op">=</span><span class="fl">1</span><span class="op">)</span>
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">quilts1</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-10-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-12-1.png" width="700"></p>
 <p>We can see that gene expression patterns of both genes are different, with a more dispersed pattern in CAPG, compared to SOX10. The large area of lower CAPG expression corresponds to the melanoma pocket detected by Thrane et al. (see Figure 3 of their study).</p>
 <div id="spatial-interpolation-kriging-of-gene-expression" class="section level3">
 <h3 class="hasAnchor">
 <a href="#spatial-interpolation-kriging-of-gene-expression" class="anchor"></a>Spatial interpolation (‘kriging’) of gene expression</h3>
 <p>We can predict a smooth surface of the gene expression in a spatial array. In <code>spatialGE</code>, this prediction is achieved by a type of spatial interpolation widely used on geographic data. The method named ‘kriging’ allows for the estimation of the normalized gene expression value of the unsampled areas between spots, or spots for which a RNA-Seq library failed to provide data. Estimating a transcriptomic surface via kriging assumes that gene expression of two given points is correlated with the physical distance between them.</p>
 <p>The function <code><a href="../reference/gene_krige.html">gene_krige()</a></code> performs kriging of gene expression via the <code>geoR</code> package:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_krige.html">gene_krige</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, who<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of gene CAPG for subject 1...</span>
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of gene SOX10 for subject 1...</span>
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of gene CAPG for subject 3...</span>
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of gene SOX10 for subject 3...</span></code></pre></div>
 <p>The surface can be visualized using the <code><a href="../reference/plot_gene_krige.html">plot_gene_krige()</a></code> function:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">kriges1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_gene_krige.html">plot_gene_krige</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, plot_who<span class="op">=</span><span class="fl">1</span><span class="op">)</span>
 <span class="co">#&gt; Loading required namespace: rgeos</span>
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">kriges1</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-12-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-14-1.png" width="700"></p>
 <p>By looking at the transcriptomic surfaces of the tho genes, it is easier to detect pockets of higher (or lower) expression within the tissue. It is now more evident that expression of CAPG is lower on the left (melanoma) portion of the tumor slice, compared to the rest of the slice.</p>
 <p>In the transcriptomic surface plots, <code>spatialGE</code> outputs three spatial heterogeneity statistics: Moran’s I, Geary’s C, and Getis-Ord Gi.</p>
 <table class="table">
@@ -208,10 +215,10 @@
 </table>
 <p>In this case, the two genes showed almost the same values for all three statistics. A slightly lower Moran’s I for CAPG is a result of higher dispersion of spots with high expression values through the slice surface. Both Moran’s I and Geary’s C showed statistical significance (<em>p</em>&lt;0.05) after a permutation test (performed with <code>spdep</code>).</p>
 <p>A higher difference in Moran’s I can be seen for one of the tissue slices of patient 2. With a higher Moran’s I, CAPG shows expression concentrated in the center right and lower left of the tissue. For SOX10, expression is almost uniform for the lower half of the tissue slice.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">kriges2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_gene_krige.html">plot_gene_krige</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, plot_who<span class="op">=</span><span class="fl">3</span><span class="op">)</span>
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">kriges2</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-14-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-16-1.png" width="700"></p>
 </div>
 </div>
 <div id="gene-expression-deconvolution-in-spatial-arrays" class="section level2">
@@ -219,7 +226,7 @@
 <a href="#gene-expression-deconvolution-in-spatial-arrays" class="anchor"></a>Gene expression deconvolution in spatial arrays</h2>
 <p>Many gene expression deconvolution methods are available, and their use will depend largely on the question and biological system to be studied. In <code>spatialGE</code>, we have implemented xCell to provide a qualitatuve snapshot of the cell composition within a spatial array. Decovolution in xCell focuses on immunological cell types, which is of crucial importance in the study of tumor microenvironment.</p>
 <p>Let’s apply xCell to the spatial arrays:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/spatial_deconv.html">spatial_deconv</a></span><span class="op">(</span><span class="va">melanoma</span>, method<span class="op">=</span><span class="st">'xcell'</span><span class="op">)</span>
 <span class="co">#&gt; This will take some time...</span>
 <span class="co">#&gt; Loading required package: estimate</span>
@@ -261,22 +268,22 @@
 <span class="co">#&gt; </span>
 <span class="co">#&gt; Calculating p-values for spatial array #4...</span></code></pre></div>
 <p>With the function <code><a href="../reference/plot_deconv_quilt.html">plot_deconv_quilt()</a></code>, we can visualize the cell type scores inferred by xCell. For example, B cells and lymphatic endothelial cells.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">quilts2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_deconv_quilt.html">plot_deconv_quilt</a></span><span class="op">(</span><span class="va">melanoma</span>, cells<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'b_cells'</span>, <span class="st">'ly_endothelial_cells'</span><span class="op">)</span>, 
                            color_pal<span class="op">=</span><span class="st">"YlOrBr"</span>, plot_who<span class="op">=</span><span class="fl">1</span>, purity<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
 
 <span class="fu">gridExtra</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gridExtra/man/arrangeGrob.html">grid.arrange</a></span><span class="op">(</span>grobs<span class="op">=</span><span class="va">quilts2</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-16-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-18-1.png" width="700"></p>
 <p>By plotting the tumor/stroma classification of the spots, the differences in cell scores can quiclky be detected. Melanoma areas (squares) show lower B cell and endothelial cell scores, as expected. Nonetheless, some B cell infiltration is observed in the melanoma pocket (darker squares on the left portion of the graph on the left).</p>
 <p>Similar plots can be generated for gene expression, as opposed to deconvolution scores, with the <code><a href="../reference/plot_gene_quilt.html">plot_gene_quilt()</a></code> function:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">quilts3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_gene_quilt.html">plot_gene_quilt</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'CAPG'</span>, <span class="st">'SOX10'</span><span class="op">)</span>, color_pal<span class="op">=</span><span class="st">"YlOrBr"</span>, 
                            plot_who<span class="op">=</span><span class="fl">1</span>, purity<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
 
 <span class="fu">gridExtra</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gridExtra/man/arrangeGrob.html">marrangeGrob</a></span><span class="op">(</span><span class="va">quilts3</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-17-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-19-1.png" width="700"></p>
 <p>Spatial interpolation of cell scores is also possible with the <code><a href="../reference/deconv_krige.html">deconv_krige()</a></code> function:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/deconv_krige.html">deconv_krige</a></span><span class="op">(</span><span class="va">melanoma</span>, cells<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'b_cells'</span>, <span class="st">'ly_endothelial_cells'</span><span class="op">)</span>, 
                          who<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of b_cells for subject 1...</span>
@@ -284,39 +291,39 @@
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of b_cells for subject 3...</span>
 <span class="co">#&gt; Performing spatial interpolation ('kriging') of ly_endothelial_cells for subject 3...</span></code></pre></div>
 <p>We plot the surfaces using the <code><a href="../reference/plot_deconv_krige.html">plot_deconv_krige()</a></code> function.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">kriges3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_deconv_krige.html">plot_deconv_krige</a></span><span class="op">(</span><span class="va">melanoma</span>,  cells<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'b_cells'</span>, <span class="st">'ly_endothelial_cells'</span><span class="op">)</span>,
                            color_pal<span class="op">=</span><span class="st">"YlOrBr"</span>, plot_who<span class="op">=</span><span class="fl">1</span><span class="op">)</span>
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">kriges3</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-19-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-21-1.png" width="700"></p>
 <p>Cell scores in xCell are accompanied by p-values to support the significance of the scores. The p-values are calculated automatically during deconvolution in <code>spatialGE</code>, and we can plot them using the <code>pvalue</code> option:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">kriges4</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_deconv_krige.html">plot_deconv_krige</a></span><span class="op">(</span><span class="va">melanoma</span>,  cells<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'b_cells'</span>, <span class="st">'ly_endothelial_cells'</span><span class="op">)</span>,
                            color_pal<span class="op">=</span><span class="st">"YlOrBr"</span>, plot_who<span class="op">=</span><span class="fl">1</span>, pvalues<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">kriges4</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-20-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-22-1.png" width="700"></p>
 <p>As expected, xCell scores for the lymphatic endothelial cells are significant almost exclusively outside the melanoma area. B cells are present throughout the tissue, but less abundant in the melanoma pocket.</p>
 <p>The <code><a href="../reference/plot_deconv_krige.html">plot_deconv_krige()</a></code> also allows annotation of tumor spots:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">kriges5</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_deconv_krige.html">plot_deconv_krige</a></span><span class="op">(</span><span class="va">melanoma</span>,  cells<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'b_cells'</span>, <span class="st">'ly_endothelial_cells'</span><span class="op">)</span>,
                            color_pal<span class="op">=</span><span class="st">"YlOrBr"</span>, plot_who<span class="op">=</span><span class="fl">1</span>, purity<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">kriges5</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-21-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-23-1.png" width="700"></p>
 </div>
 <div id="spatially-informed-clustering-of-spots" class="section level2">
 <h2 class="hasAnchor">
 <a href="#spatially-informed-clustering-of-spots" class="anchor"></a>Spatially-informed clustering of spots</h2>
 <p>We can now perform hierarchical clustering to detect differences in gene expression across the tissue. In <code>spatialGE</code>, we use weighted average matrices to capture the the transcriptomic differences between the spots. The transcriptomic (euclidean) distance matrix is calculated and scaled. Following, scaled euclidean distances are computed for the spatial distances between spots. The user defines a weight, from 0 to 1, to apply to the spatial distances. The higher the weight, the less biologically meaningful the clustering is given that the groups will only reflect the physical distances between the spots and less information on the transcriptomic profiles will be used. After many tests, we have found that weights between 0.1 - 0.25 should be enough to capture the tissue heterogeneity. This approach to dspatial clustering can be performed using the <code><a href="../reference/cluster_STspot.html">cluster_STspot()</a></code> function:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cluster_STspot.html">cluster_STspot</a></span><span class="op">(</span><span class="va">melanoma</span>, ks<span class="op">=</span><span class="st">'dtc'</span>, weights<span class="op">=</span><span class="fl">0.1</span><span class="op">)</span></code></pre></div>
 <p>Results of clustering can be plotted via the <code><a href="../reference/plot_STclusters.html">plot_STclusters()</a></code> function:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">cluster_p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_STclusters.html">plot_STclusters</a></span><span class="op">(</span><span class="va">melanoma</span>, purity<span class="op">=</span><span class="cn">T</span>, plot_who<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">3</span><span class="op">)</span><span class="op">)</span>
 <span class="co"># for(i in 1:2){</span>
 <span class="co">#  print(ggpubr::ggarrange(plotlist=cluster_p[[i]], nrow=2, ncol=2))</span>
 <span class="co"># }</span>
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">cluster_p</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">2</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-23-1.png" width="700"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-25-1.png" width="700"></p>
 <p>We have used here the dynamicTreeCut (<code>dtc</code> option) to select the number of clusters, but users can define their own range of k to evaluate. The two tissues plotted here, show compartmentalization, but in the sample on the left, the lymnphoid tissue on the right portion of the tissue is shown in yellow.</p>
 </div>
 <div id="summary" class="section level2">
