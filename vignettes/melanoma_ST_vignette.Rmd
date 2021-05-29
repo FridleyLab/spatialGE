@@ -72,13 +72,20 @@ stored in your local `spatialGE` installation:
 data_files <- system.file("extdata", package = "spatialGEdev")
 ```
 
+We then create two files (`fpaths_count_files.txt` and `fpaths_mapping_files.txt`),
+containing the file paths where the count and coordinate files are stored. Those two
+files will be the input to later create the Spatial Transcriptomics List (STList).
 ```{r}
 count_files <- grep("genes", list.files(data_files, full.names=T), value=T)
 write(count_files, file="fpaths_count_files.txt")
 coord_files <- grep("mapping", list.files(data_files, full.names=T), value=T)
-write(count_files, file="fpaths_mapping_files.txt")
+write(coord_files, file="fpaths_mapping_files.txt")
 ```
 
+We also locate the file containing the clinical variables. This is a single file 
+containing a comma-separated table, with one row per each of the count files. An 
+additional first row contains the names of the variables. The first column is the
+sample ID of each spatial array.
 ```{r}
 clin_file <- system.file("extdata", "thrane_clinical.csv", package = "spatialGEdev")
 ```
