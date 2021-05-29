@@ -69,15 +69,24 @@ clinical file must match that of the file paths.
 The example files in this tutorial can be downloaded from the GitHub repository (https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata). They are also
 stored in your local `spatialGE` installation:
 ```{r}
-count_files <- system.file("extdata", "fpaths_count_files.txt", package = "spatialGEdev")
-coord_files <- system.file("extdata", "fpaths_mapping_files.txt", package = "spatialGEdev")
+data_files <- system.file("extdata", package = "spatialGEdev")
+```
+
+```{r}
+count_files <- grep("genes", list.files(data_files, full.names=T), value=T)
+write(count_files, file="fpaths_count_files.txt")
+coord_files <- grep("mapping", list.files(data_files, full.names=T), value=T)
+write(count_files, file="fpaths_mapping_files.txt")
+```
+
+```{r}
 clin_file <- system.file("extdata", "thrane_clinical.csv", package = "spatialGEdev")
 ```
 
 We can load the files into an STList object like so:
 ```{r}
-melanoma <- STList(countfiles = count_files, 
-                   coordfiles = coord_files,
+melanoma <- STList(countfiles = "fpaths_count_files.txt", 
+                   coordfiles = "fpaths_mapping_files.txt",
                    clinical = clin_file
 )
 ```

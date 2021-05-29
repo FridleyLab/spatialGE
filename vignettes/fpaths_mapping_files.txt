@@ -1,0 +1,4 @@
+/Library/Frameworks/R.framework/Versions/4.0/Resources/library/spatialGEdev/extdata/ST_mel1_rep1_counts_dedup_genes.tsv
+/Library/Frameworks/R.framework/Versions/4.0/Resources/library/spatialGEdev/extdata/ST_mel1_rep2_counts_dedup_genes.tsv
+/Library/Frameworks/R.framework/Versions/4.0/Resources/library/spatialGEdev/extdata/ST_mel2_rep1_counts_dedup_genes.tsv
+/Library/Frameworks/R.framework/Versions/4.0/Resources/library/spatialGEdev/extdata/ST_mel2_rep2_counts_dedup_genes.tsv
