@@ -42,8 +42,9 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
   }
 
   # Store maximum expression value in case 'scaled' is required.
-  if(scaled){
+#  if(scaled){
     maxvalue <- c()
+    minvalue <- c()
     for (i in plot_who) {
       for (cell in cells) {
         # Test if kriging exists for a cell and subject.
@@ -53,20 +54,27 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
               # Find maximum expression value for each spatial array.
               values <- x@cell_krige[[cell]][[i]][[krige_type]]$predict
               maxvalue <- append(maxvalue, max(values))
+              minvalue <- append(minvalue, min(values))
             }
           }
         }
         # Find maximum value among selected spatial arrays.
-        maxvalue <- max(maxvalue)
+
       }
     }
-  }
+
+    maxvalue <- max(maxvalue)
+    minvalue <- min(minvalue)
+#  }
+
+  # Create list of plots.
+  kp_list <- list()
 
   # Loop through each of ythe subjects.
   for (i in plot_who) {
 
     # Create list of plots for a given subject.
-    kp_list <- list()
+    # kp_list <- list()
 
     # Loop though cells to plot.
     for (cell in cells) {
@@ -156,18 +164,20 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
                                              cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
           kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
                                tumorstroma=tumorstroma_df,
-                               leg_name="pred_score", title_name=titlekrige)
+                               leg_name="pred_score", title_name=titlekrige,
+                               minvalue=minvalue, maxvalue=maxvalue)
         } else if(pvalues){
           kp <- krige_p_pvals(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
-                              title_name=titlekrige, x=x, plot_who=i, cell=cell)
+                              title_name=titlekrige, x=x, plot_who=i, cell=cell,
+                              minvalue=minvalue, maxvalue=maxvalue)
         }
 
       } else{
         kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
-                      title_name=titlekrige)
+                      title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue)
       }
       # Append plot to list.
-      kp_list[[cell]] <- kp
+      kp_list[[paste0(cell, "_", i)]] <- kp
     }
 
     #     # Define number of columns and rows in plot and size.
@@ -183,14 +193,13 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
     # #      w_pdf=7
     # #      h_pdf=7
     #     }
-
+}
     row_col <- c(1, 1)
 
     # Test if plot should be saved to PDF.
     if(saveplot){
       # Print plots to PDF.
-      pdf(file=paste0("cell_krige_spatarray_", i, ".pdf"))#,
-          #width=w_pdf, height=h_pdf
+      pdf(file="cell_krige_spatarray.pdf")#,
       print(ggpubr::ggarrange(plotlist=kp_list,
                              nrow=row_col[1], ncol=row_col[2]))
       dev.off()
@@ -198,5 +207,5 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
       # Print plots to console.
       return(kp_list)
     }
-  }
+#  }
 }

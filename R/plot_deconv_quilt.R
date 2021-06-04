@@ -46,8 +46,9 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
   }
 
   # Store maximum cell score value in case 'scaled' is required.
-  if(scaled){
+#  if(scaled){
     maxvalue <- c()
+    minvalue <- c()
     for (i in plot_who) {
       for (cell in cells) {
         # Test if cell name exists in normalized count matrix.
@@ -55,18 +56,27 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
           # Find maximum score value for each spatial array.
           values <- unlist(x@cell_deconv$xCell[[i]]$sqrt_scores[x@cell_deconv$xCell[[i]]$sqrt_scores$cell_names == cell, ][,-1])
           maxvalue <- append(maxvalue, max(values))
+          minvalue <- append(minvalue, min(values))
         }
       }
     }
     # Find maximum value among selected spatial arrays.
     maxvalue <- max(maxvalue)
-  }
+    minvalue <- min(minvalue)
+#  }
+
+  # Create list of plots.
+  qp_list <- list()
+
+  # if(purity){
+  #   qpbw_list <- list()
+  # }
 
   # Loop through each normalized count matrix.
   for (i in plot_who) {
 
     # Create list of plots for a given subject.
-    qp_list <- list()
+#    qp_list <- list()
 
     # Loop though genes to plot.
     for (cell in cells) {
@@ -90,14 +100,15 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
           if(!(rlang::is_empty(melanoma@cell_deconv))){
             df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
             qp <- quilt_p_purity(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
-                                  title_name=paste0(cell, " - ", "subj ", i))
+                                  title_name=paste0(cell, " - ", "subj ", i), minvalue=minvalue, maxvalue=maxvalue)
+            qpbw <- quilt_p_purity_bw(data_f=df)
           } else{
             stop("No tumor/stroma classification in the STList.")
           }
         } else{
           # The color palette function in khroma is created by quilt_p() function.
           qp <- quilt_p(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
-                        title_name=paste0(cell, " - ", "subj ", i))
+                        title_name=paste0(cell, " - ", "subj ", i), minvalue=minvalue, maxvalue=maxvalue)
         }
 
       } else{
@@ -107,9 +118,12 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
       }
 
       # Append plot to list.
-      qp_list[[cell]] <- qp
+      qp_list[[paste0(cell, "_", i)]] <- qp
     }
 
+    if(purity){
+      qp_list[[paste0('subj',i)]] <- qpbw
+    }
     # # Define number of columns and rows in plot and size.
     # row_col <- c(2, 2)
     # w_pdf=9
@@ -123,20 +137,22 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
     #   w_pdf=7
     #   h_pdf=7
     # }
-
+  }
     row_col <- c(1, 1)
 
     # Test if a filepath to save plots is available.
     if(saveplot){
       #dir.create(paste0(saveplot), recursive=T, showWarnings=F)
-      pdf(file=paste0("cell_quilt_spatarray_", i, ".pdf"), width=10, height=10)#,
+      #pdf(file=paste0("cell_quilt_spatarray_", i, ".pdf"), width=10, height=10)#,
           #width=w_pdf, height=h_pdf
+      pdf(file="cell_quilt_spatarraypdf")
       print(ggpubr::ggarrange(plotlist=qp_list,
-                              nrow=row_col[1], ncol=row_col[2]))
+                              nrow=row_col[2], ncol=row_col[2],
+                              common.legend=T, legend='bottom'))
       dev.off()
     }else{
       # Print plots to console.
       return(qp_list)
     }
-  }
+#  }
 }

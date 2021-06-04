@@ -1,12 +1,12 @@
 ##
-#' @title spatial_purity
-#' @description Applies ESTIMATE to ST data.
-#' @details
-#' This function applies ESTIMATED to the stored normalized matrices in order to
-#' obtain purity scores for each of the library/spots.
-#'
-#' @param x, a STList with normalized count matrices.
-#' @return x, an updated STList with ESTIMATE purity scores.
+# @title spatial_purity
+# @description Applies ESTIMATE to ST data.
+# @details
+# This function applies ESTIMATED to the stored normalized matrices in order to
+# obtain purity scores for each of the library/spots.
+#
+# @param x, a STList with normalized count matrices.
+# @return x, an updated STList with ESTIMATE purity scores.
 #
 #
 spatial_purity <- function(x=NULL){

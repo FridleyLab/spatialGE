@@ -50,23 +50,23 @@ plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light'){
       df$WCluster <- as.factor(tidyr::replace_na(as.vector(df$WCluster), "no_cluster"))
       p <- ggplot()
       if(ncol(df) == 4){
-        p <- p + geom_point(data=df, aes(x=X3, y=X2, color=WCluster), size=0.3, shape=1)
+        p <- p + geom_point(data=df, aes(x=X3, y=X2, color=WCluster), size=0.7, shape=19)
         p <- p + geom_point(data=df_nonas, aes(x=X3, y=X2, color=WCluster), size=0.5)
         p <- p + scale_color_manual(values=c(as.vector(p_palette(max(as.numeric(levels(df_nonas$WCluster))))), 'gray50'))
-        p <- p + labs(title=paste0("Hier. Clusters (dynamicTreeCut), subj ", i),
-                      color='H_Clusters')
+        p <- p + labs(title=paste0("Hier. Clusters (dynamicTreeCut), subj ", i), color='HClusters')
+        p <- p + guides(color=guide_legend(override.aes=list(size=2)))
       } else{
-        p <- p + geom_point(data=df, aes(x=X3, y=X2, color=WCluster), size=0.3, shape=1)
-        p <- p + geom_point(data=df_nonas, aes(x=X3, y=X2, color=WCluster, shape=EstCluster), size=0.5)
+        p <- p + geom_point(data=df, aes(x=X3, y=X2, color=WCluster), size=0.5, shape=19)
+        p <- p + geom_point(data=df_nonas, aes(x=X3, y=X2, color=WCluster, shape=EstCluster), size=1.2)
         p <- p + scale_color_manual(values=c(as.vector(p_palette(max(as.numeric(levels(df_nonas$WCluster))))), 'gray50'))
         p <- p + scale_shape_manual(values=c(3, 15))
-        p <- p + labs(title=paste0("Hier. Clusters (dynamicTreeCut), subj ", i),
-                      color='H_Clusters', shape='tumor/stroma')
+        p <- p + labs(title=paste0("Hier. Clusters (dynamicTreeCut), subj ", i), color='HClusters', shape='tumor/stroma')
+        p <- p + guides(shape=guide_legend(override.aes=list(size=2)), color=guide_legend(override.aes=list(size=2)))
       }
 
       p <- p + ylab('Y Position') + xlab('X Position')
       p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed() + theme_classic()
-      p <- p + theme(plot.title=element_text(size=8))
+      p <- p + theme(plot.title=element_text(size=10), legend.text=element_text(size=10))
 
       plot_list[[paste0("p",i)]] <- p
     }
@@ -95,22 +95,22 @@ plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light'){
         df$WCluster <- as.factor(tidyr::replace_na(as.vector(df$WCluster), "no_cluster"))
         p <- ggplot()
         if(ncol(df) == 4){
-          p <- p + geom_point(data=df, aes(x=X3, y=X2, color=WCluster), size=0.3, shape=1)
+          p <- p + geom_point(data=df, aes(x=X3, y=X2, color=WCluster), size=0.7, shape=19)
           p <- p + geom_point(data=df_nonas, aes(x=X3, y=X2, color=WCluster), size=0.5)
           p <- p + scale_color_manual(values=c(as.vector(p_palette(max(as.numeric(levels(df_nonas$WCluster))))), 'gray50'))
-          p <- p + labs(title=paste0("Hier. Clusters ", k, ", subj ", i),
-                        color='H_Clusters')
+          p <- p + labs(title=paste0("Hier. Clusters ", k, ", subj ", i), color='HClusters')
+          p <- p + guides(color=guide_legend(override.aes=list(size=2)))
         } else{
-          p <- p + geom_point(data=df, aes(x=X3, y=X2, color=WCluster), size=0.3, shape=1)
-          p <- p + geom_point(data=df_nonas, aes(x=X3, y=X2, color=WCluster, shape=EstCluster), size=0.5)
+          p <- p + geom_point(data=df, aes(x=X3, y=X2, color=WCluster), size=0.5, shape=19)
+          p <- p + geom_point(data=df_nonas, aes(x=X3, y=X2, color=WCluster, shape=EstCluster), size=1.2)
           p <- p + scale_color_manual(values=c(as.vector(p_palette(max(as.numeric(levels(df_nonas$WCluster))))), 'gray50'))
           p <- p + scale_shape_manual(values=c(3, 15))
-          p <- p + labs(title=paste0("Hier. Clusters ", k, ", subj ", i),
-                        color='H_Clusters', shape='tumor/stroma')
+          p <- p + labs(title=paste0("Hier. Clusters ", k, ", subj ", i), color='HClusters', shape='tumor/stroma')
+          p <- p + guides(shape=guide_legend(override.aes=list(size=2)), color=guide_legend(override.aes=list(size=2)))
         }
         p <- p + ylab('Y Position') + xlab('X Position')
         p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed() + theme_classic()
-        p <- p + theme(plot.title=element_text(size=8))
+        p <- p + theme(plot.title=element_text(size=10), legend.text=element_text(size=10))
 
         plot_list[[paste0("p",i)]][[k]] <- p
       }

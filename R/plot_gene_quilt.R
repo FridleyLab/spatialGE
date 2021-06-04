@@ -46,8 +46,9 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
   }
 
   # Store maximum expression value in case 'scaled' is required.
-  if(scaled){
+#  if(scaled){
     maxvalue <- c()
+    minvalue <- c()
     for (i in plot_who) {
       for (gene in genes) {
         # Test if gene name exists in normalized count matrix.
@@ -55,18 +56,28 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
           # Find maximum expression value for each spatial array.
           values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
           maxvalue <- append(maxvalue, max(values))
+          minvalue <- append(minvalue, min(values))
+
         }
       }
     }
     # Find maximum value among selected spatial arrays.
     maxvalue <- max(maxvalue)
-  }
+    minvalue <- min(minvalue)
+#  }
+
+    # Create list of plots.
+    qp_list <- list()
+
+    # if(purity){
+    #   qpbw_list <- list()
+    # }
 
   # Loop through each normalized count matrix.
   for (i in plot_who) {
 
     # Create list of plots for a given subject.
-    qp_list <- list()
+    #qp_list <- list()
 
     # Loop though genes to plot.
     for (gene in genes) {
@@ -90,14 +101,15 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
           if(!(rlang::is_empty(melanoma@cell_deconv))){
           df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
           qp <- quilt_p_purity(data_f=df, leg_name="norm_expr", color_pal=color_pal,
-                                title_name=paste0(gene, " - ", "subj ", i))
+                                title_name=paste0(gene, " - ", "subj ", i), minvalue=minvalue, maxvalue=maxvalue)
+          qpbw <- quilt_p_purity_bw(data_f=df)
           } else{
             stop("No tumor/stroma classification in the STList.")
           }
         }else{
           # The color palette function in khroma is created by quilt_p() function.
           qp <- quilt_p(data_f=df, leg_name="norm_expr", color_pal=color_pal,
-                        title_name=paste0(gene, " - ", "subj ", i))
+                        title_name=paste0(gene, " - ", "subj ", i), minvalue=minvalue, maxvalue=maxvalue)
         }
 
       } else{
@@ -107,9 +119,12 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
       }
 
       # Append plot to list.
-      qp_list[[gene]] <- qp
+      qp_list[[paste0(gene, "_", i)]] <- qp
     }
 
+    if(purity){
+      qp_list[[paste0('subj',i)]] <- qpbw
+    }
     #     # Define number of columns and rows in plot and size.
     #     row_col <- c(2, 2)
     # #    w_pdf=9
@@ -123,20 +138,22 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
     # #      w_pdf=7
     # #      h_pdf=7
     #     }
-
+}
     row_col <- c(1, 1)
 
     # Test if plot should be saved to PDF.
     if(saveplot){
       # Print plots to PDF.
-      pdf(file=paste0("gene_quilt_spatarray_", i, ".pdf"), width=10, height=10)#,
+      #pdf(file=paste0("gene_quilt_spatarray_", i, ".pdf"), width=10, height=10)#,
           #width=w_pdf, height=h_pdf
+      pdf(file="gene_quilt_spatarray.pdf")
       print(ggpubr::ggarrange(plotlist=qp_list,
-                              nrow=row_col[1], ncol=row_col[2]))
+                              nrow=row_col[2], ncol=row_col[2],
+                              common.legend=T, legend='bottom'))
       dev.off()
     } else{
       # Print plots to console.
         return(qp_list)
     }
-  }
+#  }
 }

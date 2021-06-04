@@ -1,14 +1,14 @@
 ##
-#' @title spatial_xcell
-#' @description Applies xCell to ST data.
-#' @details
-#' This function applies xCell to the stored normalized matrices in order to obtain
-#' cell scores for each of the library/spots. The results are stored as untransformed,
-#' square-root transformed scores, and p-values. Standard deviations are calculated
-#' for each cell type.
-#'
-#' @param x, a STList with normalized count matrices.
-#' @return x, an updated STList with xCell scores.
+# @title spatial_xcell
+# @description Applies xCell to ST data.
+# @details
+# This function applies xCell to the stored normalized matrices in order to obtain
+# cell scores for each of the library/spots. The results are stored as untransformed,
+# square-root transformed scores, and p-values. Standard deviations are calculated
+# for each cell type.
+#
+# @param x, a STList with normalized count matrices.
+# @return x, an updated STList with xCell scores.
 #
 #
 spatial_xcell <- function(x=NULL){
@@ -96,9 +96,11 @@ spatial_xcell <- function(x=NULL){
     # Calculate cell means and standard deviations, and store in object.
     cell_stdevs <- apply(as.data.frame(
       x@cell_deconv$xCell[[i]]$sqrt_scores[, -1]), 1, sd, na.rm=T)
-    cell_means <- rowMeans(
-      x@cell_deconv$xCell[[i]]$sqrt_scores[, -1], na.rm=T)
-    cell_stdevs_df <- tibble::tibble(cell_means, cell_stdevs) %>%
+    # cell_means <- rowMeans(
+    #   x@cell_deconv$xCell[[i]]$sqrt_scores[, -1], na.rm=T)
+    # cell_stdevs_df <- tibble::tibble(cell_means, cell_stdevs) %>%
+    #   tibble::add_column(df_xcell_NoPurityScores[, 1], .before=1)
+    cell_stdevs_df <- tibble::tibble(cell_stdevs) %>%
       tibble::add_column(df_xcell_NoPurityScores[, 1], .before=1)
     names(cell_stdevs_df)[1] <- 'cell'
     x@cell_deconv[['xCell']][[i]][['cell_stdev']] <- cell_stdevs_df

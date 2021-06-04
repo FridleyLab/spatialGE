@@ -44,7 +44,7 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
     # If cells='top', get names of 10 cell types with the highest standard deviation.
     if(length(cells) == 1){
       if(cells == 'top'){
-        cells <- x@cell_deconv$xCell[[i]]$cell_stdev$cell[order(x@cell_deconv$xCell[[i]]$cell_stdev, decreasing=T)][1:10]
+        cells <- x@cell_deconv$xCell[[i]]$cell_stdev$cell[order(x@cell_deconv$xCell[[i]]$cell_stdev$cell_stdevs, decreasing=T)][1:10]
       }
     }
 

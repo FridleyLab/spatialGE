@@ -1,11 +1,11 @@
 ##
-#' @title show
-#' @description Prints summary of STList
-#' @details
-#' This function takes an STList and prints a the number of spatial arrays in that
-#' object.
-#'
-#' @param object, an STList object to show summary from.
+# @title show
+# @description Prints summary of STList
+# @details
+# This function takes an STList and prints a the number of spatial arrays in that
+# object.
+#
+# @param object, an STList object to show summary from.
 #
 #
 # Set object class.

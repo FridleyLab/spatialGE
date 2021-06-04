@@ -1,13 +1,13 @@
 ##
-#' @title cluster_purity
-#' @description Perform model-based clustering to define stromal/tumor clusters from
-#' ESTIMATE purity scores.
-#' @details
-#' Takes ESTIMATE tumor purity scores and performs model-based clustering. The function
-#' only evaluates k=2, to separate between likely tumor and stromal spots.
-#'
-#' @param x, an STList with ESTIMATE scores.
-#' @return x, an STList with tumor/stroma classifications.
+# @title cluster_purity
+# @description Perform model-based clustering to define stromal/tumor clusters from
+# ESTIMATE purity scores.
+# @details
+# Takes ESTIMATE tumor purity scores and performs model-based clustering. The function
+# only evaluates k=2, to separate between likely tumor and stromal spots.
+#
+# @param x, an STList with ESTIMATE scores.
+# @return x, an STList with tumor/stroma classifications.
 #
 #
 cluster_purity <- function(x=NULL) {
