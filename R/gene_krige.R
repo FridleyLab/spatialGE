@@ -62,7 +62,10 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
         if(length(x@gene_krige[[gene]]) < i){
           x@gene_krige[[gene]][[i]] <- list(ord=NULL,
                                             univ=NULL)
-        }else{
+        } else if(is.null(x@gene_krige[[gene]][[i]])){
+          x@gene_krige[[gene]][[i]] <- list(ord=NULL,
+                                            univ=NULL)
+        } else{
           next
         }
       }else{

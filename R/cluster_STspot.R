@@ -94,7 +94,7 @@ cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotf
       #coords_abs_df <- x@coords[[i]][!(x@coords[[i]]$X1 %in% spotlibs), ]
 
 
-      if(length(ks) == 1){
+      if(is.character(ks)){
         if(ks == 'dtc'){
         grp_list['type'] <- 'dtc'
         grp_df <- dynamicTreeCut::cutreeDynamic(hierclusters, method='hybrid', distM=weight_m, deepSplit=F, verbose=F)

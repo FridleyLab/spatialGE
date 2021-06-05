@@ -34,8 +34,8 @@ quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
     ylab("Y Position") +
     labs(color=leg_name, title=title_name) +
     theme_classic() +
-    scale_x_reverse() +
-    scale_y_reverse() +
+    #scale_x_reverse() +
+    #scale_y_reverse() +
     coord_fixed() +
     theme(legend.position="right")
 

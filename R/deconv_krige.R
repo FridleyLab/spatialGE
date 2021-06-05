@@ -62,7 +62,10 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
         if(length(x@cell_krige[[cell]]) < i){
           x@cell_krige[[cell]][[i]] <- list(ord=NULL,
                                             univ=NULL)
-        }else{
+        } else if(is.null(x@cell_krige[[cell]][[i]])){
+          x@cell_krige[[cell]][[i]] <- list(ord=NULL,
+                                            univ=NULL)
+        } else{
           next
         }
       }else{

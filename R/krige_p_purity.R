@@ -46,8 +46,8 @@ krige_p_purity <- function(data_f=NULL, tumorstroma=NULL,
     geom_point(data=tumorstroma[tumorstroma$cluster=='tumor', ], aes(x=X3, y=X2, shape=cluster), size=0.7, color='gray50') +
     scale_shape_manual(values=c(0, 3)) +
     guides(shape=guide_legend(override.aes=list(size=3))) +
-    scale_x_reverse() +
-    scale_y_reverse() +
+    #scale_x_reverse() +
+    #scale_y_reverse() +
     coord_fixed() +
     theme_classic() +
     theme(legend.position="right", plot.title=element_text(size=8), legend.text = element_text(size=10))

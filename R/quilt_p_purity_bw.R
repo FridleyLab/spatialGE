@@ -24,8 +24,8 @@ quilt_p_purity_bw <- function(data_f=NULL){
     labs(shape='tumor/stroma', color='tumor/stroma', title='ESTIMATE\ntumor/stroma') +
     guides(color=guide_legend(override.aes=list(size=2))) +
     theme_classic() +
-    scale_x_reverse() +
-    scale_y_reverse() +
+    #scale_x_reverse() +
+    #scale_y_reverse() +
     coord_fixed()
 
   #purity_p_list <- list()

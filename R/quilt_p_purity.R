@@ -44,8 +44,8 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
     #guides(shape=F) +
     guides(shape=guide_legend(override.aes=list(color='black', stroke=0.5, size=2))) +
     theme_classic() +
-    scale_x_reverse() +
-    scale_y_reverse() +
+    #scale_x_reverse() +
+    #scale_y_reverse() +
     coord_fixed() +
     theme(legend.position="right")
 

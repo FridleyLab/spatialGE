@@ -65,7 +65,8 @@ plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light'){
       }
 
       p <- p + ylab('Y Position') + xlab('X Position')
-      p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed() + theme_classic()
+      #p <- p + scale_x_reverse() + scale_y_reverse()
+      p <- p + coord_fixed() + theme_classic()
       p <- p + theme(plot.title=element_text(size=10), legend.text=element_text(size=10))
 
       plot_list[[paste0("p",i)]] <- p
@@ -109,7 +110,8 @@ plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light'){
           p <- p + guides(shape=guide_legend(override.aes=list(size=2)), color=guide_legend(override.aes=list(size=2)))
         }
         p <- p + ylab('Y Position') + xlab('X Position')
-        p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed() + theme_classic()
+        #p <- p + scale_x_reverse() + scale_y_reverse()
+        p <- p + theme_classic() + coord_fixed()
         p <- p + theme(plot.title=element_text(size=10), legend.text=element_text(size=10))
 
         plot_list[[paste0("p",i)]][[k]] <- p

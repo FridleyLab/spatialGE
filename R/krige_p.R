@@ -43,8 +43,8 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
                               ) +
     coord_fixed() +
     theme_classic() +
-    scale_x_reverse() +
-    scale_y_reverse() +
+    #scale_x_reverse() +
+    #scale_y_reverse() +
     theme(legend.position="right", plot.title=element_text(size=8))
 
   return(p)
