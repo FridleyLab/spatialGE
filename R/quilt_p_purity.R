@@ -17,7 +17,7 @@
 #
 #
 quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
-                    title_name='', minvalue=minvalue, maxvalue=maxvalue){
+                    title_name='', minvalue=minvalue, maxvalue=maxvalue, visium=T){
 
   require('ggplot2')
 
@@ -43,11 +43,16 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
          title=title_name, color=leg_name) +
     #guides(shape=F) +
     guides(shape=guide_legend(override.aes=list(color='black', stroke=0.5, size=2))) +
-    theme_classic() +
+    theme_classic()
+
+  if(visium){
     #scale_x_reverse() +
-    #scale_y_reverse() +
-    coord_fixed() +
-    theme(legend.position="right")
+    p1 <- p1 + scale_y_reverse() + coord_fixed(ratio=1.7)
+  } else{
+    p1 <- p1 + coord_fixed(ratio=1)
+  }
+
+  p1 <- p1 + theme(legend.position="right")
 
   # p2 <- ggplot() +
   #   geom_point(data=data_f, aes(x=x_pos, y=y_pos, color=as.factor(cluster), shape=as.factor(cluster)), size=0.7) +

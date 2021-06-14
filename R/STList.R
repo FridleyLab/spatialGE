@@ -101,6 +101,9 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
       stop("There are duplicated feature/gene names in the data.")
     }
 
+    # Put column names to coordinate data.
+    colnames(coords_df) <- c('libname', 'ypos', 'xpos')
+
     # Store count and coordinate matrices in lists.
     counts_df_list[[i]] <- counts_df
     coords_df_list[[i]] <- coords_df

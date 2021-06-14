@@ -26,7 +26,7 @@
 #
 krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
                     title_name='', x=NULL, plot_who=NULL, cell=NULL,
-                    minvalue=minvalue, maxvalue=maxvalue){
+                    minvalue=minvalue, maxvalue=maxvalue, visium=T){
 
   require('ggplot2')
 
@@ -54,12 +54,16 @@ krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='
     ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"#,
                               #color='white', size=1.5
                               ) +
-    geom_point(data=pvals_sign, aes(x=X3, y=X2), shape=1, size=0.7, color='gray50') +
-    #scale_x_reverse() +
-    #scale_y_reverse() +
-    coord_fixed() +
+    geom_point(data=pvals_sign, aes(x=xpos, y=ypos), shape=1, size=0.7, color='gray50') +
     theme_classic() +
     theme(legend.position="right", plot.title=element_text(size=8))
+
+    if(visium){
+      #scale_x_reverse() +
+      p <- p + scale_y_reverse() + coord_fixed(ratio=1.7)
+    } else{
+      p <- p + coord_fixed(ratio=1)
+    }
 
   return(p)
 

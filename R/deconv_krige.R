@@ -21,7 +21,7 @@
 #' @export
 #
 #
-deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
+deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL, method='xcell'){
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
@@ -38,13 +38,25 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
     stop(paste("There are no deconvolution results in this STList."))
   }
 
+  method=tolower(method)
+
+  # Get requested list of deconvoluted matrices.
+  if(method == 'xcell'){
+    deconv_list <- x@cell_deconv$xCell
+  } else if(method == 'ssgsea'){
+    deconv_list <- x@cell_deconv$ssGSEA
+  } else{
+    stop('Please, specify a deconvolution method to plot.')
+  }
+
   # Loop through each deconvolution matrix.
   for (i in who) {
 
     # If cells='top', get names of 10 cell types with the highest standard deviation.
     if(length(cells) == 1){
       if(cells == 'top'){
-        cells <- x@cell_deconv$xCell[[i]]$cell_stdev$cell[order(x@cell_deconv$xCell[[i]]$cell_stdev$cell_stdevs, decreasing=T)][1:10]
+        # cells <- x@cell_deconv$xCell[[i]]$cell_stdev$cell[order(x@cell_deconv$xCell[[i]]$cell_stdev$cell_stdevs, decreasing=T)][1:10]
+        cells <- deconv_list[[i]]$cell_stdev$cell[order(deconv_list[[i]]$cell_stdev$cell_stdevs, decreasing=T)][1:10]
       }
     }
 
@@ -52,8 +64,10 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
     for(cell in cells){
 
       # Test that the cell name is present in the deconvolution matrix.
-      if(!any(x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell)){
-        cat(paste(cell, "is not a cell in the", names(x@cell_deconv)[2], "deconvolution matrix."))
+      #if(!any(x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell)){
+      if(!any(deconv_list[[i]]$sqrt_scores[[1]] == cell)){
+        #cat(paste(cell, "is not a cell in the", names(x@cell_deconv)[2], "deconvolution matrix."))
+        cat(paste(cell, "is not a cell in the deconvolution matrix."))
         next
       }
 
@@ -75,7 +89,8 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
       }
 
       # Extract abundance/score data for a given cell.
-      cell_abund <- x@cell_deconv$xCell[[i]]$sqrt_scores[x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell, -1]
+      # cell_abund <- x@cell_deconv$xCell[[i]]$sqrt_scores[x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell, -1]
+      cell_abund <- deconv_list[[i]]$sqrt_scores[deconv_list[[i]]$sqrt_scores[[1]] == cell, -1]
 
       # Transpose abundance/score data to turn it into a column. Then turn library
       # names into a column and assign column names (first row).
@@ -156,9 +171,9 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL){
       }
 
         # Calculate spatial heterogeneity statistics.
-      x <- cell_moran_I(x, cells=cell, subj=i)
-      x <- cell_geary_C(x, cells=cell, subj=i)
-      x <- cell_getis_Gi(x, cells=cell, subj=i)
+      x <- cell_moran_I(x, cells=cell, subj=i, method=method)
+      x <- cell_geary_C(x, cells=cell, subj=i, method=method)
+      x <- cell_getis_Gi(x, cells=cell, subj=i, method=method)
 
     }
 

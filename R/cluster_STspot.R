@@ -21,7 +21,7 @@
 #' @export
 #
 #
-cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotfilter=500) {
+cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotfilter=0) {
 
   require('magrittr')
 
@@ -45,7 +45,7 @@ cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotf
     }
 
     voom_df <- voom_df[, names(voom_df) %in% spotlibs]
-    coords_df <- x@coords[[i]][x@coords[[i]]$X1 %in% spotlibs, ]
+    coords_df <- x@coords[[i]][x@coords[[i]]$libname %in% spotlibs, ]
     #if(purity){
     #  purity_df <- x@cell_deconv$ESTIMATE[[i]]$purity_clusters[x@cell_deconv$ESTIMATE[[i]]$purity_clusters$X1 %in% spotlibs, ]
     #}
@@ -96,11 +96,14 @@ cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotf
 
       if(is.character(ks)){
         if(ks == 'dtc'){
-        grp_list['type'] <- 'dtc'
+        grp_list[['type']] <- 'dtc'
         grp_df <- dynamicTreeCut::cutreeDynamic(hierclusters, method='hybrid', distM=weight_m, deepSplit=F, verbose=F)
         grp_df <- tibble::tibble(colnames(dAm), as.factor(grp_df))
-        names(grp_df) <- c('X1', 'WCluster')
-        grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='X1')
+        names(grp_df) <- c('libname', 'WCluster')
+
+        grp_df$WCluster[grp_df$WCluster == 0] <- NA
+
+        grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='libname')
         #grp_df <- dplyr::full_join(grp_df, coords_abs_df, by='X1')
         #if(purity){
         #  grp_df <- dplyr::full_join(grp_df, purity_df, by='X1')
@@ -110,13 +113,13 @@ cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotf
         grp_list$clust_dfs[[i]] <- grp_df
         }
       }else if(is.numeric(ks)){
-        grp_list['type'] <- 'multiK'
+        grp_list[['type']] <- 'multiK'
         grp_list$clust_dfs[[i]] <- list()
         for(k in ks){
           singlek <-  cutree(hierclusters, k=k)
           singlek <- tibble::tibble(colnames(dAm), as.factor(singlek))
-          names(singlek) <- c('X1', 'WCluster')
-          singlek <- dplyr::full_join(x@coords[[i]], singlek, by='X1')
+          names(singlek) <- c('libname', 'WCluster')
+          singlek <- dplyr::full_join(x@coords[[i]], singlek, by='libname')
           #singlek <- dplyr::full_join(singlek, coords_abs_df, by='X1')
           #if(purity){
           #  singlek <- dplyr::full_join(singlek, purity_df, by='X1')

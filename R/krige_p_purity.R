@@ -23,7 +23,8 @@
 #
 krige_p_purity <- function(data_f=NULL, tumorstroma=NULL,
                            mask=NULL, color_pal="YlOrBr", leg_name='',
-                           title_name='', minvalue=minvalue, maxvalue=maxvalue){
+                           title_name='', minvalue=minvalue, maxvalue=maxvalue,
+                           visium=T){
 
   require('ggplot2')
 
@@ -43,14 +44,18 @@ krige_p_purity <- function(data_f=NULL, tumorstroma=NULL,
     ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"#,
                               #color='white', size=0
                               ) +
-    geom_point(data=tumorstroma[tumorstroma$cluster=='tumor', ], aes(x=X3, y=X2, shape=cluster), size=0.7, color='gray50') +
+    geom_point(data=tumorstroma[tumorstroma$cluster=='tumor', ], aes(x=xpos, y=ypos, shape=cluster), size=0.7, color='gray50') +
     scale_shape_manual(values=c(0, 3)) +
     guides(shape=guide_legend(override.aes=list(size=3))) +
-    #scale_x_reverse() +
-    #scale_y_reverse() +
-    coord_fixed() +
     theme_classic() +
     theme(legend.position="right", plot.title=element_text(size=8), legend.text = element_text(size=10))
+
+    if(visium){
+      #scale_x_reverse() +
+      p <- p + scale_y_reverse() + coord_fixed(ratio=1.7)
+    } else{
+      p <- p + coord_fixed(ratio=1)
+    }
 
   return(p)
 

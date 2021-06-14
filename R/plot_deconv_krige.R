@@ -29,7 +29,7 @@
 #
 #
 plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NULL,
-           color_pal='YlOrBr', saveplot=F, pvalues=F, purity=F, scaled=T){
+           color_pal='YlOrBr', saveplot=F, pvalues=F, purity=F, scaled=T, visium=T){
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
@@ -149,11 +149,11 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
 
       # Construct title.
       if(krige_type == 'ord'){
-        titlekrige <- paste0(cell, ", subj ", i, " - ordinary kriging square root-norm scores\nMorans I=",
+        titlekrige <- paste0(cell, ", subj ", i, " - ordinary kriging\nMorans I=",
                              moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
                              getis_est)
       } else if(krige_type == 'univ'){
-        titlekrige <- paste0(cell, ", subj ", i, " - universal kriging square root-norm scores\nMorans I=",
+        titlekrige <- paste0(cell, ", subj ", i, " - universal kriging\nMorans I=",
                              moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
                              getis_est)
       }
@@ -165,16 +165,17 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, krige_type='ord', plot_who=NUL
           kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
                                tumorstroma=tumorstroma_df,
                                leg_name="pred_score", title_name=titlekrige,
-                               minvalue=minvalue, maxvalue=maxvalue)
+                               minvalue=minvalue, maxvalue=maxvalue, visium=visium)
         } else if(pvalues){
           kp <- krige_p_pvals(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
                               title_name=titlekrige, x=x, plot_who=i, cell=cell,
-                              minvalue=minvalue, maxvalue=maxvalue)
+                              minvalue=minvalue, maxvalue=maxvalue, visium=visium)
         }
 
       } else{
         kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_score",
-                      title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue)
+                      title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue,
+                      visium=visium)
       }
       # Append plot to list.
       kp_list[[paste0(cell, "_", i)]] <- kp

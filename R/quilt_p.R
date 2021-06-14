@@ -17,7 +17,7 @@
 #
 #
 quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
-                    title_name='', minvalue=minvalue, maxvalue=maxvalue){
+                    title_name='', minvalue=minvalue, maxvalue=maxvalue, visium=T){
 
   require('ggplot2')
 
@@ -33,11 +33,16 @@ quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
     xlab("X Position") +
     ylab("Y Position") +
     labs(color=leg_name, title=title_name) +
-    theme_classic() +
-    #scale_x_reverse() +
-    #scale_y_reverse() +
-    coord_fixed() +
-    theme(legend.position="right")
+    theme_classic()
+
+    if(visium){
+      #scale_x_reverse() +
+      p <- p + scale_y_reverse() + coord_fixed(ratio=1.7)
+    } else {
+      p <- p + coord_fixed(ratio=1)
+    }
+
+    p <- p + theme(legend.position="right")
 
   return(p)
 

@@ -25,7 +25,8 @@
 #
 #
 plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
-                            color_pal='YlOrBr', purity=F, saveplot=F, scaled=F){
+                            color_pal='YlOrBr', purity=F, saveplot=F, scaled=F,
+                            visium=T){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
@@ -143,11 +144,11 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
 
       # Construct title.
       if(krige_type == 'ord'){
-        titlekrige <- paste0(gene, ", subj ", i, " - ordinary kriging voom-norm counts\nMorans I=",
+        titlekrige <- paste0(gene, ", subj ", i, " - ordinary kriging\nMorans I=",
                              moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
                              getis_est)
       } else if(krige_type == 'univ'){
-        titlekrige <- paste0(gene, ", subj ", i, " - universal kriging voom-norm counts\nMorans I=",
+        titlekrige <- paste0(gene, ", subj ", i, " - universal kriging\nMorans I=",
                              moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
                              getis_est)
       }
@@ -157,10 +158,12 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
                                            cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
         kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
                              tumorstroma=tumorstroma_df,
-                             leg_name="pred_expr", title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue)
+                             leg_name="pred_expr", title_name=titlekrige, minvalue=minvalue,
+                             maxvalue=maxvalue, visium=visium)
       } else{
         kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
-                      title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue)
+                      title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue,
+                      visium=visium)
       }
       # Append plot to list.
       kp_list[[paste0(gene, "_", i)]] <- kp

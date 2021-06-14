@@ -21,7 +21,8 @@
 #
 #
 krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
-                    title_name='', minvalue=minvalue, maxvalue=maxvalue){
+                    title_name='', minvalue=minvalue, maxvalue=maxvalue,
+                    visium=T){
 
   require('ggplot2')
 
@@ -41,11 +42,16 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
     ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"#,
                               #color='white', size=0
                               ) +
-    coord_fixed() +
-    theme_classic() +
-    #scale_x_reverse() +
-    #scale_y_reverse() +
-    theme(legend.position="right", plot.title=element_text(size=8))
+    theme_classic()
+
+    if(visium){
+      #scale_x_reverse() +
+      p <- p + scale_y_reverse() + coord_fixed(ratio=1.7)
+    } else{
+      p <- p + coord_fixed(ratio=1)
+    }
+
+  p <- p + theme(legend.position="right", plot.title=element_text(size=8))
 
   return(p)
 

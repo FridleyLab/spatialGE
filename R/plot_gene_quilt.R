@@ -24,7 +24,7 @@
 #
 #
 plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr',
-                            purity=F, saveplot=F, scaled=F){
+                            purity=F, saveplot=F, scaled=F, visium=T){
 
   #  moran_est <- round(as.vector(x@gene_het[[gene]]$morans_I$estimate[[1]]), 2)
   #  geary_est <- round(as.vector(x@gene_het[[gene]]$gearys_C$estimate[[1]]), 2)
@@ -98,18 +98,20 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
         # If purity=T, get tumor/stroma classifications and add to data frame.
         # Then call the quilt plot function.
         if(purity){
-          if(!(rlang::is_empty(melanoma@cell_deconv))){
+          if(!(rlang::is_empty(x@cell_deconv))){
           df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
           qp <- quilt_p_purity(data_f=df, leg_name="norm_expr", color_pal=color_pal,
-                                title_name=paste0(gene, " - ", "subj ", i), minvalue=minvalue, maxvalue=maxvalue)
-          qpbw <- quilt_p_purity_bw(data_f=df)
+                                title_name=paste0(gene, " - ", "subj ", i),
+                               minvalue=minvalue, maxvalue=maxvalue, visium=visium)
+          qpbw <- quilt_p_purity_bw(data_f=df, visium=visium, title_name=paste0('ESTIMATE\ntumor/stroma - subj ', i))
           } else{
             stop("No tumor/stroma classification in the STList.")
           }
         }else{
           # The color palette function in khroma is created by quilt_p() function.
           qp <- quilt_p(data_f=df, leg_name="norm_expr", color_pal=color_pal,
-                        title_name=paste0(gene, " - ", "subj ", i), minvalue=minvalue, maxvalue=maxvalue)
+                        title_name=paste0(gene, " - ", "subj ", i),
+                        minvalue=minvalue, maxvalue=maxvalue, visium=visium)
         }
 
       } else{

@@ -40,7 +40,7 @@ cluster_purity <- function(x=NULL) {
     clusters <- tibble::as_tibble_col(clust_mod$classification, column_name='cluster')
     clusters$cluster <- gsub('1', 'tumor', clusters$cluster)
     clusters$cluster <- gsub('2', 'stroma', clusters$cluster)
-    clusters <- tibble::add_column(clusters, X1=names(clust_mod$classification), .before=1)
+    clusters <- tibble::add_column(clusters, libname=names(clust_mod$classification), .before=1)
 
     x@cell_deconv$ESTIMATE[[i]][['purity_clusters']] <- clusters
 

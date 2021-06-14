@@ -11,7 +11,7 @@
 # @return, a ggplot object.
 #
 #
-quilt_p_purity_bw <- function(data_f=NULL){
+quilt_p_purity_bw <- function(data_f=NULL, title_name='', visium=T){
 
   require('ggplot2')
 
@@ -21,12 +21,17 @@ quilt_p_purity_bw <- function(data_f=NULL){
     scale_color_manual(values=c('gray60', 'black')) +
     xlab("X Position") +
     ylab("Y Position") +
-    labs(shape='tumor/stroma', color='tumor/stroma', title='ESTIMATE\ntumor/stroma') +
+    labs(shape='tumor/stroma', color='tumor/stroma', title=) +
     guides(color=guide_legend(override.aes=list(size=2))) +
-    theme_classic() +
-    #scale_x_reverse() +
-    #scale_y_reverse() +
-    coord_fixed()
+    theme_classic()
+
+
+    if(visium){
+      #scale_x_reverse() +
+      p2 <- p2 + scale_y_reverse() + coord_fixed(ratio=1.7)
+    } else{
+      p2 <- p2 + coord_fixed(ratio=1)
+    }
 
   #purity_p_list <- list()
   #purity_p_list[['p1']] <- p1

@@ -45,11 +45,11 @@ spatial_purity <- function(x=NULL){
     cat(paste0("Estimating 'purity' scores for spatial array #", i, "...\n"))
 
     # Write temporary file to store filtered data set. Required by ESTIMATE.
-    tmp_filterexpr <- tempfile(fileext = ".gct", pattern='estimateCommonGenes')
+    tmp_filterexpr <- tempfile(fileext = ".gct", pattern='estimateCommonGenes_')
     estimate::filterCommonGenes(input.f=tmp_expr, output.f=tmp_filterexpr, id="GeneSymbol")
 
     # Write temporary file to store filtered data set. Required by ESTIMATE.
-    tmp_purout <- tempfile(fileext = ".gct", pattern='purityOut')
+    tmp_purout <- tempfile(fileext = ".gct", pattern='purityOut_')
     estimateScore(tmp_filterexpr, tmp_purout, platform="illumina")
 
     # Read results from temporary file.
