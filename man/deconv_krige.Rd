@@ -4,7 +4,14 @@
 \alias{deconv_krige}
 \title{deconv_krige: Spatial interpolation of gene expression deconvolution scores}
 \usage{
-deconv_krige(x = NULL, cells = "top", univ = F, res = 0.2, who = NULL)
+deconv_krige(
+  x = NULL,
+  cells = "top",
+  univ = F,
+  res = NULL,
+  who = NULL,
+  method = "xcell"
+)
 }
 \arguments{
 \item{x, }{an STList with transformed xCell scores.}

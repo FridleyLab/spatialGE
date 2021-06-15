@@ -9,6 +9,7 @@
 #' @param cells, a vector of cell names present in the deconvolution matrix.
 #' @param subj, an integer indicating the spatial array for which the statistic
 #' will be calculated.
+#' @param method, the deconvolutionn method to used estimate the cell scores.
 #' @return x, a STList including the values corresponding to Getis-Ord Gi for each
 #' cell in cells.
 #' @export

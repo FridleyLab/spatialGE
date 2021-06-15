@@ -9,6 +9,8 @@ spatial_deconv(x = NULL, method = "xcell")
 \arguments{
 \item{x, }{an STList with normalized count matrices. If 'none', only ESTIMATE is
 applied.}
+
+\item{method, }{the name of the method to deconvolute data. As of now, only xCell is supported.}
 }
 \value{
 x, an updated STList with deconvolution scores.

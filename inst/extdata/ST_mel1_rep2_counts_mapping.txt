@@ -1,3 +1,4 @@
+spot	ypos	xpos
 16x3	16	3
 16x4	16	4
 17x4	17	4

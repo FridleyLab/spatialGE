@@ -10,6 +10,7 @@
 #'
 #' @param x, an STList with normalized count matrices. If 'none', only ESTIMATE is
 #' applied.
+#' @param method, the name of the method to deconvolute data. As of now, only xCell is supported.
 #' @return x, an updated STList with deconvolution scores.
 #' @export
 #

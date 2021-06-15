@@ -8,9 +8,11 @@
 #' tumor/stroma compartments if ESTIMATE scores are available.
 #'
 #' @param x, an STList with hierarchical cluster memberships.
-#' @param who, an integer indicating the spatial array(s) to be plotted.
+#' @param plot_who, an integer indicating the spatial array(s) to be plotted.
 #' @param purity, logical, whether or not annotate tumor/stroma.
 #' @param color_pal, a scheme from 'khroma'. Default is 'light'.
+#' @param visium, whether or not to reverse axes for Visium slides.
+#' @return plot_list, a list with the requested plots.
 #' @export
 #
 #

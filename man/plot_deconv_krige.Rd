@@ -13,7 +13,8 @@ plot_deconv_krige(
   saveplot = F,
   pvalues = F,
   purity = F,
-  scaled = T
+  scaled = T,
+  visium = T
 )
 }
 \arguments{
@@ -44,6 +45,11 @@ ESTIMATE tumor purity scores.}
 \item{scaled, }{logical, indicating if expression values should be scaled with
 respect to the highest value among all genes to plot. WARNING: Color legends
 are not scaled between plots, but values are.}
+
+\item{visium, }{whether or not to reverse axes for Visium slides.}
+}
+\value{
+kplist, a list with plots.
 }
 \description{
 Produces a spatial interpolation surface from kriging of gene expression

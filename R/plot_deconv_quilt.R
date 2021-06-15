@@ -20,11 +20,14 @@
 #' @param scaled, logical, indicating if expression values should be scaled with
 #' respect to the highest value among all genes to plot. WARNING: Color legends
 #' are not scaled between plots, but values are.
+#' @param method, the deconvolutionn method to used estimate the cell scores.
+#' @param visium, whether or not to reverse axes for Visium slides.
+#' @return qplist, a list with plots.
 #' @export
 #
 #
 plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr',
-                            purity=F, saveplot=F,  scaled=F, method='xcell', visium=T){
+                            purity=F, saveplot=F, scaled=F, method='xcell', visium=T){
 
   #  moran_est <- round(as.vector(x@gene_het[[gene]]$morans_I$estimate[[1]]), 2)
   #  geary_est <- round(as.vector(x@gene_het[[gene]]$gearys_C$estimate[[1]]), 2)

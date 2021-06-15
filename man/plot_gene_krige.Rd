@@ -12,7 +12,8 @@ plot_gene_krige(
   color_pal = "YlOrBr",
   purity = F,
   saveplot = F,
-  scaled = F
+  scaled = F,
+  visium = T
 )
 }
 \arguments{
@@ -39,6 +40,11 @@ are printed to console.}
 \item{scaled, }{logical, indicating if expression values should be scaled with
 respect to the highest value among all genes to plot. WARNING: Color legends
 are not scaled between plots, but values are.}
+
+\item{visium, }{whether or not to reverse axes for Visium slides.}
+}
+\value{
+kplist, a list with plots.
 }
 \description{
 Produces a transcriptomic surface from kriging interpolation of ST data.

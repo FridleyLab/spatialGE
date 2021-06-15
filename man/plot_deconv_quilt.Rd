@@ -11,7 +11,9 @@ plot_deconv_quilt(
   color_pal = "YlOrBr",
   purity = F,
   saveplot = F,
-  scaled = F
+  scaled = F,
+  method = "xcell",
+  visium = T
 )
 }
 \arguments{
@@ -34,6 +36,13 @@ are printed to console.}
 \item{scaled, }{logical, indicating if expression values should be scaled with
 respect to the highest value among all genes to plot. WARNING: Color legends
 are not scaled between plots, but values are.}
+
+\item{method, }{the deconvolutionn method to used estimate the cell scores.}
+
+\item{visium, }{whether or not to reverse axes for Visium slides.}
+}
+\value{
+qplist, a list with plots.
 }
 \description{
 Plot cell type deconvolution scores at each spot (quilt plot) within a

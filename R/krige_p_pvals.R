@@ -21,6 +21,11 @@
 # @param x, an STList from where coordinates will be taken.
 # @param plot_who, an integer indicating the spatial array to be plotted.
 # @param cell, a cell name from a deconvoluted matrix.
+# @param minvalue, the minimum value of gene expression or cell score. Used for
+# standardization.
+# @param maxvalue, the maximum value of gene expression or cell score. Used for
+# standardization.
+# @param visium, whether or not to reverse axes for Visium slides.
 # @return, a ggplot object.
 #
 #
@@ -59,8 +64,7 @@ krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='
     theme(legend.position="right", plot.title=element_text(size=8))
 
     if(visium){
-      #scale_x_reverse() +
-      p <- p + scale_y_reverse() + coord_fixed(ratio=1.7)
+      p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
     } else{
       p <- p + coord_fixed(ratio=1)
     }

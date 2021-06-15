@@ -12,12 +12,18 @@
 #
 # @param data_f, a data with three columns: x coordinates, y coordinates, and
 # the kriging prediction values to be plotted.
+# @param tumorstroma, a data frame with x,y positions and stroma/tumor assignments.
 # @param mask, an object of class SpatialPolygons containing a large polygon
 # encasing all the predicted grid, and a smaller polygon drawing the concave hull
 # of the tissue shape.
 # @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
 # @param leg_name, a short name for the legend title.
 # @param title_name, a short name for the plot title.
+# @param minvalue, the minimum value of gene expression or cell score. Used for
+# standardization.
+# @param maxvalue, the maximum value of gene expression or cell score. Used for
+# standardization.
+# @param visium, whether or not to reverse axes for Visium slides.
 # @return, a ggplot object.
 #
 #
@@ -51,8 +57,7 @@ krige_p_purity <- function(data_f=NULL, tumorstroma=NULL,
     theme(legend.position="right", plot.title=element_text(size=8), legend.text = element_text(size=10))
 
     if(visium){
-      #scale_x_reverse() +
-      p <- p + scale_y_reverse() + coord_fixed(ratio=1.7)
+      p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
     } else{
       p <- p + coord_fixed(ratio=1)
     }

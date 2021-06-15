@@ -13,6 +13,11 @@
 # @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
 # @param leg_name, a short name for the legend title.
 # @param title_name, a short name for the plot title.
+# @param minvalue, the minimum value of gene expression or cell score. Used for
+# standardization.
+# @param maxvalue, the maximum value of gene expression or cell score. Used for
+# standardization.
+# @param visium, whether or not to reverse axes for Visium slides.
 # @return, a ggplot object.
 #
 #
@@ -46,33 +51,12 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
     theme_classic()
 
   if(visium){
-    #scale_x_reverse() +
-    p1 <- p1 + scale_y_reverse() + coord_fixed(ratio=1.7)
+    p1 <- p1 + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
   } else{
     p1 <- p1 + coord_fixed(ratio=1)
   }
 
   p1 <- p1 + theme(legend.position="right")
 
-  # p2 <- ggplot() +
-  #   geom_point(data=data_f, aes(x=x_pos, y=y_pos, color=as.factor(cluster), shape=as.factor(cluster)), size=0.7) +
-  #   scale_shape_manual(values=c(3, 15)) +
-  #   scale_color_manual(values=c('gray60', 'black')) +
-  #   xlab("X Position") +
-  #   ylab("Y Position") +
-  #   labs(shape='tumor/stroma', color='tumor/stroma') +
-  #   guides(color=guide_legend(override.aes=list(size=2))) +
-  #   theme_classic() +
-  #   scale_x_reverse() +
-  #   scale_y_reverse() +
-  #   coord_fixed()
-
-  #purity_p_list <- list()
-  #purity_p_list[['p1']] <- p1
-  #purity_p_list[['p2']] <- p2
-
-  #purity_gb <- gridExtra::arrangeGrob(grobs=purity_p_list, heights = c(1, 1), layout_matrix = rbind(c(1), c(2)))
-
-  #return(purity_gb)
   return(p1)
 }

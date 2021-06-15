@@ -26,16 +26,23 @@ the clinical data.
 Creates an STList object.
 }
 \details{
-This function takes two files containing file paths of count matrices and
-coordinates, one per line. The files containing the counts must have gene names
-in the first column and counts from sampled localities in subsequent columns.
-The coordinate files must have a first column containing the same identifiers
-of the sampled locations as in in the corresponding count file, and x, y positions
-of the samples in the next two columns. The coordinate data must not have column
-names. The function returns an STList object to be used in later analyses with
-spatialGE. Additionally, the function can also take a comma separated file with
-clinical or phenotype data from the samples. This clinical file has data for each
-array (in the same order as the count and coordinate file paths), and the first
-row has names of clinical variables. The first column contains the user-defined
-array IDs.
+This function takes raw RNA counts and coordinates of those RNA counts from an
+spatial transcriptomics array. The function can take these inputs in several
+ways:
+
+A. One data frame for counts + one data frame for coordinates.
+B. One path to a file containing counts + one path to a file containing coordinates.
+C. One path to a file with file paths to N count files + one path to a file containing N coordinate files.
+D. One list containing count data frames + one list containing coordinate data frames.
+
+The files containing the counts must have gene names in the first column and
+counts from sampled localities in subsequent columns. The coordinate files must
+have a first column containing the same identifiers of the sampled locations as in
+the corresponding count file, and y, x (rows, columns) positions of the spots in
+the next two columns. The coordinate data must have headers. The function returns an
+STList object to be used in later analyses with spatialGE. Additionally, the
+function can also take a comma separated file with clinical or phenotype
+data from the samples. This clinical file has data for each array (in the same
+order as the count and coordinate file paths), and the first row has names of
+clinical variables. The first column contains the user-defined array IDs.
 }

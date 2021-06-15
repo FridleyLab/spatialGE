@@ -21,6 +21,8 @@
 #' @param scaled, logical, indicating if expression values should be scaled with
 #' respect to the highest value among all genes to plot. WARNING: Color legends
 #' are not scaled between plots, but values are.
+#' @param visium, whether or not to reverse axes for Visium slides.
+#' @return kplist, a list with plots.
 #' @export
 #
 #

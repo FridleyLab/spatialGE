@@ -8,6 +8,8 @@
 #
 # @param data_f, a data with three columns: x coordinates, y coordinates, and
 # the values to be plotted.
+# @param title_name, a short name for the plot title.
+# @param visium, whether or not to reverse axes for Visium slides.
 # @return, a ggplot object.
 #
 #
@@ -27,18 +29,10 @@ quilt_p_purity_bw <- function(data_f=NULL, title_name='', visium=T){
 
 
     if(visium){
-      #scale_x_reverse() +
-      p2 <- p2 + scale_y_reverse() + coord_fixed(ratio=1.7)
+      p2 <- p2 + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
     } else{
       p2 <- p2 + coord_fixed(ratio=1)
     }
 
-  #purity_p_list <- list()
-  #purity_p_list[['p1']] <- p1
-  #purity_p_list[['p2']] <- p2
-
-  #purity_gb <- gridExtra::arrangeGrob(grobs=purity_p_list, heights = c(1, 1), layout_matrix = rbind(c(1), c(2)))
-
-  #return(purity_gb)
   return(p2)
 }

@@ -21,11 +21,18 @@
 #' @export
 #
 #
-gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
+gene_krige <- function(x=NULL, genes='top', univ=F, res=NULL, who=NULL){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
     stop("Please, enter one or more genes to plot.")
+  }
+
+  # TEMPORARY: This check due to STList getting too hevay on memory after one gene.
+  if(nrows(x@coords[[1]] > 1007)){
+    if(length(genes) > 1){
+      stop('For large arrays (e.g. Visium), one gene at a time can be interpolated.')
+    }
   }
 
   # Test if no specific subject plot was requested.
@@ -96,6 +103,15 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=0.2, who=NULL){
 
       # Create geodata object from expression and coordinate data
       gene_geo <- geoR::as.geodata(gene_geo_df, coords.col=c(1,2), data.col=3)
+
+      # Specify resolution if not input by user. Original ST slide had 1007 spots.
+      if(is.null(res)){
+        if(nrow(x@coords[[i]]) > 1007){
+          res <- 0.5
+        } else{
+         res <- 0.2
+        }
+      }
 
       # Create a grid finer than the sampled locations to predict locations.
       gene_geo_grid <-expand.grid(

@@ -7,9 +7,11 @@
 cluster_STspot(
   x = NULL,
   weights = 0.1,
+  pcs = 15,
   method = "ward.D",
   ks = "dtc",
-  spotfilter = 500
+  spotfilter = 0,
+  topgenes = 2000
 )
 }
 \arguments{
@@ -17,6 +19,8 @@ cluster_STspot(
 
 \item{weights, }{a double \link{0-1} indicating the weight to be applied to spatial
 distances.}
+
+\item{pcs, }{the number of principal components (PCs) to retain.}
 
 \item{method, }{the linkage method applied to hierarchical clustering. It is passed
 to \code{hclust} and defaults to 'ward.D'.}
@@ -26,15 +30,20 @@ is applied.}
 
 \item{spotfilter, }{the number of genes with more than zero counts for a spot to be
 included in the clustering analysis. The lower this number, the slower the analysis.}
+
+\item{topgenes, }{the number of high spot-to-spot standard deviation to retain before PCA.}
+}
+\value{
+x, the STList with cluster assignments.
 }
 \description{
 Perform spatially-informed hierarchical clustering of spots within a
 spatial array using a genetic distance matrix weighted by spatial distances.
 }
 \details{
-The function takes an STList and calculates euclidean distances of normalized
-gene expression and spatial distances. Then, it calculates the weighted average
-between the two distances to perform hierarchical clustering. The user can define
-how much weight the spatial distance should have (values between 0.1 to 025
-work reasonably well).
+The function takes an STList and performs PCA on the gene expression data, then
+calculates euclidean distances of the PCs and spatial distances. Weighted averages
+between the two distances are calculated to perform hierarchical clustering. The
+user can define how much weight the spatial distance should have (values
+between 0.05 to 0.25 work reasonably well).
 }

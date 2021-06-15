@@ -3,25 +3,28 @@
 #' @description Perform spatially-informed hierarchical clustering of spots within a
 #' spatial array using a genetic distance matrix weighted by spatial distances.
 #' @details
-#' The function takes an STList and calculates euclidean distances of normalized
-#' gene expression and spatial distances. Then, it calculates the weighted average
-#' between the two distances to perform hierarchical clustering. The user can define
-#' how much weight the spatial distance should have (values between 0.1 to 025
-#' work reasonably well).
+#' The function takes an STList and performs PCA on the gene expression data, then
+#' calculates euclidean distances of the PCs and spatial distances. Weighted averages
+#' between the two distances are calculated to perform hierarchical clustering. The
+#' user can define how much weight the spatial distance should have (values
+#' between 0.05 to 0.25 work reasonably well).
 #'
 #' @param x, an STList with normalized expression data.
 #' @param weights, a double [0-1] indicating the weight to be applied to spatial
 #' distances.
+#' @param pcs, the number of principal components (PCs) to retain.
 #' @param method, the linkage method applied to hierarchical clustering. It is passed
 #' to `hclust` and defaults to 'ward.D'.
 #' @param ks, the range of k values to assess. Defaults to `dtc`, meaning `cutreeDynamic`
 #' is applied.
 #' @param spotfilter, the number of genes with more than zero counts for a spot to be
 #' included in the clustering analysis. The lower this number, the slower the analysis.
+#' @param topgenes, the number of high spot-to-spot standard deviation to retain before PCA.
+#' @return x, the STList with cluster assignments.
 #' @export
 #
 #
-cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotfilter=0) {
+cluster_STspot <- function(x=NULL, weights=0.1, pcs=15, method='ward.D', ks='dtc', spotfilter=0, topgenes=2000) {
 
   require('magrittr')
 
@@ -35,7 +38,9 @@ cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotf
   for(i in 1:length(x@counts)){
 
     counts_df <- x@counts[[i]]
-    voom_df <- x@voom_counts[[i]][x@voom_counts[[i]]$gene %in% xCell::xCell.data$genes, ]
+    #voom_df <- x@voom_counts[[i]][x@voom_counts[[i]]$gene %in% xCell::xCell.data$genes, ]
+    voom_df <- x@voom_counts[[i]][order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T), ][1:topgenes, ]
+    #voom_df <- x@voom_counts[[i]]
 
     spotlibs <- c()
     for(dfcol in 2:ncol(counts_df)){
@@ -56,7 +61,12 @@ cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotf
     B <- as.matrix(coords_df[,-1])
     rownames(B) <- spotlibs
 
-    dA <- wordspace::dist.matrix(A)
+    voom_pcs <- prcomp(A, scale=TRUE)
+
+    A <- voom_pcs$x[, 1:pcs]
+
+    #dA <- wordspace::dist.matrix(A)
+    dA <- wordspace::dist.matrix(A, method='euclidean')
     dB <- dist(B, upper = T, diag = T)
 
     dAm <- as.matrix(dA)
@@ -110,11 +120,11 @@ cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotf
         #  grp_df$cluster <- as.factor(grp_df$cluster)
         #  names(grp_df)[5] <- "EstCluster"
         #}
-        grp_list$clust_dfs[[i]] <- grp_df
+        grp_list$clust_dfs[[paste0("sub", i, "_spw", weights[w])]] <- grp_df
         }
       }else if(is.numeric(ks)){
         grp_list[['type']] <- 'multiK'
-        grp_list$clust_dfs[[i]] <- list()
+        #grp_list$clust_dfs[[paste0("sub", i, "_spw", weights[w])]] <- list()
         for(k in ks){
           singlek <-  cutree(hierclusters, k=k)
           singlek <- tibble::tibble(colnames(dAm), as.factor(singlek))
@@ -126,7 +136,8 @@ cluster_STspot <- function(x=NULL, weights=0.1, method='ward.D', ks='dtc', spotf
           #  singlek$cluster <- as.factor(singlek$cluster)
           #  names(singlek)[5] <- "EstCluster"
           #}
-          grp_list$clust_dfs[[i]][[paste0('k', k)]] <- singlek
+          #grp_list$clust_dfs[[paste0("sub", i, "_spw", weights[w])]][[paste0('k', k)]] <- singlek
+          grp_list$clust_dfs[[paste0("sub", i, "_spw", weights[w], '_k', k)]] <- singlek
         }
       } else{
         stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')

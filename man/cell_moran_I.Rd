@@ -4,7 +4,7 @@
 \alias{cell_moran_I}
 \title{cell_moran_I}
 \usage{
-cell_moran_I(x = NULL, cells = NULL, subj = NULL)
+cell_moran_I(x = NULL, cells = NULL, subj = NULL, method = "xcell")
 }
 \arguments{
 \item{x, }{an STList with deconvoluted cell data.}
@@ -13,6 +13,8 @@ cell_moran_I(x = NULL, cells = NULL, subj = NULL)
 
 \item{subj, }{an integer indicating the spatial array for which the statistic
 will be calculated.}
+
+\item{method, }{the deconvolutionn method to used estimate the cell scores.}
 }
 \value{
 x, a STList including the values corresponding to Moran's I for each

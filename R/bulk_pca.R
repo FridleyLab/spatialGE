@@ -24,6 +24,11 @@ bulk_pca <- function(x=NULL, clinvar=NULL, color_pal="muted") {
     stop("The input must be a STList.")
   }
 
+  # Stop function if only one sample provided.
+  if(length(x@counts) < 2){
+    stop('Refusing to plot a single observation PCA!')
+  }
+
   # Extract clinical data from specified variable. If none specified, use the
   # array IDs from the first column of clinical data.
   # Also get labels for PCA points.

@@ -4,7 +4,7 @@
 \alias{gene_krige}
 \title{gene_krige: Spatial interpolation of gene expression}
 \usage{
-gene_krige(x = NULL, genes = "top", univ = F, res = 0.2, who = NULL)
+gene_krige(x = NULL, genes = "top", univ = F, res = NULL, who = NULL)
 }
 \arguments{
 \item{x, }{an STList with normalized counts}

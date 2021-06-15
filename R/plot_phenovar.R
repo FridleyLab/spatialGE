@@ -9,10 +9,12 @@
 #' gene.
 #'
 #' @param x, an STList.
-#' @param clinvar, a string indicating the name of the variable in the clinical
+#' @param phenovar, a string indicating the name of the variable in the clinical
 #' data frame. If NULL, uses sample
 #' @param gene, the name of the gene to plot.
+#' @param cell, the name of the cell type to plot.
 #' @param color_pal, a string of a color palette from khroma.
+#' @return plist, a list with three plots.
 #' @export
 #
 #

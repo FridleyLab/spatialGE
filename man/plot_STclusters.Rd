@@ -4,16 +4,27 @@
 \alias{plot_STclusters}
 \title{plot_STclusters: Plot cluster memberships of ST spots}
 \usage{
-plot_STclusters(x, plot_who = NULL, purity = F, color_pal = "light")
+plot_STclusters(
+  x,
+  plot_who = NULL,
+  purity = F,
+  color_pal = "light",
+  visium = T
+)
 }
 \arguments{
 \item{x, }{an STList with hierarchical cluster memberships.}
+
+\item{plot_who, }{an integer indicating the spatial array(s) to be plotted.}
 
 \item{purity, }{logical, whether or not annotate tumor/stroma.}
 
 \item{color_pal, }{a scheme from 'khroma'. Default is 'light'.}
 
-\item{who, }{an integer indicating the spatial array(s) to be plotted.}
+\item{visium, }{whether or not to reverse axes for Visium slides.}
+}
+\value{
+plot_list, a list with the requested plots.
 }
 \description{
 Generates a plot of the location of spots within an spatial array,

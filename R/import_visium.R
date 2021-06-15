@@ -1,0 +1,104 @@
+##
+#' @title importVisium: Reads Visium outputs and produce an STList.
+#' @description Reads files in the output folder of a Visium run, and returns an
+#' STList for downstream analysis with spatialGE.
+#' @details
+#' The function takes as an argument the path to an 'outs'  folder of a Visium run.
+#' It reads the data and converts it into an STList, which can be used in downstrean
+#' analysis with spatialGE. Optionally, the function can also output the count and
+#' coordinates files.
+#'
+#' @param visiumfp, the file path to an 'outs' folder from a Visium run.
+#' @param filterMT, logical, whether or not to filter mtDNA genes. Filters out gene names
+#' beginning with 'MT-'. Defaults to TRUE.
+#' @param savefiles, logical, whether or not to save the counts and coordinate files.
+#' The files are saved as 'visium_counts.txt' and visium_coords.txt'. Defaults to TRUE.
+#' @param stlist, logical, whther or not return an STList.
+#' @return x, an STList with the Visium counts and coordinates.
+#' @export
+#
+#
+importVisium <- function(visiumfp=NULL, filterMT=T, savefiles=T, stlist=T){
+  features_fp <- paste0(visiumfp, "/filtered_feature_bc_matrix/features.tsv.gz")
+  barcodes_fp <- paste0(visiumfp, "/filtered_feature_bc_matrix/barcodes.tsv.gz")
+  counts_fp <- paste0(visiumfp, "/filtered_feature_bc_matrix/matrix.mtx.gz")
+  coords_fp <-  paste0(visiumfp, "/spatial/tissue_positions_list.csv")
+
+  features_df <- readr::read_delim(features_fp, delim="\t", col_names=F, col_types=readr::cols())
+  names(features_df) <- c('emsb', 'gene', 'dtype')
+  features_df <- tibble::add_column(features_df, feat_n=as.character(1:nrow(features_df)), .before=1)
+
+  barcodes_df <- readr::read_delim(barcodes_fp, delim="\t", col_names=F, col_types=readr::cols())
+  barcodes_df <- tibble::add_column(barcodes_df, spot_n=as.character(1:nrow(barcodes_df)), .before=1)
+  names(barcodes_df) <- c('spot_n', 'barcode')
+
+  coords_df <- readr::read_delim(coords_fp, delim=",", col_names=F, col_types=readr::cols())
+  spot_name <- c()
+  for(i in 1:nrow(coords_df)){
+    spot_name <- append(spot_name, paste0('y', coords_df$X3[i], 'x', coords_df$X4[i]))
+  }
+  coords_df$spotname <- spot_name
+  names(coords_df) <- c('barcode', 'intissue', 'array_row', 'array_col', 'pxlcol', 'pxlrow', 'spotname')
+
+  counts_df <- readr::read_delim(counts_fp, delim=" ", col_names=F, skip=3, col_types="ccd")
+
+  #ngenes <- as.integer(counts_df[1, 1])
+  #nspots <- as.integer(counts_df[1, 2])
+
+  #counts_df <- counts_df[-1, ]
+  names(counts_df) <- c('feat_n', 'spot_n', 'counts')
+
+  counts_all_df <- dplyr::inner_join(features_df, counts_df, by='feat_n')
+  counts_all_df <- dplyr::inner_join(counts_all_df, barcodes_df, by='spot_n')
+  counts_all_df <- dplyr::inner_join(counts_all_df, coords_df, by='barcode')
+
+  rawcounts_df <- tidyr::pivot_wider(counts_all_df, id_cols=c('feat_n', 'gene', 'spotname'), names_from=spotname, values_from=counts, values_fill=0)
+  rawcounts_df <- rawcounts_df[, -1]
+
+  dup_genes <- rawcounts_df$gene[duplicated(rawcounts_df$gene)]
+  keep_idx <- c()
+  for(gene in dup_genes){
+    dup_idx <- grep(paste0("^", gene, "$"), rawcounts_df$gene)
+
+    dup_rows <- rowSums(rawcounts_df[dup_idx, -1])
+    dup_rows_mask <- dup_rows >= max(dup_rows)
+
+    if(sum(dup_rows_mask) > 1){
+        eq_dups <- which(dup_rows_mask)
+        dup_rows_mask[eq_dups[2:length(eq_dups)]] <- FALSE
+    }
+
+    keep_idx <- append(keep_idx, dup_idx[!dup_rows_mask])
+  }
+
+  if(filterMT){
+    rawcounts_df <- rawcounts_df[-c(keep_idx), ]
+    rawcounts_df <- rawcounts_df[!grepl("^MT-", rawcounts_df$gene), ]
+  }
+
+  spotcoords_df <- counts_all_df[, c('spotname', 'array_row', 'array_col')]
+  spotcoords_df <- spotcoords_df[!duplicated(spotcoords_df$spotname), ]
+
+  if(savefiles){
+    write.table(rawcounts_df, file='./visium_counts.txt', sep="\t", row.names=F, quote=F)
+    write.table(spotcoords_df, file='./visium_coords.txt', sep="\t", row.names=F, quote=F)
+  }
+
+  tmp_ctsdf <- tempfile(fileext = ".txt", pattern='spatialGEctsdf_')
+  tmp_cdsdf <- tempfile(fileext = ".txt", pattern='spatialGEcdsdf_')
+  write.table(rawcounts_df, file=tmp_ctsdf, sep="\t", row.names=F, quote=F)
+  write.table(spotcoords_df, file=tmp_cdsdf, sep="\t", row.names=F, quote=F)
+
+  tmp_ctsfp <- tempfile(fileext = ".txt", pattern='spatialGEctsfp_')
+  tmp_cdsfp <- tempfile(fileext = ".txt", pattern='spatialGEcdsfp_')
+  write(tmp_ctsdf, file=tmp_ctsfp)
+  write(tmp_cdsdf, file=tmp_cdsfp)
+
+  if(stlist){
+    #TEMPORARY: To avoid pushing to Github and install over and over...
+    source('~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R/STList.R')
+    x <- STList(countfiles = tmp_ctsfp, coordfiles = tmp_cdsfp)
+    return(x)
+  }
+
+}

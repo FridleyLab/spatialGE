@@ -1,3 +1,4 @@
+spot	ypos	xpos
 5x14	5	14
 6x14	6	14
 7x14	7	14

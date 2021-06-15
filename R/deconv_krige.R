@@ -21,11 +21,18 @@
 #' @export
 #
 #
-deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL, method='xcell'){
+deconv_krige <- function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method='xcell'){
 
   # Test that a cell name was entered.
   if (is.null(cells)) {
     stop("Please, enter one or more cell names to plot.")
+  }
+
+  # TEMPORARY: This check due to STList getting too hevay on memory after one cell type.
+  if(nrows(x@coords[[1]] > 1007)){
+    if(length(cells) > 1){
+      stop('For large arrays (e.g. Visium), one cell type at a time can be interpolated.')
+    }
   }
 
   # Test if no specific subject plot was requested.
@@ -111,6 +118,15 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=0.2, who=NULL, method=
 
       # Create geodata object from cell and coordinate data
       cell_geo <- geoR::as.geodata(cell_geo_df, coords.col=c(1,2), data.col=3)
+
+      # Specify resolution if not input by user. Original ST slide had 1007 spots.
+      if(is.null(res)){
+        if(nrow(x@coords[[i]]) > 1007){
+          res <- 0.5
+        } else{
+          res <- 0.2
+        }
+      }
 
       # Create a grid finer than the sampled locations to predict locations.
       cell_geo_grid <-expand.grid(

@@ -11,7 +11,8 @@ plot_gene_quilt(
   color_pal = "YlOrBr",
   purity = F,
   saveplot = F,
-  scaled = F
+  scaled = F,
+  visium = T
 )
 }
 \arguments{
@@ -34,6 +35,11 @@ are printed to console.}
 \item{scaled, }{logical, indicating if expression values should be scaled with
 respect to the highest value among all genes to plot. WARNING: Color legends
 are not scaled between plots, but values are.}
+
+\item{visium, }{whether or not to reverse axes for Visium slides.}
+}
+\value{
+qplist, a list with plots.
 }
 \description{
 Plot gene expression levels at each spot (quilt plot) within a
