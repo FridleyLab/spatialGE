@@ -30,92 +30,203 @@
 #
 STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
 
-  # Test if counts and coords are NULL. If so, print error.
-  if(is.null(countfiles) | is.null(coordfiles)){
-    stop("Must have filepaths for BOTH counts and coordinates data.")
-  }
+  # # Test if counts and coords are NULL. If so, print error.
+  # if(is.null(countfiles) | is.null(coordfiles)){
+  #   stop("Must have filepaths for BOTH counts and coordinates data.")
+  # }
 
-  # Get count and coord filepaths and test there is an equal number of both.
-  count_fpaths <- readLines(countfiles) #, what=character(), quiet=T)
-  coord_fpaths <- readLines(coordfiles) #, what=character(), quiet=T)
-  if(length(count_fpaths) != length(coord_fpaths)){
-    stop("The number of count files is different to the number of coordinate files.")
-  }
+  # # Get count and coord filepaths and test there is an equal number of both.
+  # count_fpaths <- readLines(countfiles) #, what=character(), quiet=T)
+  # coord_fpaths <- readLines(coordfiles) #, what=character(), quiet=T)
+  # if(length(count_fpaths) != length(coord_fpaths)){
+  #   stop("The number of count files is different to the number of coordinate files.")
+  # }
 
+  # Check input type.
+  input_check <- detect_input(countfiles=countfiles, coordfiles=coordfiles)
+#print(input_check)
   # Create lists to store count matrices from each sample.
   counts_df_list <- list()
   coords_df_list <- list()
 
-  # Set progress bar, forcing to show with pb$tick(0)
-  pb <- progress::progress_bar$new(total=length(count_fpaths), clear=F)
-  pb$tick(0)
-  pb$message("Creating STList...")
+  # Store if data frame or list, or a vector.
+  if(input_check == 'is_list'){
+    counts_df_list <- countfiles
+    coords_df_list <- coordfiles
+  } else if(input_check == 'is_df'){
+    counts_df_list[[1]] <- countfiles
+    coords_df_list[[1]] <- coordfiles
+  } else{
 
-  # Process each of the file sets.
-  for(i in 1:length(count_fpaths)){
-
-    # Update progress bar.
-    pb$tick()
-    Sys.sleep(1 / length(count_fpaths))
-
-    # Get file paths for a specific array.
-    counts <- count_fpaths[i]
-    coords <- coord_fpaths[i]
-
-    # Test that a pair of count and coord files exist.
-    if(!(file.exists(counts) & file.exists(coords))){
-      stop("Either one of the count files or coordinate files do not exists.")
+    if(input_check == 'is_csv' | input_check == 'is_vector_csv' | input_check == 'is_several_csv'){
+      del <- ','
     }
 
-    # Read filepaths and create.
-    counts_df <- readr::read_delim(counts, delim="\t", col_types=readr::cols(),
-                                   progress=F)
-    coords_df <- readr::read_delim(coords, delim="\t", col_types=readr::cols(),
-                                   progress=F, col_names=F)
+    if(input_check == 'is_tsv' | input_check == 'is_vector_tsv' | input_check == 'is_several_tsv'){
+      del <- '\t'
+    }
+
+    if(input_check == 'is_csv' | input_check == 'is_tsv'){
+      counts_df_list[[1]] <- readr::read_delim(countfiles, delim=del, col_types=readr::cols(),
+                                     progress=F)
+      coords_df_list[[1]] <- readr::read_delim(coordfiles, delim=del, col_types=readr::cols(),
+                                     progress=F, col_names=F)
+    }
+
+    if(input_check == 'is_vector_csv' | input_check == 'is_vector_tsv'){
+
+      # Set progress bar, forcing to show with pb$tick(0)
+      pb <- progress::progress_bar$new(total=length(countfiles), clear=F)
+      pb$tick(0)
+      pb$message("Creating STList...")
+
+      for(i in 1:length(countfiles)){
+
+        pb$tick()
+        Sys.sleep(1 / length(countfiles))
+
+        # Read filepaths and create.
+        counts_df_list[[i]] <- readr::read_delim(countfiles[i], delim=del, col_types=readr::cols(),
+                                       progress=F)
+        coords_df_list[[i]] <- readr::read_delim(coordfiles[i], delim=del, col_types=readr::cols(),
+                                       progress=F, col_names=F)
+      }
+    }
+
+    if(input_check == 'is_several_csv' | input_check == 'is_several_tsv'){
+
+      count_fpaths <- readLines(countfiles)
+      coord_fpaths <- readLines(coordfiles)
+
+      # Set progress bar, forcing to show with pb$tick(0)
+      pb <- progress::progress_bar$new(total=length(count_fpaths), clear=F)
+      pb$tick(0)
+      pb$message("Creating STList...")
+
+      for(i in 1:length(count_fpaths)){
+
+        pb$tick()
+        Sys.sleep(1 / length(count_fpaths))
+
+        # Read filepaths and create.
+        counts_df_list[[i]] <- readr::read_delim(count_fpaths[i], delim=del, col_types=readr::cols(),
+                                                 progress=F)
+        coords_df_list[[i]] <- readr::read_delim(coord_fpaths[i], delim=del, col_types=readr::cols(),
+                                                 progress=F, col_names=F)
+      }
+
+    }
+
+  }
+
+  for(i in 1:length(counts_df_list)){
 
     # Column names of the count data are simplified using the clean_names() function.
     # NOTE: May need to reconsider use later.
-    counts_df <- janitor::clean_names(counts_df)
+    counts_df_list[[i]] <- janitor::clean_names(counts_df_list[[i]])
 
     # Clean sample names in coordinates data using the clean_names(), so that they
     # mirror the column names in the count data frame.
     # NOTE: May need to reconsider use later.
-    coords_df[, 1] <- janitor::make_clean_names(unlist(coords_df[, 1]))
+    coords_df_list[[i]][, 1] <- janitor::make_clean_names(unlist(coords_df_list[[i]][, 1]))
 
     # Sort coordinate data according to third column in the coordinate data frame.
-    coords_df <- coords_df[order(coords_df[, 3]), ]
+    coords_df_list[[i]] <- coords_df_list[[i]][order(coords_df_list[[i]][, 3]), ]
 
     # Order column names in count data frame according to sorted coordinate data.
-    counts_df <- counts_df[, c(names(counts_df[, 1]), unlist(coords_df[, 1]))]
+    counts_df_list[[i]] <- counts_df_list[[i]][, c(names(counts_df_list[[i]][, 1]), unlist( coords_df_list[[i]][, 1]))]
 
     # Test if sample names are the same in both count and coordinate data frames.
-    if(length(setdiff(names(counts_df)[-1], unlist(coords_df[, 1]))) != 0){
+    if(length(setdiff(names(counts_df_list[[i]])[-1], unlist(coords_df_list[[i]][, 1]))) != 0){
       stop("There are differences in sample names between the count and coordinate
          data frames.")
     }
 
     # Test for duplicated gene names in count data.
-    gene_names <- counts_df[, 1]
+    gene_names <- counts_df_list[[i]][, 1]
     dup_genes_mask <- duplicated(gene_names)
     if(sum(dup_genes_mask) > 0){
       stop("There are duplicated feature/gene names in the data.")
     }
 
     # Put column names to coordinate data.
-    colnames(coords_df) <- c('libname', 'ypos', 'xpos')
-
-    # Store count and coordinate matrices in lists.
-    counts_df_list[[i]] <- counts_df
-    coords_df_list[[i]] <- coords_df
+    colnames(coords_df_list[[i]] ) <- c('libname', 'ypos', 'xpos')
 
   }
+
+
+
+
+
+  # # Set progress bar, forcing to show with pb$tick(0)
+  # pb <- progress::progress_bar$new(total=length(count_fpaths), clear=F)
+  # pb$tick(0)
+  # pb$message("Creating STList...")
+  #
+  # # Process each of the file sets.
+  # for(i in 1:length(count_fpaths)){
+  #
+  #   # Update progress bar.
+  #   pb$tick()
+  #   Sys.sleep(1 / length(count_fpaths))
+  #
+  #   # Get file paths for a specific array.
+  #   counts <- count_fpaths[i]
+  #   coords <- coord_fpaths[i]
+  #
+  #   # Test that a pair of count and coord files exist.
+  #   if(!(file.exists(counts) & file.exists(coords))){
+  #     stop("Either one of the count files or coordinate files do not exists.")
+  #   }
+  #
+  #   # Read filepaths and create.
+  #   counts_df <- readr::read_delim(counts, delim="\t", col_types=readr::cols(),
+  #                                  progress=F)
+  #   coords_df <- readr::read_delim(coords, delim="\t", col_types=readr::cols(),
+  #                                  progress=F, col_names=F)
+  #
+  #   # Column names of the count data are simplified using the clean_names() function.
+  #   # NOTE: May need to reconsider use later.
+  #   counts_df <- janitor::clean_names(counts_df)
+  #
+  #   # Clean sample names in coordinates data using the clean_names(), so that they
+  #   # mirror the column names in the count data frame.
+  #   # NOTE: May need to reconsider use later.
+  #   coords_df[, 1] <- janitor::make_clean_names(unlist(coords_df[, 1]))
+  #
+  #   # Sort coordinate data according to third column in the coordinate data frame.
+  #   coords_df <- coords_df[order(coords_df[, 3]), ]
+  #
+  #   # Order column names in count data frame according to sorted coordinate data.
+  #   counts_df <- counts_df[, c(names(counts_df[, 1]), unlist(coords_df[, 1]))]
+  #
+  #   # Test if sample names are the same in both count and coordinate data frames.
+  #   if(length(setdiff(names(counts_df)[-1], unlist(coords_df[, 1]))) != 0){
+  #     stop("There are differences in sample names between the count and coordinate
+  #        data frames.")
+  #   }
+  #
+  #   # Test for duplicated gene names in count data.
+  #   gene_names <- counts_df[, 1]
+  #   dup_genes_mask <- duplicated(gene_names)
+  #   if(sum(dup_genes_mask) > 0){
+  #     stop("There are duplicated feature/gene names in the data.")
+  #   }
+  #
+  #   # Put column names to coordinate data.
+  #   colnames(coords_df) <- c('libname', 'ypos', 'xpos')
+  #
+  #   # Store count and coordinate matrices in lists.
+  #   counts_df_list[[i]] <- counts_df
+  #   coords_df_list[[i]] <- coords_df
+  #
+  # }
 
   # Test if clinical data is available.
   if(!is.null(clinical)){
     clinical_df <- readr::read_delim(clinical, delim=",", col_types=readr::cols())
-    if(nrow(clinical_df) != length(count_fpaths)){
-      stop("The number of rows in the clinical data is not the same as the
-             number of spatial arrays.")
+    if(nrow(clinical_df) != length(counts_df_list)){
+      stop("The number of rows in the clinical data is not the same as the number of spatial arrays.")
     }
   }else{
     clinical_df <- tibble::tibble()
