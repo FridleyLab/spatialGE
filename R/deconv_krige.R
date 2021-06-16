@@ -29,7 +29,7 @@ deconv_krige <- function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method
   }
 
   # TEMPORARY: This check due to STList getting too hevay on memory after one cell type.
-  if(nrows(x@coords[[1]] > 1007)){
+  if(nrow(x@coords[[1]]) > 1007){
     if(length(cells) > 1){
       stop('For large arrays (e.g. Visium), one cell type at a time can be interpolated.')
     }

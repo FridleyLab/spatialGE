@@ -29,7 +29,7 @@ gene_krige <- function(x=NULL, genes='top', univ=F, res=NULL, who=NULL){
   }
 
   # TEMPORARY: This check due to STList getting too hevay on memory after one gene.
-  if(nrows(x@coords[[1]] > 1007)){
+  if(nrow(x@coords[[1]]) > 1007){
     if(length(genes) > 1){
       stop('For large arrays (e.g. Visium), one gene at a time can be interpolated.')
     }
