@@ -147,7 +147,7 @@ Let's produce a quilt plot for the genes IGLL5 and SOX10, an immunoglobulin gene
 and a melanoma marker.
 ```{r genequilt_chunk}
 quilts1 <- plot_gene_quilt(melanoma, genes=c('IGLL5', 'SOX10'), color_pal="YlOrBr", 
-                           plot_who=2)
+                           plot_who=2, visium=F)
 ggpubr::ggarrange(plotlist=quilts1, nrow=1, ncol=2, common.legend=T, legend='bottom')
 ```
 
@@ -173,7 +173,7 @@ melanoma <- gene_krige(melanoma, genes=c('IGLL5', 'SOX10'), who=c(2, 3))
 
 The surface can be visualized using the `plot_gene_krige()` function:
 ```{r plotgenekrige_chunk1}
-kriges1 <- plot_gene_krige(melanoma, genes=c('IGLL5', 'SOX10'), plot_who=2)
+kriges1 <- plot_gene_krige(melanoma, genes=c('IGLL5', 'SOX10'), plot_who=2, visium=F)
 ggpubr::ggarrange(plotlist=kriges1, nrow=1, ncol=2, common.legend=T, legend='bottom')
 ```
 
@@ -203,7 +203,7 @@ significance (_p_<0.05) in `spatialGE` is obtained via permutation (performed wi
 We can control which tissue slice to plot with the `plot_who` argument. This
 argument is also included in the quilt plot functions.
 ```{r plotgenekrige_chunk2}
-kriges2 <- plot_gene_krige(melanoma, genes=c('IGLL5', 'SOX10'), plot_who=3)
+kriges2 <- plot_gene_krige(melanoma, genes=c('IGLL5', 'SOX10'), plot_who=3, visium=F)
 ggpubr::ggarrange(plotlist=kriges2, nrow=1, ncol=2, common.legend=T, legend='bottom')
 ```
 
@@ -223,7 +223,7 @@ With the function `plot_deconv_quilt()`, we can visualize the cell type scores
 inferred by xCell. For example, B cells and dendritic cells.
 ```{r deconvquilts_chunk}
 quilts2 <- plot_deconv_quilt(melanoma, cells=c('b_cells', 'i_dc'), 
-                           color_pal="YlOrBr", plot_who=2, purity=T)
+                           color_pal="YlOrBr", plot_who=2, purity=T, visium=F)
 ggpubr::ggarrange(plotlist=quilts2, nrow=1, ncol=3, common.legend=T, legend='bottom')
 ```
 
@@ -236,7 +236,7 @@ Similar plots can be generated for gene expression, as opposed to deconvolution
 scores, with the  `plot_gene_quilt()` function:
 ```{r genepurity_chunk}
 quilts3 <- plot_gene_quilt(melanoma, genes=c('IGLL5', 'SOX10'), color_pal="YlOrBr", 
-                           plot_who=2, purity=T)
+                           plot_who=2, purity=T, visium=F)
 
 ggpubr::ggarrange(plotlist=quilts3, nrow=1, ncol=3, common.legend=T, legend='bottom')
 ```
@@ -250,7 +250,7 @@ melanoma <- deconv_krige(melanoma, cells=c('b_cells', 'i_dc'), who=2)
 We plot the surfaces using the `plot_deconv_krige()` function.
 ```{r plotdeconvkrige_chunk}
 kriges3 <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'i_dc'),
-                           color_pal="YlOrBr", plot_who=2)
+                           color_pal="YlOrBr", plot_who=2, visium=F)
 ggpubr::ggarrange(plotlist=kriges3, nrow=1, ncol=2, common.legend=T, legend='bottom')
 ```
 
@@ -259,7 +259,7 @@ scores. The p-values are calculated automatically during deconvolution in `spati
 we can plot them using the `pvalue` option:
 ```{r plotkrigepvals_chunk}
 kriges4 <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'i_dc'),
-                           color_pal="YlOrBr", plot_who=2, pvalues=T)
+                           color_pal="YlOrBr", plot_who=2, pvalues=T, visium=F)
 ggpubr::ggarrange(plotlist=kriges4, nrow=1, ncol=2, common.legend=T, legend='bottom')
 ```
 
@@ -271,7 +271,7 @@ zero only for a few spots (gray hollow circles).
 The `plot_deconv_krige()` also allows annotation of tumor spots:
 ```{r plotkrigepurity_chunk}
 kriges5 <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'i_dc'),
-                           color_pal="YlOrBr", plot_who=2, purity=T)
+                           color_pal="YlOrBr", plot_who=2, purity=T, visium=F)
 ggpubr::ggarrange(plotlist=kriges5, nrow=1, ncol=2, common.legend=T, legend='bottom')
 ```
 
@@ -288,12 +288,12 @@ used. After many tests, we have found that weights between 0.1 - 0.25 should be
 enough to capture the tissue heterogeneity. This approach to dspatial clustering can
 be performed using the `cluster_STspot()` function:
 ```{r clustespots_chunk}
-melanoma <- cluster_STspot(melanoma, ks='dtc', weights=0.1)
+melanoma <- cluster_STspot(melanoma, ks='dtc', weights=0.05)
 ```
 
 Results of clustering can be plotted via the `plot_STclusters()` function:
 ```{r plotclustspots_chunk}
-cluster_p <- plot_STclusters(melanoma, purity=T, plot_who=c(2,3))
+cluster_p <- plot_STclusters(melanoma, purity=T, plot_who=c(2,3), visium=F)
 
 # In case specific k values are selected:
 # for(i in 1:2){
@@ -307,6 +307,21 @@ We have used here the dynamicTreeCut (`dtc` option) to select the number of clus
 but users can define their own range of k to evaluate. The two tissues plotted here, 
 show compartmentalization, but in the sample on the left, the lymphoid tissue on the
 right portion of the tissue is shown in yellow.
+
+## Association between spatial heterogeneity and clinical variables
+To explore the relationship between a clinical variable of interest and the 
+level of gene expression uniformity within a tissue section, we can use the 
+function `plot_phenovar()`:
+```{r fig.width=6, fig.height=2}
+pheno_p <- plot_phenovar(melanoma, phenovar='Survival', gene='SPP1')
+
+ggpubr::ggarrange(plotlist=pheno_p, nrow=1, ncol=3, common.legend=T, legend='bottom')
+```
+
+In the case of the phosphoprotein SPP1 gene, samples with a more uniform expression
+came from subjects with a higher survival time (low Moran's I; high Geary's C).
+A tendency for fewer "hotspots" of high expression was also observed in those samples
+(lower Getis-Ord Gi compared to other samples).
 
 ## Summary
 `spatialGE` provides a suite of tools for the study of tissue heterogeneity via

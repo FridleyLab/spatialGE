@@ -34,11 +34,15 @@ plot_phenovar <- function(x=NULL, phenovar=NULL, gene=NULL, cell=NULL, color_pal
     clinvar_vals <- x@clinical[[phenovar]]
     clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name=phenovar)
     plot_labs <- as.character(x@clinical[[1]])
+    clinvar_vals <- clinvar_vals %>%
+      tibble::add_column(., samples=plot_labs)
   }else{
     phenovar <- 'array'
     clinvar_vals <- 1:length(x@counts)
     clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='array')
     plot_labs <- as.character(1:length(x@counts))
+    clinvar_vals <- clinvar_vals %>%
+      tibble::add_column(., samples=plot_labs)
   }
 
   clinvar_vals$moran <- rep(NA, length(x@counts))
@@ -69,7 +73,6 @@ plot_phenovar <- function(x=NULL, phenovar=NULL, gene=NULL, cell=NULL, color_pal
         stop('Please, specify a gene or cell type to plot.')
       }
 
-
     }
   }
 
@@ -81,21 +84,21 @@ plot_phenovar <- function(x=NULL, phenovar=NULL, gene=NULL, cell=NULL, color_pal
 
 # NOTE: INSTEAD OF NUMBERS, WOULD BE GREAT TO HAVE SAMPLE ID PLOTTED
 moran_p <-   ggplot(clinvar_vals) +
-  geom_point(aes(x=moran, y=get(phenovar)), size=3) +
+  geom_point(aes(x=moran, y=get(phenovar), color=samples), size=3) +
   ggtitle(paste0('Moran\'s I and ', phenovar)) +
   xlab('Moran\'s I') +
   ylab(phenovar) +
   theme_light()
 
 geary_p <-   ggplot(clinvar_vals) +
-  geom_point(aes(x=geary, y=get(phenovar)), size=3) +
+  geom_point(aes(x=geary, y=get(phenovar), color=samples), size=3) +
   ggtitle(paste0('Geary\'s C and ', phenovar)) +
   xlab('Geary\'s C') +
   ylab(phenovar) +
   theme_light()
 
 getis_p <-   ggplot(clinvar_vals) +
-  geom_point(aes(x=getis, y=get(phenovar)), size=3) +
+  geom_point(aes(x=getis, y=get(phenovar), color=samples), size=3) +
   ggtitle(paste0('Getis-Ord Gi and ', phenovar)) +
   xlab('Getis-ord Gi') +
   ylab(phenovar) +
