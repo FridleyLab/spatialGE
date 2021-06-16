@@ -135,7 +135,8 @@ deconvolution scores in ST data.</p>
   saveplot <span class='op'>=</span> <span class='cn'>F</span>,
   pvalues <span class='op'>=</span> <span class='cn'>F</span>,
   purity <span class='op'>=</span> <span class='cn'>F</span>,
-  scaled <span class='op'>=</span> <span class='cn'>T</span>
+  scaled <span class='op'>=</span> <span class='cn'>T</span>,
+  visium <span class='op'>=</span> <span class='cn'>T</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -187,8 +188,15 @@ ESTIMATE tumor purity scores.</p></td>
 respect to the highest value among all genes to plot. WARNING: Color legends
 are not scaled between plots, but values are.</p></td>
     </tr>
+    <tr>
+      <th>visium, </th>
+      <td><p>whether or not to reverse axes for Visium slides.</p></td>
+    </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>kplist, a list with plots.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>This function produces a spatial interpolation surface plot for a series of

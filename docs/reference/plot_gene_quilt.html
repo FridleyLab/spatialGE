@@ -133,7 +133,8 @@ spatially-resolved transcriptomic array.</p>
   color_pal <span class='op'>=</span> <span class='st'>"YlOrBr"</span>,
   purity <span class='op'>=</span> <span class='cn'>F</span>,
   saveplot <span class='op'>=</span> <span class='cn'>F</span>,
-  scaled <span class='op'>=</span> <span class='cn'>F</span>
+  scaled <span class='op'>=</span> <span class='cn'>F</span>,
+  visium <span class='op'>=</span> <span class='cn'>T</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -173,8 +174,15 @@ are printed to console.</p></td>
 respect to the highest value among all genes to plot. WARNING: Color legends
 are not scaled between plots, but values are.</p></td>
     </tr>
+    <tr>
+      <th>visium, </th>
+      <td><p>whether or not to reverse axes for Visium slides.</p></td>
+    </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>qplist, a list with plots.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>This function produces a quilt plot for a series of HUGO gene names and spatial

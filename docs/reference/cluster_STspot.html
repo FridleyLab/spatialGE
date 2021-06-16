@@ -129,9 +129,11 @@ spatial array using a genetic distance matrix weighted by spatial distances.</p>
     <pre class="usage"><span class='fu'>cluster_STspot</span><span class='op'>(</span>
   x <span class='op'>=</span> <span class='cn'>NULL</span>,
   weights <span class='op'>=</span> <span class='fl'>0.1</span>,
+  pcs <span class='op'>=</span> <span class='fl'>15</span>,
   method <span class='op'>=</span> <span class='st'>"ward.D"</span>,
   ks <span class='op'>=</span> <span class='st'>"dtc"</span>,
-  spotfilter <span class='op'>=</span> <span class='fl'>500</span>
+  spotfilter <span class='op'>=</span> <span class='fl'>0</span>,
+  topgenes <span class='op'>=</span> <span class='fl'>2000</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -145,6 +147,10 @@ spatial array using a genetic distance matrix weighted by spatial distances.</p>
       <th>weights, </th>
       <td><p>a double 0-1 indicating the weight to be applied to spatial
 distances.</p></td>
+    </tr>
+    <tr>
+      <th>pcs, </th>
+      <td><p>the number of principal components (PCs) to retain.</p></td>
     </tr>
     <tr>
       <th>method, </th>
@@ -161,15 +167,22 @@ is applied.</p></td>
       <td><p>the number of genes with more than zero counts for a spot to be
 included in the clustering analysis. The lower this number, the slower the analysis.</p></td>
     </tr>
+    <tr>
+      <th>topgenes, </th>
+      <td><p>the number of high spot-to-spot standard deviation to retain before PCA.</p></td>
+    </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>x, the STList with cluster assignments.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>The function takes an STList and calculates euclidean distances of normalized
-gene expression and spatial distances. Then, it calculates the weighted average
-between the two distances to perform hierarchical clustering. The user can define
-how much weight the spatial distance should have (values between 0.1 to 025
-work reasonably well).</p>
+    <p>The function takes an STList and performs PCA on the gene expression data, then
+calculates euclidean distances of the PCs and spatial distances. Weighted averages
+between the two distances are calculated to perform hierarchical clustering. The
+user can define how much weight the spatial distance should have (values
+between 0.05 to 0.25 work reasonably well).</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

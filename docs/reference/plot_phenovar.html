@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>plot_gene_krige: Visualize transcriptomic surfaces — plot_gene_krige • spatialGEdev</title>
+<title>phenovar_plot: Plots a phenotype variable against gene expression spatial autocorrelation — plot_phenovar • spatialGEdev</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,9 @@
 
 
 
-<meta property="og:title" content="plot_gene_krige: Visualize transcriptomic surfaces — plot_gene_krige" />
-<meta property="og:description" content="Produces a transcriptomic surface from kriging interpolation of ST data." />
+<meta property="og:title" content="phenovar_plot: Plots a phenotype variable against gene expression spatial autocorrelation — plot_phenovar" />
+<meta property="og:description" content="Plots the value of a phenotype/clinical variable for each spatial
+array against the spatial autocorrelation statistics of a given gene." />
 
 
 
@@ -115,25 +116,22 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>plot_gene_krige: Visualize transcriptomic surfaces</h1>
+    <h1>phenovar_plot: Plots a phenotype variable against gene expression spatial autocorrelation</h1>
     
-    <div class="hidden name"><code>plot_gene_krige.Rd</code></div>
+    <div class="hidden name"><code>plot_phenovar.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Produces a transcriptomic surface from kriging interpolation of ST data.</p>
+    <p>Plots the value of a phenotype/clinical variable for each spatial
+array against the spatial autocorrelation statistics of a given gene.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>plot_gene_krige</span><span class='op'>(</span>
+    <pre class="usage"><span class='fu'>plot_phenovar</span><span class='op'>(</span>
   x <span class='op'>=</span> <span class='cn'>NULL</span>,
-  genes <span class='op'>=</span> <span class='cn'>NULL</span>,
-  krige_type <span class='op'>=</span> <span class='st'>"ord"</span>,
-  plot_who <span class='op'>=</span> <span class='cn'>NULL</span>,
-  color_pal <span class='op'>=</span> <span class='st'>"YlOrBr"</span>,
-  purity <span class='op'>=</span> <span class='cn'>F</span>,
-  saveplot <span class='op'>=</span> <span class='cn'>F</span>,
-  scaled <span class='op'>=</span> <span class='cn'>F</span>,
-  visium <span class='op'>=</span> <span class='cn'>T</span>
+  phenovar <span class='op'>=</span> <span class='cn'>NULL</span>,
+  gene <span class='op'>=</span> <span class='cn'>NULL</span>,
+  cell <span class='op'>=</span> <span class='cn'>NULL</span>,
+  color_pal <span class='op'>=</span> <span class='st'>"muted"</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -141,57 +139,36 @@
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
       <th>x, </th>
-      <td><p>an STList with kriging objects for the genes selected.</p></td>
+      <td><p>an STList.</p></td>
     </tr>
     <tr>
-      <th>genes, </th>
-      <td><p>a vector of gene names (one or several) to plot.</p></td>
+      <th>phenovar, </th>
+      <td><p>a string indicating the name of the variable in the clinical
+data frame. If NULL, uses sample</p></td>
     </tr>
     <tr>
-      <th>krige_type, </th>
-      <td><p>either 'ord' (ordinary; default), or 'univ' (universal)
-kriging. Data for the respective kriging must be generated previously with
-cell_krige().</p></td>
+      <th>gene, </th>
+      <td><p>the name of the gene to plot.</p></td>
     </tr>
     <tr>
-      <th>plot_who, </th>
-      <td><p>a vector of subject indexes as ordered within the STList, to
-plot genes from. If NULL, will plot all subjects.</p></td>
+      <th>cell, </th>
+      <td><p>the name of the cell type to plot.</p></td>
     </tr>
     <tr>
       <th>color_pal, </th>
-      <td><p>a scheme from 'khroma'. Default is 'YlOrBr'.</p></td>
-    </tr>
-    <tr>
-      <th>purity, </th>
-      <td><p>logical, whether or not annotate tumor and stroma spots based on
-ESTIMATE tumor purity scores.</p></td>
-    </tr>
-    <tr>
-      <th>saveplot, </th>
-      <td><p>logical, indicating whether or not save plots in a PDF file.
-The PDFs are saved in the working directory. Default is FALSE, meaning plots
-are printed to console.</p></td>
-    </tr>
-    <tr>
-      <th>scaled, </th>
-      <td><p>logical, indicating if expression values should be scaled with
-respect to the highest value among all genes to plot. WARNING: Color legends
-are not scaled between plots, but values are.</p></td>
-    </tr>
-    <tr>
-      <th>visium, </th>
-      <td><p>whether or not to reverse axes for Visium slides.</p></td>
+      <td><p>a string of a color palette from khroma.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>kplist, a list with plots.</p>
+    <p>plist, a list with three plots.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function produces a transcriptomic surface plot for a series of HUGO gene names and
-spatial arrays.</p>
+    <p>This function takes the name of a gene and calculates its spatial autocorrelation
+statistics. Then generates a plot showing the variation of a phenotype/clinical
+variable with respect to the Moran's I, Geary's C, and Getis-Ord Gi values of a
+gene.</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
