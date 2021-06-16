@@ -126,7 +126,13 @@ and colors them according to spatially-weighted hierarchical clustering assignme
 and colors them according to spatially-weighted hierarchical clustering assignments.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>plot_STclusters</span><span class='op'>(</span><span class='va'>x</span>, plot_who <span class='op'>=</span> <span class='cn'>NULL</span>, purity <span class='op'>=</span> <span class='cn'>F</span>, color_pal <span class='op'>=</span> <span class='st'>"light"</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>plot_STclusters</span><span class='op'>(</span>
+  <span class='va'>x</span>,
+  plot_who <span class='op'>=</span> <span class='cn'>NULL</span>,
+  purity <span class='op'>=</span> <span class='cn'>F</span>,
+  color_pal <span class='op'>=</span> <span class='st'>"light"</span>,
+  visium <span class='op'>=</span> <span class='cn'>T</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -134,6 +140,10 @@ and colors them according to spatially-weighted hierarchical clustering assignme
     <tr>
       <th>x, </th>
       <td><p>an STList with hierarchical cluster memberships.</p></td>
+    </tr>
+    <tr>
+      <th>plot_who, </th>
+      <td><p>an integer indicating the spatial array(s) to be plotted.</p></td>
     </tr>
     <tr>
       <th>purity, </th>
@@ -144,11 +154,14 @@ and colors them according to spatially-weighted hierarchical clustering assignme
       <td><p>a scheme from 'khroma'. Default is 'light'.</p></td>
     </tr>
     <tr>
-      <th>who, </th>
-      <td><p>an integer indicating the spatial array(s) to be plotted.</p></td>
+      <th>visium, </th>
+      <td><p>whether or not to reverse axes for Visium slides.</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>plot_list, a list with the requested plots.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>The function takes an STList with cluster memberships and plots the spots with

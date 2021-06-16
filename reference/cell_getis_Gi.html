@@ -124,7 +124,7 @@
     <p>Calculates Getis-Ord Gi C from cell deconvolution scores in ST data.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>cell_getis_Gi</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, cells <span class='op'>=</span> <span class='cn'>NULL</span>, subj <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>cell_getis_Gi</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, cells <span class='op'>=</span> <span class='cn'>NULL</span>, subj <span class='op'>=</span> <span class='cn'>NULL</span>, method <span class='op'>=</span> <span class='st'>"xcell"</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -141,6 +141,10 @@
       <th>subj, </th>
       <td><p>an integer indicating the spatial array for which the statistic
 will be calculated.</p></td>
+    </tr>
+    <tr>
+      <th>method, </th>
+      <td><p>the deconvolutionn method to used estimate the cell scores.</p></td>
     </tr>
     </table>
 
