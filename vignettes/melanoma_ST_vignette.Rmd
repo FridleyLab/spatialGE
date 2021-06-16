@@ -312,7 +312,7 @@ right portion of the tissue is shown in yellow.
 To explore the relationship between a clinical variable of interest and the 
 level of gene expression uniformity within a tissue section, we can use the 
 function `plot_phenovar()`:
-```{r fig.width=8, fig.height=2.5}
+```{r clinplot_chunk, fig.width=8, fig.height=2.5}
 pheno_p <- plot_phenovar(melanoma, phenovar='Survival', gene='SPP1')
 
 ggpubr::ggarrange(plotlist=pheno_p, nrow=1, ncol=3, common.legend=T, legend='bottom')
