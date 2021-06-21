@@ -106,14 +106,14 @@ melanoma
 ```
 
 ## Exploring variation between spatial arrays
-The function `STbulk_pca()` allows for a quick snapshot of the variation in gene
+The function `bulk_pca()` allows for a quick snapshot of the variation in gene
 expression among samples. The function creates 'bulk' RNA-Seq data sets by combining
 all counts from a spatial array. Then, it applies limma-voom normalization to these
 'bulk' RNA-Seq libraries and performs a PCA. Note that spatial (x,y) coordinate 
 information is not included in this analysis, which is intended as a tool for 
 data exploration. In this case, we apply the function to look for agreement between
 samples from the same patient: it is expected that tissue slices from the same patient
-are more similar between them, than slices from other patients. The `STbulk_pca()`
+are more similar between them, than slices from other patients. The `bulk_pca()`
 allows to map a clinical variable to the PCA (gender in this example), by including
 the exact name of the column from the clinical/phenotype file.
 ```{r pca_chunk}

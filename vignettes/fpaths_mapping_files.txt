@@ -1,0 +1,8 @@
+/private/var/folders/nl/lbk8xx5j2sd59tfmnh4sdfwc0020nx/T/RtmpjltLs1/temp_libpath69e51668f41f/spatialGEdev/extdata/ST_mel1_rep1_counts_mapping.txt
+/private/var/folders/nl/lbk8xx5j2sd59tfmnh4sdfwc0020nx/T/RtmpjltLs1/temp_libpath69e51668f41f/spatialGEdev/extdata/ST_mel1_rep2_counts_mapping.txt
+/private/var/folders/nl/lbk8xx5j2sd59tfmnh4sdfwc0020nx/T/RtmpjltLs1/temp_libpath69e51668f41f/spatialGEdev/extdata/ST_mel2_rep1_counts_mapping.txt
+/private/var/folders/nl/lbk8xx5j2sd59tfmnh4sdfwc0020nx/T/RtmpjltLs1/temp_libpath69e51668f41f/spatialGEdev/extdata/ST_mel2_rep2_counts_mapping.txt
+/private/var/folders/nl/lbk8xx5j2sd59tfmnh4sdfwc0020nx/T/RtmpjltLs1/temp_libpath69e51668f41f/spatialGEdev/extdata/ST_mel3_rep1_counts_mapping.txt
+/private/var/folders/nl/lbk8xx5j2sd59tfmnh4sdfwc0020nx/T/RtmpjltLs1/temp_libpath69e51668f41f/spatialGEdev/extdata/ST_mel3_rep2_counts_mapping.txt
+/private/var/folders/nl/lbk8xx5j2sd59tfmnh4sdfwc0020nx/T/RtmpjltLs1/temp_libpath69e51668f41f/spatialGEdev/extdata/ST_mel4_rep1_counts_mapping.txt
+/private/var/folders/nl/lbk8xx5j2sd59tfmnh4sdfwc0020nx/T/RtmpjltLs1/temp_libpath69e51668f41f/spatialGEdev/extdata/ST_mel4_rep2_counts_mapping.txt
