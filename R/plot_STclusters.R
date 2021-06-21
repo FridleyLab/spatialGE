@@ -82,8 +82,7 @@ plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light', visiu
       p <- p + ylab('Y Position') + xlab('X Position')
 
       if(visium){
-        #scale_x_reverse() +
-        p <- p + scale_y_reverse() + coord_fixed(ratio=1.7)
+        p <- p + scale_y_reverse() + scale_x_reverse() + coord_fixed(ratio=1.7)
       } else{
         p <- p + coord_fixed(ratio=1)
       }
