@@ -133,13 +133,13 @@
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">melanoma</span>
 <span class="co">#&gt; Spatial Transcriptomics List (STList)</span>
-<span class="co">#&gt; 4 spatial arrays.</span>
+<span class="co">#&gt; 8 spatial arrays.</span>
 <span class="co">#&gt; 6 variables in clinical data.</span></code></pre></div>
 </div>
 <div id="exploring-variation-between-spatial-arrays" class="section level2">
 <h2 class="hasAnchor">
 <a href="#exploring-variation-between-spatial-arrays" class="anchor"></a>Exploring variation between spatial arrays</h2>
-<p>The function <code>STbulk_pca()</code> allows for a quick snapshot of the variation in gene expression among samples. The function creates ‘bulk’ RNA-Seq data sets by combining all counts from a spatial array. Then, it applies limma-voom normalization to these ‘bulk’ RNA-Seq libraries and performs a PCA. Note that spatial (x,y) coordinate information is not included in this analysis, which is intended as a tool for data exploration. In this case, we apply the function to look for agreement between samples from the same patient: it is expected that tissue slices from the same patient are more similar between them, than slices from other patients. The <code>STbulk_pca()</code> allows to map a clinical variable to the PCA (gender in this example), by including the exact name of the column from the clinical/phenotype file.</p>
+<p>The function <code><a href="../reference/bulk_pca.html">bulk_pca()</a></code> allows for a quick snapshot of the variation in gene expression among samples. The function creates ‘bulk’ RNA-Seq data sets by combining all counts from a spatial array. Then, it applies limma-voom normalization to these ‘bulk’ RNA-Seq libraries and performs a PCA. Note that spatial (x,y) coordinate information is not included in this analysis, which is intended as a tool for data exploration. In this case, we apply the function to look for agreement between samples from the same patient: it is expected that tissue slices from the same patient are more similar between them, than slices from other patients. The <code><a href="../reference/bulk_pca.html">bulk_pca()</a></code> allows to map a clinical variable to the PCA (gender in this example), by including the exact name of the column from the clinical/phenotype file.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="../reference/bulk_pca.html">bulk_pca</a></span><span class="op">(</span><span class="va">melanoma</span>, clinvar<span class="op">=</span><span class="st">'Gender'</span><span class="op">)</span>
 <span class="co">#&gt; Loading required package: magrittr</span>
@@ -156,7 +156,11 @@
 <span class="co">#&gt; Normalizing spatial array #1...</span>
 <span class="co">#&gt; Normalizing spatial array #2...</span>
 <span class="co">#&gt; Normalizing spatial array #3...</span>
-<span class="co">#&gt; Normalizing spatial array #4...</span></code></pre></div>
+<span class="co">#&gt; Normalizing spatial array #4...</span>
+<span class="co">#&gt; Normalizing spatial array #5...</span>
+<span class="co">#&gt; Normalizing spatial array #6...</span>
+<span class="co">#&gt; Normalizing spatial array #7...</span>
+<span class="co">#&gt; Normalizing spatial array #8...</span></code></pre></div>
 </div>
 <div id="visualization-of-gene-expression-from-spatially-resolved-transcriptomics-data" class="section level2">
 <h2 class="hasAnchor">
@@ -247,6 +251,22 @@
 <span class="co">#&gt; [1] "Merged dataset includes 8708 genes (1704 mismatched)."</span>
 <span class="co">#&gt; [1] "1 gene set: StromalSignature  overlap= 133"</span>
 <span class="co">#&gt; [1] "2 gene set: ImmuneSignature  overlap= 137"</span>
+<span class="co">#&gt; Estimating 'purity' scores for spatial array #5...</span>
+<span class="co">#&gt; [1] "Merged dataset includes 8417 genes (1995 mismatched)."</span>
+<span class="co">#&gt; [1] "1 gene set: StromalSignature  overlap= 120"</span>
+<span class="co">#&gt; [1] "2 gene set: ImmuneSignature  overlap= 120"</span>
+<span class="co">#&gt; Estimating 'purity' scores for spatial array #6...</span>
+<span class="co">#&gt; [1] "Merged dataset includes 8492 genes (1920 mismatched)."</span>
+<span class="co">#&gt; [1] "1 gene set: StromalSignature  overlap= 122"</span>
+<span class="co">#&gt; [1] "2 gene set: ImmuneSignature  overlap= 129"</span>
+<span class="co">#&gt; Estimating 'purity' scores for spatial array #7...</span>
+<span class="co">#&gt; [1] "Merged dataset includes 8074 genes (2338 mismatched)."</span>
+<span class="co">#&gt; [1] "1 gene set: StromalSignature  overlap= 118"</span>
+<span class="co">#&gt; [1] "2 gene set: ImmuneSignature  overlap= 130"</span>
+<span class="co">#&gt; Estimating 'purity' scores for spatial array #8...</span>
+<span class="co">#&gt; [1] "Merged dataset includes 8580 genes (1832 mismatched)."</span>
+<span class="co">#&gt; [1] "1 gene set: StromalSignature  overlap= 128"</span>
+<span class="co">#&gt; [1] "2 gene set: ImmuneSignature  overlap= 138"</span>
 <span class="co">#&gt; Loading required package: xCell</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; Applying xCell to spatial array #1...</span>
@@ -267,7 +287,31 @@
 <span class="co">#&gt; </span>
 <span class="co">#&gt; Applying xCell to spatial array #4...</span>
 <span class="co">#&gt; </span>
-<span class="co">#&gt; Calculating p-values for spatial array #4...</span></code></pre></div>
+<span class="co">#&gt; Calculating p-values for spatial array #4...</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Applying xCell to spatial array #5...</span>
+<span class="co">#&gt; Warning in .gsva(expr, mapped.gset.idx.list, method, kcdf, rnaseq,</span>
+<span class="co">#&gt; abs.ranking, : Some gene sets have size one. Consider setting 'min.sz &gt; 1'.</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Calculating p-values for spatial array #5...</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Applying xCell to spatial array #6...</span>
+<span class="co">#&gt; Warning in .gsva(expr, mapped.gset.idx.list, method, kcdf, rnaseq,</span>
+<span class="co">#&gt; abs.ranking, : Some gene sets have size one. Consider setting 'min.sz &gt; 1'.</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Calculating p-values for spatial array #6...</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Applying xCell to spatial array #7...</span>
+<span class="co">#&gt; Warning in .gsva(expr, mapped.gset.idx.list, method, kcdf, rnaseq,</span>
+<span class="co">#&gt; abs.ranking, : Some gene sets have size one. Consider setting 'min.sz &gt; 1'.</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Calculating p-values for spatial array #7...</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Applying xCell to spatial array #8...</span>
+<span class="co">#&gt; Warning in .gsva(expr, mapped.gset.idx.list, method, kcdf, rnaseq,</span>
+<span class="co">#&gt; abs.ranking, : Some gene sets have size one. Consider setting 'min.sz &gt; 1'.</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; Calculating p-values for spatial array #8...</span></code></pre></div>
 <p>With the function <code><a href="../reference/plot_deconv_quilt.html">plot_deconv_quilt()</a></code>, we can visualize the cell type scores inferred by xCell. For example, B cells and dendritic cells.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">quilts2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_deconv_quilt.html">plot_deconv_quilt</a></span><span class="op">(</span><span class="va">melanoma</span>, cells<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">'b_cells'</span>, <span class="st">'i_dc'</span><span class="op">)</span>, 
@@ -334,7 +378,7 @@
 <code class="sourceCode R"><span class="va">pheno_p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_phenovar.html">plot_phenovar</a></span><span class="op">(</span><span class="va">melanoma</span>, phenovar<span class="op">=</span><span class="st">'Survival'</span>, gene<span class="op">=</span><span class="st">'SPP1'</span><span class="op">)</span>
 
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">pheno_p</span>, nrow<span class="op">=</span><span class="fl">1</span>, ncol<span class="op">=</span><span class="fl">3</span>, common.legend<span class="op">=</span><span class="cn">T</span>, legend<span class="op">=</span><span class="st">'bottom'</span><span class="op">)</span></code></pre></div>
-<p><img src="melanoma_ST_vignette_files/figure-html/unnamed-chunk-1-1.png" width="576"></p>
+<p><img src="melanoma_ST_vignette_files/figure-html/clinplot_chunk-1.png" width="768"></p>
 <p>In the case of the phosphoprotein SPP1 gene, samples with a more uniform expression came from subjects with a higher survival time (low Moran’s I; high Geary’s C). A tendency for fewer “hotspots” of high expression was also observed in those samples (lower Getis-Ord Gi compared to other samples).</p>
 </div>
 <div id="summary" class="section level2">
