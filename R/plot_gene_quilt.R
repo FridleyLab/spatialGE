@@ -52,6 +52,14 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
     maxvalue <- c()
     minvalue <- c()
     for (i in plot_who) {
+
+      # If genes='top', get names of 10 genes with the highest standard deviation.
+      if(length(genes) == 1){
+        if(genes == 'top'){
+          genes <- x@gene_stdev[[i]]$gene[order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T)][1:10]
+        }
+      }
+
       for (gene in genes) {
         # Test if gene name exists in normalized count matrix.
         if (any(x@voom_counts[[i]]$gene == gene)) {

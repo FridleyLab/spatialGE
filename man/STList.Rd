@@ -44,5 +44,6 @@ STList object to be used in later analyses with spatialGE. Additionally, the
 function can also take a comma separated file with clinical or phenotype
 data from the samples. This clinical file has data for each array (in the same
 order as the count and coordinate file paths), and the first row has names of
-clinical variables. The first column contains the user-defined array IDs.
+clinical variables. The first column contains the user-defined array IDs. The
+function will read data in parallel if unix system available.
 }

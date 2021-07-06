@@ -20,7 +20,8 @@
 #' function can also take a comma separated file with clinical or phenotype
 #' data from the samples. This clinical file has data for each array (in the same
 #' order as the count and coordinate file paths), and the first row has names of
-#' clinical variables. The first column contains the user-defined array IDs.
+#' clinical variables. The first column contains the user-defined array IDs. The
+#' function will read data in parallel if unix system available.
 #'
 #' @param countfiles, the path of a file containing file paths (one per line) of the
 #' count data files. Count files must be tab-separated.
@@ -74,22 +75,42 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
 
     if(input_check == 'is_vector_csv' | input_check == 'is_vector_tsv'){
 
-      # Set progress bar, forcing to show with pb$tick(0)
-      pb <- progress::progress_bar$new(total=length(countfiles), clear=F)
-      pb$tick(0)
-      pb$message("Creating STList...")
+      # Use parallelization if possible:
+      require("parallel")
 
-      for(i in 1:length(countfiles)){
+      # Define number of available cores to use.
+      cores = 1
+      if(.Platform$OS.type == 'unix'){
+        avail_cores = parallel::detectCores()
+        if(avail_cores > (length(countfiles) + 1)){
+          cores = (length(countfiles) + 1)
+        } else if( (avail_cores <= (length(countfiles) + 1)) && avail_cores > 1){
+          cores = avail_cores - 1
+        }
+      }
 
-        pb$tick()
-        Sys.sleep(1 / length(countfiles))
+      cat("Creating STList...")
+
+      # Use parallelization to read count data if possible.
+      counts_df_list = mclapply(seq_along(countfiles), function(i){
 
         # Read filepaths and create.
-        counts_df_list[[i]] <- readr::read_delim(countfiles[i], delim=del, col_types=readr::cols(),
-                                       progress=F)
-        coords_df_list[[i]] <- readr::read_delim(coordfiles[i], delim=del, col_types=readr::cols(),
-                                       progress=F)
-      }
+        counts_df = readr::read_delim(countfiles[i], delim=del, col_types=readr::cols(), progress=F)
+
+        return(counts_df)
+
+      }, mc.cores=cores)
+
+      # Use parallelization to read coordinate data if possible.
+      coords_df_list = mclapply(seq_along(coordfiles), function(i){
+
+        # Read filepaths and create.
+        coords_df = readr::read_delim(coordfiles[i], delim=del, col_types=readr::cols(), progress=F)
+
+        return(coords_df)
+
+      }, mc.cores=cores)
+
     }
 
     if(input_check == 'is_several_csv' | input_check == 'is_several_tsv'){
@@ -97,22 +118,41 @@ STList <- function(countfiles=NULL, coordfiles=NULL, clinical=NULL) {
       count_fpaths <- readLines(countfiles)
       coord_fpaths <- readLines(coordfiles)
 
-      # Set progress bar, forcing to show with pb$tick(0)
-      pb <- progress::progress_bar$new(total=length(count_fpaths), clear=F)
-      pb$tick(0)
-      pb$message("Creating STList...")
+      # Use parallelization if possible:
+      require("parallel")
 
-      for(i in 1:length(count_fpaths)){
+      # Define number of available cores to use.
+      cores = 1
+      if(.Platform$OS.type == 'unix'){
+        avail_cores = parallel::detectCores()
+        if(avail_cores > (length(count_fpaths) + 1)){
+          cores = (length(count_fpaths) + 1)
+        } else if( (avail_cores <= (length(count_fpaths) + 1)) && avail_cores > 1){
+          cores = avail_cores - 1
+        }
+      }
 
-        pb$tick()
-        Sys.sleep(1 / length(count_fpaths))
+      cat("Creating STList...")
+
+      # Use parallelization to read count data if possible.
+      counts_df_list = mclapply(seq_along(count_fpaths), function(i){
 
         # Read filepaths and create.
-        counts_df_list[[i]] <- readr::read_delim(count_fpaths[i], delim=del, col_types=readr::cols(),
-                                                 progress=F)
-        coords_df_list[[i]] <- readr::read_delim(coord_fpaths[i], delim=del, col_types=readr::cols(),
-                                                 progress=F)
-      }
+        counts_df <- readr::read_delim(count_fpaths[i], delim=del, col_types=readr::cols(), progress=F)
+
+        return(counts_df)
+
+      }, mc.cores=cores)
+
+      # Use parallelization to read coordinate data if possible.
+      coords_df_list = mclapply(seq_along(coord_fpaths), function(i){
+
+        # Read filepaths and create.
+        coords_df <- readr::read_delim(coord_fpaths[i], delim=del, col_types=readr::cols(), progress=F)
+
+        return(coords_df)
+
+      }, mc.cores=cores)
 
     }
 

@@ -28,7 +28,7 @@ Imports:
 	ggpolypath,
 	ggpubr,
 	janitor,
-	khroma,
+	khroma (>= 1.6.0),
 	limma,
 	magrittr,
 	mclust,

@@ -7,7 +7,8 @@
 cluster_STspot(
   x = NULL,
   weights = 0.1,
-  pcs = 15,
+  pcs = NULL,
+  vperc = NULL,
   method = "ward.D",
   ks = "dtc",
   spotfilter = 0,

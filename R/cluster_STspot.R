@@ -24,13 +24,19 @@
 #' @export
 #
 #
-cluster_STspot <- function(x=NULL, weights=0.1, pcs=15, method='ward.D', ks='dtc', spotfilter=0, topgenes=2000) {
+cluster_STspot <- function(x=NULL, weights=0.1, pcs=NULL, vperc=NULL, method='ward.D', ks='dtc', spotfilter=0, topgenes=2000) {
 
   require('magrittr')
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){
     stop("The input must be a STList.")
+  }
+
+  if(is.numeric(ks)){
+    if(ks < 2){
+      stop('Refusing to generate < 2 clusters.')
+    }
   }
 
   grp_list <- list()
@@ -62,8 +68,26 @@ cluster_STspot <- function(x=NULL, weights=0.1, pcs=15, method='ward.D', ks='dtc
     rownames(B) <- spotlibs
 
     voom_pcs <- prcomp(A, scale=TRUE)
+    voom_pcs_var <- summary(voom_pcs)
+    voom_pcs_var <- as.vector(voom_pcs_var$importance[3, ])
 
-    A <- voom_pcs$x[, 1:pcs]
+    if(is.null(vperc) && is.null(pcs)){
+      cat('Using vperc = 0.8\n')
+      vperc <- 0.8
+    }
+
+    if(!is.null(vperc) && !is.null(pcs)){
+      cat('Both number of retained PCs and explanined variance specified. Using specified vperc\n')
+      vperc <- 0.8
+      pcs <- NULL
+    }
+
+    if(!is.null(vperc)){
+      vperc_mask <- voom_pcs_var < vperc
+      pcs <- sum(vperc_mask) + 1
+    }
+
+    A <- as.matrix(voom_pcs$x[, 1:pcs])
 
     #dA <- wordspace::dist.matrix(A)
     dA <- wordspace::dist.matrix(A, method='euclidean')

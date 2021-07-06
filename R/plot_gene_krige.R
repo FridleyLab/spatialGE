@@ -45,6 +45,14 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
     maxvalue <- c()
     minvalue <- c()
     for (i in plot_who) {
+
+      # If genes='top', get names of 10 genes with the highest standard deviation.
+      if(length(genes) == 1){
+        if(genes == 'top'){
+          genes <- x@gene_stdev[[i]]$gene[order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T)][1:10]
+        }
+      }
+
       for (gene in genes) {
         # Test if kriging exists for a gene and subject.
         if (rlang::has_name(x@gene_krige, gene)){

@@ -2,7 +2,7 @@
 % Please edit documentation in R/voom_norm.R
 \name{voom_norm}
 \alias{voom_norm}
-\title{voom_norm: Normalization of ST arrays}
+\title{voom_norm: voom-transformation of ST arrays}
 \usage{
 voom_norm(x = NULL)
 }
@@ -13,15 +13,15 @@ voom_norm(x = NULL)
 x, an STList with normalized counts.
 }
 \description{
-Applies limma-voom normalization to spatial transcriptomics arrays data.
+Applies limma-voom transformation to spatial transcriptomics arrays data.
 }
 \details{
-This function takes an STList and normalize the count data matrices within it
+This function takes an STList and returns roughly Gaussian count data matrices
 in two steps. In the first step, (edgeR) normalization factors are used to scale
-the counts from each library/spot. In the second step, limma-voom normalization
+the counts from each library/spot. In the second step, limma-voom transformation
 is applied. The resulting normalized count matrix is stored in the voom_counts
 slot of the STList. The function also calculates gene-wise standard deviation from
-the normalized counts and stores them in the gene_stdev slot.
+the transformed counts and stores them in the gene_stdev slot.
 
-NOTE1: ADD MEAN-VAR PLOT TO THIS FUNCTION??
+The function works on parallel using "forking" (not in Windows OS).
 }
