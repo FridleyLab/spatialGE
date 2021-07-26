@@ -14,11 +14,13 @@
 #
 #
 quilt_p_purity_bw <- function(data_f=NULL, title_name='', visium=T){
-
   require('ggplot2')
 
+  colnames(data_f) = c('Y', 'X', 'Value', 'Tumor_Stroma')
+  data_f$Tumor_Stroma = as.factor(data_f$Tumor_Stroma)
+
   p2 <- ggplot() +
-    geom_point(data=data_f, aes(x=x_pos, y=y_pos, color=as.factor(cluster), shape=as.factor(cluster)), size=0.7) +
+    geom_point(data=data_f, aes(x=X, y=Y, color=Tumor_Stroma, shape=Tumor_Stroma), size=0.7) +
     scale_shape_manual(values=c(3, 15)) +
     scale_color_manual(values=c('gray60', 'black')) +
     xlab("X Position") +

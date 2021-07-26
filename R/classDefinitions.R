@@ -1,4 +1,7 @@
-# Creates object class.
+##
+# Definition of an STList object class.
+#
+#
 setClass("STList", slots=list(counts="list",
                               coords="list",
                               clinical="tbl",
@@ -9,7 +12,8 @@ setClass("STList", slots=list(counts="list",
                               cell_deconv="list",
                               cell_het="list",
                               cell_krige="list",
-                              prediction_border="list",
+                              gene_krige_data="list",
+                              deconv_krige_data="list",
                               st_clusters="list"
 ),
 )

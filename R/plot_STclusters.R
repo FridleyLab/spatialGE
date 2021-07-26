@@ -7,12 +7,18 @@
 #' colors indicating the cluster they belong to. Optionally, the user can annotate
 #' tumor/stroma compartments if ESTIMATE scores are available.
 #'
-#' @param x, an STList with hierarchical cluster memberships.
-#' @param plot_who, an integer indicating the spatial array(s) to be plotted.
-#' @param purity, logical, whether or not annotate tumor/stroma.
-#' @param color_pal, a scheme from 'khroma'. Default is 'light'.
-#' @param visium, whether or not to reverse axes for Visium slides.
-#' @return plot_list, a list with the requested plots.
+#' @param x an STList with hierarchical cluster memberships.
+#' @param plot_who an integer indicating the spatial array(s) to be plotted.
+#' @param purity logical, whether or not annotate tumor/stroma.
+#' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
+#' vector with colors with enough elements to plot categories.
+#' @param visium whether or not to reverse axes for Visium slides.
+#' @return a list with the requested plots.
+#'
+#' @examples
+#' # In this example, melanoma is an STList.
+#' cluster_p <- plot_STclusters(melanoma, purity=T, plot_who=c(2,3), visium=F)
+#'
 #' @export
 #
 #
@@ -24,6 +30,10 @@ plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light', visiu
     subjs <- (1:length(x@st_clusters$clust_dfs))
   } else{
     subjs <- plot_who
+  }
+
+  if(rlang::is_empty(x@st_clusters)){
+    stop('No clusters found in STList.')
   }
 
   plot_list <- list()
@@ -63,18 +73,21 @@ plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light', visiu
       # Determnine number of clusters generated, and cerate color palette.
       nclust <- max(as.numeric(levels(df_nonas$WCluster)))
 
+      # Create color palette.
+      clust_cols = color_parse(color_pal, n_cats=nclust)
+
       # Determine color scheme
-      if(length(color_pal) == 1){
-        if(color_pal %in% khroma::info()[[1]]){
-          # Creates color palette function.
-          p_palette <- khroma::colour(color_pal)
-          clust_cols <- as.vector(p_palette(nclust))
-        }else{
-          stop('Provide a Khroma palette name or a vector with 2 or more colors.')
-        }
-      }else{
-        clust_cols <- color_pal
-      }
+      # if(length(color_pal) == 1){
+      #   if(color_pal %in% khroma::info()[[1]]){
+      #     # Creates color palette function.
+      #     p_palette <- khroma::colour(color_pal)
+      #     clust_cols <- as.vector(p_palette(nclust))
+      #   }else{
+      #     stop('Provide a Khroma palette name or a vector with 2 or more colors.')
+      #   }
+      # }else{
+      #   clust_cols <- color_pal
+      # }
 
       if(nclust > length(clust_cols)){
         stop('Provide enough colors to plot clusters.')

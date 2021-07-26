@@ -2,7 +2,7 @@
 % Please edit documentation in R/cluster_STspot.R
 \name{cluster_STspot}
 \alias{cluster_STspot}
-\title{cluster_STspot: Detect spot clusters on ST arrays}
+\title{cluster_STspot: Detect clusters on ST arrays}
 \usage{
 cluster_STspot(
   x = NULL,
@@ -16,35 +16,49 @@ cluster_STspot(
 )
 }
 \arguments{
-\item{x, }{an STList with normalized expression data.}
+\item{x}{an STList with normalized expression data.}
 
-\item{weights, }{a double \link{0-1} indicating the weight to be applied to spatial
-distances.}
+\item{weights}{a double \link{0-1} indicating the weight to be applied to spatial distances.
+Defaults to w=0.1.}
 
-\item{pcs, }{the number of principal components (PCs) to retain.}
+\item{pcs}{the number of principal components (PCs) to retain.}
 
-\item{method, }{the linkage method applied to hierarchical clustering. It is passed
+\item{vperc}{the minimum percentage of explained variance explained by the PCs to
+decide how many of them to retain.}
+
+\item{method}{the linkage method applied to hierarchical clustering. It is passed
 to \code{hclust} and defaults to 'ward.D'.}
 
-\item{ks, }{the range of k values to assess. Defaults to \code{dtc}, meaning \code{cutreeDynamic}
+\item{ks}{the range of k values to assess. Defaults to \code{dtc}, meaning \code{cutreeDynamic}
 is applied.}
 
-\item{spotfilter, }{the number of genes with more than zero counts for a spot to be
-included in the clustering analysis. The lower this number, the slower the analysis.}
+\item{spotfilter}{the number of genes with more than zero counts for a spot to be
+included in the clustering analysis. The lower this number, the slower the analysis. If
+spotfilter=0, all spots are retained.}
 
-\item{topgenes, }{the number of high spot-to-spot standard deviation to retain before PCA.}
+\item{topgenes}{the number of high spot-to-spot standard deviation to retain before PCA.}
 }
 \value{
 x, the STList with cluster assignments.
 }
 \description{
-Perform spatially-informed hierarchical clustering of spots within a
-spatial array using a genetic distance matrix weighted by spatial distances.
+Perform unsupervised spatially-informed clustering on the spots of an
+spatial array.
 }
 \details{
 The function takes an STList and performs PCA on the gene expression data, then
 calculates euclidean distances of the PCs and spatial distances. Weighted averages
 between the two distances are calculated to perform hierarchical clustering. The
 user can define how much weight the spatial distance should have (values
-between 0.05 to 0.25 work reasonably well).
+between 0.05 to 0.25 work reasonably well). The method aims to detect compartments
+within a tissue.
+}
+\examples{
+# In this example, melanoma is an STList.
+# Using Dynamic Tree Cuts:
+melanoma <- cluster_STspot(melanoma, ks='dtc', weights=0.1)
+
+# Using a range of ks:
+melanoma <- cluster_STspot(melanoma, ks=c(2:6), weights=0.1)
+
 }

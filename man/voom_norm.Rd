@@ -7,10 +7,10 @@
 voom_norm(x = NULL)
 }
 \arguments{
-\item{x, }{an STList with raw count matrices.}
+\item{x}{an STList with raw count matrices.}
 }
 \value{
-x, an STList with normalized counts.
+x an updated STList with transformed counts.
 }
 \description{
 Applies limma-voom transformation to spatial transcriptomics arrays data.
@@ -24,4 +24,9 @@ slot of the STList. The function also calculates gene-wise standard deviation fr
 the transformed counts and stores them in the gene_stdev slot.
 
 The function works on parallel using "forking" (not in Windows OS).
+}
+\examples{
+# In this example, melanoma is an STList.
+melanoma <- voom_norm(melanoma)
+
 }

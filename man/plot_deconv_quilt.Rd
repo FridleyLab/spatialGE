@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_deconv_quilt.R
 \name{plot_deconv_quilt}
 \alias{plot_deconv_quilt}
-\title{plot_deconv_quilt: Deconvolution scores at each spot from an spatial array}
+\title{plot_deconv_quilt: Deconvolution scores at each spot}
 \usage{
 plot_deconv_quilt(
   x = NULL,
@@ -10,39 +10,39 @@ plot_deconv_quilt(
   plot_who = NULL,
   color_pal = "YlOrBr",
   purity = F,
-  saveplot = F,
-  scaled = F,
   method = "xcell",
+  saveplot = F,
+  inter = F,
   visium = T
 )
 }
 \arguments{
-\item{x, }{an STList with deconvolution matrices containing the cell names.}
+\item{x}{an STList with deconvolution matrices containing the cell names.}
 
-\item{cells, }{a vector of cell names within a deconvolution matrix (one or
-several) to plot.}
+\item{cells}{a vector of cell names within a deconvolution matrix (one or
+several) to plot. If 'top', the 10 cell types with highest standard deviation
+from each spatial array ar plotted.}
 
-\item{plot_who, }{a vector of subject indexes as ordered within the STList, to
+\item{plot_who}{a vector of subject indexes as ordered within the STList, to
 plot cells from. If NULL, will plot for all subjects.}
 
-\item{color_pal, }{a scheme from 'khroma'. Default is 'YlOrBr'.'}
+\item{color_pal}{a color scheme from 'khroma' or RColorBrewer.}
 
-\item{purity, }{logical, whether tumor/stroma classes should be plotted.}
+\item{purity}{logical, whether tumor/stroma classes should be plotted.}
 
-\item{saveplot, }{logical indicating whether or not save plots in a PDF file.
+\item{method}{the method from which deconvolution scores will be taken. xCell is
+the only method supported for now.}
+
+\item{saveplot}{logical indicating whether or not save plots in a PDF file.
 The PDFs are saved in the working directory. Default is FALSE, meaning plots
 are printed to console.}
 
-\item{scaled, }{logical, indicating if expression values should be scaled with
-respect to the highest value among all genes to plot. WARNING: Color legends
-are not scaled between plots, but values are.}
-
-\item{method, }{the deconvolutionn method to used estimate the cell scores.}
+\item{inter}{whether or not quilt plot should be converted to a Plotly plot.}
 
 \item{visium, }{whether or not to reverse axes for Visium slides.}
 }
 \value{
-qplist, a list with plots.
+a list with plots.
 }
 \description{
 Plot cell type deconvolution scores at each spot (quilt plot) within a
@@ -52,4 +52,9 @@ spatially-resolved transcriptomic array.
 This function produces a quilt plot for a series cell names and spatial
 arrays within an STList. The function can also plot tumor/stroma classifications
 if ESTIMATE deconvolution results are present in the STList.
+}
+\examples{
+# In this example, melanoma is an STList.
+qplots <- plot_deconv_quilt(melanoma, genes='b_cells', plot_who=2, purity=T, visium=F, inter=T)
+
 }

@@ -23,30 +23,25 @@
 #
 quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
                     title_name='', minvalue=minvalue, maxvalue=maxvalue, visium=T){
-
   require('ggplot2')
 
-  # Creates color palette function.
-  p_palette <- khroma::colour(color_pal)
+  colnames(data_f) = c('Y', 'X', 'Value', 'Tumor_Stroma')
+  data_f$Tumor_Stroma = as.factor(data_f$Tumor_Stroma)
 
-  #data_f$values <- data_f$values/max(data_f$values)
+  # Creates color palette function.
+  #p_palette <- khroma::colour(color_pal)
+  p_palette = color_parse(color_pal)
 
   # Create plot.
   p1 <- ggplot() +
-    #geom_point(data=data_f, aes(x=x_pos, y=y_pos, fill=values, shape=as.factor(cluster), color=as.factor(cluster)), stroke=0.2) +
-    geom_point(data=data_f, aes(x=x_pos, y=y_pos, fill=values, shape=as.factor(cluster), color=values), stroke=1, size=0.5) +
-    scale_fill_gradientn(colours=p_palette(5), limits=c(minvalue, maxvalue)) +
-    #scale_color_manual(values=c('white', 'gray50')) +
-    scale_color_gradientn(colours=p_palette(5), limits=c(minvalue, maxvalue)) +
-    #scale_shape_manual(values=c(21, 22)) +
+    geom_point(data=data_f, aes(x=X, y=Y, fill=Value, shape=Tumor_Stroma, color=Value), stroke=1, size=0.5) +
+    scale_fill_gradientn(colours=p_palette, limits=c(minvalue, maxvalue)) +
+    scale_color_gradientn(colours=p_palette, limits=c(minvalue, maxvalue)) +
     scale_shape_manual(values=c(3, 15)) +
-    #guides(color=guide_legend(override.aes=list(color='black', stroke=0.5, size=2))) +
     xlab("X Position") +
     ylab("Y Position") +
-    #labs(fill=leg_name, shape='tumor/stroma', color='tumor/stroma', title=title_name) +
     labs(fill=leg_name, shape='tumor/stroma',
          title=title_name, color=leg_name) +
-    #guides(shape=F) +
     guides(shape=guide_legend(override.aes=list(color='black', stroke=0.5, size=2))) +
     theme_classic()
 

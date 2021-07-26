@@ -7,30 +7,25 @@
 plot_deconv_krige(
   x = NULL,
   cells = NULL,
-  krige_type = "ord",
   plot_who = NULL,
   color_pal = "YlOrBr",
   saveplot = F,
   pvalues = F,
   purity = F,
-  scaled = T,
   visium = T
 )
 }
 \arguments{
-\item{x, }{an STList with kriging objects for the cells selected.}
+\item{x}{an STList with kriging objects for the cells selected.}
 
 \item{cells, }{a vector of cell names (one or several) within a deconvolution
-matrix  to plot.}
+matrix  to plot. If 'top', the 10 cell types with highest standard deviation
+from each spatial array ar plotted.}
 
-\item{krige_type, }{either 'ord' (ordinary; default), or 'univ' (universal)
-kriging. Data for the respective kriging must be generated previously with
-cell_krige().}
-
-\item{plot_who, }{a vector of subject indexes as ordered within the STList, to
+\item{plot_who}{a vector of subject indexes as ordered within the STList, to
 plot cells from. If NULL, will plot for all subjects.}
 
-\item{color_pal, }{a scheme from 'khroma'. Default is 'YlOrBr'.}
+\item{color_pal}{a color scheme from 'khroma' or RColorBrewer.}
 
 \item{saveplot, }{logical indicating whether or not save plots in a PDF file.
 The PDFs are saved in the working directory. Default is FALSE, meaning plots
@@ -39,23 +34,24 @@ are printed to console.}
 \item{pvalues, }{logical indicating whether or not dots where a given cell was
 predicted to be significantly abundant (p<0.05). Default is FALSE.}
 
-\item{purity, }{logical, whether or not annotate tumor and stroma spots based on
+\item{purity, }{logical, whether or not to annotate tumor spots based on
 ESTIMATE tumor purity scores.}
-
-\item{scaled, }{logical, indicating if expression values should be scaled with
-respect to the highest value among all genes to plot. WARNING: Color legends
-are not scaled between plots, but values are.}
 
 \item{visium, }{whether or not to reverse axes for Visium slides.}
 }
 \value{
-kplist, a list with plots.
+a list with plots.
 }
 \description{
 Produces a spatial interpolation surface from kriging of gene expression
-deconvolution scores in ST data.
+deconvolution scores.
 }
 \details{
 This function produces a spatial interpolation surface plot for a series of
 cell names and spatial arrays.
+}
+\examples{
+# In this example, melanoma is an STList.
+kplots <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'i_dc'), plot_who=2, visium=F)
+
 }

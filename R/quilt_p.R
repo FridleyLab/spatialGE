@@ -23,18 +23,16 @@
 #
 quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='',
                     title_name='', minvalue=minvalue, maxvalue=maxvalue, visium=T){
-
   require('ggplot2')
 
   # Creates color palette function.
-  p_palette <- khroma::colour(color_pal)
-
-  #data_f$values <- data_f$values/max(data_f$values)
+  #p_palette <- khroma::colour(color_pal)
+  p_palette = color_parse(color_pal)
 
   # Create plot.
   p <- ggplot(data=data_f, aes(x=x_pos, y=y_pos, color=values)) +
     geom_point() +
-    scale_color_gradientn(colours=p_palette(5), limits=c(minvalue, maxvalue)) +
+    scale_color_gradientn(colours=p_palette, limits=c(minvalue, maxvalue)) +
     xlab("X Position") +
     ylab("Y Position") +
     labs(color=leg_name, title=title_name) +

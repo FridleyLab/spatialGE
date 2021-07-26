@@ -11,8 +11,13 @@
 #'
 #' The function works on parallel using "forking" (not in Windows OS).
 #'
-#' @param x, an STList with raw count matrices.
-#' @return x, an STList with normalized counts.
+#' @param x an STList with raw count matrices.
+#' @return x an updated STList with transformed counts.
+#'
+#' @examples
+#' # In this example, melanoma is an STList.
+#' melanoma <- voom_norm(melanoma)
+#'
 #' @export
 #
 #

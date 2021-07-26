@@ -3,18 +3,27 @@
 #' @description Perform and plot a PCA of simulated bulk RNA-Seq from spatial
 #' transcriptomics data.
 #' @details
-#' This function takes an STList, and optionally the name of a clinical variable,
-#' and performs PCA on simulated bulk RNA-Seq from ST data. The counts are simulated
+#' This function takes an STList, and optionally the name of a clinical or sample-associated
+#' variable, and performs PCA on simulated bulk RNA-Seq from ST data. The counts are simulated
 #' by summing all counts from an array for each gene.
 #'
-#' @param x, an STList.
-#' @param clinvar, a string indicating the name of the variable in the clinical
-#' data frame.
-#' @param color_pal, a string of a color palette from khroma.
+#' @param x an STList.
+#' @param clinvar a string indicating the name of the variable in the clinical data.
+#' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
+#' vector with colors with enough elements to plot categories.
+#'
+#' @examples
+#' # In this example, melanoma is an STList.
+#' bulk_pca(melanoma, clinvar='gender')
+#'
 #' @export
 #
 #
 bulk_pca <- function(x=NULL, clinvar=NULL, color_pal="muted") {
+
+  if(!is.null(clinvar) && !(clinvar %in% colnames(x@clinical))){
+    stop('Variable not in sample data. Verify that input matches variable name in sample data')
+  }
 
   require('magrittr')
   require('ggplot2')
@@ -37,10 +46,12 @@ bulk_pca <- function(x=NULL, clinvar=NULL, color_pal="muted") {
     clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name=as.character(clinvar))
     pca_labs <- as.character(x@clinical[[1]])
   }else{
-    clinvar <- 'array'
-    clinvar_vals <- as.character(1:length(x@counts))
-    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='array')
-    pca_labs <- as.character(1:length(x@counts))
+    clinvar <- 'ST_sample'
+    #clinvar_vals <- as.character(1:length(x@counts))
+    clinvar_vals = names(x@counts)
+    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='ST_sample')
+    #pca_labs <- as.character(1:length(x@counts))
+    pca_labs = as.character(clinvar_vals[[1]])
   }
 
   # Create data frame to store "bulk counts".
@@ -90,10 +101,14 @@ bulk_pca <- function(x=NULL, clinvar=NULL, color_pal="muted") {
   pca_tbl <- pca_tbl %>%
     tibble::add_column(clinvar_vals, .before=1)
 
-  # Get color palette and number of colors needed.
-  p_palette <- khroma::colour(color_pal)
+
+  # Get number of categories from selected variable.
   n_cats <- nlevels(as.factor(pca_tbl[[clinvar]]))
-  cat_cols <- as.vector(p_palette(n_cats))
+
+  # Create color palette.
+  cat_cols = color_parse(color_pal, n_cats=n_cats)
+
+  # Assocuate colors with categories.
   names(cat_cols) <- levels(as.factor(pca_tbl[[clinvar]]))
 
   # Define shapes of points according to clinical variable.

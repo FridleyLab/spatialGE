@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_phenovar.R
 \name{plot_phenovar}
 \alias{plot_phenovar}
-\title{phenovar_plot: Plots a phenotype variable against gene expression spatial autocorrelation}
+\title{phenovar_plot: Plots association of samples variable and spatial statistics}
 \usage{
 plot_phenovar(
   x = NULL,
@@ -13,27 +13,33 @@ plot_phenovar(
 )
 }
 \arguments{
-\item{x, }{an STList.}
+\item{x}{an STList.}
 
-\item{phenovar, }{a string indicating the name of the variable in the clinical
+\item{phenovar}{a string indicating the name of the variable in the clinical
 data frame. If NULL, uses sample}
 
-\item{gene, }{the name of the gene to plot.}
+\item{gene}{the name of the gene to plot.}
 
-\item{cell, }{the name of the cell type to plot.}
+\item{cell}{the name of the cell type to plot.}
 
-\item{color_pal, }{a string of a color palette from khroma.}
+\item{color_pal}{a string of a color palette from khroma or RColorBrewer, or a
+vector with colors with enough elements to plot categories.}
 }
 \value{
-plist, a list with three plots.
+a list with three plots.
 }
 \description{
-Plots the value of a phenotype/clinical variable for each spatial
-array against the spatial autocorrelation statistics of a given gene.
+Plots the value of a sample/clinical variable against the spatial
+autocorrelation statistics.
 }
 \details{
-This function takes the name of a gene and calculates its spatial autocorrelation
-statistics. Then generates a plot showing the variation of a phenotype/clinical
-variable with respect to the Moran's I, Geary's C, and Getis-Ord Gi values of a
-gene.
+This function takes the name of a gene or deconvoluted cell score and calculates
+its spatial autocorrelation statistics. Then generates a plot showing the variation
+of a sample-associated or clinical variable with respect to the Moran's I, Geary's C,
+and Getis-Ord Gi values of a gene.
+}
+\examples{
+# In this example, melanoma is an STList.
+pheno_p <- plot_phenovar(melanoma, phenovar='survival_months', gene='CD74')
+
 }

@@ -11,35 +11,33 @@ plot_gene_quilt(
   color_pal = "YlOrBr",
   purity = F,
   saveplot = F,
-  scaled = F,
+  inter = F,
   visium = T
 )
 }
 \arguments{
-\item{x, }{an STList with voom-norm counts.}
+\item{x}{an STList with voom-norm counts.}
 
-\item{genes, }{a vector of one or more gene names to plot.}
+\item{genes}{a vector of one or more gene names to plot.}
 
-\item{plot_who, }{a vector of numbers indicating the  spatial arrays to plot
+\item{plot_who}{a vector of numbers indicating the  spatial arrays to plot
 genes from. If NULL, will plot all spatial arrays. The numbers in the vector
 will match the order in which the arrays were specified when creating the STList.}
 
-\item{color_pal, }{a scheme from 'khroma'. Default is 'YlOrBr'.}
+\item{color_pal}{a color scheme from 'khroma' or RColorBrewer.}
 
-\item{purity, }{logical, whether tumor/stroma classes should be plotted.}
+\item{purity}{logical, whether tumor/stroma classes should be plotted.}
 
-\item{saveplot, }{logical, indicating whether or not save plots in a PDF file.
+\item{saveplot}{logical, indicating whether or not save plots in a PDF file.
 The PDFs are saved in the working directory. Default is FALSE, meaning plots
 are printed to console.}
 
-\item{scaled, }{logical, indicating if expression values should be scaled with
-respect to the highest value among all genes to plot. WARNING: Color legends
-are not scaled between plots, but values are.}
+\item{inter}{whether or not quilt plot should be converted to a Plotly plot.}
 
-\item{visium, }{whether or not to reverse axes for Visium slides.}
+\item{visium}{whether or not to reverse axes for Visium slides.}
 }
 \value{
-qplist, a list with plots.
+a list with plots.
 }
 \description{
 Plot gene expression levels at each spot (quilt plot) within a
@@ -49,4 +47,9 @@ spatially-resolved transcriptomic array.
 This function produces a quilt plot for a series of HUGO gene names and spatial
 arrays within an STList. The function can also plot tumor/stroma classifications
 from ESTIMATE deconvolution results.
+}
+\examples{
+# In this example, melanoma is an STList.
+qplots <- plot_gene_quilt(melanoma, genes='CD74', plot_who=2, purity=T, visium=F)
+
 }

@@ -7,13 +7,13 @@
 spatial_deconv(x = NULL, method = "xcell")
 }
 \arguments{
-\item{x, }{an STList with normalized count matrices. If 'none', only ESTIMATE is
+\item{x}{an STList with normalized count matrices. If 'none', only ESTIMATE is
 applied.}
 
-\item{method, }{the name of the method to deconvolute data. As of now, only xCell is supported.}
+\item{method}{the name of the method to deconvolute data. As of now, only xCell is supported.}
 }
 \value{
-x, an updated STList with deconvolution scores.
+x an updated STList with deconvolution scores.
 }
 \description{
 Applies gene expression deconvolution methods to data from spatial
@@ -24,4 +24,9 @@ This function applies deconvolution methods (xCell and ESTIMATE, for now) to the
 normalized matrices in order to obtain cell scores for each of the library/spots.
 The results are stored witin the STList. The method ESTIMATE is automatically
 applied regardless of the selected method.
+}
+\examples{
+# In this example, melanoma is an STList.
+melanoma <- spatial_deconv(melanoma, method='xcell')
+
 }

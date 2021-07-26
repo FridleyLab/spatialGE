@@ -27,15 +27,13 @@
 # @return, a ggplot object.
 #
 #
-krige_p_purity <- function(data_f=NULL, tumorstroma=NULL,
-                           mask=NULL, color_pal="YlOrBr", leg_name='',
-                           title_name='', minvalue=minvalue, maxvalue=maxvalue,
+krige_p_purity <- function(data_f=NULL, tumorstroma=NULL, mask=NULL, color_pal="YlOrBr",
+                           leg_name='', title_name='', minvalue=minvalue, maxvalue=maxvalue,
                            visium=T){
-
   require('ggplot2')
 
   # Creates color palette function.
-  p_palette <- khroma::colour(color_pal)
+  p_palette = color_parse(color_pal)
 
   # Convert the SpatialPolygon mask into a data frame.
   mask_df <- fortify(mask)
@@ -43,7 +41,7 @@ krige_p_purity <- function(data_f=NULL, tumorstroma=NULL,
   # Create plot.
   p <- ggplot(data=data_f, aes(x=x_pos, y=y_pos)) +
     geom_raster(aes(fill=krige)) +
-    scale_fill_gradientn(colors=p_palette(5), limits=c(minvalue, maxvalue), oob=scales::squish) +
+    scale_fill_gradientn(colors=p_palette, limits=c(minvalue, maxvalue), oob=scales::squish) +
     xlab("X Position") +
     ylab("Y Position") +
     labs(fill=leg_name, shape='', title=title_name) +

@@ -5,30 +5,32 @@
 #' This function produces a transcriptomic surface plot for a series of HUGO gene names and
 #' spatial arrays.
 #'
-#' @param x, an STList with kriging objects for the genes selected.
-#' @param genes, a vector of gene names (one or several) to plot.
-#' @param krige_type, either 'ord' (ordinary; default), or 'univ' (universal)
-#' kriging. Data for the respective kriging must be generated previously with
-#' cell_krige().
-#' @param plot_who, a vector of subject indexes as ordered within the STList, to
+#' @param x an STList with kriging objects for the genes selected.
+#' @param genes a vector of gene names (one or several) to plot.
+#' @param plot_who a vector of subject indexes as ordered within the STList, to
 #' plot genes from. If NULL, will plot all subjects.
-#' @param color_pal, a scheme from 'khroma'. Default is 'YlOrBr'.
-#' @param purity, logical, whether or not annotate tumor and stroma spots based on
+#' @param color_pal a color scheme from 'khroma' or RColorBrewer.
+#' @param purity logical, whether or not annotate tumor spots based on
 #' ESTIMATE tumor purity scores.
-#' @param saveplot, logical, indicating whether or not save plots in a PDF file.
+#' @param saveplot logical, indicating whether or not save plots in a PDF file.
 #' The PDFs are saved in the working directory. Default is FALSE, meaning plots
 #' are printed to console.
-#' @param scaled, logical, indicating if expression values should be scaled with
-#' respect to the highest value among all genes to plot. WARNING: Color legends
-#' are not scaled between plots, but values are.
-#' @param visium, whether or not to reverse axes for Visium slides.
-#' @return kplist, a list with plots.
+#' @param visium whether or not to reverse axes for Visium slides.
+#' @return a list with plots.
+#'
+#' @examples
+#' # In this example, melanoma is an STList.
+#' kplots <- plot_gene_krige(melanoma, genes=c('CD74', 'SOX10'), plot_who=3, visium=F)
+#'
 #' @export
 #
 #
-plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
-                            color_pal='YlOrBr', purity=F, saveplot=F, scaled=F,
-                            visium=T){
+plot_gene_krige <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr',
+                            purity=F, saveplot=F, visium=T){
+  # Option to scale to 1 disabled.
+  scaled=F
+  # Option to use plotly disabled (not supporting geomPolypath)
+  inter=F
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
@@ -40,47 +42,43 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
     plot_who <- c(1:length(x@counts))
   }
 
+  # If genes='top', get names of 10 genes with the highest standard deviation.
+  if(length(genes) == 1 && genes == 'top'){
+    genes = c()
+    for(i in plot_who){
+      genes = append(genes, x@gene_stdev[[i]]$gene[order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T)][1:10])
+    }
+    # Get unique genes from most variable.
+    genes = unique(genes)
+  }
+
   # Store maximum expression value in case 'scaled' is required.
-#  if(scaled){
-    maxvalue <- c()
-    minvalue <- c()
-    for (i in plot_who) {
-
-      # If genes='top', get names of 10 genes with the highest standard deviation.
-      if(length(genes) == 1){
-        if(genes == 'top'){
-          genes <- x@gene_stdev[[i]]$gene[order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T)][1:10]
+  # if(scaled){
+  maxvalue <- c()
+  minvalue <- c()
+  for (i in plot_who) {
+    for (gene in genes) {
+      # Test if kriging exists for a gene and subject.
+      if (rlang::has_name(x@gene_krige, gene)){
+        if(length(x@gene_krige[[gene]]) >= i){
+          # Find maximum expression value for each spatial array.
+          values <- x@gene_krige[[gene]][[i]]
+          maxvalue <- append(maxvalue, max(values))
+          minvalue <- append(minvalue, min(values))
         }
-      }
-
-      for (gene in genes) {
-        # Test if kriging exists for a gene and subject.
-        if (rlang::has_name(x@gene_krige, gene)){
-          if(length(x@gene_krige[[gene]]) >= i){
-            if (rlang::has_name(x@gene_krige[[gene]][[i]], krige_type)){
-              # Find maximum expression value for each spatial array.
-              values <- x@gene_krige[[gene]][[i]][[krige_type]]$predict
-              maxvalue <- append(maxvalue, max(values))
-              minvalue <- append(minvalue, min(values))
-            }
-          }
-        }
-        # Find maximum value among selected spatial arrays.
-        maxvalue <- max(maxvalue)
-        minvalue <- min(minvalue)
       }
     }
-#  }
+  }
+  # Find maximum value among selected spatial arrays.
+  maxvalue <- max(maxvalue)
+  minvalue <- min(minvalue)
+  #  }
 
   # Create list of plots.
   kp_list <- list()
 
   # Loop through each of the subjects.
   for (i in plot_who) {
-
-    # Create list of plots for a given subject.
-#    kp_list <- list()
-
     # Loop though genes to plot.
     for (gene in genes) {
 
@@ -95,19 +93,14 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
       }
 
       # Find prediction grid.
-      if(krige_type == 'univ'){
-        predict_grid <- x@gene_krige[[gene]][[i]]$univ_grid
-      }else if(krige_type == 'ord'){
-        predict_grid <- x@gene_krige[[gene]][[i]]$ord_grid
-      }
+      predict_grid = x@gene_krige_data$krige_grid[[i]]
 
       # Create data frame with coordinates and kriging values.
       if(scaled){
-        krige_vals <- (x@gene_krige[[gene]][[i]][[krige_type]]$predict)/maxvalue
+        krige_vals <- (x@gene_krige[[gene]][[i]])/maxvalue
       } else{
-        krige_vals <- x@gene_krige[[gene]][[i]][[krige_type]]$predict
+        krige_vals = x@gene_krige[[gene]][[i]]
       }
-
       df <- dplyr::bind_cols(predict_grid, krige=krige_vals)
       names(df) <- c("x_pos", "y_pos", "krige")
 
@@ -122,15 +115,12 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
       names(bbox) <- c("V1", "V2")
 
       # Create SpatialPolygon object with the bounding box.
-      bbox_sp <- sp::SpatialPolygons(
-        list(sp::Polygons(list(sp::Polygon(bbox)), "id")))
+      bbox_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(bbox)), "id")))
 
       # Create Spatial Polygon with the inner tissue border (concave hull)
-      mask_sp <- sp::SpatialPolygons(
-        list(sp::Polygons(list(sp::Polygon(x@prediction_border[[i]])), "id")))
+      mask_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(x@gene_krige_data$krige_border[[i]])), "id")))
 
-      # Substract the concave hull from the bounding box, yielding a SpatialPolygon
-      # object. The convert to
+      # Substract the concave hull from the bounding box, yielding a SpatialPolygon object.
       bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
 
       # Get spatial statistics.
@@ -153,58 +143,56 @@ plot_gene_krige <- function(x=NULL, genes=NULL, krige_type='ord', plot_who=NULL,
       }
 
       # Construct title.
-      if(krige_type == 'ord'){
-        titlekrige <- paste0(gene, ", subj ", i, " - ordinary kriging\nMorans I=",
-                             moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
-                             getis_est)
-      } else if(krige_type == 'univ'){
-        titlekrige <- paste0(gene, ", subj ", i, " - universal kriging\nMorans I=",
-                             moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=",
-                             getis_est)
-      }
+      titlekrige <- paste0(gene, ", subj ", i, " - ", x@gene_krige_data$krige_type, " kriging\nMorans I=",
+                           moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=", getis_est)
 
       if(purity){
-        tumorstroma_df <- dplyr::bind_cols(x@coords[[i]],
-                                           cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+        tumorstroma_df <- dplyr::bind_cols(x@coords[[i]],ncluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
         kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
                              tumorstroma=tumorstroma_df,
                              leg_name="pred_expr", title_name=titlekrige, minvalue=minvalue,
                              maxvalue=maxvalue, visium=visium)
+        if(!(rlang::is_empty(x@cell_deconv))){
+          # Add a dummy duplicate column (expression values are added to this data frame when quilt plots)
+          df_q = dplyr::bind_cols(x@coords[[i]][,-1],
+                                  cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster,
+                                  cluster2=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+          colnames(df_q) <- c('y_pos', 'x_pos', 'cluster', 'cluster2')
+          qpbw <- quilt_p_purity_bw(data_f=df_q, visium=visium, title_name=paste0('ESTIMATE\ntumor/stroma - subj ', i))
+        } else{
+          stop("No tumor/stroma classification in the STList.")
+        }
+
       } else{
         kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
-                      title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue,
-                      visium=visium)
+                      title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue, visium=visium)
       }
       # Append plot to list.
       kp_list[[paste0(gene, "_", i)]] <- kp
     }
-
-    #     # Define number of columns and rows in plot and size.
-    #     row_col <- c(2, 2)
-    # #    w_pdf=9
-    # #    h_pdf=9
-    #     if(length(genes) == 2){
-    #       row_col <- c(1, 2)
-    # #      w_pdf=9
-    # #      h_pdf=4.5
-    #     }else if(length(genes) == 1){
-    #       row_col <- c(1, 1)
-    # #      w_pdf=7
-    # #      h_pdf=7
-    #     }
-}
-    row_col <- c(1, 1)
-
-    # Test if plot should be saved to PDF.
-    if(saveplot){
-      # Print plots to PDF.
-      pdf(file="gene_krige_spatarray.pdf")
-      print(ggpubr::ggarrange(plotlist=kp_list,
-                              nrow=row_col[1], ncol=row_col[2]))
-      dev.off()
-    } else{
-      # Print plots to console.
-       return(kp_list)
+    if(purity){
+      kp_list[[paste0('subj',i)]] <- qpbw
     }
-#  }
+  }
+  row_col <- c(1, 1)
+
+  # Test if plot should be saved to PDF.
+  if(saveplot){
+    # Print plots to PDF.
+    pdf(file="gene_krige_spatarray.pdf")
+    print(ggpubr::ggarrange(plotlist=kp_list, nrow=row_col[1], ncol=row_col[2]))
+    dev.off()
+  } else{
+    # Convert ggplots to plotly plots.
+    if(inter){
+      for(p in 1:length(kp_list)){
+        kp_list[[p]] = plotly::ggplotly(kp_list[[p]])
+      }
+      return(kp_list)
+    }else{
+      # Print plots to console.
+      return(kp_list)
+    }
+    #  }
+  }
 }

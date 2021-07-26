@@ -1,129 +1,195 @@
 ##
 # @title detect_input: Determine what is being provided to STList
-# @description Detects the input type to the fucntion STList
+# @description Detects the type of input being provided to the fucntion STList.
 # @details
-# This function detects if a list of data frames, a vector with filepaths, or a
-# file with file paths is being provided to the list.
+# This function detects what input is being provided to the STList() function. It
+# also detects the delimiter of the file when relevant. NOTE that the function does
+# minimum checking on the contents of file, limited mostly to detect if file is csv or tsv,
+# or if Visium files are available. Checks are performed on the first element only,
+# and thus other elements could not comply with the format.
 #
-# @param countfiles, the counts input provided to STList.
-# @param coordfiles, the ccoordinates input provided to STList.
-# @return inputtype, a string defining what type of input was provided by the user.
+# @param rnacounts, the counts input provided to STList.
+# @param spotcoords, the coordinates input provided to STList.
+# @param samples, the metadata input provided to STList.
+# @return inputtype, a list containing file types of input arguments.
 #
 #
-detect_input <- function(countfiles=NULL, coordfiles=NULL){
+detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
 
-  inputtype <- NULL
+  # Define output/return variable.
+  # If variable remains NULL, then no valid input was given by the user.
+  inputtype = list()
+  inputtype$rna = NULL
+  inputtype$coords = NULL
+  inputtype$samples = NULL
 
-  # Test that count data and coordinate data was provided.
-  if(!is.null(countfiles) & !is.null(coordfiles)){
-
-    # Test whether both count and coordinate data are lists of data frames.
-    if(inherits(countfiles, 'list') && inherits(coordfiles, 'list')){
-
-      inputtype<- 'is_list'
-      return(inputtype)
-
-      # Test if input is a dataframe count and a dataframe for coordinates.
-    } else if(is.data.frame(countfiles) && is.data.frame(coordfiles)){
-
-      inputtype<- 'is_df'
-      return(inputtype)
-
-      # Test if filepaths was provided.
-    } else if(is.vector(countfiles) & is.vector(coordfiles)){
-
-      if(length(countfiles) != 1 && length(coordfiles) != 1){
-        for(i in 1:length(countfiles)){
-          # Test that a pair of count and coord files exist.
-          if(!(file.exists(countfiles[i]) && file.exists(coordfiles[i]))){
-            stop("Either one of the count files or coordinate files do not exists.")
-          }
-        }
-
-        # Test if file path is a single array or several arrays.
-        count_test <- readLines(countfiles[1]) #, what=character(), quiet=T)
-        coord_test <- readLines(coordfiles[1]) #, what=character(), quiet=T)
-
-        is_tab_count <- grepl("\t", count_test[1])
-        is_tab_coord <- grepl("\t", coord_test[1])
-        is_comma_count <- grepl("^[ A-Za-z0-9]+,[ A-Za-z0-9]+", count_test[1])
-        is_comma_coord <- grepl("^[ A-Za-z0-9]+,[ A-Za-z0-9]+", coord_test[1])
-
-        if(is_tab_count && is_tab_coord){
-          inputtype <- 'is_vector_tsv'
-          return(inputtype)
-        }
-
-        if(is_comma_count && is_comma_coord){
-          inputtype <- 'is_vector_csv'
-          return(inputtype)
-        } else{
-          stop('Both count and coordinate files must have the same delimiter.')
-        }
-
-        return(inputtype)
-
-      } else if(length(countfiles) == 1 && length(coordfiles) == 1){
-        if(file.exists(countfiles) && file.exists(coordfiles)){
-
-          # Test if file path is a single array or several arrays.
-          count_test <- readLines(countfiles)
-          coord_test <- readLines(coordfiles)
-
-          is_tab_count <- grepl("\t", count_test[1])
-          is_tab_coord <- grepl("\t", coord_test[1])
-          is_comma_count <- grepl("^[ A-Za-z0-9]+,[ A-Za-z0-9]+", count_test[1])
-          is_comma_coord <- grepl("^[ A-Za-z0-9]+,[ A-Za-z0-9]+", coord_test[1])
-
-          if(is_tab_count && is_tab_coord){
-            inputtype <- 'is_tsv'
-            return(inputtype)
-          } else if (is_comma_count && is_comma_coord){
-            inputtype <- 'is_csv'
-            return(inputtype)
-          } else{
-            # Get count and coord filepaths and test there is an equal number of both.
-            if(length(count_test) != length(coord_test)){
-              stop("The number of count files is different to the number of coordinate files.")
-            }
-            count_test_single <- readLines(count_test[1])
-            coord_test_single <- readLines(coord_test[1])
-
-            is_tab_count <- grepl("\t", count_test_single[1])
-            is_tab_coord <- grepl("\t", coord_test_single[1])
-            is_comma_count <- grepl("^[ A-Za-z0-9]+,[ A-Za-z0-9]+", count_test_single[1])
-            is_comma_coord <- grepl("^[ A-Za-z0-9]+,[ A-Za-z0-9]+", count_test_single[1])
-
-            if(is_tab_count && is_tab_coord){
-              inputtype <- 'is_several_tsv'
-              return(inputtype)
-            } else if (is_comma_count && is_comma_coord){
-              inputtype <- 'is_several_csv'
-              return(inputtype)
-            } else{
-              stop('Both count and coordinate files must have the same delimiter.')
-            }
-
-          }
-
-        } else{
-          stop('Could not find either the counts file or coordinates file.')
-        }
-
+  # CASE ONLY SAMPLEFILE PROVIDED.
+  # Test if `rnacounts` was not entered and `samples` argument was entered.
+  if(is.null(rnacounts) && !is.null(samples)){
+    # test that `samples` is a single string and a file path.
+    if(length(samples) == 1 && file.exists(samples)){
+      # Read two first lines of file and see if it's csv or tsv.
+      samples_file = readLines(samples, n=2)
+      is_tab_samples = grepl("\t", samples_file[2])
+      is_comma_samples = grepl(",", samples_file[2])
+      # Determine delimiter of file.
+      if(is_tab_samples){
+        del = '\t'
+      } else if(is_comma_samples){
+        del = ','
       } else{
-        stop('The count and coordinate inputs do not have the same number of elements.')
+        stop('Samples file is not comma or tab-delimited')
       }
-
-    } else{
-      stop('Please provide one of these valid input options:\n
-      A. One data frame for counts + one data frame for coordinates.\n
-      B. One path to a file containing counts + one path to a file containing coordinates.\n
-      C. One path to a file with file paths to N count files + one path to a file containing N coordinate files.\n
-      D. One list containing count data frames + one list containing coordinate data frames.')
+      samples_file_path_test = unlist(strsplit(samples_file[2], del))
+      # See if second column is a file path.
+      if(file.exists(samples_file_path_test[2]) && file.exists(samples_file_path_test[3])){
+        inputtype$samples = c('samplesfile_matrices', del)
+      } else if(dir.exists(samples_file_path_test[2]) && !dir.exists(samples_file_path_test[3])){
+        inputtype$samples = c('samplesfile_visium', del)
+      } else(
+        stop('Samples file does not contain file paths or format is not compatible.')
+      )
     }
-
-  } else{
-    stop('Please provide both count and coordinate data.')
   }
 
-}
+  # CASE: NAMED LIST OF DATAFRAMES WITH OR WTHOUTH SAMPLEFILE, OR SAMPLE NAMES.
+  # Test if inputs were entered for both 'rnacounts' and 'spotcoords'.
+  if(!is.null(rnacounts) && !is.null(spotcoords)){
+    # Test that `rnacounts` and `spotcoords` are lists.
+    if(inherits(rnacounts, 'list') && inherits(spotcoords, 'list')){
+      # Test that lists are named.
+      if(!is.null(names(rnacounts)) && !is.null(names(spotcoords))){
+        inputtype$rna = 'list_dfs'
+        inputtype$coords = 'list_dfs'
+        # Test if samples file (metadata) was provided.
+        if(!is.null(samples)){
+          if(length(samples) == 1 && file.exists(samples)){
+            # Read samples file and see which delimiter has.
+            samples_file = readLines(samples, n=2)
+            is_tab_samples = grepl("\t", samples_file[2])
+            is_comma_samples = grepl(",", samples_file[2])
+            # Determine delimiter of file.
+            if(is_tab_samples){
+              del = '\t'
+            } else if(is_comma_samples){
+              del = ','
+            } else{
+              stop('Samples file is not comma or tab-delimited')
+            }
+            inputtype$samples = c('samplesfile', del)
+          }
+        } else{
+          inputtype$samples = 'names_from_list_or_df'
+        }
+      }
+    }
+  }
+
+  # CASE: SINGLE DATA FRAME FOR COUNTS AND SINGLE DATA FRAME FOR COORDINATES.
+  # Test if inputs were entered for both 'rnacounts' and 'spotcoords'.
+  if(!is.null(rnacounts) && !is.null(spotcoords)){
+    # Test if inputs are data frames.
+    if(is.data.frame(rnacounts) && is.data.frame(spotcoords)){
+      inputtype$rna = 'df'
+      inputtype$coords = 'df'
+      inputtype$samples = 'names_from_list_or_df'
+    }
+  }
+
+  # CASE: FILE PATH(S) TO COUNT AND COORDINATE MATRICES, AND SAMPLE NAMES (FILE OR VECTOR).
+  # Test that there is an input for both `rnacounts` and `spotcoords`.
+  if(!is.null(rnacounts) && !is.null(spotcoords) && !is.null(samples)){
+    # Test that the first (or only) element of input vector exist, and input is not list or a directory.
+    if(!is.list(rnacounts[1]) || !is.list(spotcoords[1])){
+      # Determine what was entered as `samples`.
+      if(length(samples) == 1 && file.exists(samples)){
+        # Read samples file and see which delimiter has.
+        samples_file = readLines(samples, n=2)
+        is_tab_samples = grepl("\t", samples_file[2])
+        is_comma_samples = grepl(",", samples_file[2])
+        # Determine delimiter of file.
+        if(is_tab_samples){
+          del = '\t'
+        } else if(is_comma_samples){
+          del = ','
+        } else{
+          stop('Samples file is not comma or tab-delimited')
+        }
+        inputtype$samples = c('samplesfile', del)
+      } else if(length(samples) == length(rnacounts)){ # Check that sample names were entered instead samplefile.
+        inputtype$samples = 'sample_names'
+      } else{
+        stop('Number of sample names do not match number of RNA counts tables.')
+      }
+
+
+      if(file.exists(rnacounts[1]) && file.exists(spotcoords[1]) && !dir.exists((rnacounts[1]))){
+        if(length(rnacounts) == length(spotcoords)){
+          # Read first `rnacounts` and `spotcoords` to detect delimiters.
+          rna_file = readLines(rnacounts[1], n=2)
+          coord_file = readLines(spotcoords[1], n=2)
+          is_tab_rna = grepl("\t", rna_file[2])
+          is_comma_rna = grepl(",", rna_file[2])
+          is_tab_coord = grepl("\t", coord_file[2])
+          is_comma_coord = grepl(",", coord_file[2])
+          # Determine delimiter of first `rnacounts` file.
+          if(is_tab_rna){
+            del = '\t'
+          } else if(is_comma_rna){
+            del = ','
+          } else{
+            stop('RNA counts file is not comma or tab-delimited')
+          }
+          # Determine delimiter of first `spotcoords` file.
+          if(is_tab_coord){
+            del = '\t'
+          } else if(is_comma_coord){
+            del = ','
+          } else{
+            stop('Coordinates file is not comma or tab-delimited')
+          }
+          inputtype$rna = c('rnapath', del)
+          inputtype$coords = c('coordpath', del)
+        }
+      }
+    }
+  }
+
+  # CASE: FILE PATHS TO VISIUM DIRECTORIES.
+  # Test that `rnacounts` were provided and first element is a directory.
+  if(!is.null(rnacounts) && is.null(spotcoords) && !is.null(samples)){
+    if(dir.exists(rnacounts[1])){
+      # Check that dirctory contains an element with name matching 'filtered_feature_bc'.
+      visium_check = list.files(rnacounts[1], pattern='filtered_feature_bc', recursive=T, include.dirs=T)
+      if(!(rlang::is_empty(visium_check))){
+        inputtype$rna = 'visium_out'
+      }
+    } else{
+      stop('If intended input is a Visium output, could not find directory path.')
+    }
+
+    # Determine what was entered as `samples`.
+    if(length(samples) == 1 && file.exists(samples)){
+      # Read samples file and see which delimiter has.
+      samples_file = readLines(samples, n=2)
+      is_tab_samples = grepl("\t", samples_file[2])
+      is_comma_samples = grepl(",", samples_file[2])
+      # Determine delimiter of file.
+      if(is_tab_samples){
+        del = '\t'
+      } else if(is_comma_samples){
+        del = ','
+      } else{
+        stop('Samples file is not comma or tab-delimited')
+      }
+      inputtype$samples = c('samplesfile', del)
+    } else if(length(samples) == length(rnacounts)){
+      inputtype$samples = 'sample_names'
+    } else{
+      stop('Number of sample names do not match number of Visium output folders.')
+    }
+  }
+
+  return(inputtype)
+
+} # CLOSE FUNCTION

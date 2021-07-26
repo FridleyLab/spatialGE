@@ -8,10 +8,15 @@
 #' The results are stored witin the STList. The method ESTIMATE is automatically
 #' applied regardless of the selected method.
 #'
-#' @param x, an STList with normalized count matrices. If 'none', only ESTIMATE is
+#' @param x an STList with normalized count matrices. If 'none', only ESTIMATE is
 #' applied.
-#' @param method, the name of the method to deconvolute data. As of now, only xCell is supported.
-#' @return x, an updated STList with deconvolution scores.
+#' @param method the name of the method to deconvolute data. As of now, only xCell is supported.
+#' @return x an updated STList with deconvolution scores.
+#'
+#' @examples
+#' # In this example, melanoma is an STList.
+#' melanoma <- spatial_deconv(melanoma, method='xcell')
+#'
 #' @export
 #
 #

@@ -4,46 +4,75 @@
 \alias{STList}
 \title{STList: Creation of STList objects}
 \usage{
-STList(countfiles = NULL, coordfiles = NULL, clinical = NULL)
+STList(rnacounts = NULL, spotcoords = NULL, samples = NULL, filterMT = T)
 }
 \arguments{
-\item{countfiles, }{the path of a file containing file paths (one per line) of the
-count data files. Count files must be tab-separated.}
+\item{rnacounts}{The count data which can be provided in one of these formats:
+\itemize{
+\item File paths to comma- or tab-delimited files containing raw RNA counts, one
+for each spatial array. Thye first column contain gene names with no duplicates allowed.
+Isoforms can be provided as part of the gene names. Subsequent columns contain data for
+each spot.
+\item File paths to Visium output folders (one per spatial array) can be provided.
+\item One named list of data frames with raw RNA counts (one data frame per spatial array).
+\item One data frame with raw RNA counts. This option does not support sample data.
+}}
 
-\item{clinical, }{the file path of a file containing a table with clinical/phenotype
-variables associated with the spatial arrays. The order of rows must match that of
-the count and coordinate file paths. the first column is the user-defined ID of the
-arrays.}
+\item{spotcoords}{The spot coordinates which can be provided in one of these formats:
+\itemize{
+\item File paths to comma- or tab-delimited files containing spot coordinates, one
+for each spatial array. The files must contain three columns: spot IDs, y positions, and
+x positions. The spot IDs must match the column names for each spot (column) in the RNA count files.
+\item One named list of data frames with spot coordinates. The list names must match list
+names of the RNA counts list.
+\item One data frame with spot coordinates.
+}}
 
-\item{coords, }{the path of a file containing file paths (one per line) of the
-coordinate data files. Coordinate files must be tab-separated.}
+\item{samples}{The data associated to each spatial array. This file can also include
+system paths to RNA count and spot coordinate without the need to specify \code{rnacounts}
+and \code{spotcoords}. One of the following options must be entered to create an STList:
+\itemize{
+\item A vector with sample names, which will be used to partial match RNA count and
+spot coordinates file paths. A sample name must not match two file paths.
+\item A sample file containing meta data for each spatial array. This file is a comma-
+or tab-separated file with sample names in the first column. Paths to RNA count and
+coordinate files can be in the second and third column respectively, and omiting the
+\code{rnacounts} and \code{spotcoords} arguments. If Visium, only the second column with paths to
+output folders is expected. Subsequent columns can contain variables associated to each
+spatial array.
+}}
+
+\item{filterMT}{Logical. Whether or not to filtet mtDNA genes in Visium outputs.}
 }
 \value{
 x, the STList object containing the counts and coordinates, and optionally
-the clinical data.
+the sample metadata.
 }
 \description{
-Creates an STList object.
+Creates an STList object from one or several spatial transcriptomic experiments.
 }
 \details{
-This function takes raw RNA counts and coordinates of those RNA counts from an
-spatial transcriptomics array. The function can take these inputs in several
-ways:
+Objects of the class STList can be created from two sources:
+\itemize{
+\item Raw RNA counts (genes in rows, spots in columns) and spot coordinates (spots
+in rows, with three columns: spot IDs, y position, and x position).
+\item Visium output folders from Space Ranger. The folder should have the
+structure resulting from spaceranger count.
+}
+Optionally, the user can input a system path to a table with data associated to
+each spatial array (e.g., clinical variables). This sample file should contain
+sample IDs in the first column matching at least partially the file names of the
+count/coordinate files or Visium directories. The function will read data in
+parallel if unix system available (Windows users will experience longer times
+depending on the size of the data set)
+}
+\examples{
+# Using included melanoma example (Thrane et al.)
+data_files <- system.file("extdata", package="spatialGEdev")
+count_files <- grep("genes", data_files, value=T)
+coord_files <- grep("mapping", data_files, value=T)
+clin_file <- grep("clinical", data_files, value=T)
+melanoma <- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+melanoma
 
-A. One data frame for counts + one data frame for coordinates.
-B. One path to a file containing counts + one path to a file containing coordinates.
-C. One path to a file with file paths to N count files + one path to a file containing N coordinate files.
-D. One list containing count data frames + one list containing coordinate data frames.
-
-The files containing the counts must have gene names in the first column and
-counts from sampled localities in subsequent columns. The coordinate files must
-have a first column containing the same identifiers of the sampled locations as in
-the corresponding count file, and y, x (rows, columns) positions of the spots in
-the next two columns. The coordinate data must have headers. The function returns an
-STList object to be used in later analyses with spatialGE. Additionally, the
-function can also take a comma separated file with clinical or phenotype
-data from the samples. This clinical file has data for each array (in the same
-order as the count and coordinate file paths), and the first row has names of
-clinical variables. The first column contains the user-defined array IDs. The
-function will read data in parallel if unix system available.
 }

@@ -10,34 +10,52 @@ deconv_krige(
   univ = F,
   res = NULL,
   who = NULL,
-  method = "xcell"
+  method = "xcell",
+  python = T
 )
 }
 \arguments{
-\item{x, }{an STList with transformed xCell scores.}
+\item{x}{an STList with transformed xCell scores.}
 
-\item{cells, }{a vector of cell names or 'top'. If 'top' (default), kriging for the 10
-cells with highest standard deviation is estimated.}
+\item{cells}{a vector of cell names or 'top'. If 'top' (default), kriging is
+estimated for the 10 cells with highest standard deviation for each spatial arrays.}
 
-\item{univ, }{a logical stating whether or not to perform universal or ordinary kriging.
+\item{univ}{a logical stating whether or not to perform universal kriging.
 Default is FALSE (ordinary kriging).}
 
-\item{res, }{a double to adjust the resolution of the plot. Fractions of 1 lead to
-more resolution. Default is res=0.2.}
+\item{res}{a double to adjust the resolution of the plot. Fractions of 1 lead to
+more resolution, but longer run times. Default is 0.5 for Visium ST arrays.}
 
-\item{who, }{the spatial arrays for which kriging will be performed. If NULL (Default),
+\item{who}{the spatial arrays for which kriging will be performed. If NULL (Default),
 all arrays are kriged.}
+
+\item{method}{the method from which deconvolution scores will be taken from. The
+default is 'xCell' and the only method supported (for now).}
+
+\item{python}{a logical, whether or not to use the Python implementation. If FALSE,
+geoR is used.}
 }
 \value{
 x, an STList including spatial interpolations.
 }
 \description{
 Performs spatial interpolation ('kriging') of cell scores from
-gene expression deconvolution in spatially-resolved transcriptomics data.
+gene expression deconvolution scores.
 }
 \details{
-This function takes a STList and a vector of xCell cell names, or the token 'top' for
-the 10 cells with the highest standard deviation. It also calculates spatial heterogeneity
-statistics for the cell scores. The function can perform ordinary or universal kriging.
-The result can be plotted using the plot_deconv_krige() function.
+This function takes a STList and a vector of xCell cell names and generates an
+spatial interpolation ("kriging") of deconvoluted cell scores. It also calculates
+spatial heterogeneity statistics. The function can perform ordinary or universal kriging.
+If cells='top', then the 10 cell types with the highest standard deviation for each
+tissue array are interpolated. The function supports kriging via the Python package
+PyKrige or geoR. The first option is faster but requires a Python environment to be
+set up.
+}
+\examples{
+# In this example, melanoma is an STList.
+melanoma <- deconv_krige(melanoma, cells=c('b_cells', 'i_dc'), who=2, python=F)
+
+# Running python implementation on the most variable cell types.
+melanoma <- deconv_krige(melanoma, cells='top', who=2, python=T)
+
 }

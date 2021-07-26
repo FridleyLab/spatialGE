@@ -1,38 +1,36 @@
 ##
-#' @title importVisium: Reads Visium outputs and produce an STList.
-#' @description Reads files in the output folder of a Visium run, and returns an
-#' STList for downstream analysis with spatialGE.
-#' @details
-#' The function takes as an argument the path to an 'outs'  folder of a Visium run.
-#' It reads the data and converts it into an STList, which can be used in downstrean
-#' analysis with spatialGE. Optionally, the function can also output the count and
-#' coordinates files.
-#'
-#' @param visiumfp, the file path to an 'outs' folder from a Visium run.
-#' @param filterMT, logical, whether or not to filter mtDNA genes. Filters out gene names
-#' beginning with 'MT-'. Defaults to TRUE.
-#' @param savefiles, logical, whether or not to save the counts and coordinate files.
-#' The files are saved as 'visium_counts.txt' and visium_coords.txt'. Defaults to TRUE.
-#' @param stlist, logical, whther or not return an STList.
-#' @return x, an STList with the Visium counts and coordinates.
-#' @export
+# @title importVisium: Reads Visium outputs and produce an STList.
+# @description Reads files in the output folder of a Visium run, and returns an
+# STList for downstream analysis with spatialGE.
+# @details
+# The function takes as an argument the path to an 'outs'  folder of a Visium run.
+# It reads the data and converts it into an STList, which can be used in downstrean
+# analysis with spatialGE. Optionally, the function can also output the count and
+# coordinates files.
+#
+# @param features_fp File path to the features.tsv.gz file.
+# @param barcodes_fp File path to the barcodes.tsv.gz file.
+# @param counts_fp File path to the matrix.mtx.gz file.
+# @param coords_fp File path to the tissue_positions_list.csv file.
+# @param filterMT, logical, whether or not to filter mtDNA genes. Filters out gene names
+# beginning with 'MT-'. Defaults to TRUE.
+# @param savefiles, logical, whether or not to save the counts and coordinate files.
+# The files are saved as 'visium_counts.txt' and visium_coords.txt'. Defaults to TRUE.
+# @param stlist, logical, whether or not return an STList.
+# @return x, an STList with the Visium counts and coordinates.
 #
 #
-importVisium <- function(visiumfp=NULL, filterMT=T, savefiles=T, stlist=T){
-  features_fp <- paste0(visiumfp, "/filtered_feature_bc_matrix/features.tsv.gz")
-  barcodes_fp <- paste0(visiumfp, "/filtered_feature_bc_matrix/barcodes.tsv.gz")
-  counts_fp <- paste0(visiumfp, "/filtered_feature_bc_matrix/matrix.mtx.gz")
-  coords_fp <-  paste0(visiumfp, "/spatial/tissue_positions_list.csv")
+import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL, filterMT=T, savefiles=F, stlist=F){
 
-  features_df <- readr::read_delim(features_fp, delim="\t", col_names=F, col_types=readr::cols())
+  features_df <- readr::read_delim(features_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
   names(features_df) <- c('emsb', 'gene', 'dtype')
   features_df <- tibble::add_column(features_df, feat_n=as.character(1:nrow(features_df)), .before=1)
 
-  barcodes_df <- readr::read_delim(barcodes_fp, delim="\t", col_names=F, col_types=readr::cols())
+  barcodes_df <- readr::read_delim(barcodes_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
   barcodes_df <- tibble::add_column(barcodes_df, spot_n=as.character(1:nrow(barcodes_df)), .before=1)
   names(barcodes_df) <- c('spot_n', 'barcode')
 
-  coords_df <- readr::read_delim(coords_fp, delim=",", col_names=F, col_types=readr::cols())
+  coords_df <- readr::read_delim(coords_fp, delim=",", col_names=F, col_types=readr::cols(), progress=F)
   spot_name <- c()
   for(i in 1:nrow(coords_df)){
     spot_name <- append(spot_name, paste0('y', coords_df$X3[i], 'x', coords_df$X4[i]))
@@ -40,12 +38,8 @@ importVisium <- function(visiumfp=NULL, filterMT=T, savefiles=T, stlist=T){
   coords_df$spotname <- spot_name
   names(coords_df) <- c('barcode', 'intissue', 'array_row', 'array_col', 'pxlcol', 'pxlrow', 'spotname')
 
-  counts_df <- readr::read_delim(counts_fp, delim=" ", col_names=F, skip=3, col_types="ccd")
+  counts_df <- readr::read_delim(counts_fp, delim=" ", col_names=F, skip=3, col_types="ccd", progress=F)
 
-  #ngenes <- as.integer(counts_df[1, 1])
-  #nspots <- as.integer(counts_df[1, 2])
-
-  #counts_df <- counts_df[-1, ]
   names(counts_df) <- c('feat_n', 'spot_n', 'counts')
 
   counts_all_df <- dplyr::inner_join(features_df, counts_df, by='feat_n')
@@ -99,6 +93,9 @@ importVisium <- function(visiumfp=NULL, filterMT=T, savefiles=T, stlist=T){
     source('~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R/STList.R')
     x <- STList(countfiles = tmp_ctsfp, coordfiles = tmp_cdsfp)
     return(x)
+  } else{
+    visium_list = list(rawcounts=rawcounts_df, coords=spotcoords_df)
+    return(visium_list)
   }
 
 }

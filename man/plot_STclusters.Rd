@@ -13,18 +13,19 @@ plot_STclusters(
 )
 }
 \arguments{
-\item{x, }{an STList with hierarchical cluster memberships.}
+\item{x}{an STList with hierarchical cluster memberships.}
 
-\item{plot_who, }{an integer indicating the spatial array(s) to be plotted.}
+\item{plot_who}{an integer indicating the spatial array(s) to be plotted.}
 
-\item{purity, }{logical, whether or not annotate tumor/stroma.}
+\item{purity}{logical, whether or not annotate tumor/stroma.}
 
-\item{color_pal, }{a scheme from 'khroma'. Default is 'light'.}
+\item{color_pal}{a string of a color palette from khroma or RColorBrewer, or a
+vector with colors with enough elements to plot categories.}
 
-\item{visium, }{whether or not to reverse axes for Visium slides.}
+\item{visium}{whether or not to reverse axes for Visium slides.}
 }
 \value{
-plot_list, a list with the requested plots.
+a list with the requested plots.
 }
 \description{
 Generates a plot of the location of spots within an spatial array,
@@ -34,4 +35,9 @@ and colors them according to spatially-weighted hierarchical clustering assignme
 The function takes an STList with cluster memberships and plots the spots with
 colors indicating the cluster they belong to. Optionally, the user can annotate
 tumor/stroma compartments if ESTIMATE scores are available.
+}
+\examples{
+# In this example, melanoma is an STList.
+cluster_p <- plot_STclusters(melanoma, purity=T, plot_who=c(2,3), visium=F)
+
 }

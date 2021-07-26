@@ -1,18 +1,17 @@
 ##
-#' @title cell_getis_Gi
-#' @description Calculates Getis-Ord Gi C from cell deconvolution scores in ST data.
-#' @details
-#' This function takes an STList and a vector with cell names (from xCell, for
-#' example) and returns Getis-Ord Gi for each element of the vector.
-#'
-#' @param x, an STList with deconvoluted cell data.
-#' @param cells, a vector of cell names present in the deconvolution matrix.
-#' @param subj, an integer indicating the spatial array for which the statistic
-#' will be calculated.
-#' @param method, the deconvolutionn method to used estimate the cell scores.
-#' @return x, a STList including the values corresponding to Getis-Ord Gi for each
-#' cell in cells.
-#' @export
+# @title cell_getis_Gi
+# @description Calculates Getis-Ord Gi C from cell deconvolution scores in ST data.
+# @details
+# This function takes an STList and a vector with cell names (from xCell, for
+# example) and returns Getis-Ord Gi for each element of the vector.
+#
+# @param x, an STList with deconvoluted cell data.
+# @param cells, a vector of cell names present in the deconvolution matrix.
+# @param subj, an integer indicating the spatial array for which the statistic
+# will be calculated.
+# @param method, the deconvolutionn method to used estimate the cell scores.
+# @return x, a STList including the values corresponding to Getis-Ord Gi for each
+# cell in cells.
 #
 #
 cell_getis_Gi <- function(x=NULL, cells=NULL, subj=NULL, method='xcell') {

@@ -4,33 +4,54 @@
 \alias{gene_krige}
 \title{gene_krige: Spatial interpolation of gene expression}
 \usage{
-gene_krige(x = NULL, genes = "top", univ = F, res = NULL, who = NULL)
+gene_krige(
+  x = NULL,
+  genes = "top",
+  univ = F,
+  res = NULL,
+  who = NULL,
+  python = T
+)
 }
 \arguments{
-\item{x, }{an STList with normalized counts}
+\item{x}{an STList with transformed RNA counts.}
 
-\item{genes, }{a vector of HUGO names or 'top'. If 'top' (default), kriging for the 10
-genes with highest standard deviation is estimated.}
+\item{genes}{a vector of HUGO names or 'top'. If 'top' (default), kriging of
+the 10 genes with highest standard deviation in each spatial array is estimated.}
 
-\item{univ, }{a logical stating whether or not to perform universal kriging.
-The default is FALSE, meaning that ordinary kriging will be performed.}
+\item{univ}{a logical stating whether or not to perform universal kriging.
+Default is FALSE (ordinary kriging).}
 
-\item{res, }{a double to adjust the resolution of the plot. Fractions of 1 lead to
-more resolution. Default is res=0.2.}
+\item{res}{a double to adjust the resolution of the plot. Fractions of 1 lead to
+more resolution, but longer run times. Default is 0.5 for Visium ST arrays.}
 
-\item{who, }{the spatial arrays for which krginig will be performed. If NULL (Default),
+\item{who, }{the spatial arrays for which kriging will be performed. If NULL (Default),
 all arrays are kriged.}
+
+\item{python}{a logical, whether or not to use the Python implementation. If FALSE,
+geoR is used.}
 }
 \value{
 x, a STList including spatial interpolations.
 }
 \description{
-Performs spatial interpolation ('kriging') of normalized gene
+Performs spatial interpolation ('kriging') of transformed gene
 counts in spatially-resolved transcriptomics data.
 }
 \details{
-This function takes a STList and a vector of gene names, or the token 'top' for the 10
-genes with the highest standard deviation. It also calculates spatial heterogeneity
-statistics for the genes counts. The function can perform ordinary or universal kriging.
-The result can be plotted using the plot_gene_krige() function.
+This function takes a STList and a vector of gene names and generates spatial
+interpolation of gene expression values. It also calculates spatial heterogeneity
+statistics. The function can perform ordinary or universal kriging. If genes='top',
+then the 10 genes  with the highest standard deviation for each tissue array are
+interpolated. The function supports kriging via the Python package PyKrige or
+geoR. The first option is faster but requires a Python environment to be set up.
+}
+\examples{
+# In this example, melanoma is an STList.
+# Kriging of spatial arrays 2 and 3 for 2 genes.
+melanoma <- gene_krige(melanoma, genes=c('CD74', 'SOX10'), who=c(2, 3), python=F)
+
+#' # Kriging of spatial array 1 for the 10 most variable genes and using the Python implementation.
+melanoma <- gene_krige(melanoma, genes='top', who=1, python=T)
+
 }

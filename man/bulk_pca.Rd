@@ -7,19 +7,24 @@
 bulk_pca(x = NULL, clinvar = NULL, color_pal = "muted")
 }
 \arguments{
-\item{x, }{an STList.}
+\item{x}{an STList.}
 
-\item{clinvar, }{a string indicating the name of the variable in the clinical
-data frame.}
+\item{clinvar}{a string indicating the name of the variable in the clinical data.}
 
-\item{color_pal, }{a string of a color palette from khroma.}
+\item{color_pal}{a string of a color palette from khroma or RColorBrewer, or a
+vector with colors with enough elements to plot categories.}
 }
 \description{
 Perform and plot a PCA of simulated bulk RNA-Seq from spatial
 transcriptomics data.
 }
 \details{
-This function takes an STList, and optionally the name of a clinical variable,
-and performs PCA on simulated bulk RNA-Seq from ST data. The counts are simulated
+This function takes an STList, and optionally the name of a clinical or sample-associated
+variable, and performs PCA on simulated bulk RNA-Seq from ST data. The counts are simulated
 by summing all counts from an array for each gene.
+}
+\examples{
+# In this example, melanoma is an STList.
+bulk_pca(melanoma, clinvar='gender')
+
 }

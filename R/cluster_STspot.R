@@ -1,26 +1,39 @@
 ##
-#' @title cluster_STspot: Detect spot clusters on ST arrays
-#' @description Perform spatially-informed hierarchical clustering of spots within a
-#' spatial array using a genetic distance matrix weighted by spatial distances.
+#' @title cluster_STspot: Detect clusters on ST arrays
+#' @description Perform unsupervised spatially-informed clustering on the spots of an
+#' spatial array.
 #' @details
 #' The function takes an STList and performs PCA on the gene expression data, then
 #' calculates euclidean distances of the PCs and spatial distances. Weighted averages
 #' between the two distances are calculated to perform hierarchical clustering. The
 #' user can define how much weight the spatial distance should have (values
-#' between 0.05 to 0.25 work reasonably well).
+#' between 0.05 to 0.25 work reasonably well). The method aims to detect compartments
+#' within a tissue.
 #'
-#' @param x, an STList with normalized expression data.
-#' @param weights, a double [0-1] indicating the weight to be applied to spatial
-#' distances.
-#' @param pcs, the number of principal components (PCs) to retain.
-#' @param method, the linkage method applied to hierarchical clustering. It is passed
+#' @param x an STList with normalized expression data.
+#' @param weights a double [0-1] indicating the weight to be applied to spatial distances.
+#' Defaults to w=0.1.
+#' @param pcs the number of principal components (PCs) to retain.
+#' @param vperc the minimum percentage of explained variance explained by the PCs to
+#' decide how many of them to retain.
+#' @param method the linkage method applied to hierarchical clustering. It is passed
 #' to `hclust` and defaults to 'ward.D'.
-#' @param ks, the range of k values to assess. Defaults to `dtc`, meaning `cutreeDynamic`
+#' @param ks the range of k values to assess. Defaults to `dtc`, meaning `cutreeDynamic`
 #' is applied.
-#' @param spotfilter, the number of genes with more than zero counts for a spot to be
-#' included in the clustering analysis. The lower this number, the slower the analysis.
-#' @param topgenes, the number of high spot-to-spot standard deviation to retain before PCA.
+#' @param spotfilter the number of genes with more than zero counts for a spot to be
+#' included in the clustering analysis. The lower this number, the slower the analysis. If
+#' spotfilter=0, all spots are retained.
+#' @param topgenes the number of high spot-to-spot standard deviation to retain before PCA.
 #' @return x, the STList with cluster assignments.
+#'
+#' @examples
+#' # In this example, melanoma is an STList.
+#' # Using Dynamic Tree Cuts:
+#' melanoma <- cluster_STspot(melanoma, ks='dtc', weights=0.1)
+#'
+#' # Using a range of ks:
+#' melanoma <- cluster_STspot(melanoma, ks=c(2:6), weights=0.1)
+#'
 #' @export
 #
 #
@@ -34,9 +47,21 @@ cluster_STspot <- function(x=NULL, weights=0.1, pcs=NULL, vperc=NULL, method='wa
   }
 
   if(is.numeric(ks)){
-    if(ks < 2){
+    if(any(ks < 2)){
       stop('Refusing to generate < 2 clusters.')
     }
+  }
+
+
+  if(is.null(vperc) && is.null(pcs)){
+    cat('Using vperc = 0.8\n')
+    vperc <- 0.8
+  }
+
+  if(!is.null(vperc) && !is.null(pcs)){
+    cat('Both number of retained PCs and explanined variance specified. Using specified vperc\n')
+    vperc <- 0.8
+    pcs <- NULL
   }
 
   grp_list <- list()
@@ -70,17 +95,6 @@ cluster_STspot <- function(x=NULL, weights=0.1, pcs=NULL, vperc=NULL, method='wa
     voom_pcs <- prcomp(A, scale=TRUE)
     voom_pcs_var <- summary(voom_pcs)
     voom_pcs_var <- as.vector(voom_pcs_var$importance[3, ])
-
-    if(is.null(vperc) && is.null(pcs)){
-      cat('Using vperc = 0.8\n')
-      vperc <- 0.8
-    }
-
-    if(!is.null(vperc) && !is.null(pcs)){
-      cat('Both number of retained PCs and explanined variance specified. Using specified vperc\n')
-      vperc <- 0.8
-      pcs <- NULL
-    }
 
     if(!is.null(vperc)){
       vperc_mask <- voom_pcs_var < vperc
