@@ -33,6 +33,7 @@ Imports:
 	magrittr,
 	mclust,
 	parallel,
+	plotly,
 	progress,
 	raster,
 	RColorBrewer,

@@ -68,11 +68,11 @@ depending on the size of the data set)
 }
 \examples{
 # Using included melanoma example (Thrane et al.)
-data_files <- system.file("extdata", package="spatialGEdev")
-count_files <- grep("genes", data_files, value=T)
-coord_files <- grep("mapping", data_files, value=T)
-clin_file <- grep("clinical", data_files, value=T)
-melanoma <- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
-melanoma
+# data_files <- system.file("extdata", package="spatialGEdev")
+# count_files <- grep("genes", data_files, value=T)
+# coord_files <- grep("mapping", data_files, value=T)
+# clin_file <- grep("clinical", data_files, value=T)
+# melanoma <- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+# melanoma
 
 }

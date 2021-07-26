@@ -14,6 +14,7 @@ setClass("STList", slots=list(counts="list",
                               cell_krige="list",
                               gene_krige_data="list",
                               deconv_krige_data="list",
-                              st_clusters="list"
+                              st_clusters="list",
+                              pheno_plots="list"
 ),
 )

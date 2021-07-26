@@ -25,6 +25,6 @@ by summing all counts from an array for each gene.
 }
 \examples{
 # In this example, melanoma is an STList.
-bulk_pca(melanoma, clinvar='gender')
+# bulk_pca(melanoma, clinvar='gender')
 
 }

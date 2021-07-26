@@ -15,7 +15,7 @@
 #'
 #' @examples
 #' # In this example, melanoma is an STList.
-#' melanoma <- spatial_deconv(melanoma, method='xcell')
+#' # melanoma <- spatial_deconv(melanoma, method='xcell')
 #'
 #' @export
 #

@@ -26,7 +26,7 @@
 #'
 #' @examples
 #' # In this example, melanoma is an STList.
-#' qplots <- plot_deconv_quilt(melanoma, genes='b_cells', plot_who=2, purity=T, visium=F, inter=T)
+#' # qplots <- plot_deconv_quilt(melanoma, genes='b_cells', plot_who=2, purity=T, visium=F, inter=T)
 #'
 #' @export
 #

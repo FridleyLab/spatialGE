@@ -16,7 +16,7 @@
 #'
 #' @examples
 #' # In this example, melanoma is an STList.
-#' melanoma <- voom_norm(melanoma)
+#' # melanoma <- voom_norm(melanoma)
 #'
 #' @export
 #

@@ -15,11 +15,11 @@
 #' @param cell the name of the cell type to plot.
 #' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
 #' vector with colors with enough elements to plot categories.
-#' @return a list with three plots.
+#' @return an STList containing the plots.
 #'
 #' @examples
 #' # In this example, melanoma is an STList.
-#' pheno_p <- plot_phenovar(melanoma, phenovar='survival_months', gene='CD74')
+#' # pheno_p <- plot_phenovar(melanoma, phenovar='survival_months', gene='CD74')
 #'
 #' @export
 #
@@ -70,8 +70,11 @@ plot_phenovar <- function(x=NULL, phenovar=NULL, gene=NULL, cell=NULL, color_pal
   # Loop through count matrices in STList
   for(i in 1:length(x@counts)){
 
-    if(!any(x@voom_counts[[i]][[1]] == gene)){
-      cat(paste("\n", gene, "is not a gene in the normalized count matrix of array ", i, ".\n"))
+    if(!is.null(gene) && !any(x@voom_counts[[i]][[1]] == gene)){
+      cat(paste("\n", gene, "is not a gene in the transformed count data for sample ", i, ".\n"))
+      next
+    } else if(!is.null(cell) && !any(x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell)){
+      cat(paste("\n", cell, "is not a deconvoluted cell type in the STList for sample ", i, ".\n"))
       next
     } else{
 
@@ -167,5 +170,16 @@ plot_phenovar <- function(x=NULL, phenovar=NULL, gene=NULL, cell=NULL, color_pal
 
   plist <- list(moran_p, geary_p, getis_p)
 
-  return(plist)
+  # Store plot in STList
+  if(!is.null(gene)){
+    x@pheno_plots[[gene]] = plist
+  } else if(!is.null(cell)){
+    x@pheno_plots[[cell]] = plist
+  }
+
+  # Print plot.
+  multiplist = ggpubr::ggarrange(plotlist=plist, ncol=3, common.legend=T, legend='bottom')
+  print(multiplist)
+
+  return(x)
 }

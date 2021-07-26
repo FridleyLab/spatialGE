@@ -317,8 +317,8 @@ To explore the relationship between a clinical variable of interest and the
 level of gene expression uniformity within a tissue section, we can use the 
 function `plot_phenovar()`:
 ```{r clinplot_chunk, fig.width=10, fig.height=3}
-pheno_p <- plot_phenovar(melanoma, phenovar='survival_months', gene='CD74')
-ggpubr::ggarrange(plotlist=pheno_p, nrow=1, ncol=3, common.legend=T, legend='bottom')
+melanoma <- plot_phenovar(melanoma, phenovar='survival_months', gene='CD74')
+ggpubr::ggarrange(plotlist=melanoma@pheno_plots$CD74, nrow=1, ncol=3, common.legend=T, legend='bottom')
 ```
 
 In the case of the gene CD74, an immune gene, samples with a less uniform expression

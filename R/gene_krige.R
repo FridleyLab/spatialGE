@@ -29,7 +29,7 @@
 #' melanoma <- gene_krige(melanoma, genes=c('CD74', 'SOX10'), who=c(2, 3), python=F)
 #'
 #' #' # Kriging of spatial array 1 for the 10 most variable genes and using the Python implementation.
-#' melanoma <- gene_krige(melanoma, genes='top', who=1, python=T)
+#' # melanoma <- gene_krige(melanoma, genes='top', who=1, python=T)
 #'
 #' @export
 #

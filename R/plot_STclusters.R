@@ -17,7 +17,7 @@
 #'
 #' @examples
 #' # In this example, melanoma is an STList.
-#' cluster_p <- plot_STclusters(melanoma, purity=T, plot_who=c(2,3), visium=F)
+#' # cluster_p <- plot_STclusters(melanoma, purity=T, plot_who=c(2,3), visium=F)
 #'
 #' @export
 #

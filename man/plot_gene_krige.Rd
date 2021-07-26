@@ -45,6 +45,6 @@ spatial arrays.
 }
 \examples{
 # In this example, melanoma is an STList.
-kplots <- plot_gene_krige(melanoma, genes=c('CD74', 'SOX10'), plot_who=3, visium=F)
+# kplots <- plot_gene_krige(melanoma, genes=c('CD74', 'SOX10'), plot_who=3, visium=F)
 
 }

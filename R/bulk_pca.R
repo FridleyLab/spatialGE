@@ -14,7 +14,7 @@
 #'
 #' @examples
 #' # In this example, melanoma is an STList.
-#' bulk_pca(melanoma, clinvar='gender')
+#' # bulk_pca(melanoma, clinvar='gender')
 #'
 #' @export
 #

@@ -50,6 +50,6 @@ from ESTIMATE deconvolution results.
 }
 \examples{
 # In this example, melanoma is an STList.
-qplots <- plot_gene_quilt(melanoma, genes='CD74', plot_who=2, purity=T, visium=F)
+# qplots <- plot_gene_quilt(melanoma, genes='CD74', plot_who=2, purity=T, visium=F)
 
 }

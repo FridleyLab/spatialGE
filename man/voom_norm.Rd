@@ -27,6 +27,6 @@ The function works on parallel using "forking" (not in Windows OS).
 }
 \examples{
 # In this example, melanoma is an STList.
-melanoma <- voom_norm(melanoma)
+# melanoma <- voom_norm(melanoma)
 
 }

@@ -26,7 +26,7 @@ data frame. If NULL, uses sample}
 vector with colors with enough elements to plot categories.}
 }
 \value{
-a list with three plots.
+an STList containing the plots.
 }
 \description{
 Plots the value of a sample/clinical variable against the spatial
@@ -40,6 +40,6 @@ and Getis-Ord Gi values of a gene.
 }
 \examples{
 # In this example, melanoma is an STList.
-pheno_p <- plot_phenovar(melanoma, phenovar='survival_months', gene='CD74')
+# pheno_p <- plot_phenovar(melanoma, phenovar='survival_months', gene='CD74')
 
 }

@@ -31,7 +31,7 @@
 #' melanoma <- deconv_krige(melanoma, cells=c('b_cells', 'i_dc'), who=2, python=F)
 #'
 #' # Running python implementation on the most variable cell types.
-#' melanoma <- deconv_krige(melanoma, cells='top', who=2, python=T)
+#' # melanoma <- deconv_krige(melanoma, cells='top', who=2, python=T)
 #'
 #' @export
 #
@@ -153,6 +153,8 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
     if(python == T){
       gridx = seq(min(x@coords[[i]][[3]]), max(x@coords[[i]][[3]]), res)
       gridy = seq(min(x@coords[[i]][[2]]), max(x@coords[[i]][[2]]), res)
+      gridx = gridx[-length(gridx)]
+      gridy = gridy[-length(gridy)]
       cell_geo_grid = expand.grid(
         seq(min(gridx), max(gridx), by=res),
         seq(min(gridy), max(gridy), by=res)
@@ -197,10 +199,10 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
       colnames(cell_geo_df)[3] = "cell_data"
       # Call the requested Kriging algorithm
       if(python == T){
-        gridx_red = gridx[-length(gridx)]
-        gridy_red = gridy[-length(gridy)]
+        #gridx_red = gridx[-length(gridx)]
+        #gridy_red = gridy[-length(gridy)]
         # Call PyKrige implementation.
-        kriging_res = krige_py(gridx=gridx_red, gridy=gridy_red, geo_df=cell_geo_df, univ=univ)
+        kriging_res = krige_py(gridx=gridx, gridy=gridy, geo_df=cell_geo_df, univ=univ)
       } else{
         # Create geodata object from expression and coordinate data
         cell_geo <- geoR::as.geodata(cell_geo_df, coords.col=c(1,2), data.col=3)
@@ -251,5 +253,4 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
     }
   }
   return(x)
-
 }

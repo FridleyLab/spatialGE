@@ -54,12 +54,12 @@
 #'
 #' @examples
 #' # Using included melanoma example (Thrane et al.)
-#' data_files <- system.file("extdata", package="spatialGEdev")
-#' count_files <- grep("genes", data_files, value=T)
-#' coord_files <- grep("mapping", data_files, value=T)
-#' clin_file <- grep("clinical", data_files, value=T)
-#' melanoma <- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
-#' melanoma
+#' # data_files <- system.file("extdata", package="spatialGEdev")
+#' # count_files <- grep("genes", data_files, value=T)
+#' # coord_files <- grep("mapping", data_files, value=T)
+#' # clin_file <- grep("clinical", data_files, value=T)
+#' # melanoma <- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' # melanoma
 #'
 #' @export
 #
@@ -454,7 +454,8 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, filterMT=T) {
                     cell_krige=list(),
                     gene_krige_data=list(),
                     deconv_krige_data=list(),
-                    st_clusters=list()
+                    st_clusters=list(),
+                    pheno_plots=list()
   )
 
   return(STList_obj)

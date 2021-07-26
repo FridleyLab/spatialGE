@@ -52,6 +52,6 @@ cell names and spatial arrays.
 }
 \examples{
 # In this example, melanoma is an STList.
-kplots <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'i_dc'), plot_who=2, visium=F)
+# kplots <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'i_dc'), plot_who=2, visium=F)
 
 }
