@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>deconv_krige: Spatial interpolation of gene expression deconvolution scores — deconv_krige • spatialGEdev</title>
+<title>deconv_krige: Spatial interpolation of gene expression deconvolution scores — deconv_krige • spatialGE</title>
 
 
 <!-- jquery -->
@@ -41,7 +41,7 @@
 
 <meta property="og:title" content="deconv_krige: Spatial interpolation of gene expression deconvolution scores — deconv_krige" />
 <meta property="og:description" content="Performs spatial interpolation ('kriging') of cell scores from
-gene expression deconvolution in spatially-resolved transcriptomics data." />
+gene expression deconvolution scores." />
 
 
 
@@ -72,7 +72,7 @@ gene expression deconvolution in spatially-resolved transcriptomics data." />
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">spatialGEdev</a>
+        <a class="navbar-link" href="../index.html">spatialGE</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
       </span>
     </div>
@@ -96,7 +96,7 @@ gene expression deconvolution in spatially-resolved transcriptomics data." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
     </li>
   </ul>
 </li>
@@ -123,7 +123,7 @@ gene expression deconvolution in spatially-resolved transcriptomics data." />
 
     <div class="ref-description">
     <p>Performs spatial interpolation ('kriging') of cell scores from
-gene expression deconvolution in spatially-resolved transcriptomics data.</p>
+gene expression deconvolution scores.</p>
     </div>
 
     <pre class="usage"><span class='fu'>deconv_krige</span><span class='op'>(</span>
@@ -132,35 +132,46 @@ gene expression deconvolution in spatially-resolved transcriptomics data.</p>
   univ <span class='op'>=</span> <span class='cn'>F</span>,
   res <span class='op'>=</span> <span class='cn'>NULL</span>,
   who <span class='op'>=</span> <span class='cn'>NULL</span>,
-  method <span class='op'>=</span> <span class='st'>"xcell"</span>
+  method <span class='op'>=</span> <span class='st'>"xcell"</span>,
+  python <span class='op'>=</span> <span class='cn'>T</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x, </th>
+      <th>x</th>
       <td><p>an STList with transformed xCell scores.</p></td>
     </tr>
     <tr>
-      <th>cells, </th>
-      <td><p>a vector of cell names or 'top'. If 'top' (default), kriging for the 10
-cells with highest standard deviation is estimated.</p></td>
+      <th>cells</th>
+      <td><p>a vector of cell names or 'top'. If 'top' (default), kriging is
+estimated for the 10 cells with highest standard deviation for each spatial arrays.</p></td>
     </tr>
     <tr>
-      <th>univ, </th>
-      <td><p>a logical stating whether or not to perform universal or ordinary kriging.
+      <th>univ</th>
+      <td><p>a logical stating whether or not to perform universal kriging.
 Default is FALSE (ordinary kriging).</p></td>
     </tr>
     <tr>
-      <th>res, </th>
+      <th>res</th>
       <td><p>a double to adjust the resolution of the plot. Fractions of 1 lead to
-more resolution. Default is res=0.2.</p></td>
+more resolution, but longer run times. Default is 0.5 for Visium ST arrays.</p></td>
     </tr>
     <tr>
-      <th>who, </th>
+      <th>who</th>
       <td><p>the spatial arrays for which kriging will be performed. If NULL (Default),
 all arrays are kriged.</p></td>
+    </tr>
+    <tr>
+      <th>method</th>
+      <td><p>the method from which deconvolution scores will be taken from. The
+default is 'xCell' and the only method supported (for now).</p></td>
+    </tr>
+    <tr>
+      <th>python</th>
+      <td><p>a logical, whether or not to use the Python implementation. If FALSE,
+geoR is used.</p></td>
     </tr>
     </table>
 
@@ -169,11 +180,22 @@ all arrays are kriged.</p></td>
     <p>x, an STList including spatial interpolations.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes a STList and a vector of xCell cell names, or the token 'top' for
-the 10 cells with the highest standard deviation. It also calculates spatial heterogeneity
-statistics for the cell scores. The function can perform ordinary or universal kriging.
-The result can be plotted using the plot_deconv_krige() function.</p>
+    <p>This function takes a STList and a vector of xCell cell names and generates an
+spatial interpolation ("kriging") of deconvoluted cell scores. It also calculates
+spatial heterogeneity statistics. The function can perform ordinary or universal kriging.
+If cells='top', then the 10 cell types with the highest standard deviation for each
+tissue array are interpolated. The function supports kriging via the Python package
+PyKrige or geoR. The first option is faster but requires a Python environment to be
+set up.</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
+<span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>deconv_krige</span><span class='op'>(</span><span class='va'>melanoma</span>, cells<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>'b_cells'</span>, <span class='st'>'i_dc'</span><span class='op'>)</span>, who<span class='op'>=</span><span class='fl'>2</span>, python<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in nrow(x@coords[[1]]): object 'melanoma' not found</span></div><div class='input'>
+<span class='co'># Running python implementation on the most variable cell types.</span>
+<span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>deconv_krige</span><span class='op'>(</span><span class='va'>melanoma</span>, cells<span class='op'>=</span><span class='st'>'top'</span>, who<span class='op'>=</span><span class='fl'>2</span>, python<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in nrow(x@coords[[1]]): object 'melanoma' not found</span></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

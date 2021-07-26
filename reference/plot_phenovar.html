@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>phenovar_plot: Plots a phenotype variable against gene expression spatial autocorrelation — plot_phenovar • spatialGEdev</title>
+<title>phenovar_plot: Plots association of samples variable and spatial statistics — plot_phenovar • spatialGE</title>
 
 
 <!-- jquery -->
@@ -39,9 +39,9 @@
 
 
 
-<meta property="og:title" content="phenovar_plot: Plots a phenotype variable against gene expression spatial autocorrelation — plot_phenovar" />
-<meta property="og:description" content="Plots the value of a phenotype/clinical variable for each spatial
-array against the spatial autocorrelation statistics of a given gene." />
+<meta property="og:title" content="phenovar_plot: Plots association of samples variable and spatial statistics — plot_phenovar" />
+<meta property="og:description" content="Plots the value of a sample/clinical variable against the spatial
+autocorrelation statistics." />
 
 
 
@@ -72,7 +72,7 @@ array against the spatial autocorrelation statistics of a given gene." />
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">spatialGEdev</a>
+        <a class="navbar-link" href="../index.html">spatialGE</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
       </span>
     </div>
@@ -96,7 +96,7 @@ array against the spatial autocorrelation statistics of a given gene." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
     </li>
   </ul>
 </li>
@@ -116,14 +116,14 @@ array against the spatial autocorrelation statistics of a given gene." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>phenovar_plot: Plots a phenotype variable against gene expression spatial autocorrelation</h1>
+    <h1>phenovar_plot: Plots association of samples variable and spatial statistics</h1>
     
     <div class="hidden name"><code>plot_phenovar.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Plots the value of a phenotype/clinical variable for each spatial
-array against the spatial autocorrelation statistics of a given gene.</p>
+    <p>Plots the value of a sample/clinical variable against the spatial
+autocorrelation statistics.</p>
     </div>
 
     <pre class="usage"><span class='fu'>plot_phenovar</span><span class='op'>(</span>
@@ -138,38 +138,44 @@ array against the spatial autocorrelation statistics of a given gene.</p>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x, </th>
+      <th>x</th>
       <td><p>an STList.</p></td>
     </tr>
     <tr>
-      <th>phenovar, </th>
+      <th>phenovar</th>
       <td><p>a string indicating the name of the variable in the clinical
 data frame. If NULL, uses sample</p></td>
     </tr>
     <tr>
-      <th>gene, </th>
+      <th>gene</th>
       <td><p>the name of the gene to plot.</p></td>
     </tr>
     <tr>
-      <th>cell, </th>
+      <th>cell</th>
       <td><p>the name of the cell type to plot.</p></td>
     </tr>
     <tr>
-      <th>color_pal, </th>
-      <td><p>a string of a color palette from khroma.</p></td>
+      <th>color_pal</th>
+      <td><p>a string of a color palette from khroma or RColorBrewer, or a
+vector with colors with enough elements to plot categories.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>plist, a list with three plots.</p>
+    <p>a list with three plots.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes the name of a gene and calculates its spatial autocorrelation
-statistics. Then generates a plot showing the variation of a phenotype/clinical
-variable with respect to the Moran's I, Geary's C, and Getis-Ord Gi values of a
-gene.</p>
+    <p>This function takes the name of a gene or deconvoluted cell score and calculates
+its spatial autocorrelation statistics. Then generates a plot showing the variation
+of a sample-associated or clinical variable with respect to the Moran's I, Geary's C,
+and Getis-Ord Gi values of a gene.</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
+<span class='va'>pheno_p</span> <span class='op'>&lt;-</span> <span class='fu'>plot_phenovar</span><span class='op'>(</span><span class='va'>melanoma</span>, phenovar<span class='op'>=</span><span class='st'>'survival_months'</span>, gene<span class='op'>=</span><span class='st'>'CD74'</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in plot_phenovar(melanoma, phenovar = "survival_months", gene = "CD74"): object 'melanoma' not found</span></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

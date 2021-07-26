@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>gene_krige: Spatial interpolation of gene expression — gene_krige • spatialGEdev</title>
+<title>gene_krige: Spatial interpolation of gene expression — gene_krige • spatialGE</title>
 
 
 <!-- jquery -->
@@ -40,7 +40,7 @@
 
 
 <meta property="og:title" content="gene_krige: Spatial interpolation of gene expression — gene_krige" />
-<meta property="og:description" content="Performs spatial interpolation ('kriging') of normalized gene
+<meta property="og:description" content="Performs spatial interpolation ('kriging') of transformed gene
 counts in spatially-resolved transcriptomics data." />
 
 
@@ -72,7 +72,7 @@ counts in spatially-resolved transcriptomics data." />
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">spatialGEdev</a>
+        <a class="navbar-link" href="../index.html">spatialGE</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
       </span>
     </div>
@@ -96,7 +96,7 @@ counts in spatially-resolved transcriptomics data." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
     </li>
   </ul>
 </li>
@@ -122,38 +122,50 @@ counts in spatially-resolved transcriptomics data." />
     </div>
 
     <div class="ref-description">
-    <p>Performs spatial interpolation ('kriging') of normalized gene
+    <p>Performs spatial interpolation ('kriging') of transformed gene
 counts in spatially-resolved transcriptomics data.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>gene_krige</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, genes <span class='op'>=</span> <span class='st'>"top"</span>, univ <span class='op'>=</span> <span class='cn'>F</span>, res <span class='op'>=</span> <span class='cn'>NULL</span>, who <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>gene_krige</span><span class='op'>(</span>
+  x <span class='op'>=</span> <span class='cn'>NULL</span>,
+  genes <span class='op'>=</span> <span class='st'>"top"</span>,
+  univ <span class='op'>=</span> <span class='cn'>F</span>,
+  res <span class='op'>=</span> <span class='cn'>NULL</span>,
+  who <span class='op'>=</span> <span class='cn'>NULL</span>,
+  python <span class='op'>=</span> <span class='cn'>T</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x, </th>
-      <td><p>an STList with normalized counts</p></td>
+      <th>x</th>
+      <td><p>an STList with transformed RNA counts.</p></td>
     </tr>
     <tr>
-      <th>genes, </th>
-      <td><p>a vector of HUGO names or 'top'. If 'top' (default), kriging for the 10
-genes with highest standard deviation is estimated.</p></td>
+      <th>genes</th>
+      <td><p>a vector of HUGO names or 'top'. If 'top' (default), kriging of
+the 10 genes with highest standard deviation in each spatial array is estimated.</p></td>
     </tr>
     <tr>
-      <th>univ, </th>
+      <th>univ</th>
       <td><p>a logical stating whether or not to perform universal kriging.
-The default is FALSE, meaning that ordinary kriging will be performed.</p></td>
+Default is FALSE (ordinary kriging).</p></td>
     </tr>
     <tr>
-      <th>res, </th>
+      <th>res</th>
       <td><p>a double to adjust the resolution of the plot. Fractions of 1 lead to
-more resolution. Default is res=0.2.</p></td>
+more resolution, but longer run times. Default is 0.5 for Visium ST arrays.</p></td>
     </tr>
     <tr>
       <th>who, </th>
-      <td><p>the spatial arrays for which krginig will be performed. If NULL (Default),
+      <td><p>the spatial arrays for which kriging will be performed. If NULL (Default),
 all arrays are kriged.</p></td>
+    </tr>
+    <tr>
+      <th>python</th>
+      <td><p>a logical, whether or not to use the Python implementation. If FALSE,
+geoR is used.</p></td>
     </tr>
     </table>
 
@@ -162,11 +174,22 @@ all arrays are kriged.</p></td>
     <p>x, a STList including spatial interpolations.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes a STList and a vector of gene names, or the token 'top' for the 10
-genes with the highest standard deviation. It also calculates spatial heterogeneity
-statistics for the genes counts. The function can perform ordinary or universal kriging.
-The result can be plotted using the plot_gene_krige() function.</p>
+    <p>This function takes a STList and a vector of gene names and generates spatial
+interpolation of gene expression values. It also calculates spatial heterogeneity
+statistics. The function can perform ordinary or universal kriging. If genes='top',
+then the 10 genes  with the highest standard deviation for each tissue array are
+interpolated. The function supports kriging via the Python package PyKrige or
+geoR. The first option is faster but requires a Python environment to be set up.</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
+<span class='co'># Kriging of spatial arrays 2 and 3 for 2 genes.</span>
+<span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>gene_krige</span><span class='op'>(</span><span class='va'>melanoma</span>, genes<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>'CD74'</span>, <span class='st'>'SOX10'</span><span class='op'>)</span>, who<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>2</span>, <span class='fl'>3</span><span class='op'>)</span>, python<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in nrow(x@coords[[1]]): object 'melanoma' not found</span></div><div class='input'>
+<span class='co'>#' # Kriging of spatial array 1 for the 10 most variable genes and using the Python implementation.</span>
+<span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>gene_krige</span><span class='op'>(</span><span class='va'>melanoma</span>, genes<span class='op'>=</span><span class='st'>'top'</span>, who<span class='op'>=</span><span class='fl'>1</span>, python<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in nrow(x@coords[[1]]): object 'melanoma' not found</span></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

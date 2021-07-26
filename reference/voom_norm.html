@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>voom_norm: Normalization of ST arrays — voom_norm • spatialGEdev</title>
+<title>voom_norm: voom-transformation of ST arrays — voom_norm • spatialGE</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="voom_norm: Normalization of ST arrays — voom_norm" />
-<meta property="og:description" content="Applies limma-voom normalization to spatial transcriptomics arrays data." />
+<meta property="og:title" content="voom_norm: voom-transformation of ST arrays — voom_norm" />
+<meta property="og:description" content="Applies limma-voom transformation to spatial transcriptomics arrays data." />
 
 
 
@@ -71,7 +71,7 @@
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">spatialGEdev</a>
+        <a class="navbar-link" href="../index.html">spatialGE</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
       </span>
     </div>
@@ -95,7 +95,7 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
     </li>
   </ul>
 </li>
@@ -115,13 +115,13 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>voom_norm: Normalization of ST arrays</h1>
+    <h1>voom_norm: voom-transformation of ST arrays</h1>
     
     <div class="hidden name"><code>voom_norm.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Applies limma-voom normalization to spatial transcriptomics arrays data.</p>
+    <p>Applies limma-voom transformation to spatial transcriptomics arrays data.</p>
     </div>
 
     <pre class="usage"><span class='fu'>voom_norm</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
@@ -130,24 +130,29 @@
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x, </th>
+      <th>x</th>
       <td><p>an STList with raw count matrices.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>x, an STList with normalized counts.</p>
+    <p>x an updated STList with transformed counts.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes an STList and normalize the count data matrices within it
+    <p>This function takes an STList and returns roughly Gaussian count data matrices
 in two steps. In the first step, (edgeR) normalization factors are used to scale
-the counts from each library/spot. In the second step, limma-voom normalization
+the counts from each library/spot. In the second step, limma-voom transformation
 is applied. The resulting normalized count matrix is stored in the voom_counts
 slot of the STList. The function also calculates gene-wise standard deviation from
-the normalized counts and stores them in the gene_stdev slot.</p>
-<p>NOTE1: ADD MEAN-VAR PLOT TO THIS FUNCTION??</p>
+the transformed counts and stores them in the gene_stdev slot.</p>
+<p>The function works on parallel using "forking" (not in Windows OS).</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
+<span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>voom_norm</span><span class='op'>(</span><span class='va'>melanoma</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='message'>Loading required package: parallel</span></div><div class='output co'>#&gt; <span class='error'>Error in voom_norm(melanoma): object 'melanoma' not found</span></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>plot_STclusters: Plot cluster memberships of ST spots — plot_STclusters • spatialGEdev</title>
+<title>plot_STclusters: Plot cluster memberships of ST spots — plot_STclusters • spatialGE</title>
 
 
 <!-- jquery -->
@@ -72,7 +72,7 @@ and colors them according to spatially-weighted hierarchical clustering assignme
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">spatialGEdev</a>
+        <a class="navbar-link" href="../index.html">spatialGE</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
       </span>
     </div>
@@ -96,7 +96,7 @@ and colors them according to spatially-weighted hierarchical clustering assignme
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
     </li>
   </ul>
 </li>
@@ -138,36 +138,42 @@ and colors them according to spatially-weighted hierarchical clustering assignme
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x, </th>
+      <th>x</th>
       <td><p>an STList with hierarchical cluster memberships.</p></td>
     </tr>
     <tr>
-      <th>plot_who, </th>
+      <th>plot_who</th>
       <td><p>an integer indicating the spatial array(s) to be plotted.</p></td>
     </tr>
     <tr>
-      <th>purity, </th>
+      <th>purity</th>
       <td><p>logical, whether or not annotate tumor/stroma.</p></td>
     </tr>
     <tr>
-      <th>color_pal, </th>
-      <td><p>a scheme from 'khroma'. Default is 'light'.</p></td>
+      <th>color_pal</th>
+      <td><p>a string of a color palette from khroma or RColorBrewer, or a
+vector with colors with enough elements to plot categories.</p></td>
     </tr>
     <tr>
-      <th>visium, </th>
+      <th>visium</th>
       <td><p>whether or not to reverse axes for Visium slides.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>plot_list, a list with the requested plots.</p>
+    <p>a list with the requested plots.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>The function takes an STList with cluster memberships and plots the spots with
 colors indicating the cluster they belong to. Optionally, the user can annotate
 tumor/stroma compartments if ESTIMATE scores are available.</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
+<span class='va'>cluster_p</span> <span class='op'>&lt;-</span> <span class='fu'>plot_STclusters</span><span class='op'>(</span><span class='va'>melanoma</span>, purity<span class='op'>=</span><span class='cn'>T</span>, plot_who<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>2</span>,<span class='fl'>3</span><span class='op'>)</span>, visium<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='message'>Loading required package: ggplot2</span></div><div class='output co'>#&gt; <span class='error'>Error in rlang::is_empty(x@st_clusters): object 'melanoma' not found</span></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
