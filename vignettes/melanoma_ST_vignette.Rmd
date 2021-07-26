@@ -30,12 +30,12 @@ if("devtools" %in% rownames(installed.packages()) == FALSE) {
 
 After making sure `devtools` is installed, proceed to install `spatialGE`:
 ```{r install_spatialGE}
-#devtools::install_github("fridleylab/spatialGEdev")
+# devtools::install_github("fridleylab/spatialGE")
 ```
 
 To use `spatialGE`, load the package using the command:
 ```{r load_spatialGE}
-#library(spatialGEdev)
+library(spatialGEdev)
 ```
 
 ## Spatially-resolved expression of melanoma stage III tumor biopsies

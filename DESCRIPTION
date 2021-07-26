@@ -1,4 +1,4 @@
-Package: spatialGEdev
+Package: spatialGE
 Title: Visualization and Analysis of Spatial Heterogeneity in Spatially-Resolved Gene Expression
 Version: 0.0.0.9000
 Authors@R: c(
