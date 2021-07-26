@@ -357,7 +357,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, filterMT=T) {
           # Get file name as given by sample_names.
           sample_i = grep(sample_names[i], rnacounts, value=T)
           # Process Visium folder.
-          visium_processed = import_Visium_new(features_fp=fp_list[[i]]$features,
+          visium_processed = import_Visium(features_fp=fp_list[[i]]$features,
                                                barcodes_fp=fp_list[[i]]$barcodes,
                                                counts_fp=fp_list[[i]]$counts,
                                                coords_fp=fp_list[[i]]$coords,
