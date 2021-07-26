@@ -35,7 +35,7 @@ After making sure `devtools` is installed, proceed to install `spatialGE`:
 
 To use `spatialGE`, load the package using the command:
 ```{r load_spatialGE}
-library(spatialGEdev)
+library(spatialGE)
 ```
 
 ## Spatially-resolved expression of melanoma stage III tumor biopsies
@@ -73,7 +73,8 @@ and coordinate file "./inst/extdata/ST_mel4_rep2_counts_mapping.txt".
 The example files in this tutorial can be downloaded from the GitHub repository (https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata). They are also
 stored in your local `spatialGE` installation:
 ```{r data_fpaths1}
-#data_files <- system.file("extdata", package="spatialGEdev")
+data_files <- system.file("extdata", package="spatialGE")
+data_files <- list.files(data_files, full.names=T)
 ```
 
 We then find the necessary files within the data repository in `spatialGE`. Those two

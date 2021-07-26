@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>plot_deconv_quilt: Deconvolution scores at each spot from an spatial array — plot_deconv_quilt • spatialGEdev</title>
+<title>plot_deconv_quilt: Deconvolution scores at each spot — plot_deconv_quilt • spatialGE</title>
 
 
 <!-- jquery -->
@@ -39,7 +39,7 @@
 
 
 
-<meta property="og:title" content="plot_deconv_quilt: Deconvolution scores at each spot from an spatial array — plot_deconv_quilt" />
+<meta property="og:title" content="plot_deconv_quilt: Deconvolution scores at each spot — plot_deconv_quilt" />
 <meta property="og:description" content="Plot cell type deconvolution scores at each spot (quilt plot) within a
 spatially-resolved transcriptomic array." />
 
@@ -72,7 +72,7 @@ spatially-resolved transcriptomic array." />
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">spatialGEdev</a>
+        <a class="navbar-link" href="../index.html">spatialGE</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
       </span>
     </div>
@@ -96,7 +96,7 @@ spatially-resolved transcriptomic array." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
     </li>
   </ul>
 </li>
@@ -116,7 +116,7 @@ spatially-resolved transcriptomic array." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>plot_deconv_quilt: Deconvolution scores at each spot from an spatial array</h1>
+    <h1>plot_deconv_quilt: Deconvolution scores at each spot</h1>
     
     <div class="hidden name"><code>plot_deconv_quilt.Rd</code></div>
     </div>
@@ -132,9 +132,9 @@ spatially-resolved transcriptomic array.</p>
   plot_who <span class='op'>=</span> <span class='cn'>NULL</span>,
   color_pal <span class='op'>=</span> <span class='st'>"YlOrBr"</span>,
   purity <span class='op'>=</span> <span class='cn'>F</span>,
-  saveplot <span class='op'>=</span> <span class='cn'>F</span>,
-  scaled <span class='op'>=</span> <span class='cn'>F</span>,
   method <span class='op'>=</span> <span class='st'>"xcell"</span>,
+  saveplot <span class='op'>=</span> <span class='cn'>F</span>,
+  inter <span class='op'>=</span> <span class='cn'>F</span>,
   visium <span class='op'>=</span> <span class='cn'>T</span>
 <span class='op'>)</span></pre>
 
@@ -142,42 +142,42 @@ spatially-resolved transcriptomic array.</p>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x, </th>
+      <th>x</th>
       <td><p>an STList with deconvolution matrices containing the cell names.</p></td>
     </tr>
     <tr>
-      <th>cells, </th>
+      <th>cells</th>
       <td><p>a vector of cell names within a deconvolution matrix (one or
-several) to plot.</p></td>
+several) to plot. If 'top', the 10 cell types with highest standard deviation
+from each spatial array ar plotted.</p></td>
     </tr>
     <tr>
-      <th>plot_who, </th>
+      <th>plot_who</th>
       <td><p>a vector of subject indexes as ordered within the STList, to
 plot cells from. If NULL, will plot for all subjects.</p></td>
     </tr>
     <tr>
-      <th>color_pal, </th>
-      <td><p>a scheme from 'khroma'. Default is 'YlOrBr'.'</p></td>
+      <th>color_pal</th>
+      <td><p>a color scheme from 'khroma' or RColorBrewer.</p></td>
     </tr>
     <tr>
-      <th>purity, </th>
+      <th>purity</th>
       <td><p>logical, whether tumor/stroma classes should be plotted.</p></td>
     </tr>
     <tr>
-      <th>saveplot, </th>
+      <th>method</th>
+      <td><p>the method from which deconvolution scores will be taken. xCell is
+the only method supported for now.</p></td>
+    </tr>
+    <tr>
+      <th>saveplot</th>
       <td><p>logical indicating whether or not save plots in a PDF file.
 The PDFs are saved in the working directory. Default is FALSE, meaning plots
 are printed to console.</p></td>
     </tr>
     <tr>
-      <th>scaled, </th>
-      <td><p>logical, indicating if expression values should be scaled with
-respect to the highest value among all genes to plot. WARNING: Color legends
-are not scaled between plots, but values are.</p></td>
-    </tr>
-    <tr>
-      <th>method, </th>
-      <td><p>the deconvolutionn method to used estimate the cell scores.</p></td>
+      <th>inter</th>
+      <td><p>whether or not quilt plot should be converted to a Plotly plot.</p></td>
     </tr>
     <tr>
       <th>visium, </th>
@@ -187,13 +187,18 @@ are not scaled between plots, but values are.</p></td>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>qplist, a list with plots.</p>
+    <p>a list with plots.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
     <p>This function produces a quilt plot for a series cell names and spatial
 arrays within an STList. The function can also plot tumor/stroma classifications
 if ESTIMATE deconvolution results are present in the STList.</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
+<span class='va'>qplots</span> <span class='op'>&lt;-</span> <span class='fu'>plot_deconv_quilt</span><span class='op'>(</span><span class='va'>melanoma</span>, genes<span class='op'>=</span><span class='st'>'b_cells'</span>, plot_who<span class='op'>=</span><span class='fl'>2</span>, purity<span class='op'>=</span><span class='cn'>T</span>, visium<span class='op'>=</span><span class='cn'>F</span>, inter<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in plot_deconv_quilt(melanoma, genes = "b_cells", plot_who = 2,     purity = T, visium = F, inter = T): unused argument (genes = "b_cells")</span></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

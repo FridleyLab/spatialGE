@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>STList: Creation of STList objects — STList • spatialGEdev</title>
+<title>STList: Creation of STList objects — STList • spatialGE</title>
 
 
 <!-- jquery -->
@@ -40,7 +40,7 @@
 
 
 <meta property="og:title" content="STList: Creation of STList objects — STList" />
-<meta property="og:description" content="Creates an STList object." />
+<meta property="og:description" content="Creates an STList object from one or several spatial transcriptomic experiments." />
 
 
 
@@ -71,7 +71,7 @@
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">spatialGEdev</a>
+        <a class="navbar-link" href="../index.html">spatialGE</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
       </span>
     </div>
@@ -95,7 +95,7 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
     </li>
   </ul>
 </li>
@@ -121,57 +121,86 @@
     </div>
 
     <div class="ref-description">
-    <p>Creates an STList object.</p>
+    <p>Creates an STList object from one or several spatial transcriptomic experiments.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>STList</span><span class='op'>(</span>countfiles <span class='op'>=</span> <span class='cn'>NULL</span>, coordfiles <span class='op'>=</span> <span class='cn'>NULL</span>, clinical <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>STList</span><span class='op'>(</span>rnacounts <span class='op'>=</span> <span class='cn'>NULL</span>, spotcoords <span class='op'>=</span> <span class='cn'>NULL</span>, samples <span class='op'>=</span> <span class='cn'>NULL</span>, filterMT <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>countfiles, </th>
-      <td><p>the path of a file containing file paths (one per line) of the
-count data files. Count files must be tab-separated.</p></td>
+      <th>rnacounts</th>
+      <td><p>The count data which can be provided in one of these formats:</p><ul>
+<li><p>File paths to comma- or tab-delimited files containing raw RNA counts, one
+for each spatial array. Thye first column contain gene names with no duplicates allowed.
+Isoforms can be provided as part of the gene names. Subsequent columns contain data for
+each spot.</p></li>
+<li><p>File paths to Visium output folders (one per spatial array) can be provided.</p></li>
+<li><p>One named list of data frames with raw RNA counts (one data frame per spatial array).</p></li>
+<li><p>One data frame with raw RNA counts. This option does not support sample data.</p></li>
+</ul></td>
     </tr>
     <tr>
-      <th>clinical, </th>
-      <td><p>the file path of a file containing a table with clinical/phenotype
-variables associated with the spatial arrays. The order of rows must match that of
-the count and coordinate file paths. the first column is the user-defined ID of the
-arrays.</p></td>
+      <th>spotcoords</th>
+      <td><p>The spot coordinates which can be provided in one of these formats:</p><ul>
+<li><p>File paths to comma- or tab-delimited files containing spot coordinates, one
+for each spatial array. The files must contain three columns: spot IDs, y positions, and
+x positions. The spot IDs must match the column names for each spot (column) in the RNA count files.</p></li>
+<li><p>One named list of data frames with spot coordinates. The list names must match list
+names of the RNA counts list.</p></li>
+<li><p>One data frame with spot coordinates.</p></li>
+</ul></td>
     </tr>
     <tr>
-      <th>coords, </th>
-      <td><p>the path of a file containing file paths (one per line) of the
-coordinate data files. Coordinate files must be tab-separated.</p></td>
+      <th>samples</th>
+      <td><p>The data associated to each spatial array. This file can also include
+system paths to RNA count and spot coordinate without the need to specify <code>rnacounts</code>
+and <code>spotcoords</code>. One of the following options must be entered to create an STList:</p><ul>
+<li><p>A vector with sample names, which will be used to partial match RNA count and
+spot coordinates file paths. A sample name must not match two file paths.</p></li>
+<li><p>A sample file containing meta data for each spatial array. This file is a comma-
+or tab-separated file with sample names in the first column. Paths to RNA count and
+coordinate files can be in the second and third column respectively, and omiting the
+<code>rnacounts</code> and <code>spotcoords</code> arguments. If Visium, only the second column with paths to
+output folders is expected. Subsequent columns can contain variables associated to each
+spatial array.</p></li>
+</ul></td>
+    </tr>
+    <tr>
+      <th>filterMT</th>
+      <td><p>Logical. Whether or not to filtet mtDNA genes in Visium outputs.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
     <p>x, the STList object containing the counts and coordinates, and optionally
-the clinical data.</p>
+the sample metadata.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes raw RNA counts and coordinates of those RNA counts from an
-spatial transcriptomics array. The function can take these inputs in several
-ways:</p>
-<p>A. One data frame for counts + one data frame for coordinates.
-B. One path to a file containing counts + one path to a file containing coordinates.
-C. One path to a file with file paths to N count files + one path to a file containing N coordinate files.
-D. One list containing count data frames + one list containing coordinate data frames.</p>
-<p>The files containing the counts must have gene names in the first column and
-counts from sampled localities in subsequent columns. The coordinate files must
-have a first column containing the same identifiers of the sampled locations as in
-the corresponding count file, and y, x (rows, columns) positions of the spots in
-the next two columns. The coordinate data must have headers. The function returns an
-STList object to be used in later analyses with spatialGE. Additionally, the
-function can also take a comma separated file with clinical or phenotype
-data from the samples. This clinical file has data for each array (in the same
-order as the count and coordinate file paths), and the first row has names of
-clinical variables. The first column contains the user-defined array IDs.</p>
+    <p>Objects of the class STList can be created from two sources:</p><ul>
+<li><p>Raw RNA counts (genes in rows, spots in columns) and spot coordinates (spots
+in rows, with three columns: spot IDs, y position, and x position).</p></li>
+<li><p>Visium output folders from Space Ranger. The folder should have the
+structure resulting from spaceranger count.</p></li>
+</ul><p>Optionally, the user can input a system path to a table with data associated to
+each spatial array (e.g., clinical variables). This sample file should contain
+sample IDs in the first column matching at least partially the file names of the
+count/coordinate files or Visium directories. The function will read data in
+parallel if unix system available (Windows users will experience longer times
+depending on the size of the data set)</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># Using included melanoma example (Thrane et al.)</span>
+<span class='va'>data_files</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/system.file.html'>system.file</a></span><span class='op'>(</span><span class='st'>"extdata"</span>, package<span class='op'>=</span><span class='st'>"spatialGEdev"</span><span class='op'>)</span>
+<span class='va'>count_files</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>grep</a></span><span class='op'>(</span><span class='st'>"genes"</span>, <span class='va'>data_files</span>, value<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
+<span class='va'>coord_files</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>grep</a></span><span class='op'>(</span><span class='st'>"mapping"</span>, <span class='va'>data_files</span>, value<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
+<span class='va'>clin_file</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>grep</a></span><span class='op'>(</span><span class='st'>"clinical"</span>, <span class='va'>data_files</span>, value<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
+<span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>STList</span><span class='op'>(</span>rnacounts<span class='op'>=</span><span class='va'>count_files</span>, spotcoords<span class='op'>=</span><span class='va'>coord_files</span>, samples<span class='op'>=</span><span class='va'>clin_file</span><span class='op'>)</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in if (!file.exists(samples)) {    stop("Could not find samples file.")}: argument is of length zero</span></div><div class='input'><span class='va'>melanoma</span>
+</div><div class='output co'>#&gt; <span class='error'>Error in eval(expr, envir, enclos): object 'melanoma' not found</span></div><div class='input'>
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

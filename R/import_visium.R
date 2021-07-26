@@ -91,8 +91,8 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
   if(stlist){
     #TEMPORARY: To avoid pushing to Github and install over and over...
     source('~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R/STList.R')
-    x <- STList(countfiles = tmp_ctsfp, coordfiles = tmp_cdsfp)
-    return(x)
+    #x <- STList(countfiles = tmp_ctsfp, coordfiles = tmp_cdsfp)
+    #return(x)
   } else{
     visium_list = list(rawcounts=rawcounts_df, coords=spotcoords_df)
     return(visium_list)
