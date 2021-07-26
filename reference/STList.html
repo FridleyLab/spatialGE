@@ -193,13 +193,13 @@ depending on the size of the data set)</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='co'># Using included melanoma example (Thrane et al.)</span>
-<span class='va'>data_files</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/system.file.html'>system.file</a></span><span class='op'>(</span><span class='st'>"extdata"</span>, package<span class='op'>=</span><span class='st'>"spatialGEdev"</span><span class='op'>)</span>
-<span class='va'>count_files</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>grep</a></span><span class='op'>(</span><span class='st'>"genes"</span>, <span class='va'>data_files</span>, value<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
-<span class='va'>coord_files</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>grep</a></span><span class='op'>(</span><span class='st'>"mapping"</span>, <span class='va'>data_files</span>, value<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
-<span class='va'>clin_file</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>grep</a></span><span class='op'>(</span><span class='st'>"clinical"</span>, <span class='va'>data_files</span>, value<span class='op'>=</span><span class='cn'>T</span><span class='op'>)</span>
-<span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>STList</span><span class='op'>(</span>rnacounts<span class='op'>=</span><span class='va'>count_files</span>, spotcoords<span class='op'>=</span><span class='va'>coord_files</span>, samples<span class='op'>=</span><span class='va'>clin_file</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; <span class='error'>Error in if (!file.exists(samples)) {    stop("Could not find samples file.")}: argument is of length zero</span></div><div class='input'><span class='va'>melanoma</span>
-</div><div class='output co'>#&gt; <span class='error'>Error in eval(expr, envir, enclos): object 'melanoma' not found</span></div><div class='input'>
+<span class='co'># data_files &lt;- system.file("extdata", package="spatialGEdev")</span>
+<span class='co'># count_files &lt;- grep("genes", data_files, value=T)</span>
+<span class='co'># coord_files &lt;- grep("mapping", data_files, value=T)</span>
+<span class='co'># clin_file &lt;- grep("clinical", data_files, value=T)</span>
+<span class='co'># melanoma &lt;- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)</span>
+<span class='co'># melanoma</span>
+
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
