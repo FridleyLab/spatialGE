@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Function reference • spatialGE</title>
+<title>spatial_stat_plot: Plots association of samples variable and spatial statistics — spatial_stat_plot • spatialGE</title>
 
 
 <!-- jquery -->
@@ -39,7 +39,9 @@
 
 
 
-<meta property="og:title" content="Function reference" />
+<meta property="og:title" content="spatial_stat_plot: Plots association of samples variable and spatial statistics — spatial_stat_plot" />
+<meta property="og:description" content="Plots the value of a sample/clinical variable against the spatial
+autocorrelation statistics." />
 
 
 
@@ -58,7 +60,7 @@
   </head>
 
   <body data-spy="scroll" data-target="#toc">
-    <div class="container template-reference-index">
+    <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -112,114 +114,69 @@
       </header>
 
 <div class="row">
-  <div class="contents col-md-9">
+  <div class="col-md-9 contents">
     <div class="page-header">
-      <h1>Reference</h1>
+    <h1>spatial_stat_plot: Plots association of samples variable and spatial statistics</h1>
+    
+    <div class="hidden name"><code>spatial_stat_plot.Rd</code></div>
     </div>
 
-    <table class="ref-index">
+    <div class="ref-description">
+    <p>Plots the value of a sample/clinical variable against the spatial
+autocorrelation statistics.</p>
+    </div>
 
-    <colgroup>
-      
-      <col class="alias" />
-      <col class="title" />
-    </colgroup>
+    <pre class="usage"><span class='fu'>spatial_stat_plot</span><span class='op'>(</span>
+  x <span class='op'>=</span> <span class='cn'>NULL</span>,
+  samplevar <span class='op'>=</span> <span class='cn'>NULL</span>,
+  gene <span class='op'>=</span> <span class='cn'>NULL</span>,
+  cell <span class='op'>=</span> <span class='cn'>NULL</span>,
+  color_pal <span class='op'>=</span> <span class='st'>"muted"</span>
+<span class='op'>)</span></pre>
 
-    <tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-all-functions" class="hasAnchor"><a href="#section-all-functions" class="anchor"></a>All functions</h2>
-          <p class="section-desc"></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="STList.html">STList()</a></code> </p>
-        </td>
-        <td><p>STList: Creation of STList objects</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="bulk_pca.html">bulk_pca()</a></code> </p>
-        </td>
-        <td><p>bulk_pca: Performs PCA on "bulk" spatial array</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="cluster_STspot.html">cluster_STspot()</a></code> </p>
-        </td>
-        <td><p>cluster_STspot: Detect clusters on ST arrays</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="deconv_krige.html">deconv_krige()</a></code> </p>
-        </td>
-        <td><p>deconv_krige: Spatial interpolation of gene expression deconvolution scores</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="gene_krige.html">gene_krige()</a></code> </p>
-        </td>
-        <td><p>gene_krige: Spatial interpolation of gene expression</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="plot_STclusters.html">plot_STclusters()</a></code> </p>
-        </td>
-        <td><p>plot_STclusters: Plot cluster memberships of ST spots</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="plot_deconv_krige.html">plot_deconv_krige()</a></code> </p>
-        </td>
-        <td><p>plot_deconv_krige: Visualize spatial interpolation of deconvolution scores</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="plot_deconv_quilt.html">plot_deconv_quilt()</a></code> </p>
-        </td>
-        <td><p>plot_deconv_quilt: Deconvolution scores at each spot</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="plot_gene_krige.html">plot_gene_krige()</a></code> </p>
-        </td>
-        <td><p>plot_gene_krige: Visualize transcriptomic surfaces</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="plot_gene_quilt.html">plot_gene_quilt()</a></code> </p>
-        </td>
-        <td><p>plot_gene_quilt: Gene expression at each spot from an spatial array</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="spatial_deconv.html">spatial_deconv()</a></code> </p>
-        </td>
-        <td><p>spatial_deconv: Deconvolution of ST data</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="spatial_stat_plot.html">spatial_stat_plot()</a></code> </p>
-        </td>
-        <td><p>spatial_stat_plot: Plots association of samples variable and spatial statistics</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="voom_norm.html">voom_norm()</a></code> </p>
-        </td>
-        <td><p>voom_norm: voom-transformation of ST arrays</p></td>
-      </tr>
-    </tbody>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>x</th>
+      <td><p>an STList.</p></td>
+    </tr>
+    <tr>
+      <th>samplevar</th>
+      <td><p>a string indicating the name of the variable in the clinical
+data frame. If NULL, uses sample</p></td>
+    </tr>
+    <tr>
+      <th>gene</th>
+      <td><p>the name of the gene to plot.</p></td>
+    </tr>
+    <tr>
+      <th>cell</th>
+      <td><p>the name of the cell type to plot.</p></td>
+    </tr>
+    <tr>
+      <th>color_pal</th>
+      <td><p>a string of a color palette from khroma or RColorBrewer, or a
+vector with colors with enough elements to plot categories.</p></td>
+    </tr>
     </table>
-  </div>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>an STList containing the plots.</p>
+    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+
+    <p>This function takes the name of a gene or deconvoluted cell score and calculates
+its spatial autocorrelation statistics. Then generates a plot showing the variation
+of a sample-associated or clinical variable with respect to the Moran's I, Geary's C,
+and Getis-Ord Gi values of a gene.</p>
+
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
+<span class='co'># stat_p &lt;- spatial_stat_plot(melanoma, samplevar='survival_months', gene='CD74')</span>
+
+</div></pre>
+  </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
       <h2 data-toc-skip>Contents</h2>

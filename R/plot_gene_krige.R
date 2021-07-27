@@ -147,7 +147,7 @@ plot_gene_krige <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr
                            moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=", getis_est)
 
       if(purity){
-        tumorstroma_df <- dplyr::bind_cols(x@coords[[i]],ncluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+        tumorstroma_df <- dplyr::bind_cols(x@coords[[i]], cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
         kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
                              tumorstroma=tumorstroma_df,
                              leg_name="pred_expr", title_name=titlekrige, minvalue=minvalue,
