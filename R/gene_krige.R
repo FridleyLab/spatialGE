@@ -123,7 +123,7 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
     x@gene_krige_data[['krige_border']][[i]] = concaveman::concaveman(as.matrix(x@coords[[i]][c(3, 2)]))
 
     # Get genes present in specific sample.
-    subsetgenes_mask = genes %in% x@voom_counts[[1]]$gene
+    subsetgenes_mask = genes %in% x@voom_counts[[i]]$gene
     subsetgenes = genes[subsetgenes_mask]
 
     # Get genes not present.
