@@ -11,9 +11,17 @@ Authors@R: c(
            family = "Fridley",
            role = c("aut"),
            email = "Brooke.Fridley@Moffitt.org",
-           comment = c(ORCID = "0000-0001-7739-7956"))
+           comment = c(ORCID = "0000-0001-7739-7956")),
+    person(given = "Alex",
+           family = "Soupir",
+           role = c("ctb"),
+           email = "Alex.Soupir@moffitt.org"),
+    person(given = "Christopher",
+           family = "Wilson",
+           role = c("ctb"),
+           email = "Christopher.Wilson@moffitt.org")
            )
-Description: An R package for the visualization and analysis of spatially resolved transcriptomics data. The functions in spatialGE allow for the study of gene expression in tissue sections via spatial interpolation, RNA-Seq data deconvolution, and autocorrelation statistics, as well as correlation with clinical/phenotype data.
+Description: Visualization and analysis of spatially resolved transcriptomics data. The functions in spatialGE allow for the study of gene expression in tissue sections via spatial interpolation, RNA-Seq data deconvolution, and autocorrelation statistics, as well as correlation with clinical/phenotype data.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
