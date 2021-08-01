@@ -55,7 +55,7 @@ can be created with the function `STList()`, which can take minimally inputs in
 different ways. Minimally, raw RNA counts and spot coordinates must be provided.
 For this example, we provide to the STList function the following inputs:
 
-1. Comma- or tab-deimited files with raw RNA counts, one per spatial array.
+1. Comma- or tab-delimited files with raw RNA counts, one per spatial array.
 The raw count files must have gene names in the first column, and spots in subsequent 
 columns. Duplicated gene names are not allowed.
 

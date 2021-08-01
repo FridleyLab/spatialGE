@@ -8,9 +8,9 @@
 #' The results are stored witin the STList. The method ESTIMATE is automatically
 #' applied regardless of the selected method.
 #'
-#' @param x an STList with normalized count matrices. If 'none', only ESTIMATE is
-#' applied.
+#' @param x an STList with normalized count matrices.
 #' @param method the name of the method to deconvolute data. As of now, only xCell is supported.
+#' If 'none', only ESTIMATE is applied.
 #' @return x an updated STList with deconvolution scores.
 #'
 #' @examples
