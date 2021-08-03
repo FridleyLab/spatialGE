@@ -9,12 +9,13 @@
 #' @return The xCell cell type names after cleaning.
 #'
 #' @examples
-#' # xcell_names()
+#' # melanoma is an STList
+#' # xcell_names(melanoma)
 #'
 #' @export
 #'
 #'
-xcell_names = function(){
+xcell_names = function(x=NULL){
   require('magrittr')
 
   xcellnames = x@cell_deconv$xCell[[1]]$cell_stdev$cell
