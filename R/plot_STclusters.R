@@ -24,7 +24,8 @@
 #
 plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light', visium=T){
 
-  require(ggplot2)
+  require('ggplot2')
+  require('magrittr')
 
   if(is.null(plot_who)){
     subjs <- (1:length(x@st_clusters$clust_dfs))
