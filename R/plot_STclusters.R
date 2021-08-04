@@ -41,7 +41,7 @@ plot_STclusters <- function(x, plot_who=NULL, purity=F, color_pal='light', visiu
 
   for(i in subjs){
 
-    subj_listid <- grep(paste0("sub", i, '$'), names(x@st_clusters$clust_dfs), value=T)
+    subj_listid <- grep(paste0("sub", i, "_"), names(x@st_clusters$clust_dfs), value=T)
 
     for(s in subj_listid){
 
