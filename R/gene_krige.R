@@ -34,7 +34,7 @@
 #' @export
 #
 #
-gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T){
+gene_krigev2 = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T, cores=1){
 
   require("magrittr")
   #require("parallel")
@@ -79,59 +79,60 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
   for(gene in genes){
     if(is.null(x@gene_krige[[gene]]) && rlang::is_empty(x@gene_krige[[gene]])){
       x@gene_krige[[gene]] = list()
-      for(i in length(x@counts)){
+      for(i in 1:length(x@counts)){
         x@gene_krige[[gene]][[i]] = list()
       }
     }
   }
 
-  # Loop through each sample.
-  for (i in who) {
-    # Specify resolution if not input by user. Original ST slide had 1007 spots.
-    if(is.null(res)){
-      if(nrow(x@coords[[i]]) > 1007){
-        res = 0.5
-      } else{
-        res = 0.2
-      }
-      x@gene_krige_data[['res']] = res
-    } else if(!is.null(x@gene_krige_data[['res']])){
-      if(x@gene_krige_data[['res']] != res){
-        cat('Kriging results will be overwritten. Previosuly \"kriged\" genes will not be available.')
-        x@gene_krige_data[['res']] = res
-      }
+  # Store kriging type.
+  if(univ){
+    x@gene_krige_data[['krige_type']] = 'universal'
+  }else{
+    x@gene_krige_data[['krige_type']] = 'ordinary'
+  }
+
+  # Specify resolution if not input by user. Original ST slide had 1007 spots.
+  if(is.null(res)){
+    if(nrow(x@coords[[1]]) > 1007){
+      res = 0.5
+    } else{
+      res = 0.2
     }
+    x@gene_krige_data[['res']] = res
+  }
 
-    # Store kriging type.
-    if(univ){
-      x@gene_krige_data[['krige_type']] = 'universal'
-    }else{
-      x@gene_krige_data[['krige_type']] = 'ordinary'
+  # Give warning about kriging res < 0.5 for large matrices (e.g. Visium)
+  if(res < 0.5 & (nrow(x@coords[[1]]) > 1007)){
+    cat('Kriging at the requested resolution might take some time.\n')
+  }
+
+  # Create lists to store prediction grids and borders.
+  if(is.null(x@gene_krige_data[['krige_border']])){
+    x@gene_krige_data[['krige_border']] = list()
+    x@gene_krige_data[['krige_grid']] = list()
+    for(k in length(x@counts)){
+      x@gene_krige_data[['krige_border']][[k]] = list()
+      x@gene_krige_data[['krige_grid']][[k]] = list()
     }
+  }
 
-    # Create lists to store prediction grids and borders.
-    if(is.null(x@gene_krige_data[['krige_border']])){
-      x@gene_krige_data[['krige_border']] = list()
-      x@gene_krige_data[['krige_grid']] = list()
-      for(k in length(x@counts)){
-        x@gene_krige_data[['krige_border']][[k]] = list()
-        x@gene_krige_data[['krige_grid']][[k]] = list()
-      }
-    }
-
-    # Create concave hull to "cookie cut" border kriging surface.
-    x@gene_krige_data[['krige_border']][[i]] = concaveman::concaveman(as.matrix(x@coords[[i]][c(3, 2)]))
-
-    # Get genes present in specific sample.
+  # Generate combination of sample x gene to for.
+  combo = tibble::tibble()
+  for(i in who){
     subsetgenes_mask = genes %in% x@voom_counts[[i]]$gene
     subsetgenes = genes[subsetgenes_mask]
+    combo = dplyr::bind_rows(combo, expand.grid(i, subsetgenes))
 
     # Get genes not present.
     notgenes = genes[!subsetgenes_mask]
 
     if(!rlang::is_empty(notgenes)){
-      cat(paste(paste(notgenes, collapse=', '), ": Not present in the transformed count matrix for subject", i, "."))
+      cat(paste(paste(notgenes, collapse=', '), ": Not present in the transformed count matrix for subject", i, ".\n"))
     }
+
+    # Create concave hull to "cookie cut" border kriging surface.
+    x@gene_krige_data[['krige_border']][[i]] = concaveman::concaveman(as.matrix(x@coords[[i]][c(3, 2)]))
 
     # Create grid for PyKrige or geoR.
     if(python == T){
@@ -143,8 +144,6 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
         seq(min(gridx), max(gridx), by=res),
         seq(min(gridy), max(gridy), by=res)
       )
-      # Store prediction grid and kriging algorithm in STList.
-      x@gene_krige_data[['algorithm']] = 'pykrige'
       #x@gene_krige_data[['krige_grid']] = list()
       x@gene_krige_data[['krige_grid']][[i]] = gene_geo_grid
     } else if(python == F && univ == F){ #  Create grid for geoR estimation.
@@ -152,90 +151,100 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
         seq((min(x@coords[[i]][[3]])-1), (max(x@coords[[i]][[3]])+1), by=res),
         seq((min(x@coords[[i]][[2]])-1), (max(x@coords[[i]][[2]])+1), by=res)
       )
-      # Store prediction grid and kriging algorithm in STList.
-      x@gene_krige_data[['algorithm']] = 'geor'
       #x@gene_krige_data[['krige_grid']] = list()
       x@gene_krige_data[['krige_grid']][[i]] = gene_geo_grid
     }
 
-    # Define number of available cores to use.
-    cores = 1
-    if(.Platform$OS.type == 'unix'){
-      avail_cores = parallel::detectCores()
-      if(avail_cores > (length(subsetgenes) + 1)){
-        cores = (length(subsetgenes) + 1)
-      } else if( (avail_cores <= (length(subsetgenes) + 1)) && avail_cores > 1){
-        cores = avail_cores - 1
-      }
+  }
+
+  if(python){
+    # Store prediction grid and kriging algorithm in STList.
+    x@gene_krige_data[['algorithm']] = 'pykrige'
+  } else{
+    # Store prediction grid and kriging algorithm in STList.
+    x@gene_krige_data[['algorithm']] = 'geor'
+  }
+
+  # Loop through combinations of samples x genes
+  kriging_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
+    i = unlist(combo[i_combo, 1])
+    j = as.vector(unlist(combo[i_combo, 2]))
+
+    # Get transformed counts.
+    gene_expr = x@voom_counts[[i]][x@voom_counts[[i]]$gene == j, -1]
+    gene_expr = as.data.frame(t(gene_expr))
+    gene_expr = gene_expr %>%
+      tibble::rownames_to_column(., var="position")
+    # Match order of library names in counts data and coordinate data.
+    gene_expr = gene_expr[match(x@coords[[i]][[1]], gene_expr[[1]]), ]
+    gene_geo_df = cbind(x@coords[[i]][c(3, 2)], as.numeric(gene_expr[[2]]))
+    colnames(gene_geo_df)[3] = "gene_expr"
+    # Call the requested Kriging algorithm
+    if(python == T){
+      # Call PyKrige implementation.
+      gridx = seq(min(x@coords[[i]][[3]]), max(x@coords[[i]][[3]]), res)
+      gridy = seq(min(x@coords[[i]][[2]]), max(x@coords[[i]][[2]]), res)
+      gridx = gridx[-length(gridx)]
+      gridy = gridy[-length(gridy)]
+      kriging_res = krige_py(gridx=gridx, gridy=gridy, geo_df=gene_geo_df, univ=univ)
+    } else{
+      # Create geodata object from expression and coordinate data
+      gene_geo <- geoR::as.geodata(gene_geo_df, coords.col=c(1,2), data.col=3)
+      kriging_res = krige_geor(geodata=gene_geo, locations=x@gene_krige_data[['krige_grid']][[i]], univ=univ)
     }
+    return(kriging_res)
+  }, mc.cores=cores, mc.preschedule=T)
+  names(kriging_list) = paste(combo[[1]], combo[[2]], sep='&&')
 
-    # Prepare inputs for kriging.
-    # Loop through genes.
-    kriging_list = parallel::mclapply(seq_along(subsetgenes), function(j){
-      # Get transformed counts.
-      gene_expr = x@voom_counts[[i]][x@voom_counts[[i]]$gene == subsetgenes[j], -1]
-      gene_expr = as.data.frame(t(gene_expr))
-      gene_expr = gene_expr %>%
-        tibble::rownames_to_column(., var="position")
-      # Match order of library names in counts data and coordinate data.
-      gene_expr = gene_expr[match(x@coords[[i]][[1]], gene_expr[[1]]), ]
-      gene_geo_df = cbind(x@coords[[i]][c(3, 2)], as.numeric(gene_expr[[2]]))
-      colnames(gene_geo_df)[3] = "gene_expr"
-      # Call the requested Kriging algorithm
-      if(python == T){
-        #gridx_red = gridx[-length(gridx)]
-        #gridy_red = gridy[-length(gridy)]
-        # Call PyKrige implementation.
-        #kriging_res = krige_py(gridx=gridx_red, gridy=gridy_red, geo_df=gene_geo_df, univ=univ)
-        kriging_res = krige_py(gridx=gridx, gridy=gridy, geo_df=gene_geo_df, univ=univ)
-      } else{
-        # Create geodata object from expression and coordinate data
-        gene_geo <- geoR::as.geodata(gene_geo_df, coords.col=c(1,2), data.col=3)
-        kriging_res = krige_geor(geodata=gene_geo, locations=x@gene_krige_data[['krige_grid']][[i]], univ=univ)
+  # Store kriging results in STList.
+  for(i in 1:nrow(combo)){
+    combo_name = unlist(strsplit(names(kriging_list)[i], split = '&&'))
+    x@gene_krige[[combo_name[2]]][[as.numeric(combo_name[1])]] = kriging_list[[i]]
+  }
+
+  # Test if list with spatial statistics exists for each gene. If not create it.
+  for(gene in genes){
+    if(is.null(x@gene_het[[gene]]) && rlang::is_empty(x@gene_het[[gene]])){
+      x@gene_het[[gene]] = list()
+      for(k in length(x@counts)){
+        x@gene_het[[gene]][[k]] = list()
       }
-      return(kriging_res)
-    }, mc.cores=cores, mc.preschedule=T)
-
-    # Store kriging results in STList.
-    for(j in 1:length(subsetgenes)){
-      x@gene_krige[[subsetgenes[j]]][[i]] = kriging_list[[j]]
-    }
-
-    # Test if list with spatial statistics exists for each gene. If not create it.
-    for(gene in genes){
-      if(is.null(x@gene_het[[gene]]) && rlang::is_empty(x@gene_het[[gene]])){
-        x@gene_het[[gene]] = list()
-        for(k in length(x@counts)){
-          x@gene_het[[gene]][[k]] = list()
-        }
-      }
-    }
-
-    # Estimate spatial heterogeneity statistics.
-    moran_list = parallel::mclapply(seq_along(subsetgenes), function(j){
-      temp_x = gene_moran_I(x, genes=subsetgenes[j], subj=i)
-      temp_x = temp_x@gene_het[[subsetgenes[j]]][[i]]$morans_I
-      return(temp_x)
-    }, mc.cores=cores, mc.preschedule=T)
-
-    geary_list = parallel::mclapply(seq_along(subsetgenes), function(j){
-      temp_x = gene_geary_C(x, genes=subsetgenes[j], subj=i)
-      temp_x = temp_x@gene_het[[subsetgenes[j]]][[i]]$gearys_C
-      return(temp_x)
-    }, mc.cores=cores, mc.preschedule=T)
-
-    getis_list = parallel::mclapply(seq_along(subsetgenes), function(j){
-      temp_x = gene_getis_Gi(x, genes=subsetgenes[j], subj=i)
-      temp_x = temp_x@gene_het[[subsetgenes[j]]][[i]]$getis_ord_Gi
-      return(temp_x)
-    }, mc.cores=cores, mc.preschedule=T)
-
-    # Store spatial statistics in STList.
-    for(j in 1:length(subsetgenes)){
-      x@gene_het[[subsetgenes[j]]][[i]]$morans_I = moran_list[[j]]
-      x@gene_het[[subsetgenes[j]]][[i]]$gearys_C = geary_list[[j]]
-      x@gene_het[[subsetgenes[j]]][[i]]$getis_ord_Gi = getis_list[[j]]
     }
   }
+
+  # Estimate spatial heterogeneity statistics.
+  # moran_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
+  #   i = unlist(combo[i_combo, 1])
+  #   j = as.vector(unlist(combo[i_combo, 2]))
+  #   temp_x = gene_moran_I(x, genes=j, subj=i)
+  #   temp_x = temp_x@gene_het[[j]][[i]]$morans_I
+  #   return(temp_x)
+  # }, mc.cores=cores, mc.preschedule=T)
+  #
+  # geary_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
+  #   i = unlist(combo[i_combo, 1])
+  #   j = as.vector(unlist(combo[i_combo, 2]))
+  #   temp_x = gene_geary_C(x, genes=j, subj=i)
+  #   temp_x = temp_x@gene_het[[j]][[i]]$gearys_C
+  #   return(temp_x)
+  # }, mc.cores=cores, mc.preschedule=T)
+  #
+  # getis_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
+  #   i = unlist(combo[i_combo, 1])
+  #   j = as.vector(unlist(combo[i_combo, 2]))
+  #   temp_x = gene_getis_Gi(x, genes=j, subj=i)
+  #   temp_x = temp_x@gene_het[[j]][[i]]$getis_ord_Gi
+  #   return(temp_x)
+  # }, mc.cores=cores, mc.preschedule=T)
+  #
+  # # Store spatial statistics in STList.
+  # for(i in 1:nrow(combo)){
+  #   i_sample = unlist(combo[i, 1])
+  #   i_genes = as.vector(unlist(combo[i, 2]))
+  #   x@gene_het[[i_genes]][[i_sample]]$morans_I = moran_list[[i]]
+  #   x@gene_het[[i_genes]][[i_sample]]$gearys_C = geary_list[[i]]
+  #   x@gene_het[[i_genes]][[i_sample]]$getis_ord_Gi = getis_list[[i]]
+  # }
+
   return(x)
 }

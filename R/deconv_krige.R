@@ -227,30 +227,30 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
     }
 
     # Estimate spatial heterogeneity statistics.
-    moran_list = parallel::mclapply(seq_along(subsetcells), function(j){
-      temp_x = cell_moran_I(x, cells=subsetcells[j], subj=i)
-      temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$morans_I
-      return(temp_x)
-    }, mc.cores=cores, mc.preschedule=T)
-
-    geary_list = parallel::mclapply(seq_along(subsetcells), function(j){
-      temp_x = cell_geary_C(x, cells=subsetcells[j], subj=i)
-      temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$gearys_C
-      return(temp_x)
-    }, mc.cores=cores, mc.preschedule=T)
-
-    getis_list = parallel::mclapply(seq_along(subsetcells), function(j){
-      temp_x = cell_getis_Gi(x, cells=subsetcells[j], subj=i)
-      temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$getis_ord_Gi
-      return(temp_x)
-    }, mc.cores=cores, mc.preschedule=T)
-
-    # Store spatial statistics in STList.
-    for(j in 1:length(subsetcells)){
-      x@cell_het[[subsetcells[j]]][[i]]$morans_I = moran_list[[j]]
-      x@cell_het[[subsetcells[j]]][[i]]$gearys_C = geary_list[[j]]
-      x@cell_het[[subsetcells[j]]][[i]]$getis_ord_Gi = getis_list[[j]]
-    }
+    # moran_list = parallel::mclapply(seq_along(subsetcells), function(j){
+    #   temp_x = cell_moran_I(x, cells=subsetcells[j], subj=i)
+    #   temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$morans_I
+    #   return(temp_x)
+    # }, mc.cores=cores, mc.preschedule=T)
+    #
+    # geary_list = parallel::mclapply(seq_along(subsetcells), function(j){
+    #   temp_x = cell_geary_C(x, cells=subsetcells[j], subj=i)
+    #   temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$gearys_C
+    #   return(temp_x)
+    # }, mc.cores=cores, mc.preschedule=T)
+    #
+    # getis_list = parallel::mclapply(seq_along(subsetcells), function(j){
+    #   temp_x = cell_getis_Gi(x, cells=subsetcells[j], subj=i)
+    #   temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$getis_ord_Gi
+    #   return(temp_x)
+    # }, mc.cores=cores, mc.preschedule=T)
+    #
+    # # Store spatial statistics in STList.
+    # for(j in 1:length(subsetcells)){
+    #   x@cell_het[[subsetcells[j]]][[i]]$morans_I = moran_list[[j]]
+    #   x@cell_het[[subsetcells[j]]][[i]]$gearys_C = geary_list[[j]]
+    #   x@cell_het[[subsetcells[j]]][[i]]$getis_ord_Gi = getis_list[[j]]
+    # }
   }
   return(x)
 }

@@ -8,9 +8,9 @@
 # or if Visium files are available. Checks are performed on the first element only,
 # and thus other elements could not comply with the format.
 #
-# @param rnacounts, the counts input provided to STList.
-# @param spotcoords, the coordinates input provided to STList.
-# @param samples, the metadata input provided to STList.
+# @param rnacounts, the file/directory with counts provided to STList.
+# @param spotcoords, the file with coordinates  provided to STList.
+# @param samples, the metadata or sample names provided to STList.
 # @return inputtype, a list containing file types of input arguments.
 #
 #
@@ -22,6 +22,15 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
   inputtype$rna = NULL
   inputtype$coords = NULL
   inputtype$samples = NULL
+
+  # CASE SEURAT OBJECT(S) WITH SAMPLE NAMES OR SAMPLE FILE
+  if(!is.null(rnacounts)){
+    if(class(rnacounts) == 'Seurat'){
+      inputtype$rna = 'seurat'
+      inputtype$samples = 'sample_names'
+      return(inputtype)
+    }
+  }
 
   # CASE ONLY SAMPLEFILE PROVIDED.
   # Test if `rnacounts` was not entered and `samples` argument was entered.
@@ -78,21 +87,11 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
             }
             inputtype$samples = c('samplesfile', del)
           }
-        } else{
+        }
+        else{
           inputtype$samples = 'names_from_list_or_df'
         }
       }
-    }
-  }
-
-  # CASE: SINGLE DATA FRAME FOR COUNTS AND SINGLE DATA FRAME FOR COORDINATES.
-  # Test if inputs were entered for both 'rnacounts' and 'spotcoords'.
-  if(!is.null(rnacounts) && !is.null(spotcoords)){
-    # Test if inputs are data frames.
-    if(is.data.frame(rnacounts) && is.data.frame(spotcoords)){
-      inputtype$rna = 'df'
-      inputtype$coords = 'df'
-      inputtype$samples = 'names_from_list_or_df'
     }
   }
 
@@ -157,6 +156,7 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
 
   # CASE: FILE PATHS TO VISIUM DIRECTORIES.
   # Test that `rnacounts` were provided and first element is a directory.
+  # Need also sample names that partially match the file path to be provided
   if(!is.null(rnacounts) && is.null(spotcoords) && !is.null(samples)){
     if(dir.exists(rnacounts[1])){
       # Check that dirctory contains an element with name matching 'filtered_feature_bc'.
@@ -192,4 +192,4 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
 
   return(inputtype)
 
-} # CLOSE FUNCTION
+} # CLOSE ENTIRE FUNCTION

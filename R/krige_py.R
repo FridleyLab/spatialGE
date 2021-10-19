@@ -14,7 +14,9 @@ krige_py = function (gridx=NULL, gridy=NULL, geo_df=NULL, univ=NULL) {
 
   # Requires python 3.5+
   # Prompts Miniconda installation.
-  reticulate::py_install(c("pykrige"))
+  if(!reticulate::py_module_available("pykrige")){
+    reticulate::py_install(c("pykrige"))
+  }
 
   # Importing the kriging functions as their respective names.
   UniversalKriging = reticulate::import("pykrige.uk")$UniversalKriging
@@ -32,7 +34,9 @@ krige_py = function (gridx=NULL, gridy=NULL, geo_df=NULL, univ=NULL) {
       data[1,],
       data[2,],
       data[3,],
-      variogram_model="linear"
+      variogram_model="spherical",
+      #variogram_model="gaussian",
+      exact_values=FALSE
     )
 
     # Calculates a kriged grid and the associated variance.
@@ -48,8 +52,9 @@ krige_py = function (gridx=NULL, gridy=NULL, geo_df=NULL, univ=NULL) {
       data[1,],
       data[2,],
       data[3,],
-      variogram_model="linear",
-      drift_terms="regional_linear"
+      variogram_model="spherical",
+      #drift_terms="regional_linear",
+      exact_values=FALSE
     )
 
     # Calculates a kriged grid and the associated variance.

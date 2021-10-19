@@ -25,7 +25,7 @@
 #' @export
 #
 #
-plot_gene_krige <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr',
+plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr',
                             purity=F, saveplot=F, visium=T){
   # Option to scale to 1 disabled.
   scaled=F
@@ -124,27 +124,28 @@ plot_gene_krige <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr
       bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
 
       # Get spatial statistics.
-      moran_est <- round(as.vector(x@gene_het[[gene]][[i]]$morans_I$estimate[[1]]), 2)
-      geary_est <- round(as.vector(x@gene_het[[gene]][[i]]$gearys_C$estimate[[1]]), 2)
-      getis_est <- round(as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
-
-      moran_p <- as.vector(x@gene_het[[gene]][[i]]$morans_I$p.value)
-      geary_p <- as.vector(x@gene_het[[gene]][[i]]$gearys_C$p.value)
-      getis_p <- as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$p.value)
-
-      if(moran_p < 0.05){
-        moran_est <- paste0(moran_est, '*')
-      }
-      if(geary_p < 0.05){
-        geary_est <- paste0(geary_est, '*')
-      }
-      if(getis_p < 0.05){
-        getis_est <- paste0(getis_est, '*')
-      }
+      # moran_est <- round(as.vector(x@gene_het[[gene]][[i]]$morans_I$estimate[[1]]), 2)
+      # geary_est <- round(as.vector(x@gene_het[[gene]][[i]]$gearys_C$estimate[[1]]), 2)
+      # getis_est <- round(as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
+      #
+      # moran_p <- as.vector(x@gene_het[[gene]][[i]]$morans_I$p.value)
+      # geary_p <- as.vector(x@gene_het[[gene]][[i]]$gearys_C$p.value)
+      # getis_p <- as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$p.value)
+      #
+      # if(moran_p < 0.05){
+      #   moran_est <- paste0(moran_est, '*')
+      # }
+      # if(geary_p < 0.05){
+      #   geary_est <- paste0(geary_est, '*')
+      # }
+      # if(getis_p < 0.05){
+      #   getis_est <- paste0(getis_est, '*')
+      # }
 
       # Construct title.
-      titlekrige <- paste0(gene, ", subj ", i, " - ", x@gene_krige_data$krige_type, " kriging\nMorans I=",
-                           moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=", getis_est)
+      titlekrige <- paste0(gene, ", subj ", i, " - ", x@gene_krige_data$krige_type, " kriging")
+      # titlekrige <- paste0(gene, ", subj ", i, " - ", x@gene_krige_data$krige_type, " kriging\nMorans I=",
+      #                      moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=", getis_est)
 
       if(purity){
         tumorstroma_df <- dplyr::bind_cols(x@coords[[i]], cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)

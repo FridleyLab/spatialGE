@@ -28,7 +28,7 @@
 #' @export
 #
 #
-plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr',
+plot_gene_quiltV2 = function(x = NULL, trslot='log', genes=NULL, plot_who=NULL, color_pal='YlOrBr',
                             purity=F, saveplot=F, inter=F, visium=T){
   # Option to scale to 1 disabled.
   scaled=F
@@ -43,9 +43,13 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
     plot_who <- c(1:length(x@counts))
   }
 
-  # Test if voom normalized counts are available.
-  if (rlang::is_empty(x@voom_counts)) {
-    stop("There are no normalized matrices in this STList.")
+  # Test if requested data slot is available.
+  if(trslot == 'voom' & rlang::is_empty(x@voom_counts)) {
+    stop("There are no voom transformed counts in this STList.")
+  } else if(trslot == 'log' & rlang::is_empty(x@log_counts)){
+    stop("There are no log transformed matrices in this STList.")
+  } else if(trslot == 'raw' & rlang::is_empty(x@counts)){
+    stop("There are no count matrices in this STList.")
   }
 
   # If genes='top', get names of 10 genes with the highest standard deviation.
@@ -58,16 +62,24 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
     genes = unique(genes)
   }
 
-  # Store maximum expression value in case 'scaled' is required.
-  # if(scaled){
+  # Select appropriate slot to take counts from
+  if(trslot == 'voom'){
+    counts = x@voom_counts
+  }else if(trslot == 'log'){
+    counts = x@log_counts
+  }else if(trslot == 'raw'){
+    counts = x@counts
+  }
+
+  # Store maximum expression value to standardize color legend.
   maxvalue <- c()
   minvalue <- c()
   for (i in plot_who) {
     for (gene in genes) {
       # Test if gene name exists in normalized count matrix.
-      if (any(x@voom_counts[[i]]$gene == gene)) {
+      if (any(counts[[i]]$gene == gene)) {
         # Find maximum expression value for each spatial array.
-        values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
+        values <- unlist(counts[[i]][counts[[i]]$gene == gene,][,-1])
         maxvalue <- append(maxvalue, max(values))
         minvalue <- append(minvalue, min(values))
       }
@@ -76,7 +88,6 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
   # Find maximum value among selected spatial arrays.
   maxvalue <- max(maxvalue)
   minvalue <- min(minvalue)
-  #  }
 
   # Create list of plots.
   qp_list <- list()
@@ -88,12 +99,12 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
     for (gene in genes) {
 
       # Test if gene name exists in normalized count matrix.
-      if (any(x@voom_counts[[i]]$gene == gene)) {
+      if (any(counts[[i]]$gene == gene)) {
         # If scaled, standardize expression. If not, return expression values as they are.
         if(scaled){
-          values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])/maxvalue
+          values <- unlist(counts[[i]][counts[[i]]$gene == gene,][,-1])/maxvalue
         } else{
-          values <- unlist(x@voom_counts[[i]][x@voom_counts[[i]]$gene == gene,][,-1])
+          values <- unlist(counts[[i]][counts[[i]]$gene == gene,][,-1])
         }
 
         # Create a data frame with coordinates of spots and expression values.
@@ -105,8 +116,8 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
         if(purity){
           if(!(rlang::is_empty(x@cell_deconv))){
             df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
-            qp <- quilt_p_purity(data_f=df, leg_name="norm_expr", color_pal=color_pal,
-                                 title_name=paste0(gene, " - ", "subj ", i),
+            qp <- quilt_p_purity(data_f=df, leg_name=paste0(trslot, "_expr"), color_pal=color_pal,
+                                 title_name=paste0(gene, " - ", "sample ", names(counts[i])),
                                  minvalue=minvalue, maxvalue=maxvalue, visium=visium)
             qpbw <- quilt_p_purity_bw(data_f=df, visium=visium, title_name=paste0('ESTIMATE\ntumor/stroma - subj ', i))
           } else{
@@ -114,8 +125,8 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
           }
         }else{
           # The color palette function in khroma is created by quilt_p() function.
-          qp <- quilt_p(data_f=df, leg_name="norm_expr", color_pal=color_pal,
-                        title_name=paste0(gene, " - ", "subj ", i),
+          qp <- quilt_p(data_f=df, leg_name=paste0(trslot, "_expr"), color_pal=color_pal,
+                        title_name=paste0(gene, " - ", "sample ", names(counts[i])),
                         minvalue=minvalue, maxvalue=maxvalue, visium=visium)
         }
 
@@ -126,11 +137,11 @@ plot_gene_quilt <- function(x = NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
       }
 
       # Append plot to list.
-      qp_list[[paste0(gene, "_", i)]] <- qp
+      qp_list[[paste0(gene, "_", names(counts[i]))]] <- qp
     }
 
     if(purity){
-      qp_list[[paste0('subj',i)]] <- qpbw
+      qp_list[[paste0('subj', names(counts[i]))]] <- qpbw
     }
   }
   row_col <- c(1, 1)

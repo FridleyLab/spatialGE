@@ -20,7 +20,7 @@
 # @return x, an STList with the Visium counts and coordinates.
 #
 #
-import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL, filterMT=T, savefiles=F, stlist=F){
+import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL, filterMT=F, savefiles=F, stlist=F){
 
   features_df <- readr::read_delim(features_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
   names(features_df) <- c('emsb', 'gene', 'dtype')
@@ -39,39 +39,49 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
   names(coords_df) <- c('barcode', 'intissue', 'array_row', 'array_col', 'pxlcol', 'pxlrow', 'spotname')
 
   counts_df <- readr::read_delim(counts_fp, delim=" ", col_names=F, skip=3, col_types="ccd", progress=F)
-
   names(counts_df) <- c('feat_n', 'spot_n', 'counts')
 
-  counts_all_df <- dplyr::inner_join(features_df, counts_df, by='feat_n')
-  counts_all_df <- dplyr::inner_join(counts_all_df, barcodes_df, by='spot_n')
-  counts_all_df <- dplyr::inner_join(counts_all_df, coords_df, by='barcode')
+  counts_all_df = dplyr::left_join(coords_df, barcodes_df, by='barcode')
+  counts_all_df <- dplyr::left_join(counts_all_df, counts_df, by='spot_n')
+  counts_all_df <- dplyr::full_join(counts_all_df, features_df, by='feat_n')
 
-  rawcounts_df <- tidyr::pivot_wider(counts_all_df, id_cols=c('feat_n', 'gene', 'spotname'), names_from=spotname, values_from=counts, values_fill=0)
-  rawcounts_df <- rawcounts_df[, -1]
+  counts_all_df$spot_n[which(is.na(counts_all_df$spot_n))] = 'otherBCs'
+  counts_all_df$spotname[which(is.na(counts_all_df$spotname))] = 'otherBCs'
+  counts_all_df$emsb[which(is.na(counts_all_df$emsb))] = 'noGene_'
+  counts_all_df$counts[is.na(counts_all_df$counts)] = 0
 
-  dup_genes <- rawcounts_df$gene[duplicated(rawcounts_df$gene)]
-  keep_idx <- c()
-  for(gene in dup_genes){
-    dup_idx <- grep(paste0("^", gene, "$"), rawcounts_df$gene)
+  rawcounts_df <- tidyr::pivot_wider(counts_all_df, id_cols=c('emsb', 'gene'), names_from=spotname, values_from=counts, values_fill=0)
+  rawcounts_df = rawcounts_df[!grepl('noGene_', rawcounts_df$emsb), ]
+  #rawcounts_df <- rawcounts_df[, -1]
+  rawcounts_df = rawcounts_df[, !grepl('otherBCs', colnames(rawcounts_df))]
 
-    dup_rows <- rowSums(rawcounts_df[dup_idx, -1])
-    dup_rows_mask <- dup_rows >= max(dup_rows)
-
-    if(sum(dup_rows_mask) > 1){
-        eq_dups <- which(dup_rows_mask)
-        dup_rows_mask[eq_dups[2:length(eq_dups)]] <- FALSE
-    }
-
-    keep_idx <- append(keep_idx, dup_idx[!dup_rows_mask])
-  }
+  # keep_idx <- c()
+  # for(gene in dup_genes){
+  #   dup_idx <- grep(paste0("^", gene, "$"), rawcounts_df$gene)
+  #
+  #   dup_rows <- rowSums(rawcounts_df[dup_idx, -1])
+  #   dup_rows_mask <- dup_rows >= max(dup_rows)
+  #
+  #   if(sum(dup_rows_mask) > 1){
+  #       eq_dups <- which(dup_rows_mask)
+  #       dup_rows_mask[eq_dups[2:length(eq_dups)]] <- FALSE
+  #   }
+  #
+  #   keep_idx <- append(keep_idx, dup_idx[!dup_rows_mask])
+  # }
 
   if(filterMT){
-    rawcounts_df <- rawcounts_df[-c(keep_idx), ]
+    #rawcounts_df <- rawcounts_df[-c(keep_idx), ]
     rawcounts_df <- rawcounts_df[!grepl("^MT-", rawcounts_df$gene), ]
   }
 
   spotcoords_df <- counts_all_df[, c('spotname', 'array_row', 'array_col')]
   spotcoords_df <- spotcoords_df[!duplicated(spotcoords_df$spotname), ]
+  spotcoords_df = spotcoords_df[!grepl('otherBCs', spotcoords_df$spotname), ]
+
+  zeroSpots = colnames(rawcounts_df[, -c(1, 2)])[colSums(rawcounts_df[, -c(1, 2)]) == 0]
+  rawcounts_df = rawcounts_df[, !(colnames(rawcounts_df) %in% zeroSpots)]
+  spotcoords_df = spotcoords_df[(spotcoords_df$spotname %in% colnames(rawcounts_df[, -c(1, 2)])), ]
 
   if(savefiles){
     write.table(rawcounts_df, file='./visium_counts.txt', sep="\t", row.names=F, quote=F)
