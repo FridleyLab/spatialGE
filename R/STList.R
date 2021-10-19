@@ -221,7 +221,25 @@ read_list_dfs = function(rnacounts, spotcoords){
 # @return return_lists a list with two lists within (one with counts, one with coordinates)
 #
 read_seurat = function(rnacounts){
-  #To be written
+  # Create list to be returned
+  return_lists = list()
+  return_lists[['counts']] = list()
+  return_lists[['coords']] = list()
+  # Find assays within Seurat object
+  slices = names(rnacounts@images)
+  counts_mtx = as.data.frame(rnacounts@assays$Spatial@counts)
+  # Extract counts and coordinates from each assay
+  for(i in slices){
+    spots = rownames(rnacounts@images[[i]]@coordinates)
+    return_lists[['coords']][[i]] = rnacounts@images[[i]]@coordinates[, c('row', 'col')]
+    return_lists[['coords']][[i]] = tibble::rownames_to_column(return_lists[['coords']][[i]], var='libname')
+    return_lists[['coords']][[i]] = tibble::as_tibble(return_lists[['coords']][[i]])
+
+    return_lists[['counts']][[i]] = counts_mtx[, colnames(counts_mtx) %in% spots]
+    return_lists[['counts']][[i]] = tibble::rownames_to_column(return_lists[['counts']][[i]], var='gene')
+    return_lists[['counts']][[i]] = tibble::as_tibble(return_lists[['counts']][[i]])
+  }
+  return(return_lists)
 }
 
 ##

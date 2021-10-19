@@ -27,7 +27,7 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
   if(!is.null(rnacounts)){
     if(class(rnacounts) == 'Seurat'){
       inputtype$rna = 'seurat'
-      inputtype$samples = 'sample_names'
+      inputtype$samples = 'samples_from_seurat'
       return(inputtype)
     }
   }
