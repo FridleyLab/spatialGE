@@ -73,16 +73,23 @@ setMethod("summary", signature="STList",
           }
 )
 
-# setMethod("dim", signature="STList",
-#           function(object){
-#             if(length(object@counts == 1)){
-#               dim_res = base::dim(object@counts[[1]])
-#             } else{
-#               dim_res = list()
-#               for(i in 1:length(object@counts)){
-#                 dim_res[[i]] = base::dim(object@counts[[i]])
-#               }
-#             }
-#             return(dim_res)
-#           },
-# )
+##
+# @title dim: Prints the dimensions of count arrays within an STList object.
+# @description Returns the number of genes and spots for each array within an STList object
+# @details
+# This function takes an STList and prints the number of genes (rows) and spots (columns) of 
+# each spatial array within that object.
+#
+# @param object, an STList object to show summary from.
+#
+#
+setMethod(dim, signature(x="STList"),
+          function(x){
+            dim_res = list()
+            for(i in seq(x@counts)){
+              dim_res[[i]] = c(base::nrow(x@counts[[i]]), base::ncol(x@counts[[i]]) - 1)
+            }
+            return(dim_res)
+          }
+)
+

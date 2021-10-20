@@ -117,7 +117,6 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
       # Get list of filepaths
       filepaths = process_sample_names(rnacounts, spotcoords, samples, input_check)
       # Check if input is Visium or count/coord matrices
-
       if(input_check$rna[1] == 'visium_out'){
         pre_lists = read_visium_outs(filepaths)
       } else{
@@ -348,9 +347,17 @@ read_visium_outs = function(filepaths){
 
   # Define number of available cores to use.
   cores = count_cores(length(filepaths[['count_found']]))
+  # cores = parallel::detectCores()
+  # if(cores > 1){
+  #   cores = cores - 1
+  # }
 
   # Use parallelization to read count data if possible.
-  output_temp = mclapply(seq_along(filepaths[['count_found']]), function(i){
+  output_temp = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
+    if(length(fp_list[[i]]$counts) == 0){
+      return(list())
+    }
+
     # Process Visium folder.
     visium_processed = import_Visium(features_fp=fp_list[[i]][['features']],
                                      barcodes_fp=fp_list[[i]][['barcodes']],

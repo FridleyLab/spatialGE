@@ -21,29 +21,46 @@
 #
 #
 import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL, filterMT=F, savefiles=F, stlist=F){
-
-  features_df <- readr::read_delim(features_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
+  require(data.table)
+  require('magrittr')
+  #features_df <- readr::read_delim(features_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
+  features_df = fread(features_fp, header = F, check.names =F)
   names(features_df) <- c('emsb', 'gene', 'dtype')
   features_df <- tibble::add_column(features_df, feat_n=as.character(1:nrow(features_df)), .before=1)
+  setkey(features_df, "feat_n")
 
-  barcodes_df <- readr::read_delim(barcodes_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
+  #barcodes_df <- readr::read_delim(barcodes_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
+  barcodes_df = fread(barcodes_fp, header = F, check.names = F)
   barcodes_df <- tibble::add_column(barcodes_df, spot_n=as.character(1:nrow(barcodes_df)), .before=1)
   names(barcodes_df) <- c('spot_n', 'barcode')
+  setkey(barcodes_df, "barcode")
 
-  coords_df <- readr::read_delim(coords_fp, delim=",", col_names=F, col_types=readr::cols(), progress=F)
-  spot_name <- c()
-  for(i in 1:nrow(coords_df)){
-    spot_name <- append(spot_name, paste0('y', coords_df$X3[i], 'x', coords_df$X4[i]))
-  }
-  coords_df$spotname <- spot_name
+  #coords_df <- readr::read_delim(coords_fp, delim=",", col_names=F, col_types=readr::cols(), progress=F)
+  coords_df = fread(coords_fp, header=F, check.names=F)
+  # spot_name <- c()
+  # for(i in 1:nrow(coords_df)){
+  #   spot_name <- append(spot_name, paste0('y', coords_df$V3[i], 'x', coords_df$V4[i]))
+  # }
+  # coords_df$spotname <- spot_name
+  coords_df$spotname = paste0('y', coords_df[[3]], 'x', coords_df[[4]])
   names(coords_df) <- c('barcode', 'intissue', 'array_row', 'array_col', 'pxlcol', 'pxlrow', 'spotname')
+  setkey(coords_df, "barcode")
 
-  counts_df <- readr::read_delim(counts_fp, delim=" ", col_names=F, skip=3, col_types="ccd", progress=F)
+  #counts_df <- readr::read_delim(counts_fp, delim=" ", col_names=F, skip=3, col_types="ccd", progress=F)
+  counts_df = fread(counts_fp, header=F, check.names = F, sep=" ", skip = 3)
   names(counts_df) <- c('feat_n', 'spot_n', 'counts')
+  setkey(counts_df, "spot_n")
+
+  counts_all_df = coords_df[barcodes_df, on = "barcode"] %>% dplyr::mutate(spot_n = as.integer(spot_n))
+  setkey(counts_all_df, "spot_n")
+  counts_all_df = counts_all_df[counts_df, on = "spot_n"]
+  setkey(counts_all_df, "feat_n")
+  counts_all_df = counts_all_df[features_df %>% dplyr::mutate(feat_n = as.integer(feat_n)), on = "feat_n"]
+
 
   counts_all_df = dplyr::left_join(coords_df, barcodes_df, by='barcode')
-  counts_all_df <- dplyr::left_join(counts_all_df, counts_df, by='spot_n')
-  counts_all_df <- dplyr::full_join(counts_all_df, features_df, by='feat_n')
+  counts_all_df <- dplyr::left_join(counts_all_df %>% dplyr::mutate(spot_n = as.integer(spot_n)), counts_df, by='spot_n')
+  counts_all_df <- dplyr::full_join(counts_all_df, features_df %>% dplyr::mutate(feat_n = as.integer(feat_n)), by='feat_n')
 
   counts_all_df$spot_n[which(is.na(counts_all_df$spot_n))] = 'otherBCs'
   counts_all_df$spotname[which(is.na(counts_all_df$spotname))] = 'otherBCs'
