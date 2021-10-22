@@ -21,21 +21,21 @@
 #
 #
 import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL, filterMT=F, savefiles=F, stlist=F){
-  require(data.table)
+  #require(data.table)
   #features_df <- readr::read_delim(features_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
-  features_df = fread(features_fp, header = F, check.names =F)
+  features_df = data.table::fread(features_fp, header = F, check.names =F)
   names(features_df) <- c('emsb', 'gene', 'dtype')
   features_df <- tibble::add_column(features_df, feat_n=as.character(1:nrow(features_df)), .before=1)
   setkey(features_df, "feat_n")
 
   #barcodes_df <- readr::read_delim(barcodes_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
-  barcodes_df = fread(barcodes_fp, header = F, check.names = F)
+  barcodes_df = data.table::fread(barcodes_fp, header = F, check.names = F)
   barcodes_df <- tibble::add_column(barcodes_df, spot_n=as.character(1:nrow(barcodes_df)), .before=1)
   names(barcodes_df) <- c('spot_n', 'barcode')
   setkey(barcodes_df, "barcode")
 
   #coords_df <- readr::read_delim(coords_fp, delim=",", col_names=F, col_types=readr::cols(), progress=F)
-  coords_df = fread(coords_fp, header=F, check.names=F)
+  coords_df = data.table::fread(coords_fp, header=F, check.names=F)
   # spot_name <- c()
   # for(i in 1:nrow(coords_df)){
   #   spot_name <- append(spot_name, paste0('y', coords_df$V3[i], 'x', coords_df$V4[i]))
@@ -46,7 +46,7 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
   setkey(coords_df, "barcode")
 
   #counts_df <- readr::read_delim(counts_fp, delim=" ", col_names=F, skip=3, col_types="ccd", progress=F)
-  counts_df = fread(counts_fp, header=F, check.names = F, sep=" ", skip = 3)
+  counts_df = data.table::fread(counts_fp, header=F, check.names = F, sep=" ", skip = 3)
   names(counts_df) <- c('feat_n', 'spot_n', 'counts')
   setkey(counts_df, "spot_n")
 
