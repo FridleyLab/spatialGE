@@ -62,6 +62,7 @@
 #
 #' @export STList
 STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
+  cat(crayon::yellow(paste("Requested", length(samples), "Samples\n")))
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
 
@@ -74,6 +75,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
   # METADATA INFO OPTIONAL.
   if(!is.null(input_check$rna)){
     if(input_check$rna[1] == 'list_dfs' && input_check$coords[1] == 'list_dfs'){
+      cat(crayon::yellow(paste("Found List of Dataframes...\n")))
       pre_lists = read_list_dfs(rnacounts, spotcoords)
     }
   }
@@ -81,6 +83,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
   # CASE: SEURAT OBJECT
   if(!is.null(input_check$rna)){
     if(input_check$rna[1] == 'seurat'){
+      cat(crayon::yellow(paste("Found Seurat Data.\n")))
       pre_lists = read_seurat(rnacounts)
     }
   }
@@ -91,8 +94,10 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
     filepaths = process_sample_filepaths(samples, input_check)
     # Check if input is Visium or count/coord matrices
     if(input_check$samples[1] == 'samplesfile_visium'){
+      cat(crayon::yellow(paste("Found Visium Data.\n")))
       pre_lists = read_visium_outs(filepaths)
     } else{
+      cat(crayon::yellow(paste("Found Matrix Data.\n")))
       pre_lists = read_matrices_fps(filepaths)
     }
   }
@@ -104,8 +109,10 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
       filepaths = process_sample_names_from_file(rnacounts, spotcoords, samples, input_check)
       # Check if input is Visium or count/coord matrices
       if(input_check$rna[1] == 'visium_out'){
+        cat(crayon::yellow(paste("Found Visium Data.\n")))
         pre_lists = read_visium_outs(filepaths)
       } else{
+        cat(crayon::yellow(paste("Found Matrix Data.\n")))
         pre_lists = read_matrices_fps(filepaths)
       }
     }
@@ -119,8 +126,10 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
       # Check if input is Visium or count/coord matrices
 
       if(input_check$rna[1] == 'visium_out'){
+        cat(crayon::yellow(paste("Found Visium Data.\n")))
         pre_lists = read_visium_outs(filepaths)
       } else{
+        cat(crayon::yellow(paste("Found Matrix Data.\n")))
         pre_lists = read_matrices_fps(filepaths)
       }
 
@@ -138,6 +147,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
   }
 
   # Process count and coordinate lists before placing within STList
+  cat(crayon::yellow(paste("Cleaning Count and Coordinate Data Gene Names.\n")))
   procLists = process_lists(pre_lists[['counts']], pre_lists[['coords']])
 
   # Process metadata if provided or make an empty tibble
@@ -148,6 +158,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
     samples_df = tibble::tibble()
   }
 
+  cat(crayon::yellow(paste("Converting Counts to Sparse Matrices\n")))
   procLists[['counts']] = mclapply(procLists[['counts']], function(x){
     makeSparse(x)
   })
@@ -171,11 +182,36 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
                    st_clusters=list(),
                    pheno_plots=list()
   )
+  cat(crayon::green$bold(paste("Completed STList!\n")))
   return(STList_obj)
 }
 
 
 # Helpers ----------------------------------------------------------------------
+
+##
+# makeSparse: takes a dataframe input and makes it sparse saving space
+# wrapped from Matrix package
+# @param dataframe, a dataframe or tibble with gene names in the first column and
+# different spots in the following columns
+# @return a sparsed data matrix
+#
+makeSparse = function(dataframe){
+  suppressMessages({library(Matrix)})
+  numdat = dataframe %>%
+    column_to_rownames("gene") %>%
+    as.matrix() %>% as(., "sparseMatrix")
+}
+
+##
+# expandSparse: takes a sparsed matrix and returns a dataframe
+# @param sparsedMatrix, a sparse matrix made from the Matrix
+# package
+# @return a data frame
+#
+expandSparse = function(sparsedMatrix){
+  sparsedList %>% data.frame(check.names=F)
+}
 
 ##
 # read_list_dfs: Takes two named lists of counts and coordinates and performs sorting
@@ -298,19 +334,6 @@ read_matrices_fps = function(filepaths){
 }
 
 ##
-makeSparse = function(dataframe){
-  numdat = dataframe %>%
-    select(-!!colnames(charCol)) %>%
-    as.matrix() %>% as(., "sparseMatrix")
-  return(list("characters" = charCol,
-              "sparsedMat" = numdat))
-}
-
-expandSparse = function(sparsedList){
-  cbind(sparsedList$characters, sparsedList$sparsedMat) %>% data.frame(check.names=F)
-}
-
-##
 # read_visium_outs: Takes a list with Visium output file paths and sample names and
 # returns a list with count and coordinates data frames per sample
 # @param filepaths, a list with file paths to Visium outputs and sample IDs
@@ -318,6 +341,7 @@ expandSparse = function(sparsedList){
 #
 read_visium_outs = function(filepaths){
   # Find necessary files from visium input
+  missingSamples = 0
   fp_list = list()
   for(i in 1:length(filepaths[['count_found']])){
     # Get all system paths within output folder.
@@ -343,12 +367,17 @@ read_visium_outs = function(filepaths){
     fp_list[[i]]$counts = vcounts
     fp_list[[i]]$coords = vcoords
     fp_list[[i]]$runname = filepaths[['sampleids']][i]
-    if(is_empty(vfeatures)) message(paste("Features for", filepaths$sampleids[i], "not able to be found..."))
-    if(is_empty(vbarcodes)) message(paste("Barcodes for", filepaths$sampleids[i], "not able to be found..."))
-    if(is_empty(vcounts)) message(paste("Counts for", filepaths$sampleids[i], "not able to be found..."))
-    if(is_empty(vcoords)) message(paste("Cooredinates for", filepaths$sampleids[i], "not able to be found..."))
-    if(is_empty(vfeatures) | is_empty(vbarcodes) | is_empty(vcounts) | is_empty(vcoords)) fp_list[[i]] = list()
+    if(is_empty(vfeatures)) cat(crayon::red(paste("Features for", filepaths$sampleids[i], "not able to be found...")))
+    if(is_empty(vbarcodes)) cat(crayon::red(paste("Barcodes for", filepaths$sampleids[i], "not able to be found...")))
+    if(is_empty(vcounts)) cat(crayon::red(paste("Counts for", filepaths$sampleids[i], "not able to be found...")))
+    if(is_empty(vcoords)) cat(crayon::red(paste("Cooredinates for", filepaths$sampleids[i], "not able to be found...")))
+    if(is_empty(vfeatures) | is_empty(vbarcodes) | is_empty(vcounts) | is_empty(vcoords)){
+      fp_list[[i]] = list()
+      missingSamples  = missingSamples + 1
+    }
   }
+
+  cat(crayon::green$bold(paste("Found", length(filepaths$sampleids)-missingSamples, "Visium Samples\n")))
 
   # Define number of available cores to use.
   cores = parallel::detectCores()
@@ -360,18 +389,23 @@ read_visium_outs = function(filepaths){
   }
 
   # Use parallelization to read count data if possible.
+  cat(crayon::yellow(paste("Importing Samples....\n")))
   output_temp = mclapply(seq_along(filepaths[['count_found']]), function(i){
     if(length(fp_list[[i]]$counts) == 0){
       return(list())
     }
+    system(sprintf('echo "%s"', crayon::yellow(paste0("\tProcessing Sample ", i, "...."))))
+    #cat(crayon::yellow(paste("\tSample", i, "\n")))
 
     # Process Visium folder.
     visium_processed = import_Visium(features_fp=fp_list[[i]][['features']],
                                      barcodes_fp=fp_list[[i]][['barcodes']],
                                      counts_fp=fp_list[[i]][['counts']],
                                      coords_fp=fp_list[[i]][['coords']])
+    system(sprintf('echo "%s"', crayon::green(paste0("\tFinished Processing Sample ", i, "...."))))
     return(visium_processed)
   }, mc.cores=cores, mc.preschedule=T)
+  cat(crayon::green$bold(paste("\tCompleted!\n")))
 
   # Organize the paralellized output into corresponding lists.
   return_lists = list()
@@ -434,7 +468,8 @@ process_lists = function(counts_df_list, coords_df_list){
     }
 
     # Sort coordinate data according to third column in the coordinate data frame.
-    coords_df_list[[name_i]] = coords_df_list[[name_i]][order(coords_df_list[[name_i]][, 3]), ]
+    coords_df_list[[name_i]] = coords_df_list[[name_i]] %>%
+      arrange(array_col)#[order(coords_df_list[[name_i]][, 3]), ]
 
     # Order column names in count data frame according to sorted coordinate data.
     counts_df_list[[name_i]] = counts_df_list[[name_i]][, c(colnames(counts_df_list[[name_i]][1]), unlist(coords_df_list[[name_i]][, 1]))]
