@@ -148,6 +148,10 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
     samples_df = tibble::tibble()
   }
 
+  procLists[['counts']] = mclapply(procLists[['counts']], function(x){
+    makeSparse(x)
+  })
+
   # Creates STList object from both count and coordinates data.
   STList_obj = new("STList",
                    counts=procLists[['counts']],
@@ -294,6 +298,19 @@ read_matrices_fps = function(filepaths){
 }
 
 ##
+makeSparse = function(dataframe){
+  numdat = dataframe %>%
+    select(-!!colnames(charCol)) %>%
+    as.matrix() %>% as(., "sparseMatrix")
+  return(list("characters" = charCol,
+              "sparsedMat" = numdat))
+}
+
+expandSparse = function(sparsedList){
+  cbind(sparsedList$characters, sparsedList$sparsedMat) %>% data.frame(check.names=F)
+}
+
+##
 # read_visium_outs: Takes a list with Visium output file paths and sample names and
 # returns a list with count and coordinates data frames per sample
 # @param filepaths, a list with file paths to Visium outputs and sample IDs
@@ -326,6 +343,11 @@ read_visium_outs = function(filepaths){
     fp_list[[i]]$counts = vcounts
     fp_list[[i]]$coords = vcoords
     fp_list[[i]]$runname = filepaths[['sampleids']][i]
+    if(is_empty(vfeatures)) message(paste("Features for", filepaths$sampleids[i], "not able to be found..."))
+    if(is_empty(vbarcodes)) message(paste("Barcodes for", filepaths$sampleids[i], "not able to be found..."))
+    if(is_empty(vcounts)) message(paste("Counts for", filepaths$sampleids[i], "not able to be found..."))
+    if(is_empty(vcoords)) message(paste("Cooredinates for", filepaths$sampleids[i], "not able to be found..."))
+    if(is_empty(vfeatures) | is_empty(vbarcodes) | is_empty(vcounts) | is_empty(vcoords)) fp_list[[i]] = list()
   }
 
   # Define number of available cores to use.
@@ -338,7 +360,7 @@ read_visium_outs = function(filepaths){
   }
 
   # Use parallelization to read count data if possible.
-  output_temp = suppressWarnings({mclapply(seq_along(filepaths[['count_found']]), function(i){
+  output_temp = mclapply(seq_along(filepaths[['count_found']]), function(i){
     if(length(fp_list[[i]]$counts) == 0){
       return(list())
     }
@@ -349,13 +371,17 @@ read_visium_outs = function(filepaths){
                                      counts_fp=fp_list[[i]][['counts']],
                                      coords_fp=fp_list[[i]][['coords']])
     return(visium_processed)
-  }, mc.cores=cores, mc.preschedule=T)})
+  }, mc.cores=cores, mc.preschedule=T)
 
   # Organize the paralellized output into corresponding lists.
   return_lists = list()
   return_lists[['counts']] = list()
   return_lists[['coords']] = list()
   for(i in 1:length(output_temp)){
+    if(is_empty(output_temp[[i]])){
+      return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
+      return_lists[['coords']][[fp_list[[i]]$runname]]  = output_temp[[i]]$coords
+    }
     return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
     return_lists[['coords']][[fp_list[[i]]$runname]]  = output_temp[[i]]$coords
   }
@@ -416,6 +442,8 @@ process_lists = function(counts_df_list, coords_df_list){
     # Put column names to coordinate data.
     colnames(coords_df_list[[name_i]] ) = c('libname', 'ypos', 'xpos')
   }
+
+
   proc_return_lists = list()
   proc_return_lists[['counts']] = counts_df_list
   proc_return_lists[['coords']] = coords_df_list
