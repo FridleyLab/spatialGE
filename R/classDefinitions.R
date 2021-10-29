@@ -8,10 +8,11 @@ setClass(Class="STList",
          slots=list(counts="list",
                     coords="list",
                     clinical="tbl",
-                    voom_counts="list",
-                    log_counts="list",
-                    gene_stdev="list",
-                    log_stdev="list",
+                    tr_counts="list",
+                    #voom_counts="list",
+                    #log_counts="list",
+                    gene_var="list",
+                    #log_stdev="list",
                     gene_het="list",
                     gene_krige="list",
                     cell_deconv="list",
@@ -20,7 +21,8 @@ setClass(Class="STList",
                     gene_krige_data="list",
                     deconv_krige_data="list",
                     st_clusters="list",
-                    pheno_plots="list"
+                    pheno_plots="list",
+                    misc="list"
          )
 )
 
@@ -77,7 +79,7 @@ setMethod("summary", signature="STList",
 # @title dim: Prints the dimensions of count arrays within an STList object.
 # @description Returns the number of genes and spots for each array within an STList object
 # @details
-# This function takes an STList and prints the number of genes (rows) and spots (columns) of 
+# This function takes an STList and prints the number of genes (rows) and spots (columns) of
 # each spatial array within that object.
 #
 # @param object, an STList object to show summary from.

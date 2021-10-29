@@ -1,53 +1,57 @@
 ##
 #' @title STList: Creation of STList objects
-#' @description Creates an STList object from one or several spatial transcriptomic experiments.
+#' @description Creates an STList object from one or several spatial transcriptomic samples.
 #' @details
-#' Objects of the class STList can be created from two sources:
+#' Objects of the S4 class STList can be created from two sources:
 #' \itemize{
 #' \item Raw RNA counts (genes in rows, spots in columns) and spot coordinates (spots
 #' in rows, with three columns: spot IDs, y position, and x position).
 #' \item Visium output folders from Space Ranger. The folder should have the
-#' structure resulting from spaceranger count.
+#' structure resulting from `spaceranger count`.
 #'}
-#' Optionally, the user can input a system path to a table with data associated with
-#' each spatial array (e.g., clinical variables). This sample file should contain
-#' sample IDs in the first column matching at least partially the file names of the
-#' count/coordinate files or Visium directories.
+#' Optionally, the user can input a system path to a table containing data associated with
+#' each spatial array (e.g., clinical variables). This sample metadata file should contain
+#' sample IDs in the first column matching partially the file names of the
+#' count/coordinate file paths or Visium directories.
 #'
-#' The function will read data in parallel if unix system available (Windows users
-#'  will experience longer times depending on the size of the data set)
+#' The function will read data in parallel if unix system is available (Windows users
+#' will experience longer times depending on the number of samples).
 #'
 #' @param rnacounts The count data which can be provided in one of these formats:
 #' \itemize{
 #' \item File paths to comma- or tab-delimited files containing raw RNA counts, one
 #' for each spatial array. The first column contains gene names. Subsequent columns
-#' contain data for each spot. Duplicate gene names will be appended a suffix ('_d**')
-#' \item File paths to Visium output folders (one per spatial array) can be provided.
+#' contain data for each spot. Duplicate gene names will be appended a suffix ('_d**').
+#' Requires `spotcoords` and `samples`.
+#' \item File paths to Visium output folders (one per spatial array). The folder should have the
+#' structure resulting from `spaceranger count` and contain the `.h5` files and `spatial` folder.
+#' Requires `samples`.
 #' \item One named list of data frames with raw RNA counts (one data frame per spatial array).
+#' Requires `spotcoords` and `samples`.
 #' }
-#' @param spotcoords The spot coordinates which can be provided in one of these formats:
+#' @param spotcoords The spot coordinates, which are required if inputs are not Visium outputs.
+#' The user can provide one of these formats:
 #' \itemize{
 #' \item File paths to comma- or tab-delimited files containing spot coordinates, one
 #' for each spatial array. The files must contain three columns: spot IDs, y positions, and
 #' x positions. The spot IDs must match the column names for each spot (column) in the RNA count files.
 #' \item One named list of data frames with spot coordinates. The list names must match list
 #' names of the RNA counts list.
-#' Note: If Visium directories are passed to `rnacounts`, then `spotcoords` is not necessary.
 #' }
 #' @param samples The metadata associated to each spatial array. This file can also include
-#' system paths to RNA count and spot coordinate without the need to specify `rnacounts`
-#' and `spotcoords`. One of the following options must be entered to create an STList:
+#' system paths to RNA count and spot coordinate files, bypassing the need to specify `rnacounts`
+#' and `spotcoords`. One of the following options should be entered to create an STList:
 #' \itemize{
 #' \item A vector with sample names, which will be used to partial match RNA count and
-#' spot coordinates file paths. A sample name must not match two file paths. Note that
-#' providing a vector of names and named list odf counts/coords will result in errors.
-#' \item A sample file containing metadata for each spatial array. This file is a comma-
-#' or tab-separated file with sample names in the first column. Paths to RNA count and
-#' coordinate files can be in the second and third column respectively, and omitting the
-#' `rnacounts` and `spotcoords` arguments. If Visium, only the second column with paths to
-#' output folders is expected. Subsequent columns can contain variables associated to each
-#' spatial array.
+#' spot coordinates file paths. A sample name must not match two file paths.
+#' \item A path to  the file containing metadata for each spatial array. This file is a comma-
+#' or tab-separated file with one sample per row and sample names in the first column.
+#' Paths to RNA count and coordinate files can be in the second and third column respectively,
+#' and omitting the `rnacounts` and `spotcoords` arguments. If Visium, only the second
+#' column with paths to output folders is expected. Subsequent columns can contain
+#' variables associated to each spatial array.
 #' }
+#'
 #' @return x, the STList object containing the counts and coordinates, and optionally
 #' the sample metadata.
 #'
@@ -61,6 +65,7 @@
 #' # melanoma
 #
 #' @export STList
+#'
 STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
@@ -85,7 +90,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
     }
   }
 
-  # CASE: SAMPLE FIlE ONLY WITH FILE PATH(S) TO COUNT COORDINATE MATRICES OR VISIUM DIRS
+  # CASE: SAMPLE FIlE ONLY CONTAINING FILE PATH(S) TO COUNT COORDINATE MATRICES OR VISIUM DIRS
   if(is.null(rnacounts) && is.null(input_check$coords) && !is.null(input_check$samples)){
     # Get list of filepaths
     filepaths = process_sample_filepaths(samples, input_check)
@@ -97,7 +102,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
     }
   }
 
-  # CASE: SAMPLE FIlE ONLY WITH FILE PATH(S) TO COUNT COORDINATE MATRICES OR VISIUM DIRS
+  # CASE: SAMPLE FIlE PLUS FILE PATH(S) TO COUNT COORDINATE MATRICES OR VISIUM DIRS
   if(!is.null(rnacounts) && (input_check$samples[1] == 'samplesfile_visium' || input_check$samples[1] == 'samplesfile')){
     if(input_check$rna[1] != 'list_dfs'){
       # Get list of filepaths
@@ -123,11 +128,6 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
         pre_lists = read_matrices_fps(filepaths)
       }
 
-      # if(length(input_check$rna) == 0){
-      #   pre_lists = read_matrices_fps(filepaths)
-      # } else if(input_check$rna[1] == 'visium_out'){
-      #   pre_lists = read_visium_outs(filepaths)
-      # }
     }
   }
 
@@ -152,10 +152,11 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
                    counts=procLists[['counts']],
                    coords=procLists[['coords']],
                    clinical=samples_df,
-                   voom_counts=list(),
-                   log_counts=list(),
-                   gene_stdev=list(),
-                   log_stdev=list(),
+                   tr_counts=list(),
+                   #voom_counts=list(),
+                   #log_counts=list(),
+                   gene_var=list(),
+                   #log_stdev=list(),
                    gene_het=list(),
                    gene_krige=list(),
                    cell_deconv=list(),
@@ -164,7 +165,8 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
                    gene_krige_data=list(),
                    deconv_krige_data=list(),
                    st_clusters=list(),
-                   pheno_plots=list()
+                   pheno_plots=list(),
+                   misc=list()
   )
   return(STList_obj)
 }
@@ -271,7 +273,7 @@ read_matrices_fps = function(filepaths){
   cores = count_cores(length(filepaths[['count_found']]))
 
   # Use parallelization to read count data if possible.
-  counts_df_list = mclapply(seq_along(filepaths[['count_found']]), function(i){
+  counts_df_list = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
     # Read filepaths.
     counts_df = readr::read_delim(filepaths[['count_found']][i], delim=delrna, col_types=readr::cols(), progress=F)
     return(counts_df)
@@ -280,7 +282,7 @@ read_matrices_fps = function(filepaths){
   names(counts_df_list) = filepaths[['sampleids']]
 
   # Use parallelization to read coordinate data if possible.
-  coords_df_list = mclapply(seq_along(filepaths[['coord_found']]), function(i){
+  coords_df_list = parallel::mclapply(seq_along(filepaths[['coord_found']]), function(i){
     # Read filepaths.
     coords_df = readr::read_delim(filepaths[['coord_found']][i], delim=delcoords, col_types=readr::cols(), progress=F)
     return(coords_df)
@@ -292,14 +294,15 @@ read_matrices_fps = function(filepaths){
   # NOTE: Duplicate genes coming from matrices are only appended a '_d[0-9]+', but
   # are not comparable across matrices because unique identifiers for the probes are not used.
   for(i in 1:length(counts_df_list)){
-    dup_genes_Mask = duplicated(counts_df_list[[i]][[1]])
-    dup_genes = counts_df_list[[i]][[1]][dup_genes_Mask]
-    if(length(dup_genes) != 0){
-      for(gene in 1:length(dup_genes)){
-        geneToChange = counts_df_list[[i]][[1]][counts_df_list[[i]][[1]] == dup_genes[gene]]
-        if(!is.null(geneToChange) & !is.na(geneToChange)){
-          counts_df_list[[i]][[1]][counts_df_list[[i]][[1]] == dup_genes[gene]] = paste0(geneToChange, '_d', gene)
-        }
+    dup_genes_idx = which(duplicated(counts_df_list[[i]][[1]]))
+    dup_genes_names = counts_df_list[[i]][[1]][dup_genes_idx]
+    if(length(dup_genes_idx) != 0){
+      for(gene in 1:length(dup_genes_idx)){
+        #geneToChange = counts_df_list[[i]][[1]][counts_df_list[[i]][[1]] == dup_genes[gene]]
+        #if(!is.null(geneToChange) & !is.na(geneToChange)){
+          #counts_df_list[[i]][[1]][counts_df_list[[i]][[1]] == dup_genes[gene]] = paste0(geneToChange, '_d', gene)
+        counts_df_list[[i]][[1]][dup_genes_idx[gene]] = paste0(counts_df_list[[i]][[1]][dup_genes_idx[gene]], '_d', gene)
+        #}
       }
     }
   }
