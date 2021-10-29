@@ -333,9 +333,12 @@ read_visium_outs = function(filepaths){
   if(cores > 1){
     cores = cores - 1
   }
+  if(cores > length(filepaths[['count_found']])){
+    cores = length(filepaths[['count_found']])
+  }
 
   # Use parallelization to read count data if possible.
-  output_temp = mclapply(seq_along(filepaths[['count_found']]), function(i){
+  output_temp = suppressWarnings({mclapply(seq_along(filepaths[['count_found']]), function(i){
     if(length(fp_list[[i]]$counts) == 0){
       return(list())
     }
@@ -346,7 +349,7 @@ read_visium_outs = function(filepaths){
                                      counts_fp=fp_list[[i]][['counts']],
                                      coords_fp=fp_list[[i]][['coords']])
     return(visium_processed)
-  }, mc.cores=cores, mc.preschedule=T)
+  }, mc.cores=cores, mc.preschedule=T)})
 
   # Organize the paralellized output into corresponding lists.
   return_lists = list()

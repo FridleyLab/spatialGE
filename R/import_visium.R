@@ -26,13 +26,13 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
   features_df = data.table::fread(features_fp, header = F, check.names =F)
   names(features_df) <- c('emsb', 'gene', 'dtype')
   features_df <- tibble::add_column(features_df, feat_n=as.character(1:nrow(features_df)), .before=1)
-  setkey(features_df, "feat_n")
+  data.table::setkey(features_df, "feat_n")
 
   #barcodes_df <- readr::read_delim(barcodes_fp, delim="\t", col_names=F, col_types=readr::cols(), progress=F)
   barcodes_df = data.table::fread(barcodes_fp, header = F, check.names = F)
   barcodes_df <- tibble::add_column(barcodes_df, spot_n=as.character(1:nrow(barcodes_df)), .before=1)
   names(barcodes_df) <- c('spot_n', 'barcode')
-  setkey(barcodes_df, "barcode")
+  data.table::setkey(barcodes_df, "barcode")
 
   #coords_df <- readr::read_delim(coords_fp, delim=",", col_names=F, col_types=readr::cols(), progress=F)
   coords_df = data.table::fread(coords_fp, header=F, check.names=F)
@@ -43,17 +43,17 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
   # coords_df$spotname <- spot_name
   coords_df$spotname = paste0('y', coords_df[[3]], 'x', coords_df[[4]])
   names(coords_df) <- c('barcode', 'intissue', 'array_row', 'array_col', 'pxlcol', 'pxlrow', 'spotname')
-  setkey(coords_df, "barcode")
+  data.table::setkey(coords_df, "barcode")
 
   #counts_df <- readr::read_delim(counts_fp, delim=" ", col_names=F, skip=3, col_types="ccd", progress=F)
   counts_df = data.table::fread(counts_fp, header=F, check.names = F, sep=" ", skip = 3)
   names(counts_df) <- c('feat_n', 'spot_n', 'counts')
-  setkey(counts_df, "spot_n")
+  data.table::setkey(counts_df, "spot_n")
 
   counts_all_df = coords_df[barcodes_df, on = "barcode"] %>% mutate(spot_n = as.integer(spot_n))
-  setkey(counts_all_df, "spot_n")
+  data.table::setkey(counts_all_df, "spot_n")
   counts_all_df = counts_all_df[counts_df, on = "spot_n"]
-  setkey(counts_all_df, "feat_n")
+  data.table::setkey(counts_all_df, "feat_n")
   counts_all_df = counts_all_df[features_df %>% mutate(feat_n = as.integer(feat_n)), on = "feat_n"]
 
 
