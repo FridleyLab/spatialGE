@@ -40,9 +40,9 @@ spatialTransform = function(x=NULL, method='log', scale_f=10000){
   x@gene_var = parallel::mclapply(seq_along(x@tr_counts), function(i){
     gene_stdevs_df = apply(x@tr_counts[[i]][, -1], 1, sd, na.rm = T)
     gene_stdevs_df = tibble::as_tibble_col(gene_stdevs_df, column_name='gene_stdevs') %>%
-      tibble::add_column(gene=x@counts[[i]][[1]], .before = 1)
+      tibble::add_column(gene=rownames(x@counts[[i]]), .before = 1)
     return(gene_stdevs_df)
-  }, mc.cores=cores, mc.preschedule=T)
+  }, mc.cores=cores, mc.preschedule=F)
   # Copy names of the list
   names(x@gene_var) = names(x@counts)
 
@@ -80,15 +80,18 @@ log_transf = function(x=NULL, scale_f=scale_f){
     # Progress will probably show if cores=1
     cat(paste0("Log-transforming spatial sample: ", names(x@counts[i]), "...\n"))
 
+    # Expand sparse matrix
+    df = expandSparse(x@counts[[i]])
+
     # Calculate (spot) library sizes. Then, add 1 to each library size.
-    libsizes = colSums(x@counts[[i]][, -1])
+    libsizes = colSums(df)
     # Check that there are not zero-count spots
     if(any(libsizes == 0)){
       stop('Please, remove spots containing zero reads...')
     }
 
     # Remove gene names from data
-    df = x@counts[[i]][, -1]
+    #df = x@counts[[i]][, -1]
     # Divide each count value by their respective column (spot) normalization factor.
     df = sweep(df, 2, libsizes, '/')
     # Then multiply by scaling factor
@@ -98,7 +101,7 @@ log_transf = function(x=NULL, scale_f=scale_f){
 
     # Put back gene names to matrix and store in object.
     df = tibble::as_tibble(df) %>%
-      tibble::add_column(x@counts[[i]][, 1], .before=1)
+      tibble::add_column(gene=rownames(x@counts[[i]]), .before=1)
 
     return(df)
   }, mc.cores=cores, mc.preschedule=F)
@@ -143,20 +146,23 @@ voom_norm = function(x=NULL){
   voom_counts = parallel::mclapply(seq_along(x@counts), function(i){
 
     # Progress will probably show if cores=1
-    cat(paste0("Normalizing spatial array #", i, "...\n"))
+    cat(paste0("Normalizing spatial sample: ", names(x@counts[i]), "...\n"))
+
+    # Expand sparse matrix
+    df = expandSparse(x@counts[[i]])
 
     # Calculate edgeR normalization factors.
-    norm_factors = edgeR::calcNormFactors(x@counts[[i]][-1], method="TMM", lib.size=NULL)
+    norm_factors = edgeR::calcNormFactors(df, method="TMM", lib.size=NULL)
 
     # Divide each count value by their respective column (spot) normalization factor.
-    df = sweep(x@counts[[i]][, -1], 2, norm_factors, '/')
+    df = sweep(df, 2, norm_factors, '/')
 
     # Apply voom transformation to count data.
     df_voom = limma::voom(df, design=NULL, lib.size=colSums(df), normalize.method="none", plot=F)
 
     # Put back gene names to matrix and store in object.
     df_voom = tibble::as_tibble(df_voom$E) %>%
-      tibble::add_column(gene=x@counts[[i]][[1]], .before=1)
+      tibble::add_column(gene=rownames(x@counts[[i]]), .before=1)
 
     return(df_voom)
 

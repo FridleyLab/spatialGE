@@ -92,18 +92,16 @@ spatial_purity <- function(x=NULL){
 
   # Get ESTIMATE scores in parallel if possible.
   estimate_scores = parallel::mclapply(seq_along(x@tr_counts), function(i){
-
     # Extract count data.
-    gene_names <- x@tr_counts[[i]]$gene
-    df <- as.data.frame(x@tr_counts[[i]][, -1])
-    rownames(df) <- gene_names
+    df = as.matrix(x@tr_counts[[i]][, -1])
+    rownames(df) = x@tr_counts[[i]]$gene
 
     # Write temporary file to store expression data. Required by ESTIMATE.
     tmp_expr <- tempfile(fileext = ".txt", pattern='trExpr_')
     write.table(df, tmp_expr, quote=F, sep="\t")
 
     # If single core, will probably show progress.
-    cat(paste0("Estimating 'purity' scores for sample #", i, "...\n"))
+    cat(paste0("Estimating 'purity' scores for sample ", names(x@tr_counts)[i], "...\n"))
 
     # Write temporary file to store filtered data set. Required by ESTIMATE.
     tmp_filterexpr <- tempfile(fileext = ".gct", pattern='estimateCommonGenes_')

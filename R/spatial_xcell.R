@@ -34,9 +34,8 @@ spatial_xcell = function(x=NULL){
   xcell_scores = list()
   for(i in 1:length(x@tr_counts)){
     # Extract count data.
-    gene_names = x@tr_counts[[i]]$gene
     df = as.matrix(x@tr_counts[[i]][, -1])
-    rownames(df) = gene_names
+    rownames(df) = x@tr_counts[[i]]$gene
 
     # Show progress (probably will show when single core).
     cat(paste0("\nApplying xCell to sample", names(x@tr_counts[i]), "...\n"))

@@ -151,6 +151,11 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
           inputtype$coords = c('coordpath', del)
         }
       }
+
+      if(is.null(inputtype$rna)){
+        stop('Could not open the RNA count file.')
+      }
+
     }
   }
 
