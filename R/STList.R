@@ -26,6 +26,7 @@
 #' \item File paths to Visium output folders (one per spatial array). The folder should have the
 #' structure resulting from `spaceranger count` and contain the `.h5` files and `spatial` folder.
 #' Requires `samples`.
+#' \item File path to `.dcc` files from GeoMx output. Requires `samples`.
 #' \item One named list of data frames with raw RNA counts (one data frame per spatial array).
 #' Requires `spotcoords` and `samples`.
 #' }
@@ -50,8 +51,15 @@
 #' and omitting the `rnacounts` and `spotcoords` arguments. If Visium, only the second
 #' column with paths to output folders is expected. Subsequent columns can contain
 #' variables associated to each spatial array.
+#' Note: For GeoMx, the metadata file contains one row per ROI. This information is later summarized
+#' to one row per slide by this function.
 #' }
-#'
+#' @param gmx_pkc, the file path to the `.pkc` (for GeoMx input)
+#' @param gmx_slide_col, the name of the column in the metadata table containing the slide names (for GeoMx input)
+#' @param gmx_roi_col, the name of the column in the metadata table containing the ROI IDs, matching IDs in the DCC files (for GeoMx input)
+#' @param gmx_x_col, the name of the column in the metadata table containing the x coordinates (for GeoMx input)
+#' @param gmx_y_col, the name of the column in the metadata table containing the y coordinates (for GeoMx input)
+#' @param gmx_meta_cols, a vector with column names in the metadata table containing clinical data (for GeoMx input)
 #' @return x, the STList object containing the counts and coordinates, and optionally
 #' the sample metadata.
 #'
@@ -66,7 +74,7 @@
 #
 #' @export STList
 #'
-STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
+STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_x_col=NULL, gmx_y_col=NULL, gmx_meta_cols=NULL) {
   require('magrittr')
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
@@ -91,6 +99,16 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
       cat(crayon::yellow(paste("Found Seurat object.\n")))
       pre_lists = read_seurat(rnacounts)
       img_obj = pre_lists[['images']]
+      platform = 'visium'
+    }
+  }
+
+  # CASE: GEOMX INPUT
+  if(!is.null(input_check$rna)){
+    if(input_check$rna[1] == 'geomx_dcc'){
+      cat(crayon::yellow(paste("Found GeoMx DCC output.\n")))
+      pre_lists = import_Geomx(dcc=rnacounts, pkc=gmx_pkc, annots=samples, slide_col=gmx_slide_col, id_col=gmx_roi_col, x_col=gmx_x_col, y_col=gmx_y_col)
+      platform = 'geomx'
     }
   }
 
@@ -103,6 +121,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
       cat(crayon::yellow(paste("Found Visium Data.\n")))
       pre_lists = read_visium_outs(filepaths)
       img_obj = pre_lists[['images']]
+      platform = 'visium'
     } else{
       cat(crayon::yellow(paste("Found Matrix Data.\n")))
       pre_lists = read_matrices_fps(filepaths)
@@ -119,6 +138,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
         cat(crayon::yellow(paste("Found Visium Data.\n")))
         pre_lists = read_visium_outs(filepaths)
         img_obj = pre_lists[['images']]
+        platform = 'visium'
       } else{
         cat(crayon::yellow(paste("Found Matrix Data.\n")))
         pre_lists = read_matrices_fps(filepaths)
@@ -136,6 +156,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
         cat(crayon::yellow(paste("Found Visium Data.\n")))
         pre_lists = read_visium_outs(filepaths)
         img_obj = pre_lists[['images']]
+        platform = 'visium'
       } else{
         cat(crayon::yellow(paste("Found Matrix Data.\n")))
         pre_lists = read_matrices_fps(filepaths)
@@ -159,6 +180,8 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
   samples_df = tibble::tibble()
   if(input_check$samples[1] == 'samplesfile' || input_check$samples[1] == 'samplesfile_visium' || input_check$samples[1] == 'samplesfile_matrices'){
     samples_df = process_meta(samples, input_check, procLists[['counts']])
+  }else if(input_check$samples[1] == 'samplesfile_geomx'){
+    samples_df = process_meta_geomx(samples, input_check, procLists[['counts']], gmx_slide_col, gmx_meta_cols)
   }else{
     samples_df = tibble::tibble()
   }
@@ -171,6 +194,11 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
   # Detect if image from Visium out is available
   if(!exists('img_obj')){
     img_obj = NULL
+  }
+
+  # If no specific platform was found, then make generic
+  if(!exists('platform')){
+    platform = 'generic'
   }
 
   # Creates STList object from both count and coordinates data.
@@ -192,7 +220,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
                    deconv_krige_data=list(),
                    st_clusters=list(),
                    pheno_plots=list(),
-                   misc=list(sp_images = img_obj)
+                   misc=list(sp_images=img_obj, platform=platform)
   )
   cat(crayon::green$bold(paste("Completed STList!\n")))
   return(STList_obj)
@@ -222,7 +250,8 @@ makeSparse = function(dataframe){
 # @return a data frame
 #
 expandSparse = function(sparsedMatrix){
-  sparsedMatrix %>% data.frame(check.names=F)
+  NonSparse = data.frame(as.matrix(sparsedMatrix), check.names=F)
+  return(NonSparse)
 }
 
 ##
@@ -656,4 +685,36 @@ process_meta = function(samples, input_check, counts_df_list){
   }
   return(samples_df)
 }
+
+process_meta_geomx = function(samples, input_check, counts_df_list, gmx_slide_col, gmx_meta_cols){
+  if(input_check$samples[2] == 'xls'){
+    samples_df = readxl::read_excel(samples)
+  } else {
+    # Get delimiter of file from input_check
+    del = input_check$samples[2]
+    samples_df = readr::read_delim(samples, delim=del, col_types=readr::cols(), progress=F)
+  }
+  samples_df = samples_df[samples_df[[gmx_slide_col]] %in% names(counts_df_list), ]
+  samples_df = samples_df[, c(gmx_slide_col, gmx_meta_cols)]
+
+  samples_df_summ = tibble::tibble()
+  for(slide_id in unique(samples_df[[gmx_slide_col]])){
+    meta_row = c(sampleID=slide_id)
+    for(metacol in gmx_meta_cols){
+      if(is.numeric(samples_df[[metacol]])){
+        tmp_val = mean(samples_df[[metacol]][samples_df[[gmx_slide_col]] == slide_id], na.rm=T)
+      } else{
+        tmp_val = unique(samples_df[[metacol]][samples_df[[gmx_slide_col]] == slide_id])
+        tmp_val = paste(tmp_val, collapse='|')
+      }
+      names(tmp_val) = metacol
+      meta_row = append(meta_row, tmp_val)
+    }
+    samples_df_summ = dplyr::bind_rows(samples_df_summ, meta_row)
+  }
+  return(samples_df_summ)
+}
+
+
+
 

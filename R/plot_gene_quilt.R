@@ -29,7 +29,7 @@
 #' @export
 #
 #
-plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', data_type='tr', purity=F, saveplot=NULL, inter=F, visium=T, ptsize=NULL){
+plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', data_type='tr', purity=F, image=F, saveplot=NULL, inter=F, visium=T, ptsize=NULL){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
@@ -46,6 +46,11 @@ plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
     counts = x@tr_counts
   }else if(data_type == 'raw'){
     counts = x@counts
+    # Expand sparse matrices
+    for(i in plot_who){
+      counts[[i]] = expandSparse(counts[[i]])
+      counts[[i]] = tibble::as_tibble(tibble::rownames_to_column(counts[[i]], var='gene'))
+    }
   } else(
     stop('Please, select one of transformed (tr) or raw (raw) counts')
   )
@@ -142,10 +147,17 @@ plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
       qp_list[[paste0(gene, "_", names(counts[i]))]] <- qp
     }
 
+    if(image && !is.null(x@misc[['sp_images']][[i]])){
+      img_obj = grid::rasterGrob(x@misc[['sp_images']][[i]])
+      qp_list[[paste0('image', names(counts[i]))]] = ggplot() +
+        annotation_custom(img_obj)
+    }
+
     if(purity){
       qp_list[[paste0('tumorstroma_', names(counts[i]))]] <- qpbw
     }
   }
+
   row_col <- c(1, 1)
 
   # Test if plot should be saved to PDF.
@@ -156,7 +168,7 @@ plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
     dev.off()
   } else{
     # Convert ggplots to plotly plots.
-    if(inter == T && purity == T){
+    if(inter == T && purity == T && image == F){
       for(p in 1:length(qp_list)){
         qp_list[[p]] = plotly::ggplotly(qp_list[[p]], tooltip=c('Y', 'X', 'colour', 'shape'))
       }

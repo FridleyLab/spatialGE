@@ -38,7 +38,8 @@ quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='', title_name='',
     theme_classic()
 
     if(visium){
-      p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
+      p <- p + #scale_x_reverse() +
+        scale_y_reverse() + coord_fixed(ratio=1.7)
     } else {
       p <- p + coord_fixed(ratio=1)
     }
@@ -94,7 +95,8 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='', title_n
     theme_classic()
 
   if(visium){
-    p1 <- p1 + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
+    p1 <- p1 + #scale_x_reverse() +
+      scale_y_reverse() + coord_fixed(ratio=1.7)
   } else{
     p1 <- p1 + coord_fixed(ratio=1)
   }
@@ -138,7 +140,8 @@ quilt_p_purity_bw <- function(data_f=NULL, title_name='', visium=T, ptsize=NULL)
 
 
     if(visium){
-      p2 <- p2 + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
+      p2 <- p2 + #scale_x_reverse() +
+        scale_y_reverse() + coord_fixed(ratio=1.7)
     } else{
       p2 <- p2 + coord_fixed(ratio=1)
     }
