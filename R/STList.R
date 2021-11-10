@@ -511,7 +511,7 @@ read_visium_outs = function(filepaths){
 # @return return_lists a list with two lists within (one with counts, one with coordinates)
 #
 process_lists = function(counts_df_list, coords_df_list){
-  require('dplyr')
+  #require('dplyr')
   # Process the count and coordinate list.
   for(i in 1:length(names(counts_df_list))){
 
