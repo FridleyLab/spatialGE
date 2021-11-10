@@ -34,7 +34,7 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
 
   # CASE DCC FILES FROM GEOMX
   if(!is.null(rnacounts) && !is.null(samples)){
-    if(dir.exists(rnacounts)){
+    if(dir.exists(rnacounts[1])){
       dcc_files = list.files(rnacounts, full.names=T, pattern='.dcc$', recursive=T)
       if(!is.null(dcc_files)){
         if(length(dcc_files) != 0){

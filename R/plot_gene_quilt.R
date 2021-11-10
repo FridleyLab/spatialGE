@@ -164,7 +164,7 @@ plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
   if(!is.null(saveplot)){
     # Print plots to PDF.
     pdf(file=saveplot)
-    print(ggpubr::ggarrange(plotlist=qp_list, nrow=row_col[1], ncol=row_col[2], common.legend=T, legend='bottom'))
+    print(ggpubr::ggarrange(plotlist=qp_list, nrow=row_col[1], ncol=row_col[2], common.legend=F, legend='bottom'))
     dev.off()
   } else{
     # Convert ggplots to plotly plots.

@@ -7,14 +7,13 @@
 #'
 #' @param x an STList with kriging objects for the genes selected.
 #' @param genes a vector of gene names (one or several) to plot.
-#' @param plot_who a vector of subject indexes as ordered within the STList, to
-#' plot genes from. If NULL, will plot all subjects.
+#' @param plot_who, a vector of numbers indicating the spatial arrays to plot
+#' genes from. Numbers follow the order of `names(x@counts)`. If NULL, will plot
+#' all spatial arrays.
 #' @param color_pal a color scheme from 'khroma' or RColorBrewer.
 #' @param purity logical, whether or not annotate tumor spots based on
 #' ESTIMATE tumor purity scores.
-#' @param saveplot logical, indicating whether or not save plots in a PDF file.
-#' The PDFs are saved in the working directory. Default is FALSE, meaning plots
-#' are printed to console.
+#' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param visium whether or not to reverse axes for Visium slides.
 #' @return a list with plots.
 #'
@@ -25,10 +24,8 @@
 #' @export
 #
 #
-plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr',
-                            purity=F, saveplot=F, visium=T){
-  # Option to scale to 1 disabled.
-  scaled=F
+plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, saveplot=NULL, visium=T){
+
   # Option to use plotly disabled (not supporting geomPolypath)
   inter=F
 
@@ -53,7 +50,6 @@ plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
   }
 
   # Store maximum expression value in case 'scaled' is required.
-  # if(scaled){
   maxvalue <- c()
   minvalue <- c()
   for (i in plot_who) {
@@ -72,7 +68,6 @@ plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
   # Find maximum value among selected spatial arrays.
   maxvalue <- max(maxvalue)
   minvalue <- min(minvalue)
-  #  }
 
   # Create list of plots.
   kp_list <- list()
@@ -93,14 +88,11 @@ plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
       }
 
       # Find prediction grid.
-      predict_grid = x@gene_krige_data$krige_grid[[i]]
+      predict_grid = x@misc[['gene_krige_grid']][[i]]
 
       # Create data frame with coordinates and kriging values.
-      if(scaled){
-        krige_vals <- (x@gene_krige[[gene]][[i]])/maxvalue
-      } else{
-        krige_vals = x@gene_krige[[gene]][[i]]
-      }
+      krige_vals = x@gene_krige[[gene]][[i]]
+
       df <- dplyr::bind_cols(predict_grid, krige=krige_vals)
       names(df) <- c("x_pos", "y_pos", "krige")
 
@@ -118,34 +110,13 @@ plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
       bbox_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(bbox)), "id")))
 
       # Create Spatial Polygon with the inner tissue border (concave hull)
-      mask_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(x@gene_krige_data$krige_border[[i]])), "id")))
+      mask_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(x@misc[['krige_border']][[i]])), "id")))
 
       # Substract the concave hull from the bounding box, yielding a SpatialPolygon object.
       bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
 
-      # Get spatial statistics.
-      # moran_est <- round(as.vector(x@gene_het[[gene]][[i]]$morans_I$estimate[[1]]), 2)
-      # geary_est <- round(as.vector(x@gene_het[[gene]][[i]]$gearys_C$estimate[[1]]), 2)
-      # getis_est <- round(as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
-      #
-      # moran_p <- as.vector(x@gene_het[[gene]][[i]]$morans_I$p.value)
-      # geary_p <- as.vector(x@gene_het[[gene]][[i]]$gearys_C$p.value)
-      # getis_p <- as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$p.value)
-      #
-      # if(moran_p < 0.05){
-      #   moran_est <- paste0(moran_est, '*')
-      # }
-      # if(geary_p < 0.05){
-      #   geary_est <- paste0(geary_est, '*')
-      # }
-      # if(getis_p < 0.05){
-      #   getis_est <- paste0(getis_est, '*')
-      # }
-
       # Construct title.
-      titlekrige <- paste0(gene, ", subj ", i, " - ", x@gene_krige_data$krige_type, " kriging")
-      # titlekrige <- paste0(gene, ", subj ", i, " - ", x@gene_krige_data$krige_type, " kriging\nMorans I=",
-      #                      moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=", getis_est)
+      titlekrige <- paste0(gene, " (kriging)\n", "sample: ", names(x@tr_counts[i]))
 
       if(purity){
         tumorstroma_df <- dplyr::bind_cols(x@coords[[i]], cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
@@ -171,21 +142,29 @@ plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
       # Append plot to list.
       kp_list[[paste0(gene, "_", i)]] <- kp
     }
+
+    if(image && !is.null(x@misc[['sp_images']][[i]])){
+      img_obj = grid::rasterGrob(x@misc[['sp_images']][[i]])
+      qp_list[[paste0('image', names(counts[i]))]] = ggplot() +
+        annotation_custom(img_obj)
+    }
+
     if(purity){
       kp_list[[paste0('subj',i)]] <- qpbw
     }
   }
+
   row_col <- c(1, 1)
 
   # Test if plot should be saved to PDF.
-  if(saveplot){
+  if(!is.null(saveplot)){
     # Print plots to PDF.
-    pdf(file="gene_krige_spatarray.pdf")
-    print(ggpubr::ggarrange(plotlist=kp_list, nrow=row_col[1], ncol=row_col[2]))
+    pdf(file=saveplot)
+    print(ggpubr::ggarrange(plotlist=kp_list, nrow=row_col[1], ncol=row_col[2], common.legend=F, legend='bottom'))
     dev.off()
   } else{
     # Convert ggplots to plotly plots.
-    if(inter){
+    if(inter && image == F){
       for(p in 1:length(kp_list)){
         kp_list[[p]] = plotly::ggplotly(kp_list[[p]])
       }
@@ -194,6 +173,6 @@ plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOr
       # Print plots to console.
       return(kp_list)
     }
-    #  }
   }
 }
+

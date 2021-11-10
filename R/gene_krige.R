@@ -108,7 +108,7 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
   if(is.null(x@misc[['krige_border']])){
     x@misc[['krige_border']] = list()
     x@misc[['gene_krige_grid']] = list()
-    for(k in length(x@counts)){
+    for(k in length(x@tr_counts)){
       x@misc[['krige_border']][[k]] = list()
       x@misc[['gene_krige_grid']][[k]] = list()
     }
@@ -159,8 +159,12 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
     x@misc[['gene_krige_algorithm']] = 'geor'
   }
 
-  # Store transformed counts list in separate object
+  # Store decompressed transformed counts list in separate object
   tr_counts = x@tr_counts
+  for(mtx in who){
+    tr_counts[[mtx]] = expandSparse(x@tr_counts[[mtx]])
+  }
+
   # Define cores available
   cores = count_cores(length(nrow(combo)))
   # Loop through combinations of samples x genes
