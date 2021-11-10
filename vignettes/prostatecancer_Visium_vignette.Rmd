@@ -18,12 +18,11 @@ The package `spatialGE` provides a set of tools for the visualization of gene ex
 spatially-resolved arrays. In this vignette we explore gene expression in two Visium
 data sets: One of normal prostate tissue and other with prostate adenocarcinoma. 
 These data sets were generated with the Visium FFPE technology, but the instructions
-in this vignette can be used with regular Visium data sets. In this vugnette, we
-introduce the Python implementation of kriging in `spatialGE`. We use `PyKrige` to 
-generate transcriptomic surfaces in order to reduce run time of the interpolation. 
-Nonetheless, kriging is a computationally expensive procedure, and even though `PyKrige` 
-results in ~3X increases in speed, the interpolation of a Visium data set (~3,000 - 4,000 spots)
-takes some time.
+in this vignette can be used with regular Visium data sets. Here we introduce the Python 
+implementation of kriging in `spatialGE`. We use `PyKrige` to generate transcriptomic surfaces
+in order to reduce run time of the interpolation. Nonetheless, kriging is a computationally 
+expensive procedure, and even though `PyKrige` results in ~3X increases in speed, the 
+interpolation of a Visium data set (~3,000 - 4,000 spots) takes some time.
 
 ## Setting up a Python environment
 `spatialGE` uses `reticulate` to bridge with the Python module `PyKrige`. To do this,
@@ -39,7 +38,7 @@ echo "RETICULATE_PYTHON=\"$HOME/opt/anaconda3/envs/r-reticulate/bin/python3\"" >
 
 ## Data acquisition
 The data sets are freely available and can be downloaded from the 10X Resources 
-website. You may be asked toregister your information before accessing the data.
+website. You may be asked to register your information before accessing the data.
 The normal prostate (FFPE) can be downloaded [here](https://www.10xgenomics.com/resources/datasets/normal-human-prostate-ffpe-1-standard)
 and the adenocarcinoma sample [here](https://www.10xgenomics.com/resources/datasets/human-prostate-cancer-adenocarcinoma-with-invasive-carcinoma-ffpe-1-standard). For this vignette, we assume the data will
 be downloaded in two folders on the computer's Desktop. At the very least, the user

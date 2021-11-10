@@ -29,10 +29,10 @@
 #' @examples
 #' # In this example, melanoma is an STList.
 #' # Using Dynamic Tree Cuts:
-#' melanoma <- cluster_STspot(melanoma, ks='dtc', weights=0.1)
+#' melanoma <- STclust(melanoma, ks='dtc', weights=0.1)
 #'
 #' # Using a range of ks:
-#' # melanoma <- cluster_STspot(melanoma, ks=c(2:6), weights=0.1)
+#' # melanoma <- STclust(melanoma, ks=c(2:6), weights=0.1)
 #'
 #' @export
 #

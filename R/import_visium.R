@@ -55,21 +55,12 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
     filter(emsb != "noGene_") %>%
     select(-contains("otherBCs")) %>%
     data.frame(check.names = F)
-<<<<<<< HEAD
-
-  if(filterMT){
-    #rawcounts_df <- rawcounts_df[-c(keep_idx), ]
-    rawcounts_df <- rawcounts_df[!grepl("^MT-", rawcounts_df$gene), ]
-  }
-
-=======
 
   # if(filterMT){
   #   #rawcounts_df <- rawcounts_df[-c(keep_idx), ]
   #   rawcounts_df <- rawcounts_df[!grepl("^MT-", rawcounts_df$gene), ]
   # }
 
->>>>>>> oscar_dev
   spotcoords_df <- counts_all_df[, c('spotname', 'array_row', 'array_col')] %>%
     distinct(.keep_all = T) %>%
     filter(spotname != "otherBCs") %>%

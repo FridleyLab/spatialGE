@@ -30,7 +30,7 @@
 #' @export
 #
 #
-plot_deconv_krigeV2 <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr',
+plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr',
                               saveplot=F, pvalues=F, purity=F, visium=T){
   # Option to scale to 1 disabled.
   scaled=F

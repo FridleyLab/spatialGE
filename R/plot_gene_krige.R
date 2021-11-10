@@ -25,7 +25,7 @@
 #' @export
 #
 #
-plot_gene_krigeV2 <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr',
+plot_gene_krige <- function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr',
                             purity=F, saveplot=F, visium=T){
   # Option to scale to 1 disabled.
   scaled=F

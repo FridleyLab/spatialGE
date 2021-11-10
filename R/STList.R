@@ -73,14 +73,9 @@
 #' # melanoma
 #
 #' @export STList
-<<<<<<< HEAD
-STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL) {
-  cat(crayon::yellow(paste("Requested", length(samples), "Samples\n")))
-=======
 #'
 STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_x_col=NULL, gmx_y_col=NULL, gmx_meta_cols=NULL) {
   require('magrittr')
->>>>>>> oscar_dev
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
 
@@ -101,11 +96,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
   # CASE: SEURAT OBJECT
   if(!is.null(input_check$rna)){
     if(input_check$rna[1] == 'seurat'){
-<<<<<<< HEAD
-      cat(crayon::yellow(paste("Found Seurat Data.\n")))
-=======
       cat(crayon::yellow(paste("Found Seurat object.\n")))
->>>>>>> oscar_dev
       pre_lists = read_seurat(rnacounts)
       img_obj = pre_lists[['images']]
       platform = 'visium'
@@ -196,12 +187,6 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
   }
 
   cat(crayon::yellow(paste("Converting Counts to Sparse Matrices\n")))
-<<<<<<< HEAD
-  procLists[['counts']] = mclapply(procLists[['counts']], function(x){
-    makeSparse(x)
-  })
-
-=======
   procLists[['counts']] = parallel::mclapply(procLists[['counts']], function(x){
     makeSparse(x)
   })
@@ -216,7 +201,6 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
     platform = 'generic'
   }
 
->>>>>>> oscar_dev
   # Creates STList object from both count and coordinates data.
   STList_obj = new("STList",
                    counts=procLists[['counts']],
@@ -255,11 +239,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
 makeSparse = function(dataframe){
   suppressMessages({library(Matrix)})
   numdat = dataframe %>%
-<<<<<<< HEAD
-    column_to_rownames("gene") %>%
-=======
     tibble::column_to_rownames("gene") %>%
->>>>>>> oscar_dev
     as.matrix() %>% as(., "sparseMatrix")
 }
 
@@ -270,12 +250,8 @@ makeSparse = function(dataframe){
 # @return a data frame
 #
 expandSparse = function(sparsedMatrix){
-<<<<<<< HEAD
-  sparsedList %>% data.frame(check.names=F)
-=======
   NonSparse = data.frame(as.matrix(sparsedMatrix), check.names=F)
   return(NonSparse)
->>>>>>> oscar_dev
 }
 
 ##
@@ -455,19 +431,11 @@ read_visium_outs = function(filepaths){
     fp_list[[i]]$coords = vcoords
     fp_list[[i]]$image = vimage
     fp_list[[i]]$runname = filepaths[['sampleids']][i]
-<<<<<<< HEAD
-    if(is_empty(vfeatures)) cat(crayon::red(paste("Features for", filepaths$sampleids[i], "not able to be found...")))
-    if(is_empty(vbarcodes)) cat(crayon::red(paste("Barcodes for", filepaths$sampleids[i], "not able to be found...")))
-    if(is_empty(vcounts)) cat(crayon::red(paste("Counts for", filepaths$sampleids[i], "not able to be found...")))
-    if(is_empty(vcoords)) cat(crayon::red(paste("Cooredinates for", filepaths$sampleids[i], "not able to be found...")))
-    if(is_empty(vfeatures) | is_empty(vbarcodes) | is_empty(vcounts) | is_empty(vcoords)){
-=======
     if(rlang::is_empty(vfeatures)) cat(crayon::red(paste("Features for", filepaths$sampleids[i], "not able to be found...")))
     if(rlang::is_empty(vbarcodes)) cat(crayon::red(paste("Barcodes for", filepaths$sampleids[i], "not able to be found...")))
     if(rlang::is_empty(vcounts)) cat(crayon::red(paste("Counts for", filepaths$sampleids[i], "not able to be found...")))
     if(rlang::is_empty(vcoords)) cat(crayon::red(paste("Coordinates for", filepaths$sampleids[i], "not able to be found...")))
     if(rlang::is_empty(vfeatures) | rlang::is_empty(vbarcodes) | rlang::is_empty(vcounts) | rlang::is_empty(vcoords)){
->>>>>>> oscar_dev
       fp_list[[i]] = list()
       missingSamples  = missingSamples + 1
     }
@@ -476,22 +444,6 @@ read_visium_outs = function(filepaths){
   cat(crayon::green$bold(paste("Found", length(filepaths$sampleids)-missingSamples, "Visium Samples\n")))
 
   # Define number of available cores to use.
-<<<<<<< HEAD
-  cores = parallel::detectCores()
-  if(cores > 1){
-    cores = cores - 1
-  }
-  if(cores > length(filepaths[['count_found']])){
-    cores = length(filepaths[['count_found']])
-  }
-
-  # Use parallelization to read count data if possible.
-  cat(crayon::yellow(paste("Importing Samples....\n")))
-  output_temp = mclapply(seq_along(filepaths[['count_found']]), function(i){
-    if(length(fp_list[[i]]$counts) == 0){
-      return(list())
-    }
-=======
   cores = count_cores(length(filepaths[['count_found']]))
   # cores = parallel::detectCores()
   # if(cores > 1){
@@ -503,8 +455,6 @@ read_visium_outs = function(filepaths){
     if(length(fp_list[[i]]$counts) == 0){
       return(list())
     }
-
->>>>>>> oscar_dev
     system(sprintf('echo "%s"', crayon::yellow(paste0("\tProcessing Sample ", i, "...."))))
     #cat(crayon::yellow(paste("\tSample", i, "\n")))
 
@@ -515,11 +465,7 @@ read_visium_outs = function(filepaths){
                                      coords_fp=fp_list[[i]][['coords']])
     system(sprintf('echo "%s"', crayon::green(paste0("\tFinished Processing Sample ", i, "...."))))
     return(visium_processed)
-<<<<<<< HEAD
-  }, mc.cores=cores, mc.preschedule=T)
-=======
   }, mc.cores=cores, mc.preschedule=F)
->>>>>>> oscar_dev
   cat(crayon::green$bold(paste("\tCompleted!\n")))
 
   # Organize the paralellized output into corresponding lists.
@@ -528,16 +474,10 @@ read_visium_outs = function(filepaths){
   return_lists[['coords']] = list()
   return_lists[['images']] = list()
   for(i in 1:length(output_temp)){
-<<<<<<< HEAD
-    if(is_empty(output_temp[[i]])){
-      return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
-      return_lists[['coords']][[fp_list[[i]]$runname]]  = output_temp[[i]]$coords
-=======
     if(rlang::is_empty(output_temp[[i]])){
       return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
       return_lists[['coords']][[fp_list[[i]]$runname]] = output_temp[[i]]$coords
       return_lists[['images']][[fp_list[[i]]$runname]] = NULL
->>>>>>> oscar_dev
     }
     return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
     return_lists[['coords']][[fp_list[[i]]$runname]] = output_temp[[i]]$coords
@@ -604,10 +544,6 @@ process_lists = function(counts_df_list, coords_df_list){
     colnames(coords_df_list[[name_i]] ) = c('libname', 'ypos', 'xpos')
   }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> oscar_dev
   proc_return_lists = list()
   proc_return_lists[['counts']] = counts_df_list
   proc_return_lists[['coords']] = coords_df_list
