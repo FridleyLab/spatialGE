@@ -110,7 +110,7 @@ prvisium <- spatialTransform(prvisium, method = "voom")
 
 We can plot now the gene expression levels of specific genes. Let's see _KLK3_:
 ```{r}
-qplot <- plot_gene_quilt(prvisium, genes='KLK3', color_pal='sunset', plot_who=2)
+qplot <- plot_gene_quilt(prvisium, genes='FEZF2', color_pal='sunset')
 qplot
 ```
 
@@ -133,3 +133,16 @@ ggpubr::ggarrange(plotlist=kplot, ncol=2, common.legend=T, legend='bottom')
 
 As expected, the expression of _KLK3_, known as prostatic antigen, is higher across 
 the entire cancerous sample ('subj 1'), compared to the normal sample ('subj 2').
+
+Spatial Deconvolution with ESTIMATE is a method determine tumor purity scores. Using ESTIMATE, we can see which spots are more likely to be tumor and which spots are more likely to be stromal.
+
+```{r}
+prvisium = spatialDeconv(prvisium, method = "none")
+```
+
+We can now plot the spot classification along side the expression plot and the H&E image.
+
+```{r}
+eplot = plot_gene_quilt(prvisium, genes = "KLK3", color_pal = "sunset", purity = T, image = T, ptsize = 1)
+ggpubr::ggarrange(plotlist=eplot, ncol=3, nrow=2, common.legend=T, legend='bottom')
+```
