@@ -3,7 +3,7 @@
 #' @description Performs spatial interpolation ('kriging') of cell scores from
 #' gene expression deconvolution scores.
 #' @details
-#' This function takes a STList and a vector of xCell cell names and generates an
+#' This function takes a STList and a vector of xCell cell names and performs
 #' spatial interpolation ("kriging") of deconvoluted cell scores. It also calculates
 #' spatial heterogeneity statistics. The function can perform ordinary or universal kriging.
 #' If cells='top', then the 10 cell types with the highest standard deviation for each
@@ -39,23 +39,19 @@
 deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method='xcell', python=T){
 
   require("magrittr")
-  #require("parallel")
 
+  # geoR implementation of universal kriging to be implmented. Probably allow users to
+  # specify parameters from variogram
   if(python == F && univ == T){
-    stop('Universal kriging is only available using the Python kriging (PyKrige)')
+    stop('Currently, universal kriging is only available using Python kriging (PyKrige)')
   }
 
-  # Test that a cell name was entered.
-  if (is.null(cells)) {
-    stop("Please, enter one or more cell names to plot.")
-  }
-
-  # TEMPORARY: This check due to STList getting too hevay on memory after one cell type.
-  if(nrow(x@coords[[1]]) > 1007 && python == F){
-    if(length(cells) > 1){
-      stop('For large arrays (e.g. Visium), one cell type at a time can be interpolated.')
-    }
-  }
+  # TEMPORARY: This check due to STList getting too heavy on memory after one cell type.
+  # if(nrow(x@coords[[1]]) > 1007 && python == F){
+  #   if(length(cells) > 1){
+  #     stop('For large arrays (e.g. Visium), one cell type at a time can be interpolated.')
+  #   }
+  # }
 
   # Detect the deconvolution method requested.
   if(tolower(method) == 'xcell'){
@@ -66,14 +62,19 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
     stop('Please, specify a deconvolution method to process.')
   }
 
+  # Test if deconvoluted data are available.
+  if (rlang::is_empty(x@cell_deconv[[method]])) {
+    stop(paste("There are no deconvolution results in this STList."))
+  }
+
   # Test if no specific subject plot was requested.
   if (is.null(who)) {
     who <- c(1:length(x@cell_deconv[[method]]))
   }
 
-  # Test if deconvoluted data are available.
-  if (rlang::is_empty(x@cell_deconv[[method]])) {
-    stop(paste("There are no deconvolution results in this STList."))
+  # Test that a cell name was entered.
+  if (is.null(cells)) {
+    stop("Please, enter one or more cell names to plot.")
   }
 
   # Get requested list of deconvoluted matrices.

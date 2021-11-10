@@ -39,8 +39,9 @@ spatialTransform = function(x=NULL, method='log', scale_f=10000){
   cores = 1
   x@gene_var = parallel::mclapply(seq_along(x@tr_counts), function(i){
     gene_stdevs_df = apply(x@tr_counts[[i]][, -1], 1, sd, na.rm = T)
-    gene_stdevs_df = tibble::as_tibble_col(gene_stdevs_df, column_name='gene_stdevs') %>%
-      tibble::add_column(gene=rownames(x@counts[[i]]), .before = 1)
+    #gene_stdevs_df = tibble::as_tibble_col(gene_stdevs_df, column_name='gene_stdevs') %>%
+    gene_stdevs_df = tibble::tibble(gene_stdevs=gene_stdevs_df) %>%
+      tibble::add_column(gene=x@tr_counts[[i]][['gene']], .before = 1)
     return(gene_stdevs_df)
   }, mc.cores=cores, mc.preschedule=F)
   # Copy names of the list

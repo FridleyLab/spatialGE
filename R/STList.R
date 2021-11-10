@@ -535,7 +535,7 @@ process_lists = function(counts_df_list, coords_df_list){
     array_col = names(coords_df_list[[name_i]])[3]
     # Sort coordinate data according to third column in the coordinate data frame.
     coords_df_list[[name_i]] = coords_df_list[[name_i]] %>%
-      arrange(array_col)#[order(coords_df_list[[name_i]][, 3]), ]
+      dplyr::arrange(array_col)#[order(coords_df_list[[name_i]][, 3]), ]
 
     # Order column names in count data frame according to sorted coordinate data.
     counts_df_list[[name_i]] = counts_df_list[[name_i]][, c(colnames(counts_df_list[[name_i]][1]), unlist(coords_df_list[[name_i]][, 1]))]
