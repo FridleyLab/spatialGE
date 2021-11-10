@@ -40,12 +40,12 @@ echo "RETICULATE_PYTHON=\"$HOME/opt/anaconda3/envs/r-reticulate/bin/python3\"" >
 The data sets are freely available and can be downloaded from the 10X Resources 
 website. You may be asked to register your information before accessing the data.
 The normal prostate (FFPE) can be downloaded [here](https://www.10xgenomics.com/resources/datasets/normal-human-prostate-ffpe-1-standard)
-and the adenocarcinoma sample [here](https://www.10xgenomics.com/resources/datasets/human-prostate-cancer-adenocarcinoma-with-invasive-carcinoma-ffpe-1-standard). For this vignette, we assume the data will
+and the adenocarcinoma sample [here](https://www.10xgenomics.com/resources/datasets/human-prostate-cancer-adenocarcinoma-with-invasive-carcinoma-ffpe-1-standard). **NOTE: If these sites don't load, visit the 10x Genomics website > hover over resources and select "Datasets" > on the left-hand side select "Spatial Gene Expression" > "Visium Spatial for FFPE Demonstration (v1 Chemistry)" or "Human Prostate Cancer, Adenocarcinoma with Invasive Carcinoma (FFPE)" > download "Feature / barcode matrix (filtered)", "Spatial imaging data", and "Image (JPG)". Place the files in the respective folders on the desktop and extract the `tar.gz` files.** For this vignette, we assume the data will
 be downloaded in two folders on the computer's Desktop. At the very least, the user
-will need to download 'Spatial imaging data' and the 'Feature / cell matrix (raw)'
+will need to download 'Spatial imaging data' and the 'Feature / cell matrix (filtered)'
 from each link.
 
-The links to 'Spatial imaging data' and the 'Feature / cell matrix (raw)' contain 
+The links to 'Spatial imaging data' and the 'Feature / cell matrix (filtered)' contain 
 compressed `.tar.gz` files. You can double click the files to decompress them.
 
 ## spatialGE installation
@@ -98,14 +98,14 @@ prvisium
 ```
 
 ## Data normalization of spatially-resolved transcriptomic data
-In `spatialGE`, we apply voom transformation to the RNA-Seq libraries fromeach of the 
+In `spatialGE`, we apply voom transformation to the RNA-Seq libraries from each of the 
 spots in order to obtain a gaussian-shape normal distribution required by most methods 
 in this package. Many of the methods implemented in `spatialGE` have been borrowed 
 from the field of geostatistics, which often require this kind of data transformation
 
-Transformation is achieved by applying the function `voom_norm()`.
+Transformation is achieved by applying the function `spatialTransform()`.
 ```{r}
-prvisium <- voom_norm(prvisium)
+prvisium <- spatialTransform(prvisium, method = "voom")
 ```
 
 We can plot now the gene expression levels of specific genes. Let's see _KLK3_:
@@ -114,12 +114,18 @@ qplot <- plot_gene_quilt(prvisium, genes='KLK3', color_pal='sunset', plot_who=2)
 qplot
 ```
 
-We can also generate transcriptomic surfaces for the samples using the `PyKrige`
+The first argument is the STList that we have been building thus far, followed by the gene name in the matrix file, the color palette that we want to plot with, and finally which sample - here we are going to look at the second sample, or "Normal".
+
+We can also generate transcriptomic surfaces for the samples using the `gene_krige()`
 implementation:
 ```{r}
 prvisium <- gene_krige(prvisium, genes='KLK3', univ=F, python=T)
 ```
+
+As mentioned at the beginning of this vignette, we have leveraged the `reticulate` package to benefit from the speed that python can bring to computationally expensive functions. For Kriging, we pass in our STList, the same gene name that we were interested in before (KLK3), `univ` is a parameter letting us decide between Universal Kriging or Ordinary Kriging (Universal takes trends into account, but takes much longer to do so here we have it performing ordinary with `univ=F`), and whether or not to use python.
+
 We can now plot the transcriptomic surfaces.
+
 ```{r}
 kplot <- plot_gene_krige(prvisium, genes='KLK3', color_pal='sunset')
 ggpubr::ggarrange(plotlist=kplot, ncol=2, common.legend=T, legend='bottom')
