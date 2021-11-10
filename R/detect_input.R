@@ -15,7 +15,7 @@
 #
 #
 detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
-
+  require('magrittr')
   # Define output/return variable.
   # If variable remains NULL, then no valid input was given by the user.
   inputtype = list()
@@ -27,8 +27,42 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
   if(!is.null(rnacounts)){
     if(class(rnacounts) == 'Seurat'){
       inputtype$rna = 'seurat'
-      inputtype$samples = 'sample_names'
+      inputtype$samples = 'samples_from_seurat'
       return(inputtype)
+    }
+  }
+
+  # CASE DCC FILES FROM GEOMX
+  if(!is.null(rnacounts) && !is.null(samples)){
+    if(dir.exists(rnacounts)){
+      dcc_files = list.files(rnacounts, full.names=T, pattern='.dcc$', recursive=T)
+      if(!is.null(dcc_files)){
+        if(length(dcc_files) != 0){
+          test_dcc = readLines(dcc_files[1]) %>% grep('<Code_Summary>', .)
+          if(length(test_dcc) != 0){
+            inputtype$rna = 'geomx_dcc'
+
+            # Read metadata file and get coordinate information
+            if(grepl('.xls', samples)){
+              inputtype$samples = c('samplesfile_geomx', 'xls')
+            } else{
+              samples_file = readLines(samples, n=2)
+              is_tab_samples = grepl("\t", samples_file[2])
+              is_comma_samples = grepl(",", samples_file[2])
+              # Determine delimiter of file.
+              if(is_tab_samples){
+                del = '\t'
+              } else if(is_comma_samples){
+                del = ','
+              } else{
+                stop('Samples file is not comma, tab-delimited, or .xls file')
+              }
+              inputtype$samples = c('samplesfile_geomx', del)
+            }
+          }
+          return(inputtype)
+        }
+      }
     }
   }
 
@@ -151,6 +185,11 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
           inputtype$coords = c('coordpath', del)
         }
       }
+
+      if(is.null(inputtype$rna)){
+        stop('Could not open the RNA count file.')
+      }
+
     }
   }
 

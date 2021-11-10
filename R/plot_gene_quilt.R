@@ -1,24 +1,25 @@
 ##
 #' @title plot_gene_quilt: Gene expression at each spot from an spatial array
-#' @description Plot gene expression levels at each spot (quilt plot) within a
-#' spatially-resolved transcriptomic array.
+#' @description Plot raw or transformed gene expression levels at each spot (quilt plot)
+#' within a spatially-resolved transcriptomic array.
 #' @details
-#' This function produces a quilt plot for a series of HUGO gene names and spatial
+#' This function produces a quilt plot for a series of gene names and spatial
 #' arrays within an STList. The function can also plot tumor/stroma classifications
 #' from ESTIMATE deconvolution results.
 #'
-#' @param x an STList with voom-norm counts.
-#' @param genes a vector of one or more gene names to plot.
-#' @param plot_who a vector of numbers indicating the  spatial arrays to plot
-#' genes from. If NULL, will plot all spatial arrays. The numbers in the vector
-#' will match the order in which the arrays were specified when creating the STList.
-#' @param color_pal a color scheme from 'khroma' or RColorBrewer.
-#' @param purity logical, whether tumor/stroma classes should be plotted.
-#' @param saveplot logical, indicating whether or not save plots in a PDF file.
-#' The PDFs are saved in the working directory. Default is FALSE, meaning plots
-#' are printed to console.
-#' @param inter whether or not quilt plot should be converted to a Plotly plot.
-#' @param visium whether or not to reverse axes for Visium slides.
+#' @param x, an STList
+#' @param genes, a vector of one or more gene names to plot.
+#' @param plot_who, a vector of numbers indicating the spatial arrays to plot
+#' genes from. Numbers follow the order of `names(x@counts)`. If NULL, will plot
+#' all spatial arrays.
+#' @param color_pal, a color scheme from 'khroma' or RColorBrewer.
+#' @param data_type, one of 'tr' or 'raw', to plot transformed or raw counts
+#' respectively.
+#' @param purity, logical, whether tumor/stroma classes should be plotted.
+#' @param saveplot, a file name specifying the name of a PDF file to write plots to.
+#' @param inter, whether or not quilt plot should be converted to a Plotly plot.
+#' @param visium, logical, whether or not the samples are from a Visium experiment.
+#' @ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
 #' @return a list with plots.
 #'
 #' @examples
@@ -28,10 +29,7 @@
 #' @export
 #
 #
-plot_gene_quiltV2 = function(x = NULL, trslot='log', genes=NULL, plot_who=NULL, color_pal='YlOrBr',
-                            purity=F, saveplot=F, inter=F, visium=T){
-  # Option to scale to 1 disabled.
-  scaled=F
+plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', data_type='tr', purity=F, image=F, saveplot=NULL, inter=F, visium=T, ptsize=NULL){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
@@ -43,13 +41,23 @@ plot_gene_quiltV2 = function(x = NULL, trslot='log', genes=NULL, plot_who=NULL, 
     plot_who <- c(1:length(x@counts))
   }
 
+  # Select appropriate slot to take counts from
+  if(data_type == 'tr'){
+    counts = x@tr_counts
+  }else if(data_type == 'raw'){
+    counts = x@counts
+    # Expand sparse matrices
+    for(i in plot_who){
+      counts[[i]] = expandSparse(counts[[i]])
+      counts[[i]] = tibble::as_tibble(tibble::rownames_to_column(counts[[i]], var='gene'))
+    }
+  } else(
+    stop('Please, select one of transformed (tr) or raw (raw) counts')
+  )
+
   # Test if requested data slot is available.
-  if(trslot == 'voom' & rlang::is_empty(x@voom_counts)) {
-    stop("There are no voom transformed counts in this STList.")
-  } else if(trslot == 'log' & rlang::is_empty(x@log_counts)){
-    stop("There are no log transformed matrices in this STList.")
-  } else if(trslot == 'raw' & rlang::is_empty(x@counts)){
-    stop("There are no count matrices in this STList.")
+  if(rlang::is_empty(counts)) {
+    stop("Data was not found in the specified slot of this STList.")
   }
 
   # If genes='top', get names of 10 genes with the highest standard deviation.
@@ -60,15 +68,6 @@ plot_gene_quiltV2 = function(x = NULL, trslot='log', genes=NULL, plot_who=NULL, 
     }
     # Get unique genes from most variable.
     genes = unique(genes)
-  }
-
-  # Select appropriate slot to take counts from
-  if(trslot == 'voom'){
-    counts = x@voom_counts
-  }else if(trslot == 'log'){
-    counts = x@log_counts
-  }else if(trslot == 'raw'){
-    counts = x@counts
   }
 
   # Store maximum expression value to standardize color legend.
@@ -89,9 +88,13 @@ plot_gene_quiltV2 = function(x = NULL, trslot='log', genes=NULL, plot_who=NULL, 
   maxvalue <- max(maxvalue)
   minvalue <- min(minvalue)
 
+  # Define size of points
+  if(is.null(ptsize)){
+    ptsize = 0.5
+  }
+
   # Create list of plots.
   qp_list <- list()
-
   # Loop through each normalized count matrix.
   for (i in plot_who) {
 
@@ -100,34 +103,38 @@ plot_gene_quiltV2 = function(x = NULL, trslot='log', genes=NULL, plot_who=NULL, 
 
       # Test if gene name exists in normalized count matrix.
       if (any(counts[[i]]$gene == gene)) {
-        # If scaled, standardize expression. If not, return expression values as they are.
-        if(scaled){
-          values <- unlist(counts[[i]][counts[[i]]$gene == gene,][,-1])/maxvalue
-        } else{
-          values <- unlist(counts[[i]][counts[[i]]$gene == gene,][,-1])
-        }
+
+        values <- unlist(counts[[i]][counts[[i]]$gene == gene,][,-1])
 
         # Create a data frame with coordinates of spots and expression values.
-        df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
+        df <- dplyr::bind_cols(x@coords[[i]][, -1], tibble::as_tibble(values))
         colnames(df) <- c('y_pos', 'x_pos', 'values')
 
         # If purity=T, get tumor/stroma classifications and add to data frame.
-        # Then call the quilt plot function.
+        # Then call the quilt plot function. Also get appropriate legend title
+        if(data_type == 'tr'){
+          qlegname = paste0(x@misc[['transform']], "_expr")
+        } else{
+          qlegname = 'RawNorm_expr'
+        }
+
         if(purity){
           if(!(rlang::is_empty(x@cell_deconv))){
-            df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
-            qp <- quilt_p_purity(data_f=df, leg_name=paste0(trslot, "_expr"), color_pal=color_pal,
-                                 title_name=paste0(gene, " - ", "sample ", names(counts[i])),
-                                 minvalue=minvalue, maxvalue=maxvalue, visium=visium)
-            qpbw <- quilt_p_purity_bw(data_f=df, visium=visium, title_name=paste0('ESTIMATE\ntumor/stroma - subj ', i))
+            df = dplyr::bind_cols(df, cluster=x@cell_deconv[['ESTIMATE']][[i]]$purity_clusters$cluster)
+            qp = quilt_p_purity(data_f=df, leg_name=qlegname, color_pal=color_pal,
+                                title_name=paste0(gene, "\n", "sample: ", names(counts[i])),
+                                minvalue=minvalue, maxvalue=maxvalue, visium=visium, ptsize=ptsize)
+            qpbw <- quilt_p_purity_bw(data_f=df, visium=visium,
+                                      title_name=paste0('ESTIMATE\ntumor/stroma\nsample: ', names(counts[i])),
+                                      ptsize=ptsize)
           } else{
             stop("No tumor/stroma classification in the STList.")
           }
         }else{
           # The color palette function in khroma is created by quilt_p() function.
-          qp <- quilt_p(data_f=df, leg_name=paste0(trslot, "_expr"), color_pal=color_pal,
-                        title_name=paste0(gene, " - ", "sample ", names(counts[i])),
-                        minvalue=minvalue, maxvalue=maxvalue, visium=visium)
+          qp <- quilt_p(data_f=df, leg_name=qlegname, color_pal=color_pal,
+                        title_name=paste0(gene, "\n", "sample: ", names(counts[i])),
+                        minvalue=minvalue, maxvalue=maxvalue, visium=visium, ptsize=ptsize)
         }
 
       } else{
@@ -140,21 +147,28 @@ plot_gene_quiltV2 = function(x = NULL, trslot='log', genes=NULL, plot_who=NULL, 
       qp_list[[paste0(gene, "_", names(counts[i]))]] <- qp
     }
 
+    if(image && !is.null(x@misc[['sp_images']][[i]])){
+      img_obj = grid::rasterGrob(x@misc[['sp_images']][[i]])
+      qp_list[[paste0('image', names(counts[i]))]] = ggplot() +
+        annotation_custom(img_obj)
+    }
+
     if(purity){
-      qp_list[[paste0('subj', names(counts[i]))]] <- qpbw
+      qp_list[[paste0('tumorstroma_', names(counts[i]))]] <- qpbw
     }
   }
+
   row_col <- c(1, 1)
 
   # Test if plot should be saved to PDF.
-  if(saveplot){
+  if(!is.null(saveplot)){
     # Print plots to PDF.
-    pdf(file="gene_quilt_spatarray.pdf")
-    print(ggpubr::ggarrange(plotlist=qp_list, nrow=row_col[2], ncol=row_col[2], common.legend=T, legend='bottom'))
+    pdf(file=saveplot)
+    print(ggpubr::ggarrange(plotlist=qp_list, nrow=row_col[1], ncol=row_col[2], common.legend=T, legend='bottom'))
     dev.off()
   } else{
     # Convert ggplots to plotly plots.
-    if(inter == T && purity == T){
+    if(inter == T && purity == T && image == F){
       for(p in 1:length(qp_list)){
         qp_list[[p]] = plotly::ggplotly(qp_list[[p]], tooltip=c('Y', 'X', 'colour', 'shape'))
       }
@@ -163,6 +177,6 @@ plot_gene_quiltV2 = function(x = NULL, trslot='log', genes=NULL, plot_who=NULL, 
       # Print plots to console.
       return(qp_list)
     }
-    #  }
   }
 }
+

@@ -5,8 +5,7 @@
 # @details
 # The function takes as an argument the path to an 'outs'  folder of a Visium run.
 # It reads the data and converts it into an STList, which can be used in downstrean
-# analysis with spatialGE. Optionally, the function can also output the count and
-# coordinates files.
+# analysis with spatialGE.
 #
 # @param features_fp File path to the features.tsv.gz file.
 # @param barcodes_fp File path to the barcodes.tsv.gz file.
@@ -56,12 +55,21 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
     filter(emsb != "noGene_") %>%
     select(-contains("otherBCs")) %>%
     data.frame(check.names = F)
+<<<<<<< HEAD
 
   if(filterMT){
     #rawcounts_df <- rawcounts_df[-c(keep_idx), ]
     rawcounts_df <- rawcounts_df[!grepl("^MT-", rawcounts_df$gene), ]
   }
 
+=======
+
+  # if(filterMT){
+  #   #rawcounts_df <- rawcounts_df[-c(keep_idx), ]
+  #   rawcounts_df <- rawcounts_df[!grepl("^MT-", rawcounts_df$gene), ]
+  # }
+
+>>>>>>> oscar_dev
   spotcoords_df <- counts_all_df[, c('spotname', 'array_row', 'array_col')] %>%
     distinct(.keep_all = T) %>%
     filter(spotname != "otherBCs") %>%
@@ -71,29 +79,30 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
   rawcounts_df = rawcounts_df[, !(colnames(rawcounts_df) %in% zeroSpots)]
   spotcoords_df = spotcoords_df[(spotcoords_df$spotname %in% colnames(rawcounts_df[, -c(1, 2)])), ]
 
-  if(savefiles){
-    write.table(rawcounts_df, file='./visium_counts.txt', sep="\t", row.names=F, quote=F)
-    write.table(spotcoords_df, file='./visium_coords.txt', sep="\t", row.names=F, quote=F)
-  }
+  # if(savefiles){
+  #   write.table(rawcounts_df, file='./visium_counts.txt', sep="\t", row.names=F, quote=F)
+  #   write.table(spotcoords_df, file='./visium_coords.txt', sep="\t", row.names=F, quote=F)
+  # }
 
-  tmp_ctsdf <- tempfile(fileext = ".txt", pattern='spatialGEctsdf_')
-  tmp_cdsdf <- tempfile(fileext = ".txt", pattern='spatialGEcdsdf_')
-  write.table(rawcounts_df, file=tmp_ctsdf, sep="\t", row.names=F, quote=F)
-  write.table(spotcoords_df, file=tmp_cdsdf, sep="\t", row.names=F, quote=F)
+  # tmp_ctsdf <- tempfile(fileext = ".txt", pattern='spatialGEctsdf_')
+  # tmp_cdsdf <- tempfile(fileext = ".txt", pattern='spatialGEcdsdf_')
+  # write.table(rawcounts_df, file=tmp_ctsdf, sep="\t", row.names=F, quote=F)
+  # write.table(spotcoords_df, file=tmp_cdsdf, sep="\t", row.names=F, quote=F)
+  #
+  # tmp_ctsfp <- tempfile(fileext = ".txt", pattern='spatialGEctsfp_')
+  # tmp_cdsfp <- tempfile(fileext = ".txt", pattern='spatialGEcdsfp_')
+  # write(tmp_ctsdf, file=tmp_ctsfp)
+  # write(tmp_cdsdf, file=tmp_cdsfp)
 
-  tmp_ctsfp <- tempfile(fileext = ".txt", pattern='spatialGEctsfp_')
-  tmp_cdsfp <- tempfile(fileext = ".txt", pattern='spatialGEcdsfp_')
-  write(tmp_ctsdf, file=tmp_ctsfp)
-  write(tmp_cdsdf, file=tmp_cdsfp)
-
-  if(stlist){
-    #TEMPORARY: To avoid pushing to Github and install over and over...
-    source('~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R/STList.R')
-    #x <- STList(countfiles = tmp_ctsfp, coordfiles = tmp_cdsfp)
-    #return(x)
-  } else{
+  # if(stlist){
+  #   #TEMPORARY: To avoid pushing to Github and install over and over...
+  #   source('~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R/STList.R')
+  #   #x <- STList(countfiles = tmp_ctsfp, coordfiles = tmp_cdsfp)
+  #   #return(x)
+  # } else{
     visium_list = list(rawcounts=rawcounts_df, coords=spotcoords_df)
     return(visium_list)
-  }
+#  }
 
 }
+
