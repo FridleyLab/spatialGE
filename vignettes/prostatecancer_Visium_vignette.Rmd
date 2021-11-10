@@ -82,18 +82,18 @@ along with clinical/phenotype data associated with each spatial array. The first
 column contains array IDs.
 
 Assuming the folders are in the computer's Desktop, we specify the file paths.
-```{r}
+```{r file_paths}
 visiumfp <- c('~/Desktop/Human_Prostate_Cancer_Adenocarcinoma_Invasive_Carcinoma_FFPE/',
               '~/Desktop/Normal_Human_Prostate_FFPE/')
 ```
 
 Then, we load the file paths to the `STList` function.
-```{r}
+```{r create_STList}
 prvisium <- STList(rnacounts=visiumfp, samples=c('Adenocarcinoma', 'Normal'))
 ```
 
 The `prvisium` object is an STList.
-```{r}
+```{r view_STList}
 prvisium
 ```
 
@@ -104,12 +104,12 @@ in this package. Many of the methods implemented in `spatialGE` have been borrow
 from the field of geostatistics, which often require this kind of data transformation
 
 Transformation is achieved by applying the function `spatialTransform()`.
-```{r}
+```{r voom_transform}
 prvisium <- spatialTransform(prvisium, method = "voom")
 ```
 
 We can plot now the gene expression levels of specific genes. Let's see _KLK3_:
-```{r}
+```{r plot_gene_quilt}
 qplot <- plot_gene_quilt(prvisium, genes='FEZF2', color_pal='sunset')
 qplot
 ```
@@ -118,7 +118,8 @@ The first argument is the STList that we have been building thus far, followed b
 
 We can also generate transcriptomic surfaces for the samples using the `gene_krige()`
 implementation:
-```{r}
+
+```{r gene_krige}
 prvisium <- gene_krige(prvisium, genes='KLK3', univ=F, python=T)
 ```
 
@@ -126,7 +127,7 @@ As mentioned at the beginning of this vignette, we have leveraged the `reticulat
 
 We can now plot the transcriptomic surfaces.
 
-```{r}
+```{r plot_gene_krige}
 kplot <- plot_gene_krige(prvisium, genes='KLK3', color_pal='sunset')
 ggpubr::ggarrange(plotlist=kplot, ncol=2, common.legend=T, legend='bottom')
 ```
@@ -136,13 +137,13 @@ the entire cancerous sample ('subj 1'), compared to the normal sample ('subj 2')
 
 Spatial Deconvolution with ESTIMATE is a method determine tumor purity scores. Using ESTIMATE, we can see which spots are more likely to be tumor and which spots are more likely to be stromal.
 
-```{r}
+```{r ESTIMATE}
 prvisium = spatialDeconv(prvisium, method = "none")
 ```
 
 We can now plot the spot classification along side the expression plot and the H&E image.
 
-```{r}
+```{r plot_estimate}
 eplot = plot_gene_quilt(prvisium, genes = "KLK3", color_pal = "sunset", purity = T, image = T, ptsize = 1)
 ggpubr::ggarrange(plotlist=eplot, ncol=3, nrow=2, common.legend=T, legend='bottom')
 ```
