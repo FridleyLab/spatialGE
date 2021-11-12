@@ -6,13 +6,15 @@
 #' spatial arrays.
 #'
 #' @param x an STList with kriging objects for the genes selected.
-#' @param genes a vector of gene names (one or several) to plot.
+#' @param genes a vector of gene names (one or several) to plot.  If 'top', the 10
+#' genes with highest standard deviation from each spatial array ar plotted.
 #' @param plot_who, a vector of numbers indicating the spatial arrays to plot
-#' genes from. Numbers follow the order of `names(x@counts)`. If NULL, will plot
+#' genes from. Numbers follow the order in `names(x@counts)`. If NULL, will plot
 #' all spatial arrays.
 #' @param color_pal a color scheme from 'khroma' or RColorBrewer.
 #' @param purity logical, whether or not annotate tumor spots based on
 #' ESTIMATE tumor purity scores.
+#' @param image logical, whether to print the image stored for the spatial arrays
 #' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param visium whether or not to reverse axes for Visium slides.
 #' @return a list with plots.
@@ -49,7 +51,7 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
     genes = unique(genes)
   }
 
-  # Store maximum expression value in case 'scaled' is required.
+  # Store maximum and minimum expression value for plot color scaling
   maxvalue <- c()
   minvalue <- c()
   for (i in plot_who) {
@@ -116,7 +118,7 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
       bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
 
       # Construct title.
-      titlekrige <- paste0(gene, " (kriging)\n", "sample: ", names(x@tr_counts[i]))
+      titlekrige <- paste0(gene, " (kriging)\nsample: ", names(x@tr_counts[i]))
 
       if(purity){
         tumorstroma_df <- dplyr::bind_cols(x@coords[[i]], cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)

@@ -81,9 +81,9 @@ spatial_xcell = function(x=NULL){
     xcell_pvals[[i]] = tibble::as_tibble(xcell_pvals[[i]]) %>%
       tibble::add_column(cell_names=cell_names[-purity_names], .before=1)
 
-    x@cell_deconv[['xCell']][[i]] = list()
-    x@cell_deconv[['xCell']][[i]][['sqrt_scores']] = xcell_scores[[i]]
-    x@cell_deconv[['xCell']][[i]][['pvals']] = xcell_pvals[[i]]
+    x@cell_deconv[['xCell']][[names(x@tr_counts[i])]] = list()
+    x@cell_deconv[['xCell']][[names(x@tr_counts[i])]][['sqrt_scores']] = xcell_scores[[i]]
+    x@cell_deconv[['xCell']][[names(x@tr_counts[i])]][['pvals']] = xcell_pvals[[i]]
   }
 
   # Calculate cell means and standard deviations, and store in object
@@ -95,7 +95,7 @@ spatial_xcell = function(x=NULL){
 
   # Put standard deviations in corresponding slot.
   for(i in 1:length(cell_stdevs)){
-    x@cell_deconv[['xCell']][[i]][['cell_var']] = cell_stdevs[[i]]
+    x@cell_deconv[['xCell']][[names(x@tr_counts[i])]][['cell_var']] = cell_stdevs[[i]]
   }
 
   return(x)

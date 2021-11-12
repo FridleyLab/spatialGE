@@ -84,7 +84,7 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
   if(length(cells) == 1 && cells == 'top' && method == 'xCell'){
     cells = c()
     for(i in who){
-      cells = append(cells, deconv_list[[i]]$cell_stdev$cell[order(deconv_list[[i]]$cell_stdev$cell_stdevs, decreasing=T)][1:10])
+      cells = append(cells, deconv_list[[i]]$cell_var$cell[order(deconv_list[[i]]$cell_var$cell_stdevs, decreasing=T)][1:10])
     }
     # Get unique cell names from most variable.
     cells = unique(cells)
@@ -96,59 +96,56 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
   for(cell in cells){
     if(is.null(x@cell_krige[[cell]]) && rlang::is_empty(x@cell_krige[[cell]])){
       x@cell_krige[[cell]] = list()
-      for(i in length(x@counts)){
-        x@cell_krige[[cell]][[i]] = list()
+      for(i in 1:length(x@tr_counts)){
+        x@cell_krige[[cell]][[names(x@tr_counts[i])]] = list()
       }
     }
   }
 
-  # Loop through each deconvolution matrix.
-  for (i in who) {
-    # Specify resolution if not input by user. Original ST slide had 1007 spots.
-    if(is.null(res)){
-      if(nrow(x@coords[[i]]) > 1007){
-        res = 0.5
-      } else{
-        res = 0.2
-      }
-      x@deconv_krige_data[['res']] = res
-    } else if(!is.null(x@deconv_krige_data[['res']])){
-      if(x@deconv_krige_data[['res']] != res){
-        cat('Kriging results will be overwritten. Previosuly \"kriged\" cell scores will not be available.')
-        x@deconv_krige_data[['res']] = res
-      }
+  # Store kriging type.
+  if(univ){
+    x@misc[['cell_krige_type']] = 'universal'
+  }else{
+    x@misc[['cell_krige_type']] = 'ordinary'
+  }
+
+  # Specify resolution if not input by user
+  if(is.null(res)){
+    res = 0.5
+  }
+  x@misc[['cell_krige_res']] = res
+
+  # Give warning about kriging res < 0.5 for large matrices (e.g. Visium)
+  if(res < 0.5 & (nrow(x@coords[[1]]) > 1000)){
+    cat('Kriging at the requested resolution might take some time.\n')
+  }
+
+  # Create lists to store prediction grids and borders.
+  if(is.null(x@misc[['krige_border']])){
+    x@misc[['krige_border']] = list()
+    x@misc[['cell_krige_grid']] = list()
+    for(k in length(x@tr_counts)){
+      x@misc[['krige_border']][[k]] = list()
+      x@misc[['cell_krige_grid']][[k]] = list()
     }
+  }
 
-    # Store kriging type.
-    if(univ){
-      x@deconv_krige_data[['krige_type']] = 'universal'
-    }else{
-      x@deconv_krige_data[['krige_type']] = 'ordinary'
-    }
-
-    # Create lists to store prediction grids and borders.
-    if(is.null(x@deconv_krige_data[['krige_border']])){
-      x@deconv_krige_data[['krige_border']] = list()
-      x@deconv_krige_data[['krige_grid']] = list()
-      for(k in length(x@counts)){
-        x@deconv_krige_data[['krige_border']][[k]] = list()
-        x@deconv_krige_data[['krige_grid']][[k]] = list()
-      }
-    }
-
-    # Create concave hull to "cookie cut" border kriging surface.
-    x@deconv_krige_data[['krige_border']][[i]] = concaveman::concaveman(as.matrix(x@coords[[i]][c(3, 2)]))
-
-    # Get cells present in specific sample.
-    subsetcells_mask = cells %in% deconv_list[[i]]$sqrt_scores$cell_names
+  # Generate combination of sample x gene to for.
+  combo = tibble::tibble()
+  for(i in who){
+    subsetcells_mask = cells %in% deconv_list[[i]][['sqrt_scores']][['cell_names']]
     subsetcells = cells[subsetcells_mask]
+    combo = dplyr::bind_rows(combo, expand.grid(names(x@tr_counts[i]), subsetcells))
 
-    # Get cells not present.
+    # Get genes not present.
     notcells = cells[!subsetcells_mask]
 
     if(!rlang::is_empty(notcells)){
-      cat(paste(paste(notcells, collapse=', '), ": Not present in the deconvoluted data for subject", i, "."))
+      cat(paste(paste(notcells, collapse=', '), ": Not present in the transformed counts for sample ", names(x@tr_counts[i]), ".\n"))
     }
+
+    # Create concave hull to "cookie cut" border kriging surface.
+    x@misc[['krige_border']][[i]] = concaveman::concaveman(as.matrix(x@coords[[i]][c(3, 2)]))
 
     # Create grid for PyKrige or geoR.
     if(python == T){
@@ -160,98 +157,62 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
         seq(min(gridx), max(gridx), by=res),
         seq(min(gridy), max(gridy), by=res)
       )
-      # Store prediction grid and kriging algorithm in STList.
-      x@deconv_krige_data[['algorithm']] = 'pykrige'
-      #x@gene_krige_data[['krige_grid']] = list()
-      x@deconv_krige_data[['krige_grid']][[i]] = cell_geo_grid
+      x@misc[['cell_krige_grid']][[i]] = cell_geo_grid
     } else if(python == F && univ == F){ #  Create grid for geoR estimation.
       cell_geo_grid <-expand.grid(
         seq((min(x@coords[[i]][[3]])-1), (max(x@coords[[i]][[3]])+1), by=res),
         seq((min(x@coords[[i]][[2]])-1), (max(x@coords[[i]][[2]])+1), by=res)
       )
-      # Store prediction grid and kriging algorithm in STList.
-      x@deconv_krige_data[['algorithm']] = 'geor'
-      #x@gene_krige_data[['krige_grid']] = list()
-      x@deconv_krige_data[['krige_grid']][[i]] = cell_geo_grid
+      x@misc[['cell_krige_grid']][[i]] = cell_geo_grid
     }
-
-    # Define number of available cores to use.
-    cores = 1
-    if(.Platform$OS.type == 'unix'){
-      avail_cores = parallel::detectCores()
-      if(avail_cores > (length(subsetcells) + 1)){
-        cores = (length(subsetcells) + 1)
-      } else if( (avail_cores <= (length(subsetcells) + 1)) && avail_cores > 1){
-        cores = avail_cores - 1
-      }
-    }
-
-    # Prepare inputs for kriging.
-    # Loop through cells
-    kriging_list = parallel::mclapply(seq_along(subsetcells), function(j){
-      # Get transformed scores.
-      cell_abund = deconv_list[[i]]$sqrt_scores[deconv_list[[i]]$sqrt_scores[[1]] == subsetcells[j], -1]
-      cell_abund = as.data.frame(t(cell_abund))
-      cell_abund = cell_abund %>%
-        tibble::rownames_to_column(., var="position")
-      # Match order of library names in counts data and coordinate data.
-      cell_abund = cell_abund[match(x@coords[[i]][[1]], cell_abund[[1]]), ]
-      cell_geo_df = cbind(x@coords[[i]][c(3, 2)], as.numeric(cell_abund[[2]]))
-      colnames(cell_geo_df)[3] = "cell_data"
-      # Call the requested Kriging algorithm
-      if(python == T){
-        #gridx_red = gridx[-length(gridx)]
-        #gridy_red = gridy[-length(gridy)]
-        # Call PyKrige implementation.
-        kriging_res = krige_py(gridx=gridx, gridy=gridy, geo_df=cell_geo_df, univ=univ)
-      } else{
-        # Create geodata object from expression and coordinate data
-        cell_geo <- geoR::as.geodata(cell_geo_df, coords.col=c(1,2), data.col=3)
-        kriging_res = krige_geor(geodata=cell_geo, locations=x@deconv_krige_data[['krige_grid']][[i]], univ=univ)
-      }
-      return(kriging_res)
-    }, mc.cores=cores, mc.preschedule=T)
-
-    # Store kriging results in STList.
-    for(j in 1:length(subsetcells)){
-      x@cell_krige[[subsetcells[j]]][[i]] = kriging_list[[j]]
-    }
-
-    # Test if list with spatial statistics exists for each gene. If not create it.
-    for(cell in cells){
-      if(is.null(x@cell_het[[cell]]) && rlang::is_empty(x@cell_het[[cell]])){
-        x@cell_het[[cell]] = list()
-        for(k in length(x@counts)){
-          x@cell_het[[cell]][[k]] = list()
-        }
-      }
-    }
-
-    # Estimate spatial heterogeneity statistics.
-    # moran_list = parallel::mclapply(seq_along(subsetcells), function(j){
-    #   temp_x = cell_moran_I(x, cells=subsetcells[j], subj=i)
-    #   temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$morans_I
-    #   return(temp_x)
-    # }, mc.cores=cores, mc.preschedule=T)
-    #
-    # geary_list = parallel::mclapply(seq_along(subsetcells), function(j){
-    #   temp_x = cell_geary_C(x, cells=subsetcells[j], subj=i)
-    #   temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$gearys_C
-    #   return(temp_x)
-    # }, mc.cores=cores, mc.preschedule=T)
-    #
-    # getis_list = parallel::mclapply(seq_along(subsetcells), function(j){
-    #   temp_x = cell_getis_Gi(x, cells=subsetcells[j], subj=i)
-    #   temp_x = temp_x@cell_het[[subsetcells[j]]][[i]]$getis_ord_Gi
-    #   return(temp_x)
-    # }, mc.cores=cores, mc.preschedule=T)
-    #
-    # # Store spatial statistics in STList.
-    # for(j in 1:length(subsetcells)){
-    #   x@cell_het[[subsetcells[j]]][[i]]$morans_I = moran_list[[j]]
-    #   x@cell_het[[subsetcells[j]]][[i]]$gearys_C = geary_list[[j]]
-    #   x@cell_het[[subsetcells[j]]][[i]]$getis_ord_Gi = getis_list[[j]]
-    # }
   }
+
+  # Store prediction grid and kriging algorithm in STList.
+  if(python){
+    x@misc[['cell_krige_algorithm']] = 'pykrige'
+  } else{
+    x@misc[['cell_krige_algorithm']] = 'geor'
+  }
+
+  # Define cores available
+  cores = count_cores(nrow(combo))
+  # Loop through combinations of samples x genes
+  kriging_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
+    i = as.vector(unlist(combo[i_combo, 1]))
+    j = as.vector(unlist(combo[i_combo, 2]))
+
+    # Get transformed counts.
+    cell_score = deconv_list[[i]][['sqrt_scores']][deconv_list[[i]][['sqrt_scores']][['cell_names']] == j, -1]
+    cell_score = as.data.frame(t(cell_score))
+    cell_score = cell_score %>%
+      tibble::rownames_to_column(., var="position")
+    # Match order of library names in counts data and coordinate data.
+    cell_score = cell_score[match(x@coords[[i]][[1]], cell_score[[1]]), ]
+    cell_geo_df = cbind(x@coords[[i]][c(3, 2)], as.numeric(cell_score[[2]]))
+    colnames(cell_geo_df)[3] = "cell_score"
+    # Call the requested Kriging algorithm
+    if(python == T){
+      # Call PyKrige implementation.
+      gridx = seq(min(x@coords[[i]][[3]]), max(x@coords[[i]][[3]]), res)
+      gridy = seq(min(x@coords[[i]][[2]]), max(x@coords[[i]][[2]]), res)
+      gridx = gridx[-length(gridx)]
+      gridy = gridy[-length(gridy)]
+      kriging_res = krige_py(gridx=gridx, gridy=gridy, geo_df=cell_geo_df, univ=univ)
+    } else{
+      # Create geodata object from expression and coordinate data
+      cell_geo <- geoR::as.geodata(cell_geo_df, coords.col=c(1,2), data.col=3)
+      kriging_res = krige_geor(geodata=cell_geo, locations=x@misc[['cell_krige_grid']][[i]], univ=univ)
+    }
+    return(kriging_res)
+  }, mc.cores=cores, mc.preschedule=F)
+  names(kriging_list) = paste(combo[[1]], combo[[2]], sep='&&')
+
+  # Store kriging results in STList.
+  for(i in 1:nrow(combo)){
+    combo_name = unlist(strsplit(names(kriging_list)[i], split = '&&'))
+    x@cell_krige[[combo_name[2]]][[combo_name[1]]] = kriging_list[[i]]
+  }
+
   return(x)
 }
+

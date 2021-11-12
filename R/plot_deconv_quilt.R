@@ -72,8 +72,7 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
     cells = unique(cells)
   }
 
-  # Store maximum cell score value in case 'scaled' is required.
-  # if(scaled){
+  # Store maximum and minimum expression value for plot color scaling
   maxvalue <- c()
   minvalue <- c()
   for (i in plot_who) {

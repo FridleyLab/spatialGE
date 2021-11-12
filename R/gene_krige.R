@@ -149,7 +149,6 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
       )
       x@misc[['gene_krige_grid']][[i]] = gene_geo_grid
     }
-
   }
 
   # Store prediction grid and kriging algorithm in STList.
@@ -166,10 +165,10 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
   }
 
   # Define cores available
-  cores = count_cores(length(nrow(combo)))
+  cores = count_cores(nrow(combo))
   # Loop through combinations of samples x genes
   kriging_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
-    i = unlist(combo[i_combo, 1])
+    i = as.vector(unlist(combo[i_combo, 1]))
     j = as.vector(unlist(combo[i_combo, 2]))
 
     # Get transformed counts.

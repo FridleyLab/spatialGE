@@ -8,16 +8,16 @@
 #'
 #' @param x an STList with kriging objects for the cells selected.
 #' @param cells, a vector of cell names (one or several) within a deconvolution
-#' matrix  to plot. If 'top', the 10 cell types with highest standard deviation
+#' matrix to plot. If 'top', the 10 cell types with highest standard deviation
 #' from each spatial array ar plotted.
 #' @param plot_who a vector of subject indexes as ordered within the STList, to
-#' plot cells from. If NULL, will plot for all subjects.
+#' plot cells from. Numbers follow the order in `names(x@counts)`. If NULL, will
+#' plot for all subjects.
 #' @param color_pal a color scheme from 'khroma' or RColorBrewer.
-#' @param saveplot, logical indicating whether or not save plots in a PDF file.
-#' The PDFs are saved in the working directory. Default is FALSE, meaning plots
-#' are printed to console.
 #' @param purity, logical, whether or not to annotate tumor spots based on
 #' ESTIMATE tumor purity scores.
+#' @param image logical, whether to print the image stored for the spatial arrays
+#' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param pvalues, logical indicating whether or not dots where a given cell was
 #' predicted to be significantly abundant (p<0.05). Default is FALSE.
 #' @param visium, whether or not to reverse axes for Visium slides.
@@ -30,10 +30,8 @@
 #' @export
 #
 #
-plot_deconv_krigeV2 <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr',
-                              saveplot=F, pvalues=F, purity=F, visium=T){
-  # Option to scale to 1 disabled.
-  scaled=F
+plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr', saveplot=F, pvalues=F, purity=F, visium=T){
+
   # Option to use plotly disabled (not supporting geomPolypath)
   inter=F
 
@@ -57,8 +55,7 @@ plot_deconv_krigeV2 <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='Yl
     cells = unique(cells)
   }
 
-  # Store maximum score value in case 'scaled' is required.
-  # if(scaled){
+  # Store maximum and minimum expression value for plot color scaling
   maxvalue <- c()
   minvalue <- c()
   for (i in plot_who) {
@@ -77,7 +74,6 @@ plot_deconv_krigeV2 <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='Yl
   # Find maximum value among selected spatial arrays.
   maxvalue <- max(maxvalue)
   minvalue <- min(minvalue)
-  #  }
 
   # Create list of plots.
   kp_list <- list()
@@ -98,14 +94,11 @@ plot_deconv_krigeV2 <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='Yl
       }
 
       # Find prediction grid.
-      predict_grid <- x@deconv_krige_data$krige_grid[[i]]
+      predict_grid <- x@misc[['cell_krige_grid']][[i]]
 
       # Create data frame with coordinates and kriging values.
-      if(scaled){
-        krige_vals <- (x@cell_krige[[cell]][[i]])/maxvalue
-      } else{
-        krige_vals <- x@cell_krige[[cell]][[i]]
-      }
+      krige_vals <- x@cell_krige[[cell]][[i]]
+
       df <- dplyr::bind_cols(predict_grid, krige=krige_vals)
       names(df) <- c("x_pos", "y_pos", "krige")
 
@@ -123,34 +116,13 @@ plot_deconv_krigeV2 <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='Yl
       bbox_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(bbox)), "id")))
 
       # Create Spatial Polygon with the inner tissue border (concave hull)
-      mask_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(x@deconv_krige_data$krige_border[[i]])), "id")))
+      mask_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(x@misc[['krige_border']][[i]])), "id")))
 
       # Substract the concave hull from the bounding box, yielding a SpatialPolygon object.
       bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
 
-      # Get spatial statistics.
-      # moran_est <- round(as.vector(x@cell_het[[cell]][[i]]$morans_I$estimate[[1]]), 2)
-      # geary_est <- round(as.vector(x@cell_het[[cell]][[i]]$gearys_C$estimate[[1]]), 2)
-      # getis_est <- round(as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$estimate[[1]]), 4)
-      #
-      # moran_p <- as.vector(x@cell_het[[cell]][[i]]$morans_I$p.value)
-      # geary_p <- as.vector(x@cell_het[[cell]][[i]]$gearys_C$p.value)
-      # getis_p <- as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$p.value)
-      #
-      # if(moran_p < 0.05){
-      #   moran_est <- paste0(moran_est, '*')
-      # }
-      # if(geary_p < 0.05){
-      #   geary_est <- paste0(geary_est, '*')
-      # }
-      # if(getis_p < 0.05){
-      #   getis_est <- paste0(getis_est, '*')
-      # }
-
       # Construct title.
-      titlekrige <- paste0(cell, ", subj ", i, " - ", x@deconv_krige_data$krige_type, " kriging")
-      # titlekrige <- paste0(cell, ", subj ", i, " - ", x@deconv_krige_data$krige_type, " kriging\nMorans I=",
-      #                      moran_est, "  Gearys C=", geary_est, "  GetisOrd Gi=", getis_est)
+      titlekrige <- paste0(cell, " (kriging)\nsample: ", names(x@tr_counts[i]))
 
       if(purity || pvalues){
         if(purity){

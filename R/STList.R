@@ -216,8 +216,8 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
                    cell_deconv=list(),
                    cell_het=list(),
                    cell_krige=list(),
-                   gene_krige_data=list(),
-                   deconv_krige_data=list(),
+                   #gene_krige_data=list(),
+                   #deconv_krige_data=list(),
                    st_clusters=list(),
                    pheno_plots=list(),
                    misc=list(sp_images=img_obj, platform=platform)

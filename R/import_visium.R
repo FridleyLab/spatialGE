@@ -36,10 +36,10 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
   coords_df = data.table::fread(coords_fp, header=F, check.names=F) %>%
     dplyr::rename('barcode' = 1, 'intissue' = 2, 'array_row' = 3,
                   'array_col' = 4, 'pxlcol' = 5, 'pxlrow' = 6) %>%
-    mutate(spotname = paste0("y", array_row, "x", array_col))
+    dplyr::mutate(spotname = paste0("y", array_row, "x", array_col))
   #read in count data
   counts_df = data.table::fread(counts_fp, header=F, check.names = F, sep=" ", skip = 3) %>%
-    rename("feat_n" = 1, "spot_n" = 2, "counts" = 3)
+    dplyr::rename("feat_n" = 1, "spot_n" = 2, "counts" = 3)
   #merge files together
   counts_all_df = dplyr::inner_join(coords_df, barcodes_df, by='barcode')
   counts_all_df <- dplyr::inner_join(counts_all_df %>% dplyr::mutate(spot_n = as.integer(spot_n)), counts_df, by='spot_n')
@@ -52,8 +52,8 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
     data.table::as.data.table()
 
   rawcounts_df = data.table::dcast.data.table(counts_all_df, emsb + gene ~ spotname, value.var = "counts", fill = 0) %>%
-    filter(emsb != "noGene_") %>%
-    select(-contains("otherBCs")) %>%
+    dplyr::filter(emsb != "noGene_") %>%
+    dplyr::select(-contains("otherBCs")) %>%
     data.frame(check.names = F)
 
   # if(filterMT){
@@ -62,8 +62,8 @@ import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, co
   # }
 
   spotcoords_df <- counts_all_df[, c('spotname', 'array_row', 'array_col')] %>%
-    distinct(.keep_all = T) %>%
-    filter(spotname != "otherBCs") %>%
+    dplyr::distinct(.keep_all = T) %>%
+    dplyr::filter(spotname != "otherBCs") %>%
     data.frame(check.names = F)
 
   zeroSpots = colnames(rawcounts_df[, -c(1, 2)])[colSums(rawcounts_df[, -c(1, 2)]) == 0]

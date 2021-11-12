@@ -15,7 +15,8 @@
 #' @param color_pal, a color scheme from 'khroma' or RColorBrewer.
 #' @param data_type, one of 'tr' or 'raw', to plot transformed or raw counts
 #' respectively.
-#' @param purity, logical, whether tumor/stroma classes should be plotted.
+#' @param purity logical, whether tumor/stroma classes should be plotted.
+#' @param image logical, whether to print the image stored for the spatial arrays
 #' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param inter, whether or not quilt plot should be converted to a Plotly plot.
 #' @param visium, logical, whether or not the samples are from a Visium experiment.
