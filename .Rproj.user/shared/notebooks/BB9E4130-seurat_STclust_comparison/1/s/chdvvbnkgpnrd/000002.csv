@@ -1,0 +1,21 @@
+"0","```r
+Seuratclusters_df = melanomaSeurat@meta.data %>%
+  tibble::rownames_to_column(var='spot') %>%
+  dplyr::select(spot, seurat_clusters) %>%
+  dplyr::inner_join(coords_ls[[1]], ., by='spot')
+
+# Add 1 to get same cluster IDs for Seurat clusters
+Seuratclusters_df$seurat_clusters = factor(as.numeric(Seuratclusters_df$seurat_clusters), levels=1:4)
+
+colPalette = khroma::color('light')
+colPalette = colPalette(4)
+names(colPalette) = c(1:4)
+
+clusterp[['seurat']] = ggplot(Seuratclusters_df) +
+  geom_point(aes(x=xpos, y=ypos, color=seurat_clusters)) +
+  scale_color_manual(values=colPalette) +
+  ggtitle('Seurat clusters\nDefault resolution') + 
+  coord_fixed() +
+  theme_classic() +
+  theme(plot.title=element_text(size=10))
+```"

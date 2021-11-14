@@ -1,0 +1,2 @@
+"0","gene_names <- c('PMEL', 'SPP1', 'CD74', 'IGLL5', 'SOX10', 'SOX4')"
+"0","plist1 <- plot_gene_quilt(thrane, genes=gene_names, plot_who=2, visium=F, purity=T, ptsize=2)"

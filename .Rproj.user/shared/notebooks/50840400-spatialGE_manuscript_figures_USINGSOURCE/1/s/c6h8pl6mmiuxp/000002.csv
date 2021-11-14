@@ -1,0 +1,3 @@
+"0","ls_objs = ls()"
+"0","ls_objs = ls_objs[!grepl(""thrane"", ls_objs)]"
+"0","rm(list = ls_objs)"

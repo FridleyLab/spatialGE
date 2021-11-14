@@ -1,0 +1,8 @@
+"0","```r
+seurat_mtx = as.data.frame(counts_ls[['mel1_2']])
+rownames(seurat_mtx) = seurat_mtx[, 1]
+seurat_mtx = seurat_mtx[, -1]
+melanomaSeurat = CreateSeuratObject(seurat_mtx)
+```"
+"1","Feature names cannot have underscores ('_'), replacing with dashes ('-')
+"

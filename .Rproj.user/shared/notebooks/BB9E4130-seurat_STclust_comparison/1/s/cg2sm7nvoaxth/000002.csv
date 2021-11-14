@@ -1,0 +1,4 @@
+"0","```r
+counts_fp = '../../summary_plots/ST-Melanoma-Datasets_1/ST_mel1_rep2_counts.tsv'
+coords_fp = '../../code/spatialGE/inst/extdata/ST_mel1_rep2_counts_mapping.txt'
+```"

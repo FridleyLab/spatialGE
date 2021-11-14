@@ -1,0 +1,10 @@
+"0","```r
+```r
+datadir = list.dirs('../data/Kidney_Dataset_for_GeomxTools/dccs/', full.names=T)
+DCCFiles = dir(datadir, pattern=\.dcc$\, full.names=TRUE)
+PKCFiles = '../data/Kidney_Dataset_for_GeomxTools/pkcs/TAP_H_WTA_v1.0.pkc'
+SampleAnnotationFile = '../data/Kidney_Dataset_for_GeomxTools/annotation/kidney_demo_AOI_Annotations.xlsx'
+```
+```"
+"1","The following DCC files had no counts: DSP-1001250007864-D-C10.dcc, These will be excluded from the GeoMxSet object.
+"

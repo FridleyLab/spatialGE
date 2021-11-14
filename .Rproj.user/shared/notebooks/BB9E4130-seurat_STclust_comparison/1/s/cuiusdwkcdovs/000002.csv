@@ -1,0 +1,4 @@
+"0","```r
+melanomaSTList = STclust(melanomaSTList, weights=c(0, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.5), 
+                         ks=c(2:5), vperc=0.99, method='complete', topgenes=3000)
+```"
