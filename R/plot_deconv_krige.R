@@ -30,7 +30,7 @@
 #' @export
 #
 #
-plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr', saveplot=F, pvalues=F, purity=F, visium=T){
+plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr', method='xCell', saveplot=F, pvalues=F, purity=F, visium=T, ptsize=0.5){
 
   # Option to use plotly disabled (not supporting geomPolypath)
   inter=F
@@ -45,11 +45,26 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOr
     plot_who <- c(1:length(x@counts))
   }
 
+  # Test if deconvolution data of any type is available.
+  if (rlang::is_empty(x@cell_deconv)) {
+    stop("There are not deconvolution matrices in this STList.")
+  }
+
+  method=tolower(method)
+  # Get requested list of deconvoluted matrices.
+  if(method == 'xcell'){
+    deconv_list <- x@cell_deconv$xCell
+  } else if(method == 'ssgsea'){
+    deconv_list <- x@cell_deconv$ssGSEA
+  } else{
+    stop('Please, specify a deconvolution method to plot.')
+  }
+
   # If cells='top', get names of 10 cells with the highest standard deviation.
   if(length(cells) == 1 && cells == 'top'){
     cells = c()
     for(i in plot_who){
-      cells = append(cells, deconv_list[[i]]$cell_stdev$cell[order(deconv_list[[i]]$cell_stdev$cell_stdevs, decreasing=T)][1:10])
+      cells = append(cells, deconv_list[[names(deconv_list[i])]]$cell_var$cell[order(deconv_list[[names(deconv_list[i])]]$cell_var$cell_stdevs, decreasing=T)][1:10])
     }
     # Get unique genes from most variable.
     cells = unique(cells)
@@ -80,16 +95,17 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOr
 
   # Loop through each of ythe subjects.
   for (i in plot_who) {
+
     # Loop though cells to plot.
     for (cell in cells) {
 
       if(length(x@cell_krige[[cell]]) >= i){
         if(is.null(x@cell_krige[[cell]][[i]])){
-          cat(paste0(cell, " kriging for subject ", i, " is not present in STList\n"))
+          cat(paste0(cell, " kriging for sample ", names(deconv_list[i]), " is not present in STList\n"))
           next
         }
       }else{
-        cat(paste0(cell, " kriging for subject ", i, " is not present in STList\n"))
+        cat(paste0(cell, " kriging for sample ", names(deconv_list[i]), " is not present in STList\n"))
         next
       }
 
@@ -122,7 +138,7 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOr
       bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
 
       # Construct title.
-      titlekrige <- paste0(cell, " (kriging)\nsample: ", names(x@tr_counts[i]))
+      titlekrige <- paste0(cell, " (kriging)\nsample: ", names(deconv_list[i]))
 
       if(purity || pvalues){
         if(purity){
@@ -137,7 +153,9 @@ plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOr
                                     cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster,
                                     cluster2=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
             colnames(df_q) <- c('y_pos', 'x_pos', 'cluster', 'cluster2')
-            qpbw <- quilt_p_purity_bw(data_f=df_q, visium=visium, title_name=paste0('ESTIMATE\ntumor/stroma - subj ', i))
+            qpbw <- quilt_p_purity_bw(data_f=df_q, visium=visium,
+                                      title_name=paste0('ESTIMATE\ntumor/stroma\nsample: ', names(deconv_list[i])),
+                                      ptsize=ptsize)
           } else{
             stop("No tumor/stroma classification in the STList.")
           }

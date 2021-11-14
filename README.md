@@ -6,14 +6,10 @@ gene expression in tissue sections via spatial interpolation, RNA-Seq data decon
 and autocorrelation statistics, as well as correlation with clinical/phenotype data. 
 
 <p align="center">
-<img src="figures/spatialGE_paperworkflow.png" height="600">
+<img src="figures/spatialGE_workflow_v2.png" height="600">
 </p>
 
 ## Installation
-To use `spatialGE`, please make sure that `xCell` is already installed:
-```
-devtools::install_github('dviraran/xCell')
-```
 
 The `spatialGE` repository is available at GitHub and can be installed via `devtools`.
 ```
@@ -22,3 +18,6 @@ devtools::install_github("fridleylab/spatialGE")
 
 For a tutorial on how to use `spatialGE`, please go to:
 https://fridleylab.github.io/spatialGE/
+
+The code for `spatialGE` can be found here:
+https://github.com/FridleyLab/spatialGE

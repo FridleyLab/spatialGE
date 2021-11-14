@@ -12,16 +12,17 @@
 #' several) to plot. If 'top', the 10 cell types with highest standard deviation
 #' from each spatial array ar plotted.
 #' @param plot_who a vector of subject indexes as ordered within the STList, to
-#' plot cells from. If NULL, will plot for all subjects.
+#' plot cells from. Numbers follow the order of `names(x@counts)`. If NULL, will plot
+#' all spatial arrays.
 #' @param color_pal a color scheme from 'khroma' or RColorBrewer.
 #' @param purity logical, whether tumor/stroma classes should be plotted.
+#' @param image logical, whether to print the image stored for the spatial arrays
 #' @param method the method from which deconvolution scores will be taken. xCell is
 #' the only method supported for now.
-#' @param saveplot logical indicating whether or not save plots in a PDF file.
-#' The PDFs are saved in the working directory. Default is FALSE, meaning plots
-#' are printed to console.
-#' @param inter whether or not quilt plot should be converted to a Plotly plot.
-#' @param visium, whether or not to reverse axes for Visium slides.
+#' @param saveplot, a file name specifying the name of a PDF file to write plots to.
+#' @param inter, whether or not quilt plot should be converted to a Plotly plot.
+#' @param visium, logical, whether or not the samples are from a Visium experiment.
+#' @ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
 #' @return a list with plots.
 #'
 #' @examples
@@ -31,10 +32,7 @@
 #' @export
 #
 #
-plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr',
-                              purity=F, method='xcell', saveplot=F, inter=F, visium=T){
-  # Option to scale to 1 disabled.
-  scaled=F
+plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, method='xcell', saveplot=NULL, inter=F, visium=T, ptsize=NULL){
 
   # Test that a gene name was entered.
   if (is.null(cells)) {
@@ -52,7 +50,6 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
   }
 
   method=tolower(method)
-
   # Get requested list of deconvoluted matrices.
   if(method == 'xcell'){
     deconv_list <- x@cell_deconv$xCell
@@ -66,7 +63,7 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
   if(length(cells) == 1 && cells == 'top'){
     cells = c()
     for(i in plot_who){
-      cells = append(cells, deconv_list[[i]]$cell_stdev$cell[order(deconv_list[[i]]$cell_stdev$cell_stdevs, decreasing=T)][1:10])
+      cells = append(cells, deconv_list[[names(deconv_list[i])]]$cell_var$cell[order(deconv_list[[names(x@counts[i])]]$cell_var$cell_stdevs, decreasing=T)][1:10])
     }
     # Get unique genes from most variable.
     cells = unique(cells)
@@ -89,7 +86,6 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
   # Find maximum value among selected spatial arrays.
   maxvalue <- max(maxvalue)
   minvalue <- min(minvalue)
-  #  }
 
   # Create list of plots.
   qp_list <- list()
@@ -102,12 +98,9 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
 
       # Test if gene name exists in normalized count matrix.
       if (any(deconv_list[[i]]$sqrt_scores$cell_names == cell)) {
-        # If scaled, standardize expression. If not, return expression values as they are.
-        if(scaled){
-          values <- unlist(deconv_list[[i]]$sqrt_scores[deconv_list[[i]]$sqrt_scores$cell_names == cell,][,-1])/maxvalue
-        } else{
-          values <- unlist(deconv_list[[i]]$sqrt_scores[deconv_list[[i]]$sqrt_scores$cell_names == cell,][,-1])
-        }
+
+        # Get deconvolution scores
+        values <- unlist(deconv_list[[i]]$sqrt_scores[deconv_list[[i]]$sqrt_scores$cell_names == cell, ][,-1])
 
         # Create data frame of gene and plot.
         df <- dplyr::bind_cols(x@coords[[i]][,-1], tibble::as_tibble(values))
@@ -119,16 +112,18 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
           if(!(rlang::is_empty(x@cell_deconv))){
             df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
             qp <- quilt_p_purity(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
-                                 title_name=paste0(cell, " - ", "subj ", i),
+                                 title_name=paste0(cell, "\n", "sample: ", names(deconv_list[i])),
                                  minvalue=minvalue, maxvalue=maxvalue, visium=visium)
-            qpbw <- quilt_p_purity_bw(data_f=df, visium=visium, title_name=paste0('ESTIMATE\ntumor/stroma - subj ', i))
+            qpbw <- quilt_p_purity_bw(data_f=df, visium=visium,
+                                      title_name=paste0('ESTIMATE\ntumor/stroma\nsample: ', names(deconv_list[i])),
+                                      ptsize=ptsize)
           } else{
             stop("No tumor/stroma classification in the STList.")
           }
         } else{
           # The color palette function in khroma is created by quilt_p() function.
           qp <- quilt_p(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
-                        title_name=paste0(cell, " - ", "subj ", i),
+                        title_name=paste0(gene, "\n", "sample: ", names(deconv_list[i])),
                         minvalue=minvalue, maxvalue=maxvalue, visium=visium)
         }
 
@@ -139,24 +134,25 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
       }
 
       # Append plot to list.
-      qp_list[[paste0(cell, "_", i)]] <- qp
+      qp_list[[paste0(cell, "_", names(deconv_list[i]))]] <- qp
     }
 
     if(purity){
-      qp_list[[paste0('subj',i)]] <- qpbw
+      qp_list[[paste0('tumorstroma_', names(deconv_list[i]))]] <- qpbw
     }
   }
+
   row_col <- c(1, 1)
 
   # Test if plot should be saved to PDF.
-  if(saveplot){
+  if(!is.null(saveplot)){
     # Print plots to PDF.
-    pdf(file="cell_quilt_spatarray.pdf")
+    pdf(file=saveplot)
     print(ggpubr::ggarrange(plotlist=qp_list, nrow=row_col[2], ncol=row_col[2], common.legend=T, legend='bottom'))
     dev.off()
   } else{
     # Convert ggplots to plotly plots.
-    if(inter == T && purity == T){
+    if(inter == T && purity == T && image == F){
       for(p in 1:length(qp_list)){
         qp_list[[p]] = plotly::ggplotly(qp_list[[p]], tooltip=c('Y', 'X', 'colour', 'shape'))
       }
@@ -165,6 +161,5 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
       # Print plots to console.
       return(qp_list)
     }
-    #  }
   }
 }

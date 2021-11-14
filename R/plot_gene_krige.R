@@ -26,7 +26,7 @@
 #' @export
 #
 #
-plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, saveplot=NULL, visium=T){
+plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, saveplot=NULL, visium=T, ptsize=0.5){
 
   # Option to use plotly disabled (not supporting geomPolypath)
   inter=F
@@ -132,7 +132,9 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
                                   cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster,
                                   cluster2=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
           colnames(df_q) <- c('y_pos', 'x_pos', 'cluster', 'cluster2')
-          qpbw <- quilt_p_purity_bw(data_f=df_q, visium=visium, title_name=paste0('ESTIMATE\ntumor/stroma - subj ', i))
+          qpbw <- quilt_p_purity_bw(data_f=df_q, visium=visium,
+                                    title_name=paste0('ESTIMATE\ntumor/stroma\nsample: ', names(x@tr_counts[i])),
+                                    ptsize=ptsize)
         } else{
           stop("No tumor/stroma classification in the STList.")
         }
@@ -166,7 +168,7 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
     dev.off()
   } else{
     # Convert ggplots to plotly plots.
-    if(inter && image == F){
+    if(inter == T && purity == T && image == F){
       for(p in 1:length(kp_list)){
         kp_list[[p]] = plotly::ggplotly(kp_list[[p]])
       }
