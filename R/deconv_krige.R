@@ -201,7 +201,7 @@ deconv_krige = function(x=NULL, cells='top', univ=F, res=NULL, who=NULL, method=
     } else{
       # Create geodata object from expression and coordinate data
       cell_geo <- geoR::as.geodata(cell_geo_df, coords.col=c(1,2), data.col=3)
-      kriging_res = krige_geor(geodata=cell_geo, locations=x@misc[['cell_krige_grid']][[i]], univ=univ)
+      kriging_res = krige_geor(geodata=cell_geo, locations=x@misc[['cell_krige_grid']][[grep(i, names(deconv_list))]], univ=univ)
     }
     return(kriging_res)
   }, mc.cores=cores, mc.preschedule=F)

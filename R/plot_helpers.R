@@ -91,7 +91,7 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='', title_n
     ylab("Y Position") +
     labs(fill=leg_name, shape='tumor/stroma',
          title=title_name, color=leg_name) +
-    guides(shape=guide_legend(override.aes=list(color='black', stroke=0.5, size=2))) +
+    guides(shape=guide_legend(override.aes=list(color='black', stroke=0.5, size=2), nrow=2, byrow=T, title=NULL)) +
     theme_classic()
 
   if(visium){
@@ -200,7 +200,8 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
     theme_classic()
 
   if(visium){
-    p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
+    p <- p + scale_y_reverse() + #scale_x_reverse() +
+      coord_fixed(ratio=1.7)
   } else{
     p <- p + coord_fixed(ratio=1)
   }

@@ -29,6 +29,9 @@ spatial_stat_plot <- function(x=NULL, samplevar=NULL, gene=NULL, cell=NULL, colo
   require('magrittr')
   require('ggplot2')
 
+  # Spatial plots with cell scores might get removed from package
+  cell=NULL
+
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){
     stop("The input must be a STList.")
@@ -39,7 +42,7 @@ spatial_stat_plot <- function(x=NULL, samplevar=NULL, gene=NULL, cell=NULL, colo
   }
 
   if(!is.null(cell) && length(cell) != 1){
-    stop('At the moment, only one cel type at a time is enabled.')
+    stop('At the moment, only one cell type at a time is enabled.')
   }
 
   if(!is.null(gene) && !is.null(cell)){
@@ -55,79 +58,71 @@ spatial_stat_plot <- function(x=NULL, samplevar=NULL, gene=NULL, cell=NULL, colo
     clinvar_vals <- clinvar_vals %>%
       tibble::add_column(., samples=plot_labs)
   }else{
-    samplevar <- 'array'
+    samplevar <- 'sample_id'
     clinvar_vals <- 1:length(x@counts)
-    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='array')
-    plot_labs <- as.character(1:length(x@counts))
+    clinvar_vals <- tibble::as_tibble_col(clinvar_vals, column_name='sample_id')
+    plot_labs <- as.character(1:length(x@tr_counts))
     clinvar_vals <- clinvar_vals %>%
       tibble::add_column(., samples=plot_labs)
   }
 
-  clinvar_vals$moran <- rep(NA, length(x@counts))
-  clinvar_vals$geary <- rep(NA, length(x@counts))
-  clinvar_vals$getis <- rep(NA, length(x@counts))
+  clinvar_vals$moran <- rep(NA, length(x@tr_counts))
+  clinvar_vals$geary <- rep(NA, length(x@tr_counts))
+  clinvar_vals$getis <- rep(NA, length(x@tr_counts))
 
-  # Loop through count matrices in STList
-  for(i in 1:length(x@counts)){
+  if(!is.null(gene) && is.null(cell)){
+    x <- gene_moran_I(x, genes=gene, who=c(1:length(x@tr_counts)))
+    x <- gene_geary_C(x, genes=gene, who=c(1:length(x@tr_counts)))
+    x <- gene_getis_Gi(x, genes=gene, who=c(1:length(x@tr_counts)))
 
-    if(!is.null(gene) && !any(x@voom_counts[[i]][[1]] == gene)){
-      cat(paste("\n", gene, "is not a gene in the transformed count data for sample ", i, ".\n"))
-      next
-    } else if(!is.null(cell) && !any(x@cell_deconv$xCell[[i]]$sqrt_scores[[1]] == cell)){
-      cat(paste("\n", cell, "is not a deconvoluted cell type in the STList for sample ", i, ".\n"))
-      next
-    } else{
-
-      if(!is.null(gene)){
-        if(!rlang::is_empty(x@gene_het[[gene]])){
-          if(i > length(x@gene_het[[gene]])){
-            x <- gene_moran_I(x, genes=gene, subj=i)
-            x <- gene_geary_C(x, genes=gene, subj=i)
-            x <- gene_getis_Gi(x, genes=gene, subj=i)
-          } else if(rlang::is_empty(x@gene_het[[gene]][[i]])){
-            x <- gene_moran_I(x, genes=gene, subj=i)
-            x <- gene_geary_C(x, genes=gene, subj=i)
-            x <- gene_getis_Gi(x, genes=gene, subj=i)
-          }
-        } else {
-          x <- gene_moran_I(x, genes=gene, subj=i)
-          x <- gene_geary_C(x, genes=gene, subj=i)
-          x <- gene_getis_Gi(x, genes=gene, subj=i)
-        }
-        clinvar_vals$moran[i] <- as.vector(x@gene_het[[gene]][[i]]$morans_I$estimate[[1]])
-        clinvar_vals$geary[i] <- as.vector(x@gene_het[[gene]][[i]]$gearys_C$estimate[[1]])
-        clinvar_vals$getis[i] <- as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$estimate[[1]])
+    for(i in 1:length(x@tr_counts)){
+      moran_estimate = as.vector(x@gene_het[[gene]][[i]]$morans_I$estimate[[1]])
+      geary_estimate = as.vector(x@gene_het[[gene]][[i]]$gearys_C$estimate[[1]])
+      getis_estimate = as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$estimate[[1]])
+      if(length(moran_estimate) != 0){
+        clinvar_vals$moran[i] = moran_estimate
+      } else{
+        clinvar_vals$moran[i] = NA
       }
-
-      if(!is.null(cell)){
-        if(!rlang::is_empty(x@cell_het[[cell]])){
-          if(i > length(x@cell_het[[cell]])){
-            x <- cell_moran_I(x, cells=cell, subj=i)
-            x <- cell_geary_C(x, cells=cell, subj=i)
-            x <- cell_getis_Gi(x, cells=cell, subj=i)
-          } else if(rlang::is_empty(x@cell_het[[cell]][[i]])){
-            x <- cell_moran_I(x, cells=cell, subj=i)
-            x <- cell_geary_C(x, cells=cell, subj=i)
-            x <- cell_getis_Gi(x, cells=cell, subj=i)
-          }
-        } else {
-          x <- cell_moran_I(x, cells=cell, subj=i)
-          x <- cell_geary_C(x, cells=cell, subj=i)
-          x <- cell_getis_Gi(x, cells=cell, subj=i)
-        }
-        clinvar_vals$moran[i] <- as.vector(x@cell_het[[cell]][[i]]$morans_I$estimate[[1]])
-        clinvar_vals$geary[i] <- as.vector(x@cell_het[[cell]][[i]]$gearys_C$estimate[[1]])
-        clinvar_vals$getis[i] <- as.vector(x@cell_het[[cell]][[i]]$getis_ord_Gi$estimate[[1]])
+      if(length(geary_estimate) != 0){
+        clinvar_vals$geary[i] = geary_estimate
+      } else{
+        clinvar_vals$geary[i] = NA
       }
-
-      if(is.null(gene) && is.null(cell)){
-        stop('Please, specify a gene or cell type to plot.')
+      if(length(getis_estimate) != 0){
+        clinvar_vals$getis[i] = getis_estimate
+      } else{
+        clinvar_vals$getis[i] = NA
       }
     }
   }
 
-  # Get color palette and number of colors needed.
-  #p_palette <- khroma::colour(color_pal)
+  if(!is.null(gene) && is.null(cell)){
+    x <- gene_moran_I(x, genes=gene, who=c(1:length(x@tr_counts)))
+    x <- gene_geary_C(x, genes=gene, who=c(1:length(x@tr_counts)))
+    x <- gene_getis_Gi(x, genes=gene, who=c(1:length(x@tr_counts)))
+
+    for(i in 1:length(x@tr_counts)){
+      moran_estimate = as.vector(x@gene_het[[gene]][[i]]$morans_I$estimate[[1]])
+      geary_estimate = as.vector(x@gene_het[[gene]][[i]]$gearys_C$estimate[[1]])
+      getis_estimate = as.vector(x@gene_het[[gene]][[i]]$getis_ord_Gi$estimate[[1]])
+      if(length(moran_estimate) != 0){
+        clinvar_vals$moran[i] = moran_estimate
+      } else{
+        clinvar_vals$moran[i] = NA
+      }
+      if(length(geary_estimate) != 0){
+        clinvar_vals$geary[i] = geary_estimate
+      } else{
+        clinvar_vals$geary[i] = NA
+      }
+      if(length(getis_estimate) != 0){
+        clinvar_vals$getis[i] = getis_estimate
+      } else{
+        clinvar_vals$getis[i] = NA
+      }
+    }
+  }
 
   # Get number of categories from selected
   n_cats <- nlevels(as.factor(clinvar_vals[[samplevar]]))

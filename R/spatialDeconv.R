@@ -32,15 +32,15 @@ spatialDeconv = function(x=NULL, method='xcell'){
     # Store ESTIMATE scores in STList
     x@cell_deconv[['ESTIMATE']] = list()
     for(i in 1:length(estimate_scores)){
-      x@cell_deconv[['ESTIMATE']][[i]] = list()
-      x@cell_deconv[['ESTIMATE']][[i]][['estimate_purity']] = estimate_scores[[i]]
+      x@cell_deconv[['ESTIMATE']][[names(x@tr_counts[i])]] = list()
+      x@cell_deconv[['ESTIMATE']][[names(x@tr_counts[i])]][['estimate_purity']] = estimate_scores[[i]]
     }
 
     #Generate clusters of purity scores
     purity_clusters = cluster_purity(x)
     # Store tumor/stroma classes in STList
     for(i in 1:length(purity_clusters)){
-      x@cell_deconv[['ESTIMATE']][[i]][['purity_clusters']] = purity_clusters[[i]]
+      x@cell_deconv[['ESTIMATE']][[names(x@tr_counts[i])]][['purity_clusters']] = purity_clusters[[i]]
     }
   }
 

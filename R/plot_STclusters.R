@@ -69,7 +69,8 @@ plot_STclusters <- function(x, plot_who=NULL, ks=NULL, weights=NULL, purity=F, c
       if(is.null(x@cell_deconv[['ESTIMATE']])){
         stop('No tumor/stroma annotations available.')
       }
-      purity_df <- x@cell_deconv[['ESTIMATE']][[i]]$purity_clusters
+      sampleid = gsub("_spw[0-9\\.k_]*$", "", s)
+      purity_df <- x@cell_deconv[['ESTIMATE']][[sampleid]]$purity_clusters
       df <- dplyr::full_join(df, purity_df, by='libname')
       df$cluster <- as.factor(df$cluster)
       names(df)[5] <- "EstCluster"
@@ -107,8 +108,8 @@ plot_STclusters <- function(x, plot_who=NULL, ks=NULL, weights=NULL, purity=F, c
       p <- p + labs(title=title_p, color='Clusters')
       p <- p + guides(color=guide_legend(override.aes=list(size=2)))
     } else{
-      p <- p + geom_point(data=df, aes(x=xpos, y=ypos, color=WCluster), size=(ptsize-0.2), shape=19)
-      p <- p + geom_point(data=df_nonas, aes(x=xpos, y=ypos, color=WCluster, shape=EstCluster), size=1.2)
+      #p <- p + geom_point(data=df, aes(x=xpos, y=ypos, color=WCluster), size=(ptsize-0.2), shape=19)
+      p <- p + geom_point(data=df_nonas, aes(x=xpos, y=ypos, color=WCluster, shape=EstCluster), size=ptsize)
       p <- p + scale_color_manual(values=c(clust_cols, 'gray50'))
       p <- p + scale_shape_manual(values=c(3, 15))
       p <- p + labs(title=title_p, color='Clusters', shape='tumor/stroma')

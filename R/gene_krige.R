@@ -191,7 +191,7 @@ gene_krige = function(x=NULL, genes='top', univ=F, res=NULL, who=NULL, python=T)
     } else{
       # Create geodata object from expression and coordinate data
       gene_geo <- geoR::as.geodata(gene_geo_df, coords.col=c(1,2), data.col=3)
-      kriging_res = krige_geor(geodata=gene_geo, locations=x@misc[['gene_krige_grid']][[i]], univ=univ)
+      kriging_res = krige_geor(geodata=gene_geo, locations=x@misc[['gene_krige_grid']][[grep(i, names(x@tr_counts))]], univ=univ)
     }
     return(kriging_res)
   }, mc.cores=cores, mc.preschedule=F)

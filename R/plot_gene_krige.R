@@ -149,7 +149,7 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
 
     if(image && !is.null(x@misc[['sp_images']][[i]])){
       img_obj = grid::rasterGrob(x@misc[['sp_images']][[i]])
-      kp_list[[paste0('image', names(counts[i]))]] = ggplot() +
+      kp_list[[paste0('image', names(x@tr_counts[i]))]] = ggplot() +
         annotation_custom(img_obj)
     }
 
