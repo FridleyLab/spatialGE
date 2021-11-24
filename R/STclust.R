@@ -36,7 +36,7 @@
 #' @export
 #
 #
-STclust = function(x=NULL, weights=0.025, pcs=NULL, vperc=NULL, method='complete', ks='dtc', topgenes=3000, deepSplit=F) {
+STclust = function(x=NULL, weights=0.025, pcs=NULL, vperc=NULL, method='ward.D', ks='dtc', topgenes=3000, deepSplit=F) {
 
   require('magrittr')
 

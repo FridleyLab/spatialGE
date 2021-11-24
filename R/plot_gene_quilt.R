@@ -65,7 +65,7 @@ plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
   if(length(genes) == 1 && genes == 'top'){
     genes = c()
     for(i in plot_who){
-      genes = append(genes, x@gene_stdev[[i]]$gene[order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T)][1:10])
+      genes = append(genes, x@gene_var[[i]]$gene[order(x@gene_var[[i]]$gene_stdevs, decreasing=T)][1:10])
     }
     # Get unique genes from most variable.
     genes = unique(genes)

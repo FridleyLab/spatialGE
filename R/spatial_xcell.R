@@ -38,13 +38,13 @@ spatial_xcell = function(x=NULL){
     rownames(df) = x@tr_counts[[i]]$gene
 
     # Show progress (probably will show when single core).
-    cat(paste0("\nApplying xCell to sample", names(x@tr_counts[i]), "...\n"))
+    cat(paste0("\nApplying xCell to sample: ", names(x@tr_counts[i]), "...\n"))
 
     # Perform xCell analysis.
-    #invisible(capture.output(
-      df_xcell = xCellAnalysis(df, rnaseq=T, parallel.sz=cores)
-   #))
-
+    invisible(capture.output(
+      df_xcell <- xCellAnalysis(df, rnaseq=T, parallel.sz=cores)
+    ))
+    # Save results in list
     xcell_scores[[i]] = df_xcell
   }
 

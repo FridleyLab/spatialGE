@@ -32,7 +32,7 @@
 #' @export
 #
 #
-plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, method='xcell', saveplot=NULL, inter=F, visium=T, ptsize=NULL){
+plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, method='xcell', saveplot=NULL, inter=F, visium=T, ptsize=0.5){
 
   # Test that a gene name was entered.
   if (is.null(cells)) {
@@ -113,7 +113,7 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
             df <- dplyr::bind_cols(df, cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
             qp <- quilt_p_purity(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
                                  title_name=paste0(cell, "\n", "sample: ", names(deconv_list[i])),
-                                 minvalue=minvalue, maxvalue=maxvalue, visium=visium)
+                                 minvalue=minvalue, maxvalue=maxvalue, visium=visium, ptsize=ptsize)
             qpbw <- quilt_p_purity_bw(data_f=df, visium=visium,
                                       title_name=paste0('ESTIMATE\ntumor/stroma\nsample: ', names(deconv_list[i])),
                                       ptsize=ptsize)
@@ -123,8 +123,8 @@ plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='Yl
         } else{
           # The color palette function in khroma is created by quilt_p() function.
           qp <- quilt_p(data_f=df, leg_name="sqrt_score", color_pal=color_pal,
-                        title_name=paste0(gene, "\n", "sample: ", names(deconv_list[i])),
-                        minvalue=minvalue, maxvalue=maxvalue, visium=visium)
+                        title_name=paste0(cell, "\n", "sample: ", names(deconv_list[i])),
+                        minvalue=minvalue, maxvalue=maxvalue, visium=visium, ptsize=ptsize)
         }
 
       } else{
