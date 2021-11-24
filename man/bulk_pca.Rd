@@ -4,7 +4,13 @@
 \alias{bulk_pca}
 \title{bulk_pca: Performs PCA on "bulk" spatial array}
 \usage{
-bulk_pca(x = NULL, clinvar = NULL, color_pal = "muted")
+bulk_pca(
+  x = NULL,
+  clinvar = NULL,
+  color_pal = "muted",
+  tr_method = "log",
+  ptsize = 5
+)
 }
 \arguments{
 \item{x}{an STList.}

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>gene_getis_Gi — gene_getis_Gi • spatialGE</title>
+<title>spatialDeconv: Deconvolution of ST data — spatialDeconv • spatialGE</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,9 @@
 
 
 
-<meta property="og:title" content="gene_getis_Gi — gene_getis_Gi" />
-<meta property="og:description" content="Calculates Getis-Ord Gi C from ST data." />
+<meta property="og:title" content="spatialDeconv: Deconvolution of ST data — spatialDeconv" />
+<meta property="og:description" content="Applies gene expression deconvolution methods to data from spatial
+arrays. Produces tumor/stroma classes via model-based clustering of ESTIMATE purity scores." />
 
 
 
@@ -118,44 +119,47 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>gene_getis_Gi</h1>
+    <h1>spatialDeconv: Deconvolution of ST data</h1>
     
-    <div class="hidden name"><code>gene_getis_Gi.Rd</code></div>
+    <div class="hidden name"><code>spatialDeconv.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Calculates Getis-Ord Gi C from ST data.</p>
+    <p>Applies gene expression deconvolution methods to data from spatial
+arrays. Produces tumor/stroma classes via model-based clustering of ESTIMATE purity scores.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>gene_getis_Gi</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, genes <span class='op'>=</span> <span class='cn'>NULL</span>, who <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>spatialDeconv</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, method <span class='op'>=</span> <span class='st'>"xcell"</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x, </th>
-      <td><p>an STList with normalized gene counts.</p></td>
+      <th>x</th>
+      <td><p>an STList with normalized count matrices.</p></td>
     </tr>
     <tr>
-      <th>genes, </th>
-      <td><p>a vector with gene names in the normalized count matrix.</p></td>
-    </tr>
-    <tr>
-      <th>who, </th>
-      <td><p>the indexes of the spatial arrays for which the statistic
-will be calculated.</p></td>
+      <th>method</th>
+      <td><p>the name of the method to deconvolute data. As of now, only xCell is supported.
+If 'none', only ESTIMATE is applied.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>x, a STList including the values corresponding to Getis-Ord Gi for each
-gene in genes.</p>
+    <p>x an updated STList with deconvolution scores.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes an STList and a vector with HUGO gene names and returns
-Getis-Ord Gi for each element of the vector.</p>
+    <p>This function applies deconvolution methods (xCell and ESTIMATE, for now) to the stored
+transformed count matrices in order to obtain cell scores for each of the library/spots.
+The results are stored within the STList. The method ESTIMATE is automatically
+applied regardless of the selected method.</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
+<span class='co'># melanoma &lt;- spatial_deconv(melanoma, method='xcell')</span>
+
+</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

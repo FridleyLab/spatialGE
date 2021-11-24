@@ -9,27 +9,28 @@ plot_deconv_krige(
   cells = NULL,
   plot_who = NULL,
   color_pal = "YlOrBr",
+  method = "xCell",
   saveplot = F,
   pvalues = F,
   purity = F,
-  visium = T
+  visium = T,
+  ptsize = 0.5
 )
 }
 \arguments{
 \item{x}{an STList with kriging objects for the cells selected.}
 
 \item{cells, }{a vector of cell names (one or several) within a deconvolution
-matrix  to plot. If 'top', the 10 cell types with highest standard deviation
+matrix to plot. If 'top', the 10 cell types with highest standard deviation
 from each spatial array ar plotted.}
 
 \item{plot_who}{a vector of subject indexes as ordered within the STList, to
-plot cells from. If NULL, will plot for all subjects.}
+plot cells from. Numbers follow the order in \code{names(x@counts)}. If NULL, will
+plot for all subjects.}
 
 \item{color_pal}{a color scheme from 'khroma' or RColorBrewer.}
 
-\item{saveplot, }{logical indicating whether or not save plots in a PDF file.
-The PDFs are saved in the working directory. Default is FALSE, meaning plots
-are printed to console.}
+\item{saveplot, }{a file name specifying the name of a PDF file to write plots to.}
 
 \item{pvalues, }{logical indicating whether or not dots where a given cell was
 predicted to be significantly abundant (p<0.05). Default is FALSE.}
@@ -38,6 +39,8 @@ predicted to be significantly abundant (p<0.05). Default is FALSE.}
 ESTIMATE tumor purity scores.}
 
 \item{visium, }{whether or not to reverse axes for Visium slides.}
+
+\item{image}{logical, whether to print the image stored for the spatial arrays}
 }
 \value{
 a list with plots.

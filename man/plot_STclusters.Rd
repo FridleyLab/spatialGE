@@ -7,15 +7,23 @@
 plot_STclusters(
   x,
   plot_who = NULL,
+  ks = NULL,
+  weights = NULL,
   purity = F,
   color_pal = "light",
-  visium = T
+  visium = T,
+  ptsize = NULL
 )
 }
 \arguments{
 \item{x}{an STList with hierarchical cluster memberships.}
 
-\item{plot_who}{an integer indicating the spatial array(s) to be plotted.}
+\item{plot_who}{an integer indicating the spatial array(s) to be plotted. Numbers
+follow the order of \code{names(x@counts)}. If NULL, will plot all spatial arrays.}
+
+\item{ks}{the k values to plot}
+
+\item{weights}{the spatial weights to plot}
 
 \item{purity}{logical, whether or not annotate tumor/stroma.}
 

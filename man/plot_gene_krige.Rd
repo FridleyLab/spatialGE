@@ -10,26 +10,30 @@ plot_gene_krige(
   plot_who = NULL,
   color_pal = "YlOrBr",
   purity = F,
-  saveplot = F,
-  visium = T
+  image = F,
+  saveplot = NULL,
+  visium = T,
+  ptsize = 0.5
 )
 }
 \arguments{
 \item{x}{an STList with kriging objects for the genes selected.}
 
-\item{genes}{a vector of gene names (one or several) to plot.}
+\item{genes}{a vector of gene names (one or several) to plot.  If 'top', the 10
+genes with highest standard deviation from each spatial array ar plotted.}
 
-\item{plot_who}{a vector of subject indexes as ordered within the STList, to
-plot genes from. If NULL, will plot all subjects.}
+\item{plot_who, }{a vector of numbers indicating the spatial arrays to plot
+genes from. Numbers follow the order in \code{names(x@counts)}. If NULL, will plot
+all spatial arrays.}
 
 \item{color_pal}{a color scheme from 'khroma' or RColorBrewer.}
 
 \item{purity}{logical, whether or not annotate tumor spots based on
 ESTIMATE tumor purity scores.}
 
-\item{saveplot}{logical, indicating whether or not save plots in a PDF file.
-The PDFs are saved in the working directory. Default is FALSE, meaning plots
-are printed to console.}
+\item{image}{logical, whether to print the image stored for the spatial arrays}
+
+\item{saveplot, }{a file name specifying the name of a PDF file to write plots to.}
 
 \item{visium}{whether or not to reverse axes for Visium slides.}
 }

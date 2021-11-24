@@ -58,8 +58,9 @@ bulk_pca <- function(x=NULL, clinvar=NULL, color_pal="muted", tr_method='log', p
 
   # Loop through count matrices, get gene-wise sums, and collate samples
   for(i in 1:length(x@counts)){
+    expanded_mtx = expandSparse(x@counts[[i]])
 
-    bulk_expr <- rowSums(x@counts[[i]]) %>%
+    bulk_expr <- rowSums(expanded_mtx) %>%
       tibble::as_tibble_col(., column_name=paste0("st_", i)) %>%
       tibble::add_column(gene=rownames(x@counts[[i]]), .before=1)
 

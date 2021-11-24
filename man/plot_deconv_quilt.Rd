@@ -10,10 +10,12 @@ plot_deconv_quilt(
   plot_who = NULL,
   color_pal = "YlOrBr",
   purity = F,
+  image = F,
   method = "xcell",
-  saveplot = F,
+  saveplot = NULL,
   inter = F,
-  visium = T
+  visium = T,
+  ptsize = 0.5
 )
 }
 \arguments{
@@ -24,22 +26,23 @@ several) to plot. If 'top', the 10 cell types with highest standard deviation
 from each spatial array ar plotted.}
 
 \item{plot_who}{a vector of subject indexes as ordered within the STList, to
-plot cells from. If NULL, will plot for all subjects.}
+plot cells from. Numbers follow the order of \code{names(x@counts)}. If NULL, will plot
+all spatial arrays.}
 
 \item{color_pal}{a color scheme from 'khroma' or RColorBrewer.}
 
 \item{purity}{logical, whether tumor/stroma classes should be plotted.}
 
+\item{image}{logical, whether to print the image stored for the spatial arrays}
+
 \item{method}{the method from which deconvolution scores will be taken. xCell is
 the only method supported for now.}
 
-\item{saveplot}{logical indicating whether or not save plots in a PDF file.
-The PDFs are saved in the working directory. Default is FALSE, meaning plots
-are printed to console.}
+\item{saveplot, }{a file name specifying the name of a PDF file to write plots to.}
 
-\item{inter}{whether or not quilt plot should be converted to a Plotly plot.}
+\item{inter, }{whether or not quilt plot should be converted to a Plotly plot.}
 
-\item{visium, }{whether or not to reverse axes for Visium slides.}
+\item{visium, }{logical, whether or not the samples are from a Visium experiment.}
 }
 \value{
 a list with plots.

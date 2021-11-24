@@ -43,7 +43,7 @@ Performs spatial interpolation ('kriging') of cell scores from
 gene expression deconvolution scores.
 }
 \details{
-This function takes a STList and a vector of xCell cell names and generates an
+This function takes a STList and a vector of xCell cell names and performs
 spatial interpolation ("kriging") of deconvoluted cell scores. It also calculates
 spatial heterogeneity statistics. The function can perform ordinary or universal kriging.
 If cells='top', then the 10 cell types with the highest standard deviation for each

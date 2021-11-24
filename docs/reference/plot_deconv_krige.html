@@ -96,10 +96,10 @@ deconvolution scores." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
     </li>
     <li>
-      <a href="../articles/prostatecancer_Visium_vignette.html">spatialGE: Cancerous and normal prostate (Visium and Python kriging)</a>
+      <a href="../articles/spatialGE_troubleshoot.html">Troubleshooting</a>
     </li>
   </ul>
 </li>
@@ -134,10 +134,12 @@ deconvolution scores.</p>
   cells <span class='op'>=</span> <span class='cn'>NULL</span>,
   plot_who <span class='op'>=</span> <span class='cn'>NULL</span>,
   color_pal <span class='op'>=</span> <span class='st'>"YlOrBr"</span>,
+  method <span class='op'>=</span> <span class='st'>"xCell"</span>,
   saveplot <span class='op'>=</span> <span class='cn'>F</span>,
   pvalues <span class='op'>=</span> <span class='cn'>F</span>,
   purity <span class='op'>=</span> <span class='cn'>F</span>,
-  visium <span class='op'>=</span> <span class='cn'>T</span>
+  visium <span class='op'>=</span> <span class='cn'>T</span>,
+  ptsize <span class='op'>=</span> <span class='fl'>0.5</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -150,13 +152,14 @@ deconvolution scores.</p>
     <tr>
       <th>cells, </th>
       <td><p>a vector of cell names (one or several) within a deconvolution
-matrix  to plot. If 'top', the 10 cell types with highest standard deviation
+matrix to plot. If 'top', the 10 cell types with highest standard deviation
 from each spatial array ar plotted.</p></td>
     </tr>
     <tr>
       <th>plot_who</th>
       <td><p>a vector of subject indexes as ordered within the STList, to
-plot cells from. If NULL, will plot for all subjects.</p></td>
+plot cells from. Numbers follow the order in <code><a href='https://rdrr.io/r/base/names.html'>names(x@counts)</a></code>. If NULL, will
+plot for all subjects.</p></td>
     </tr>
     <tr>
       <th>color_pal</th>
@@ -164,9 +167,7 @@ plot cells from. If NULL, will plot for all subjects.</p></td>
     </tr>
     <tr>
       <th>saveplot, </th>
-      <td><p>logical indicating whether or not save plots in a PDF file.
-The PDFs are saved in the working directory. Default is FALSE, meaning plots
-are printed to console.</p></td>
+      <td><p>a file name specifying the name of a PDF file to write plots to.</p></td>
     </tr>
     <tr>
       <th>pvalues, </th>
@@ -181,6 +182,10 @@ ESTIMATE tumor purity scores.</p></td>
     <tr>
       <th>visium, </th>
       <td><p>whether or not to reverse axes for Visium slides.</p></td>
+    </tr>
+    <tr>
+      <th>image</th>
+      <td><p>logical, whether to print the image stored for the spatial arrays</p></td>
     </tr>
     </table>
 

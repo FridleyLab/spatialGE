@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>gene_getis_Gi — gene_getis_Gi • spatialGE</title>
+<title>plot_QCstats: Plots distribution of counts, gene number, or percents per sample — plot_QC_stats • spatialGE</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,8 @@
 
 
 
-<meta property="og:title" content="gene_getis_Gi — gene_getis_Gi" />
-<meta property="og:description" content="Calculates Getis-Ord Gi C from ST data." />
+<meta property="og:title" content="plot_QCstats: Plots distribution of counts, gene number, or percents per sample — plot_QC_stats" />
+<meta property="og:description" content="Generates plots with common quality control stats" />
 
 
 
@@ -118,43 +118,68 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>gene_getis_Gi</h1>
+    <h1>plot_QCstats: Plots distribution of counts, gene number, or percents per sample</h1>
     
-    <div class="hidden name"><code>gene_getis_Gi.Rd</code></div>
+    <div class="hidden name"><code>plot_QC_stats.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Calculates Getis-Ord Gi C from ST data.</p>
+    <p>Generates plots with common quality control stats</p>
     </div>
 
-    <pre class="usage"><span class='fu'>gene_getis_Gi</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, genes <span class='op'>=</span> <span class='cn'>NULL</span>, who <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>plot_QC_stats</span><span class='op'>(</span>
+  x <span class='op'>=</span> <span class='cn'>NULL</span>,
+  qc <span class='op'>=</span> <span class='st'>"percent_expr"</span>,
+  plot_who <span class='op'>=</span> <span class='cn'>NULL</span>,
+  spot_pctExpr <span class='op'>=</span> <span class='st'>"^MT-"</span>,
+  ptsize <span class='op'>=</span> <span class='fl'>0.5</span>,
+  ptalpha <span class='op'>=</span> <span class='fl'>0.5</span>,
+  ptjitter <span class='op'>=</span> <span class='fl'>0.2</span>,
+  saveplot <span class='op'>=</span> <span class='cn'>NULL</span>,
+  ylim <span class='op'>=</span> <span class='cn'>NULL</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>x, </th>
-      <td><p>an STList with normalized gene counts.</p></td>
+      <th>x</th>
+      <td><p>an STList</p></td>
     </tr>
     <tr>
-      <th>genes, </th>
-      <td><p>a vector with gene names in the normalized count matrix.</p></td>
+      <th>qc</th>
+      <td><p>one of total_reads, total_genes, or percent_expr. The stat to be plotted</p></td>
     </tr>
     <tr>
-      <th>who, </th>
-      <td><p>the indexes of the spatial arrays for which the statistic
-will be calculated.</p></td>
+      <th>plot_who</th>
+      <td><p>index from `x@counts``of the samples to be plotted</p></td>
+    </tr>
+    <tr>
+      <th>spot_pctExpr</th>
+      <td><p>a expression to match gene names to calculate a percentage. By default '^MT-', to match mtDNA genes</p></td>
+    </tr>
+    <tr>
+      <th>ptsize</th>
+      <td><p>the size of points in the plots</p></td>
+    </tr>
+    <tr>
+      <th>ptalpha</th>
+      <td><p>the transparency of points in plots</p></td>
+    </tr>
+    <tr>
+      <th>saveplot</th>
+      <td><p>File path to save a pdf with plots</p></td>
     </tr>
     </table>
 
-    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
-
-    <p>x, a STList including the values corresponding to Getis-Ord Gi for each
-gene in genes.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes an STList and a vector with HUGO gene names and returns
-Getis-Ord Gi for each element of the vector.</p>
+    <p>This function returns a list of plots with one of three QC stats:</p><ul>
+<li><p>Total number of reads per spot</p></li>
+<li><p>Total number of genes per spot</p></li>
+<li><p>Percent of counts of genes matching <code>spot_pctExpr</code> per spot</p></li>
+</ul>
+
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

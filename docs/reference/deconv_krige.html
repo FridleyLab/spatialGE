@@ -96,10 +96,10 @@ gene expression deconvolution scores." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
     </li>
     <li>
-      <a href="../articles/prostatecancer_Visium_vignette.html">spatialGE: Cancerous and normal prostate (Visium and Python kriging)</a>
+      <a href="../articles/spatialGE_troubleshoot.html">Troubleshooting</a>
     </li>
   </ul>
 </li>
@@ -183,7 +183,7 @@ geoR is used.</p></td>
     <p>x, an STList including spatial interpolations.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>This function takes a STList and a vector of xCell cell names and generates an
+    <p>This function takes a STList and a vector of xCell cell names and performs
 spatial interpolation ("kriging") of deconvoluted cell scores. It also calculates
 spatial heterogeneity statistics. The function can perform ordinary or universal kriging.
 If cells='top', then the 10 cell types with the highest standard deviation for each
@@ -194,7 +194,7 @@ set up.</p>
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
 <span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>deconv_krige</span><span class='op'>(</span><span class='va'>melanoma</span>, cells<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>'b_cells'</span>, <span class='st'>'i_dc'</span><span class='op'>)</span>, who<span class='op'>=</span><span class='fl'>2</span>, python<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; <span class='error'>Error in nrow(x@coords[[1]]): object 'melanoma' not found</span></div><div class='input'>
+</div><div class='output co'>#&gt; <span class='message'>Loading required package: magrittr</span></div><div class='output co'>#&gt; <span class='error'>Error in rlang::is_empty(x@cell_deconv[[method]]): object 'melanoma' not found</span></div><div class='input'>
 <span class='co'># Running python implementation on the most variable cell types.</span>
 <span class='co'># melanoma &lt;- deconv_krige(melanoma, cells='top', who=2, python=T)</span>
 

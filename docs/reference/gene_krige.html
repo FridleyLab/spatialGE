@@ -96,10 +96,10 @@ counts in spatially-resolved transcriptomics data." />
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
     </li>
     <li>
-      <a href="../articles/prostatecancer_Visium_vignette.html">spatialGE: Cancerous and normal prostate (Visium and Python kriging)</a>
+      <a href="../articles/spatialGE_troubleshoot.html">Troubleshooting</a>
     </li>
   </ul>
 </li>
@@ -188,7 +188,7 @@ geoR. The first option is faster but requires a Python environment to be set up.
     <pre class="examples"><div class='input'><span class='co'># In this example, melanoma is an STList.</span>
 <span class='co'># Kriging of spatial arrays 2 and 3 for 2 genes.</span>
 <span class='va'>melanoma</span> <span class='op'>&lt;-</span> <span class='fu'>gene_krige</span><span class='op'>(</span><span class='va'>melanoma</span>, genes<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>'CD74'</span>, <span class='st'>'SOX10'</span><span class='op'>)</span>, who<span class='op'>=</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>2</span>, <span class='fl'>3</span><span class='op'>)</span>, python<span class='op'>=</span><span class='cn'>F</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; <span class='error'>Error in nrow(x@coords[[1]]): object 'melanoma' not found</span></div><div class='input'>
+</div><div class='output co'>#&gt; <span class='error'>Error in rlang::is_empty(x@tr_counts): object 'melanoma' not found</span></div><div class='input'>
 <span class='co'>#' # Kriging of spatial array 1 for the 10 most variable genes and using the Python implementation.</span>
 <span class='co'># melanoma &lt;- gene_krige(melanoma, genes='top', who=1, python=T)</span>
 

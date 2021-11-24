@@ -96,10 +96,10 @@ and colors them according to spatially-weighted hierarchical clustering assignme
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
     </li>
     <li>
-      <a href="../articles/prostatecancer_Visium_vignette.html">spatialGE: Cancerous and normal prostate (Visium and Python kriging)</a>
+      <a href="../articles/spatialGE_troubleshoot.html">Troubleshooting</a>
     </li>
   </ul>
 </li>
@@ -132,9 +132,12 @@ and colors them according to spatially-weighted hierarchical clustering assignme
     <pre class="usage"><span class='fu'>plot_STclusters</span><span class='op'>(</span>
   <span class='va'>x</span>,
   plot_who <span class='op'>=</span> <span class='cn'>NULL</span>,
+  ks <span class='op'>=</span> <span class='cn'>NULL</span>,
+  weights <span class='op'>=</span> <span class='cn'>NULL</span>,
   purity <span class='op'>=</span> <span class='cn'>F</span>,
   color_pal <span class='op'>=</span> <span class='st'>"light"</span>,
-  visium <span class='op'>=</span> <span class='cn'>T</span>
+  visium <span class='op'>=</span> <span class='cn'>T</span>,
+  ptsize <span class='op'>=</span> <span class='cn'>NULL</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -146,7 +149,16 @@ and colors them according to spatially-weighted hierarchical clustering assignme
     </tr>
     <tr>
       <th>plot_who</th>
-      <td><p>an integer indicating the spatial array(s) to be plotted.</p></td>
+      <td><p>an integer indicating the spatial array(s) to be plotted. Numbers
+follow the order of <code><a href='https://rdrr.io/r/base/names.html'>names(x@counts)</a></code>. If NULL, will plot all spatial arrays.</p></td>
+    </tr>
+    <tr>
+      <th>ks</th>
+      <td><p>the k values to plot</p></td>
+    </tr>
+    <tr>
+      <th>weights</th>
+      <td><p>the spatial weights to plot</p></td>
     </tr>
     <tr>
       <th>purity</th>

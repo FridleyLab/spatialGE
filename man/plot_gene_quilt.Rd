@@ -9,42 +9,48 @@ plot_gene_quilt(
   genes = NULL,
   plot_who = NULL,
   color_pal = "YlOrBr",
+  data_type = "tr",
   purity = F,
-  saveplot = F,
+  image = F,
+  saveplot = NULL,
   inter = F,
-  visium = T
+  visium = T,
+  ptsize = NULL
 )
 }
 \arguments{
-\item{x}{an STList with voom-norm counts.}
+\item{x, }{an STList}
 
-\item{genes}{a vector of one or more gene names to plot.}
+\item{genes, }{a vector of one or more gene names to plot.}
 
-\item{plot_who}{a vector of numbers indicating the  spatial arrays to plot
-genes from. If NULL, will plot all spatial arrays. The numbers in the vector
-will match the order in which the arrays were specified when creating the STList.}
+\item{plot_who, }{a vector of numbers indicating the spatial arrays to plot
+genes from. Numbers follow the order of \code{names(x@counts)}. If NULL, will plot
+all spatial arrays.}
 
-\item{color_pal}{a color scheme from 'khroma' or RColorBrewer.}
+\item{color_pal, }{a color scheme from 'khroma' or RColorBrewer.}
+
+\item{data_type, }{one of 'tr' or 'raw', to plot transformed or raw counts
+respectively.}
 
 \item{purity}{logical, whether tumor/stroma classes should be plotted.}
 
-\item{saveplot}{logical, indicating whether or not save plots in a PDF file.
-The PDFs are saved in the working directory. Default is FALSE, meaning plots
-are printed to console.}
+\item{image}{logical, whether to print the image stored for the spatial arrays}
 
-\item{inter}{whether or not quilt plot should be converted to a Plotly plot.}
+\item{saveplot, }{a file name specifying the name of a PDF file to write plots to.}
 
-\item{visium}{whether or not to reverse axes for Visium slides.}
+\item{inter, }{whether or not quilt plot should be converted to a Plotly plot.}
+
+\item{visium, }{logical, whether or not the samples are from a Visium experiment.}
 }
 \value{
 a list with plots.
 }
 \description{
-Plot gene expression levels at each spot (quilt plot) within a
-spatially-resolved transcriptomic array.
+Plot raw or transformed gene expression levels at each spot (quilt plot)
+within a spatially-resolved transcriptomic array.
 }
 \details{
-This function produces a quilt plot for a series of HUGO gene names and spatial
+This function produces a quilt plot for a series of gene names and spatial
 arrays within an STList. The function can also plot tumor/stroma classifications
 from ESTIMATE deconvolution results.
 }
