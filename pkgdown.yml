@@ -3,6 +3,6 @@ pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
   melanoma_ST_vignette: melanoma_ST_vignette.html
-  prostatecancer_Visium_vignette: prostatecancer_Visium_vignette.html
-last_built: 2021-07-31T22:16Z
+  spatialGE_troubleshoot: spatialGE_troubleshoot.html
+last_built: 2021-11-24T02:07Z
 

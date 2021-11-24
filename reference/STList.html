@@ -40,7 +40,7 @@
 
 
 <meta property="og:title" content="STList: Creation of STList objects — STList" />
-<meta property="og:description" content="Creates an STList object from one or several spatial transcriptomic experiments." />
+<meta property="og:description" content="Creates an STList object from one or several spatial transcriptomic samples." />
 
 
 
@@ -95,10 +95,10 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Visualization and spatial heterogeneity analysis of melanoma</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
     </li>
     <li>
-      <a href="../articles/prostatecancer_Visium_vignette.html">spatialGE: Cancerous and normal prostate (Visium and Python kriging)</a>
+      <a href="../articles/spatialGE_troubleshoot.html">Troubleshooting</a>
     </li>
   </ul>
 </li>
@@ -124,10 +124,20 @@
     </div>
 
     <div class="ref-description">
-    <p>Creates an STList object from one or several spatial transcriptomic experiments.</p>
+    <p>Creates an STList object from one or several spatial transcriptomic samples.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>STList</span><span class='op'>(</span>rnacounts <span class='op'>=</span> <span class='cn'>NULL</span>, spotcoords <span class='op'>=</span> <span class='cn'>NULL</span>, samples <span class='op'>=</span> <span class='cn'>NULL</span>, filterMT <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>STList</span><span class='op'>(</span>
+  rnacounts <span class='op'>=</span> <span class='cn'>NULL</span>,
+  spotcoords <span class='op'>=</span> <span class='cn'>NULL</span>,
+  samples <span class='op'>=</span> <span class='cn'>NULL</span>,
+  gmx_pkc <span class='op'>=</span> <span class='cn'>NULL</span>,
+  gmx_slide_col <span class='op'>=</span> <span class='cn'>NULL</span>,
+  gmx_roi_col <span class='op'>=</span> <span class='cn'>NULL</span>,
+  gmx_x_col <span class='op'>=</span> <span class='cn'>NULL</span>,
+  gmx_y_col <span class='op'>=</span> <span class='cn'>NULL</span>,
+  gmx_meta_cols <span class='op'>=</span> <span class='cn'>NULL</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -136,43 +146,68 @@
       <th>rnacounts</th>
       <td><p>The count data which can be provided in one of these formats:</p><ul>
 <li><p>File paths to comma- or tab-delimited files containing raw RNA counts, one
-for each spatial array. Thye first column contain gene names with no duplicates allowed.
-Isoforms can be provided as part of the gene names. Subsequent columns contain data for
-each spot.</p></li>
-<li><p>File paths to Visium output folders (one per spatial array) can be provided.</p></li>
-<li><p>One named list of data frames with raw RNA counts (one data frame per spatial array).</p></li>
-<li><p>One data frame with raw RNA counts. This option does not support sample data.</p></li>
+for each spatial array. The first column contains gene names. Subsequent columns
+contain data for each spot. Duplicate gene names will be appended a suffix ('_d**').
+Requires <code>spotcoords</code> and <code>samples</code>.</p></li>
+<li><p>File paths to Visium output folders (one per spatial array). The folder should have the
+structure resulting from <code>spaceranger count</code> and contain the <code>.h5</code> files and <code>spatial</code> folder.
+Requires <code>samples</code>.</p></li>
+<li><p>File path to <code>.dcc</code> files from GeoMx output. Requires <code>samples</code>.</p></li>
+<li><p>One named list of data frames with raw RNA counts (one data frame per spatial array).
+Requires <code>spotcoords</code> and <code>samples</code>.</p></li>
 </ul></td>
     </tr>
     <tr>
       <th>spotcoords</th>
-      <td><p>The spot coordinates which can be provided in one of these formats:</p><ul>
+      <td><p>The spot coordinates, which are required if inputs are not Visium outputs.
+The user can provide one of these formats:</p><ul>
 <li><p>File paths to comma- or tab-delimited files containing spot coordinates, one
 for each spatial array. The files must contain three columns: spot IDs, y positions, and
 x positions. The spot IDs must match the column names for each spot (column) in the RNA count files.</p></li>
 <li><p>One named list of data frames with spot coordinates. The list names must match list
 names of the RNA counts list.</p></li>
-<li><p>One data frame with spot coordinates.</p></li>
 </ul></td>
     </tr>
     <tr>
       <th>samples</th>
-      <td><p>The data associated to each spatial array. This file can also include
-system paths to RNA count and spot coordinate without the need to specify <code>rnacounts</code>
-and <code>spotcoords</code>. One of the following options must be entered to create an STList:</p><ul>
+      <td><p>The metadata associated to each spatial array. This file can also include
+system paths to RNA count and spot coordinate files, bypassing the need to specify <code>rnacounts</code>
+and <code>spotcoords</code>. One of the following options should be entered to create an STList:</p><ul>
 <li><p>A vector with sample names, which will be used to partial match RNA count and
 spot coordinates file paths. A sample name must not match two file paths.</p></li>
-<li><p>A sample file containing meta data for each spatial array. This file is a comma-
-or tab-separated file with sample names in the first column. Paths to RNA count and
-coordinate files can be in the second and third column respectively, and omiting the
-<code>rnacounts</code> and <code>spotcoords</code> arguments. If Visium, only the second column with paths to
-output folders is expected. Subsequent columns can contain variables associated to each
-spatial array.</p></li>
+<li><p>A path to  the file containing metadata for each spatial array. This file is a comma-
+or tab-separated file with one sample per row and sample names in the first column.
+Paths to RNA count and coordinate files can be in the second and third column respectively,
+and omitting the <code>rnacounts</code> and <code>spotcoords</code> arguments. If Visium, only the second
+column with paths to output folders is expected. Subsequent columns can contain
+variables associated to each spatial array.
+Note: For GeoMx, the metadata file contains one row per ROI. This information is later summarized
+to one row per slide by this function.</p></li>
 </ul></td>
     </tr>
     <tr>
-      <th>filterMT</th>
-      <td><p>Logical. Whether or not to filtet mtDNA genes in Visium outputs.</p></td>
+      <th>gmx_pkc, </th>
+      <td><p>the file path to the <code>.pkc</code> (for GeoMx input)</p></td>
+    </tr>
+    <tr>
+      <th>gmx_slide_col, </th>
+      <td><p>the name of the column in the metadata table containing the slide names (for GeoMx input)</p></td>
+    </tr>
+    <tr>
+      <th>gmx_roi_col, </th>
+      <td><p>the name of the column in the metadata table containing the ROI IDs, matching IDs in the DCC files (for GeoMx input)</p></td>
+    </tr>
+    <tr>
+      <th>gmx_x_col, </th>
+      <td><p>the name of the column in the metadata table containing the x coordinates (for GeoMx input)</p></td>
+    </tr>
+    <tr>
+      <th>gmx_y_col, </th>
+      <td><p>the name of the column in the metadata table containing the y coordinates (for GeoMx input)</p></td>
+    </tr>
+    <tr>
+      <th>gmx_meta_cols, </th>
+      <td><p>a vector with column names in the metadata table containing clinical data (for GeoMx input)</p></td>
     </tr>
     </table>
 
@@ -182,17 +217,17 @@ spatial array.</p></li>
 the sample metadata.</p>
     <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
 
-    <p>Objects of the class STList can be created from two sources:</p><ul>
+    <p>Objects of the S4 class STList can be created from two sources:</p><ul>
 <li><p>Raw RNA counts (genes in rows, spots in columns) and spot coordinates (spots
 in rows, with three columns: spot IDs, y position, and x position).</p></li>
 <li><p>Visium output folders from Space Ranger. The folder should have the
-structure resulting from spaceranger count.</p></li>
-</ul><p>Optionally, the user can input a system path to a table with data associated to
-each spatial array (e.g., clinical variables). This sample file should contain
-sample IDs in the first column matching at least partially the file names of the
-count/coordinate files or Visium directories. The function will read data in
-parallel if unix system available (Windows users will experience longer times
-depending on the size of the data set)</p>
+structure resulting from <code>spaceranger count</code>.</p></li>
+</ul><p>Optionally, the user can input a system path to a table containing data associated with
+each spatial array (e.g., clinical variables). This sample metadata file should contain
+sample IDs in the first column matching partially the file names of the
+count/coordinate file paths or Visium directories.</p>
+<p>The function will read data in parallel if unix system is available (Windows users
+will experience longer times depending on the number of samples).</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='co'># Using included melanoma example (Thrane et al.)</span>
@@ -202,7 +237,6 @@ depending on the size of the data set)</p>
 <span class='co'># clin_file &lt;- grep("clinical", data_files, value=T)</span>
 <span class='co'># melanoma &lt;- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)</span>
 <span class='co'># melanoma</span>
-
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>gene_moran_I — gene_moran_I • spatialGEdev</title>
+<title>gene_moran_I — gene_moran_I • spatialGE</title>
 
 
 <!-- jquery -->
@@ -71,7 +71,7 @@
         <span class="icon-bar"></span>
       </button>
       <span class="navbar-brand">
-        <a class="navbar-link" href="../index.html">spatialGEdev</a>
+        <a class="navbar-link" href="../index.html">spatialGE</a>
         <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
       </span>
     </div>
@@ -95,7 +95,10 @@
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Basic tutorial for visualization and spatial heterogeneity analysis</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
+    </li>
+    <li>
+      <a href="../articles/spatialGE_troubleshoot.html">Troubleshooting</a>
     </li>
   </ul>
 </li>
@@ -124,7 +127,7 @@
     <p>Calculates Moran's I from ST data.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>gene_moran_I</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, genes <span class='op'>=</span> <span class='cn'>NULL</span>, subj <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>gene_moran_I</span><span class='op'>(</span>x <span class='op'>=</span> <span class='cn'>NULL</span>, genes <span class='op'>=</span> <span class='cn'>NULL</span>, who <span class='op'>=</span> <span class='cn'>NULL</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -138,8 +141,8 @@
       <td><p>a vector with gene names in the normalized count matrix.</p></td>
     </tr>
     <tr>
-      <th>subj, </th>
-      <td><p>the index of the spatial array for which the statistic
+      <th>who, </th>
+      <td><p>the indexes of the spatial arrays for which the statistic
 will be calculated.</p></td>
     </tr>
     </table>
