@@ -83,7 +83,7 @@ setMethod(dim, signature(x="STList"),
           function(x){
             dim_res = list()
             for(i in seq(x@counts)){
-              dim_res[[i]] = c(base::nrow(x@counts[[i]]), base::ncol(x@counts[[i]]) - 1)
+              dim_res[[i]] = c(base::nrow(x@counts[[i]]), base::ncol(x@counts[[i]]))
             }
             return(dim_res)
           }

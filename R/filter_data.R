@@ -21,6 +21,8 @@
 #' @param rm_genes vector of gene names to remove from STList
 #' @param rm_partialgenes a expression to match gene names. Useful to remove entire gene classes (for example mtDNA '^MT-')
 #' @param spot_pctExpr a expression to use with `spot_minpct`. By default '^MT-'.
+#'
+#' @export
 #
 #
 filter_data = function(x=NULL,
@@ -65,10 +67,11 @@ filter_data = function(x=NULL,
 
   # Define set of samples to work on
   if(is.null(who)){
-    who = 1:length(x@counts)
-  }
-  if(is.character(who)){
+    who = names(x@counts)
+  }else if(is.character(who)){
     who = grep(paste0('^', who, '$', collapse="|"), names(x@counts))
+  }else if(is.numeric(who)){
+    who = names(x@counts[who])
   }
 
   # Remove entire samples/tissues
@@ -102,62 +105,67 @@ filter_data = function(x=NULL,
   for(i in who){
     # Decompress counts and create mask of zero-counts
     df = expandSparse(x@counts[[i]])
-    nonzero_df = df != 0
 
-    # SPOT-WISE FILTER
-    # Get total read and gene counts per spot
+    # Get maximums for spot filter arguments if NULL
     col_total_reads = colSums(df)
-    col_total_genes = colSums(nonzero_df)
-    # Get percentage of genes matching expression by spots
+    nonzero_df = (df != 0)
     col_expr_reads = colSums(df[grep(spot_pctExpr, rownames(df)), ])
     col_expr_percent = col_expr_reads/col_total_reads
-
-    # GENE-WISE FILTER
-    # Get total read and spot counts per gene
-    row_total_reads = rowSums(df)
-    row_total_spots = rowSums(nonzero_df)
-    # Get percentage of spots for each gene
-    row_expr_percent = row_total_spots/ncol(df)
-
-    # Set maximums for SPOT-WISE filter
     if(is.null(spot_maxreads)){
-      spot_maxreads = max(col_total_reads)
+      spot_maxreads_tmp = max(col_total_reads)
+    } else{
+      spot_maxreads_tmp = spot_maxreads
     }
+    col_total_genes = colSums(nonzero_df)
     if(is.null(spot_maxgenes)){
-      spot_maxgenes = max(col_total_genes)
+      spot_maxgenes_tmp = max(col_total_genes)
+    } else{
+      spot_maxgenes_tmp = spot_maxgenes
     }
     if(is.null(spot_maxpct)){
-      spot_maxpct = 1
+      spot_maxpct_tmp = 1
+    } else{
+      spot_maxpct_tmp = spot_maxpct
     }
-    # Perform SPOT-WISE filter
-    spot_mask = (col_total_reads >= spot_minreads & col_total_reads <= spot_maxreads &
-                   col_total_genes >= spot_mingenes & col_total_genes <= spot_maxgenes &
-                   col_expr_percent >= spot_minpct & col_expr_percent <= spot_maxpct)
 
-    df = df[, spot_mask]
+    # Get logical mask for spot filtering
+    spot_mask = (col_total_reads >= spot_minreads & col_total_reads <= spot_maxreads_tmp) &
+      (col_total_genes >= spot_mingenes & col_total_genes <= spot_maxgenes_tmp) &
+      (col_expr_percent >= spot_minpct & col_expr_percent <= spot_maxpct_tmp)
 
-    # Set maximums for GENE-WISE filter
+    # Get maximums for gene filter arguments if NULL
+    row_total_reads = rowSums(df)
+    row_total_spots = rowSums(nonzero_df)
+    row_expr_percent = row_total_spots/ncol(df)
     if(is.null(gene_maxreads)){
-      gene_maxreads = max(row_total_reads)
+      gene_maxreads_tmp = max(row_total_reads)
+    } else{
+      gene_maxreads_tmp = gene_maxreads
     }
     if(is.null(gene_maxspots)){
-      gene_maxspots = max(row_total_spots)
+      gene_maxspots_tmp = max(row_total_spots)
+    } else{
+      gene_maxspots_tmp = gene_maxspots
     }
     if(is.null(gene_maxpct)){
-      gene_maxpct = 1
+      gene_maxpct_tmp = 1
+    } else{
+      gene_maxpct_tmp = gene_maxpct
     }
-    # Perform GENE-WISE filter
-    spot_mask = (row_total_reads >= gene_minreads & row_total_reads <= gene_maxreads &
-                   row_total_spots >= gene_minspots & row_total_spots <= gene_maxspots &
-                   row_expr_percent >= gene_minpct & row_expr_percent <= gene_maxpct)
 
-    df = df[spot_mask, ]
+    # Get logical mask for gene filtering
+    gene_mask = (row_total_reads >= gene_minreads & row_total_reads <= gene_maxreads_tmp) &
+      (row_total_spots >= gene_minspots & row_total_spots <= gene_maxspots_tmp) &
+      (row_expr_percent >= gene_minpct & row_expr_percent <= gene_maxpct_tmp)
 
-    x@counts[[i]] = tibble::rownames_to_column(df, var='gene')
-    x@counts[[i]] = makeSparse(x@counts[[i]])
+    # Perform filter
+    df = df[gene_mask, spot_mask]
+
+    # Deposit data in STList
+    df = tibble::rownames_to_column(df, var='gene')
+    x@counts[[i]] = makeSparse(df)
     x@coords[[i]] = x@coords[[i]][x@coords[[i]]$libname %in% colnames(df), ]
   }
-
   return(x)
 }
 

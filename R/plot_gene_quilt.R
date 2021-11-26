@@ -20,7 +20,7 @@
 #' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param inter, whether or not quilt plot should be converted to a Plotly plot.
 #' @param visium, logical, whether or not the samples are from a Visium experiment.
-#' @ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
+#' @param ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
 #' @return a list with plots.
 #'
 #' @examples

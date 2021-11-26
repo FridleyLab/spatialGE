@@ -43,6 +43,8 @@ the only method supported for now.}
 \item{inter, }{whether or not quilt plot should be converted to a Plotly plot.}
 
 \item{visium, }{logical, whether or not the samples are from a Visium experiment.}
+
+\item{ptsize, }{a number specifying the size of the points. Passed to \code{size} aesthetic.}
 }
 \value{
 a list with plots.

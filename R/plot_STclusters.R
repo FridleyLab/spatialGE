@@ -16,7 +16,7 @@
 #' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
 #' vector with colors with enough elements to plot categories.
 #' @param visium whether or not to reverse axes for Visium slides.
-#' @ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
+#' @param ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
 #' @return a list with the requested plots.
 #'
 #' @examples

@@ -31,6 +31,8 @@ follow the order of \code{names(x@counts)}. If NULL, will plot all spatial array
 vector with colors with enough elements to plot categories.}
 
 \item{visium}{whether or not to reverse axes for Visium slides.}
+
+\item{ptsize, }{a number specifying the size of the points. Passed to \code{size} aesthetic.}
 }
 \value{
 a list with the requested plots.

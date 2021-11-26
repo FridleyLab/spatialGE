@@ -449,7 +449,6 @@ read_visium_outs = function(filepaths){
     if(length(fp_list[[i]]$counts) == 0){
       return(list())
     }
-
     system(sprintf('echo "%s"', crayon::yellow(paste0("\tProcessing Sample ", i, "...."))))
     #cat(crayon::yellow(paste("\tSample", i, "\n")))
 

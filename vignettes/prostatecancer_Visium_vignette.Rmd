@@ -1,0 +1,208 @@
+---
+title: "spatialGE: Using PyKrige to study Visium data sets"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{spatialGE_tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The package `spatialGE` provides a set of tools for the visualization of spatially-resolved 
+transcriptomics. In this vignette we explore gene expression in two 10X Visium
+samples: A normal prostate tissue and a prostate adenocarcinoma sample. These data 
+sets were generated with the Visium FFPE technology, but the instructions in this 
+vignette can be used with other Visium data sets. Here we introduce the Python 
+implementation of kriging in `spatialGE`. We use `PyKrige` to generate transcriptomic
+surfaces in order to reduce run time of the spatial interpolation. Nonetheless, 
+kriging is a computationally expensive procedure, and even though `PyKrige` results
+in ~3X increases in speed, the interpolation of a Visium data set (~3,000-4,000 spots)
+takes some time.
+
+## Setting up a Python environment
+`spatialGE` uses `reticulate` to bridge with the Python module `PyKrige`. To do this,
+a Python environment needs to be set up. We recommend installing [Anaconda](https://www.anaconda.com/products/individual)
+and create a dedicated environment (`r-reticulate` in this example), then install `PyKrige`
+within that environment. Next, the path to the Python environment needs to be set up
+for R to find it. The set up is done in the `.Renviron` file. On Mac OS, this is done by
+typing in the Terminal:
+
+```
+echo "RETICULATE_PYTHON=\"$HOME/opt/anaconda3/envs/r-reticulate/bin/python3\"" >> ~/.Renviron
+```
+
+## Data acquisition
+The data sets are publicly available and can be downloaded from the [10X Resources 
+website](https://www.10xgenomics.com/resources/datasets/). Do a search for "prostate"
+and click on "Spatial Gene Expression", and the "Visium Spatial for FFPE Demonstration (v1 Chemistry)".
+For this vignette, we will use the normal, adenocarcinoma/invasive carcinoma, and 
+acinar cell carcinoma samples. At this point, users may be asked to register to 
+download the data. Before downloading the data, create three folders on your computer's 
+desktop. We have named these folders: `Visium_FFPE_Human_Normal_Prostate`, 
+`Visium_FFPE_Human_Prostate_Acinar_Cell_Carcinoma`, and `Visium_FFPE_Human_Prostate_Cancer`.
+Please proceed to download the files listed in the output section of the 10X website, 
+and place them in their respective folders in your computer's desktop.
+
+Once the data download is completed, decompress the `*_filtered_feature_bc_matrix.tar.gz` 
+files from each sample. In MacOS, double clicking each file decompresses the files
+and produces the folder `filtered_feature_bc_matrix`. Repeat the procedure for the
+`*_spatial.tar.gz` files (which will produce the `spatial` folder).
+
+## spatialGE installation
+The `spatialGE` repository is available at GitHub and can be installed via `devtools`.
+To install `devtools`, in case is not installed in your R console, please run the 
+following code:
+```{r install_devtools}
+if("devtools" %in% rownames(installed.packages()) == FALSE) {
+  install.packages("devtools")
+}
+```
+
+After making sure `devtools` is installed, proceed to install `spatialGE`:
+```{r install_spatialGE}
+# devtools::install_github("fridleylab/spatialGE")
+```
+
+To use `spatialGE`, load the package using the command:
+```{r load_spatialGE}
+library('spatialGE')
+```
+
+## Creating an STList (Spatial Transcriptomics List)
+Raw data and results from analyses are stored in an STList (S4 class object). The STList
+can be created with the function `STList()`, and in the case of Visium data, only 
+the file paths to the Visium folders need to be provided. Each folder must contain at
+least two subfolders: `filtered_feature_bc_matrix` and `spatial`. The `filtered_feature_bc_matrix`
+contains the files `features.tsv.gz`, `barcodes.tsv.gz`, and `matrix.mtx.gz`. The `spatial`
+folder contains `tissue_positions_list.csv` and stained tissue images (e.g., H&E images).
+
+The user also provides sample IDs partially matching names of the folders. Optionally, 
+the Visium folders can be provided in the second column of the sample metadata file 
+along with clinical/phenotype data associated with each spatial array. We do not 
+have metadata available for the Visium data used in this vignette, thus, we will 
+provide only sample IDs. 
+
+Assuming the user created folders with using the instructions in this vignette 
+(see *Data acquisition*), the output files are specified like so:
+```{r file_paths}
+visiumfp <- c('~/Desktop/Visium_FFPE_Human_Normal_Prostate/',
+              '~/Desktop/Visium_FFPE_Human_Prostate_Cancer/',
+              '~/Desktop/Visium_FFPE_Human_Prostate_Acinar_Cell_Carcinoma/')
+```
+
+Appropriate sample IDs could be:
+```{r}
+visiumIDs <- c('Normal_Prostate', 
+               'Prostate_Cancer',
+               'Prostate_Acinar_Cell') 
+```
+
+Then, we load the file paths and sample IDs to the `STList` function.
+```{r create_STList}
+prvisium <- STList(rnacounts=visiumfp, samples=visiumIDs)
+```
+
+The `prvisium` object is an STList.
+```{r view_STList}
+prvisium
+```
+
+## Gene- and spot-wise filtering
+As with other omics data, examination of its quality is crucial to extract a meaningful
+biological signal. Similar to scRNAseq data, we can examine the number of total counts.
+```{r toral_reads, fig.height=1.5, fig.width=4.5}
+qcplots1 = plot_QC_stats(prvisium, qc='total_reads')
+qcplots1
+```
+
+```{r total_genes, fig.height=1.5, fig.width=4.5}
+qcplots2 = plot_QC_stats(prvisium, qc='total_genes')
+qcplots2
+```
+
+We can also plot these numbers spatially, and to generate an organized layout,
+we use `ggarrange()`:
+```{r quilt_ngenes, fig.width=3.5, fig.height=3.5}
+qcplots3 = plot_QC_quilt(prvisium, nreads=T)
+ggpubr::ggarrange(plotlist=qcplots3, ncol=2, nrow=2)
+```
+
+We can filter out spots with low counts (<200). We also see a few spots with
+unussually high count in the acinar cell cancer sample. We can filter spots using
+the `filter_data()` function.
+```{r filter_data}
+prvisium = filter_data(prvisium, spot_minreads=200, spot_maxreads=50000)
+```
+
+## Data normalization of spatially-resolved transcriptomic data
+Many transformation methods are available for both bulk and single-cell RNA-Seq 
+count data. In `spatialGE`, the function `spatialTransform()` applies log-transformation 
+to the data, after library size normalization. Similar to Seurat, it applies a scaling
+factor (`scale_f=10000` by default). `spatialGE` borrows methods from the field of
+spatial statistics, often requiring gaussian-shaped data distributions. Hence, users
+also can apply voom transformation, which could in certain situations, provide more 
+gaussian-shaped distributions than log-transformed data.
+```{r voom_transform}
+prvisium <- spatialTransform(prvisium)
+```
+
+## Visualization of gene expression
+We can plot now the gene expression levels of specific genes. When created from 
+Visium outputs or Seurat objects, STLists contain image data as well. We can 
+plot the images along with quilt plots by setting `image=T`. Let's create plots 
+for _KLK3_:
+```{r plot_gene_quilt}
+qplot <- plot_gene_quilt(prvisium, genes='KLK3', color_pal='sunset', image=T)
+```
+
+The `plot_gene_quilt` returns a list of plots.
+```{r}
+ggpubr::ggarrange(plotlist=qplot, ncol=2, nrow=3)
+```
+
+## Spatial interpolation of gene expression
+We can also generate transcriptomic surfaces for the samples using the `gene_krige()`
+and setting `python=T` to use the `PyKrige` implementation.
+```{r gene_krige}
+prvisium <- gene_krige(prvisium, genes='KLK3', univ=F, python=T)
+```
+
+As mentioned at the beginning of this vignette, we have leveraged the `reticulate` package to benefit from the speed that python can bring to computationally expensive functions. For Kriging, we pass in our STList, the same gene name that we were interested in before ( _KLK3_ ), `univ` is a parameter letting us decide between universal kriging or ordinary kriging (universal takes spatial trends into account, but takes much longer to do. Here we have it perform ordinary with `univ=F`.
+
+We can now plot the transcriptomic surfaces.
+```{r plot_gene_krige}
+kplot <- plot_gene_krige(prvisium, genes='KLK3', color_pal='sunset', image=T)
+ggpubr::ggarrange(plotlist=kplot, ncol=2, nrow=3, legend='bottom')
+```
+
+As expected, the expression of _KLK3_, known as prostatic antigen, is higher across 
+the the cancerous samples (middle and bottom), compared to the normal sample (top).
+
+We can also classify spots as likely tumor or likely stroma using the `spatialDeconv()` function. 
+`spatialGE` uses `ESTIMATE` to calculate tumor purity scores, followed by model-based
+clustering (`mclust`). Notice that we set `method='none'`, in order to avoid
+computing `xCell` scores for the purpose of this example. Users are encouraged to
+remove that argument and get cell scores.
+```{r ESTIMATE}
+prvisium <- spatialDeconv(prvisium, method="none")
+```
+
+We can now plot the spot classification along side the expression plot and the H&E image.
+```{r plot_estimate}
+eplot <- plot_gene_quilt(prvisium, genes="KLK3", color_pal="sunset", purity=T, image=T, ptsize=1)
+ggpubr::ggarrange(plotlist=eplot, ncol=3, nrow=3, legend='bottom')
+```
+
+<details>
+  <summary>**Session Info**</summary>
+```{r}
+sessionInfo()
+```
+</details>
+

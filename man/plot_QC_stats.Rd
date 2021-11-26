@@ -19,7 +19,7 @@ plot_QC_stats(
 \arguments{
 \item{x}{an STList}
 
-\item{qc}{one of total_reads, total_genes, or percent_expr. The stat to be plotted}
+\item{qc}{one of \code{total_reads}, \code{total_genes}, or \code{percent_expr.} The stat to be plotted}
 
 \item{plot_who}{index from `x@counts``of the samples to be plotted}
 
@@ -29,7 +29,11 @@ plot_QC_stats(
 
 \item{ptalpha}{the transparency of points in plots}
 
+\item{ptjitter}{the dispersion of points in the plots}
+
 \item{saveplot}{File path to save a pdf with plots}
+
+\item{ylim}{a vector of two integers giving the minimum and maximum values of the y axis}
 }
 \description{
 Generates plots with common quality control stats
