@@ -116,28 +116,28 @@ prvisium
 ## Gene- and spot-wise filtering
 As with other omics data, examination of its quality is crucial to extract a meaningful
 biological signal. Similar to scRNAseq data, we can examine the number of total counts.
-```{r toral_reads, fig.height=1.5, fig.width=4.5}
+```{r toral_reads, fig.height=3, fig.width=9}
 qcplots1 = plot_QC_stats(prvisium, qc='total_reads')
 qcplots1
 ```
 
-```{r total_genes, fig.height=1.5, fig.width=4.5}
+```{r total_genes, fig.height=3, fig.width=9}
 qcplots2 = plot_QC_stats(prvisium, qc='total_genes')
 qcplots2
 ```
 
 We can also plot these numbers spatially, and to generate an organized layout,
 we use `ggarrange()`:
-```{r quilt_ngenes, fig.width=3.5, fig.height=3.5}
+```{r quilt_ngenes, fig.width=9, fig.height=4}
 qcplots3 = plot_QC_quilt(prvisium, nreads=T)
-ggpubr::ggarrange(plotlist=qcplots3, ncol=2, nrow=2)
+ggpubr::ggarrange(plotlist=qcplots3, ncol=3, nrow=1, legend='bottom')
 ```
 
 We can filter out spots with low counts (<200). We also see a few spots with
-unussually high count in the acinar cell cancer sample. We can filter spots using
+unusually high count in the acinar cell cancer sample. We can filter spots using
 the `filter_data()` function.
 ```{r filter_data}
-prvisium = filter_data(prvisium, spot_minreads=200, spot_maxreads=50000)
+prvisium = filter_data(prvisium, spot_maxreads=50000)
 ```
 
 ## Data normalization of spatially-resolved transcriptomic data
@@ -161,8 +161,9 @@ for _KLK3_:
 qplot <- plot_gene_quilt(prvisium, genes='KLK3', color_pal='sunset', image=T)
 ```
 
-The `plot_gene_quilt` returns a list of plots.
-```{r}
+The `plot_gene_quilt` returns a list of plots. We can use `ggarrange()` to diplay
+these plots in an organized manner:
+```{r, fig.width=10, fig.height=12}
 ggpubr::ggarrange(plotlist=qplot, ncol=2, nrow=3)
 ```
 
@@ -176,9 +177,9 @@ prvisium <- gene_krige(prvisium, genes='KLK3', univ=F, python=T)
 As mentioned at the beginning of this vignette, we have leveraged the `reticulate` package to benefit from the speed that python can bring to computationally expensive functions. For Kriging, we pass in our STList, the same gene name that we were interested in before ( _KLK3_ ), `univ` is a parameter letting us decide between universal kriging or ordinary kriging (universal takes spatial trends into account, but takes much longer to do. Here we have it perform ordinary with `univ=F`.
 
 We can now plot the transcriptomic surfaces.
-```{r plot_gene_krige}
+```{r, fig.width=10, fig.height=12}
 kplot <- plot_gene_krige(prvisium, genes='KLK3', color_pal='sunset', image=T)
-ggpubr::ggarrange(plotlist=kplot, ncol=2, nrow=3, legend='bottom')
+ggpubr::ggarrange(plotlist=kplot, ncol=2, nrow=3)
 ```
 
 As expected, the expression of _KLK3_, known as prostatic antigen, is higher across 
@@ -194,10 +195,14 @@ prvisium <- spatialDeconv(prvisium, method="none")
 ```
 
 We can now plot the spot classification along side the expression plot and the H&E image.
-```{r plot_estimate}
+```{r plot_estimate, fig.width=12, fig.height=12}
 eplot <- plot_gene_quilt(prvisium, genes="KLK3", color_pal="sunset", purity=T, image=T, ptsize=1)
 ggpubr::ggarrange(plotlist=eplot, ncol=3, nrow=3, legend='bottom')
 ```
+
+Note that the normal prostate sample has a spots classified as tumor (dark squares).
+This is an artifact resulting from the model-base clustering performed by `spatialGE`,
+which fits `ESTIMATE` purity scores into two groups (k=2).
 
 <details>
   <summary>**Session Info**</summary>
