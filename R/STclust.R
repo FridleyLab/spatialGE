@@ -11,7 +11,7 @@
 #' within a tissue.
 #'
 #' @param x an STList with normalized expression data.
-#' @param weights a double [0-1] indicating the weight to be applied to spatial distances.
+#' @param weights a double (0-1) indicating the weight to be applied to spatial distances.
 #' Defaults to w=0.025.
 #' @param pcs the number of principal components (PCs) to retain.
 #' @param vperc the minimum percentage of explained variance explained by the PCs to
@@ -21,17 +21,17 @@
 #' @param ks the range of k values to assess. Defaults to `dtc`, meaning `cutreeDynamic`
 #' is applied.
 #' @param topgenes the number of high spot-to-spot standard deviation to retain before PCA.
-#' @param deepSplit, a logical or integer [1-4], to be passed to `cutreeDynamic` and
+#' @param deepSplit, a logical or integer (1-4), to be passed to `cutreeDynamic` and
 #' control cluster resolution.
 #' @return x, the STList with cluster assignments.
 #'
 #' @examples
 #' # In this example, melanoma is an STList.
 #' # Using Dynamic Tree Cuts:
-#' melanoma <- cluster_STspot(melanoma, ks='dtc', weights=0.1)
+#' # melanoma <- STclust(melanoma, ks='dtc', weights=0.1)
 #'
 #' # Using a range of ks:
-#' # melanoma <- cluster_STspot(melanoma, ks=c(2:6), weights=0.1)
+#' # melanoma <- STclust(melanoma, ks=c(2:6), weights=0.1)
 #'
 #' @export
 #

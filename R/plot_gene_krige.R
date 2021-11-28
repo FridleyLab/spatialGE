@@ -17,6 +17,7 @@
 #' @param image logical, whether to print the image stored for the spatial arrays
 #' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param visium whether or not to reverse axes for Visium slides.
+#' @param ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
 #' @return a list with plots.
 #'
 #' @examples

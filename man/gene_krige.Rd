@@ -49,7 +49,7 @@ geoR. The first option is faster but requires a Python environment to be set up.
 \examples{
 # In this example, melanoma is an STList.
 # Kriging of spatial arrays 2 and 3 for 2 genes.
-melanoma <- gene_krige(melanoma, genes=c('CD74', 'SOX10'), who=c(2, 3), python=F)
+# melanoma <- gene_krige(melanoma, genes=c('CD74', 'SOX10'), who=c(2, 3), python=F)
 
 #' # Kriging of spatial array 1 for the 10 most variable genes and using the Python implementation.
 # melanoma <- gene_krige(melanoma, genes='top', who=1, python=T)

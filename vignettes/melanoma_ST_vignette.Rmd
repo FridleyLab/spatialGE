@@ -2,7 +2,7 @@
 title: "spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{spatialGE_tutorial}
+  %\VignetteIndexEntry{spatialGE_tutorial_main}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

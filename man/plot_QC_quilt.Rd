@@ -32,6 +32,8 @@ names matching a expression given by \code{spot_pctExpr}}
 \item{plot_who, }{a vector of numbers indicating the spatial arrays to plot.Numbers
 follow the order of \code{names(x@counts)}. If NULL, will plot all spatial arrays.}
 
+\item{spot_pctExpr}{a expression to use with \code{pct_Expr}. By default '^MT-'.}
+
 \item{color_pal, }{a color scheme from 'khroma' or RColorBrewer.}
 
 \item{purity}{logical, whether tumor/stroma classes should be plotted.}
@@ -43,8 +45,6 @@ follow the order of \code{names(x@counts)}. If NULL, will plot all spatial array
 \item{visium, }{logical, whether or not the samples are from a Visium experiment.}
 
 \item{ptsize, }{a number specifying the size of the points. Passed to \code{size} aesthetic.}
-
-\item{image}{logical, whether to print the image stored for the spatial arrays}
 }
 \value{
 a list with plots.

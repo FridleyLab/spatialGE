@@ -14,9 +14,9 @@
 #' names matching a expression given by `spot_pctExpr`
 #' @param plot_who, a vector of numbers indicating the spatial arrays to plot.Numbers
 #' follow the order of `names(x@counts)`. If NULL, will plot all spatial arrays.
+#' @param spot_pctExpr a expression to use with `pct_Expr`. By default '^MT-'.
 #' @param color_pal, a color scheme from 'khroma' or RColorBrewer.
 #' @param purity logical, whether tumor/stroma classes should be plotted.
-#' @param image logical, whether to print the image stored for the spatial arrays
 #' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param inter, whether or not quilt plot should be converted to a Plotly plot.
 #' @param visium, logical, whether or not the samples are from a Visium experiment.

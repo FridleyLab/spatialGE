@@ -30,6 +30,8 @@ plot for all subjects.}
 
 \item{color_pal}{a color scheme from 'khroma' or RColorBrewer.}
 
+\item{method}{a string indicating the deconvolution method to use. Currently, only 'xCell' is allowed.}
+
 \item{saveplot, }{a file name specifying the name of a PDF file to write plots to.}
 
 \item{pvalues, }{logical indicating whether or not dots where a given cell was
@@ -40,7 +42,7 @@ ESTIMATE tumor purity scores.}
 
 \item{visium, }{whether or not to reverse axes for Visium slides.}
 
-\item{image}{logical, whether to print the image stored for the spatial arrays}
+\item{ptsize, }{a number specifying the size of the points. Passed to \code{size} aesthetic.}
 }
 \value{
 a list with plots.

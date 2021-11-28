@@ -16,11 +16,12 @@
 #' @param color_pal a color scheme from 'khroma' or RColorBrewer.
 #' @param purity, logical, whether or not to annotate tumor spots based on
 #' ESTIMATE tumor purity scores.
-#' @param image logical, whether to print the image stored for the spatial arrays
 #' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param pvalues, logical indicating whether or not dots where a given cell was
 #' predicted to be significantly abundant (p<0.05). Default is FALSE.
 #' @param visium, whether or not to reverse axes for Visium slides.
+#' @param ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
+#' @param method a string indicating the deconvolution method to use. Currently, only 'xCell' is allowed.
 #' @return a list with plots.
 #'
 #' @examples

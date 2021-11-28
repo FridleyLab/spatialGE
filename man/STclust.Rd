@@ -18,7 +18,7 @@ STclust(
 \arguments{
 \item{x}{an STList with normalized expression data.}
 
-\item{weights}{a double \link{0-1} indicating the weight to be applied to spatial distances.
+\item{weights}{a double (0-1) indicating the weight to be applied to spatial distances.
 Defaults to w=0.025.}
 
 \item{pcs}{the number of principal components (PCs) to retain.}
@@ -34,7 +34,7 @@ is applied.}
 
 \item{topgenes}{the number of high spot-to-spot standard deviation to retain before PCA.}
 
-\item{deepSplit, }{a logical or integer \link{1-4}, to be passed to \code{cutreeDynamic} and
+\item{deepSplit, }{a logical or integer (1-4), to be passed to \code{cutreeDynamic} and
 control cluster resolution.}
 }
 \value{
@@ -55,9 +55,9 @@ within a tissue.
 \examples{
 # In this example, melanoma is an STList.
 # Using Dynamic Tree Cuts:
-melanoma <- cluster_STspot(melanoma, ks='dtc', weights=0.1)
+# melanoma <- STclust(melanoma, ks='dtc', weights=0.1)
 
 # Using a range of ks:
-# melanoma <- cluster_STspot(melanoma, ks=c(2:6), weights=0.1)
+# melanoma <- STclust(melanoma, ks=c(2:6), weights=0.1)
 
 }

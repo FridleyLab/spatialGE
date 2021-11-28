@@ -2,7 +2,7 @@
 title: "spatialGE: Using PyKrige to study Visium data sets"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{spatialGE_tutorial}
+  %\VignetteIndexEntry{spatialGE_tutorial_visium}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

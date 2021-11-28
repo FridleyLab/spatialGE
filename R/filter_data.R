@@ -9,13 +9,20 @@
 #' counts or other results within the STList remain unaffected.
 #'
 #' @param x an STList
-#' @param spot_minreads @param spot_maxreads the minimum (or maximum) number of total reads for a spot to be retained
-#' @param spot_mingenes @param spot_maxgenes the minimum (or maximum) number of non-zero counts for a spot to be retained
-#' @param spot_minpct @param spot_maxpctExpr the minimum (or maximum) percentage of counts for features defined by `spot_pctexpr`
-#' for a spot to be retained. By default, mtDNA genes.
-#' @param gene_minreads @param gene_maxreads the minimum (or maximum) number of total reads for a gene to be retained
-#' @param gene_minspots @param gene_maxspots the minimum (or maximum) number of spots with non-zero counts for a gene to be retained
-#' @param gene_minpct @param gene_maxpct the minimum (or maximum) percentage of spots with non-zero counts for a gene to be retained
+#' @param spot_minreads the minimum number of total reads for a spot to be retained
+#' @param spot_maxreads the maximum number of total reads for a spot to be retained
+#' @param spot_mingenes the minimum number of non-zero counts for a spot to be retained
+#' @param spot_maxgenes the maximum number of non-zero counts for a spot to be retained
+#' @param spot_minpct the minimum percentage of counts for features defined by `spot_pctexpr`
+#' for a spot to be retained.
+#' @param spot_maxpct the maximum percentage of counts for features defined by `spot_pctexpr`
+#' for a spot to be retained.
+#' @param gene_minreads the minimum number of total reads for a gene to be retained
+#' @param gene_maxreads the maximum number of total reads for a gene to be retained
+#' @param gene_minspots he minimum number of spots with non-zero counts for a gene to be retained
+#' @param gene_maxspots the maximum number of spots with non-zero counts for a gene to be retained
+#' @param gene_minpct the minimum percentage of spots with non-zero counts for a gene to be retained
+#' @param gene_maxpct the maximum percentage of spots with non-zero counts for a gene to be retained
 #' @param who vector of integers (as in `x@counts`) or sample names to perform filtering
 #' @param rm_tissue vector of integers (as in `x@counts`) or sample names to remove from STList
 #' @param rm_genes vector of gene names to remove from STList

@@ -19,6 +19,10 @@ bulk_pca(
 
 \item{color_pal}{a string of a color palette from khroma or RColorBrewer, or a
 vector with colors with enough elements to plot categories.}
+
+\item{tr_method}{one of 'log' or 'voom'. The data transformation to use.}
+
+\item{ptsize, }{a number specifying the size of the points. Passed to \code{size} aesthetic.}
 }
 \description{
 Perform and plot a PCA of simulated bulk RNA-Seq from spatial

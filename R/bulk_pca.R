@@ -11,6 +11,8 @@
 #' @param clinvar a string indicating the name of the variable in the clinical data.
 #' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
 #' vector with colors with enough elements to plot categories.
+#' @param tr_method one of 'log' or 'voom'. The data transformation to use.
+#' @param ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
 #'
 #' @examples
 #' # In this example, melanoma is an STList.

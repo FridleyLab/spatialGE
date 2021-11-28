@@ -36,6 +36,8 @@ ESTIMATE tumor purity scores.}
 \item{saveplot, }{a file name specifying the name of a PDF file to write plots to.}
 
 \item{visium}{whether or not to reverse axes for Visium slides.}
+
+\item{ptsize, }{a number specifying the size of the points. Passed to \code{size} aesthetic.}
 }
 \value{
 a list with plots.

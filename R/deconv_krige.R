@@ -28,7 +28,7 @@
 #'
 #' @examples
 #' # In this example, melanoma is an STList.
-#' melanoma <- deconv_krige(melanoma, cells=c('b_cells', 'i_dc'), who=2, python=F)
+#' # melanoma <- deconv_krige(melanoma, cells=c('b_cells', 'i_dc'), who=2, python=F)
 #'
 #' # Running python implementation on the most variable cell types.
 #' # melanoma <- deconv_krige(melanoma, cells='top', who=2, python=T)

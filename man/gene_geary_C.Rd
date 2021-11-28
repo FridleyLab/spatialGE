@@ -11,7 +11,7 @@ gene_geary_C(x = NULL, genes = NULL, who = NULL)
 
 \item{genes, }{a vector with gene names in the normalized count matrix.}
 
-\item{subj, }{the index of the spatial array for which the statistic
+\item{who, }{the index of the spatial array for which the statistic
 will be calculated.}
 }
 \value{
