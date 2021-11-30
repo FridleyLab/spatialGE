@@ -151,7 +151,7 @@ kdgeomx <- spatialTransform(kdgeomx)
 We can plot now the gene expression levels of specific genes. Let's create plots 
 for _TXNIP_:
 ```{r plot_gene_quilt}
-qplot <- plot_gene_quilt(kdgeomx, image=T, genes='TXNIP', visium=F, color_pal='sunset')
+qplot <- plot_gene_quilt(kdgeomx, image=T, genes='TXNIP', visium=F, color_pal='sunset', ptsize=2)
 ```
 
 The `plot_gene_quilt` returns a list of plots. We can use `ggarrange()` to display
@@ -160,7 +160,7 @@ areas that are colored different to the background, which correspond to the samp
 ROIs. The quilt plots on the left show the expression of _TXNIP_ in those ROIs. We have 
 envisioned for future versions of `spatialGE`, plotting options allowing users to
 visiualize gene expression directly over the images.
-```{r, fig.width=7, fig.height=21}
+```{r, fig.width=8, fig.height=24}
 ggpubr::ggarrange(plotlist=qplot, ncol=2, nrow=7)
 ```
 
