@@ -88,7 +88,7 @@ along with clinical/phenotype data associated with each spatial array. We do not
 have metadata available for the Visium data used in this vignette, thus, we will 
 provide only sample IDs. 
 
-Assuming the user created folders with using the instructions in this vignette 
+Assuming the user created folders using the instructions in this vignette 
 (see *Data acquisition*), the output files are specified like so:
 ```{r file_paths}
 visiumfp <- c('~/Desktop/Visium_FFPE_Human_Normal_Prostate/',
@@ -112,6 +112,46 @@ The `prvisium` object is an STList.
 ```{r view_STList}
 prvisium
 ```
+
+<details>
+  <summary>**How to read data from a Seurat object?**</summary>
+  Seurat is one of the most widely used packages for the analysis of scRNAseq data,
+  and recently, new methods have been added to read and analyze ST data. Seurat
+  relies on a data structure called Seurat object to store data. We have implemented
+  in `spatialGE` to read spatial transcriptomics experiments directly from Seurat 
+  objects and complete analysis of spatial heterogeneity. 
+  
+  The function `STList()` can be provided a Seurat object via the `rnacounts` argument,
+  yielding an STList object. To show this functionality, we use the [mouse brain data set](https://satijalab.org/seurat/articles/spatial_vignette.html)
+  included in Seurat. The data set is split in two parts ("anterior" and "posterior").
+  
+  First, the data is installed, and the two samples loaded.
+```{r seurat_data}
+SeuratData::InstallData("stxBrain")
+brain_anterior <- SeuratData::LoadData("stxBrain", type="anterior1")
+brain_posterior <- SeuratData::LoadData("stxBrain", type="posterior1")
+```
+
+  Samples are then merged using the Seurat function `merge`
+```{r seurat_data2}
+brain_merge <- merge(brain_anterior, brain_posterior)
+```
+
+  Now that we have a Seurat object with two samples, we proceed to convert it to a
+  STList.
+```{r seurat_data3}
+brain_STList <- STList(brain_merge)
+brain_STList
+```
+  
+  We can plot and analyze the data using spatialGE functions. For example, we let us
+  transform the data and plot the expression of gene *Hpca*:
+```{r seurat_data4, fig.width=7, fig.height=7}
+brain_STList = spatialTransform(brain_STList)
+brain_p = spatialGE::plot_gene_quilt(brain_STList, gene='Hpca', image=T, color_pal='sunset')
+ggpubr::ggarrange(plotlist=brain_p, ncol=2, nrow=2)
+```
+</details>
 
 ## Gene- and spot-wise filtering
 As with other omics data, examination of its quality is crucial to extract a meaningful

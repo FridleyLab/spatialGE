@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">spatialGE</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.0.0000</span>
       </span>
     </div>
 
@@ -96,6 +96,12 @@
   <ul class="dropdown-menu" role="menu">
     <li>
       <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
+    </li>
+    <li>
+      <a href="../articles/prostatecancer_Visium_vignette.html">spatialGE: Using PyKrige to study Visium data sets</a>
+    </li>
+    <li>
+      <a href="../articles/read_GeoMx_output.html">spatialGE: Reading GeoMx-DSP outputs</a>
     </li>
     <li>
       <a href="../articles/spatialGE_troubleshoot.html">Troubleshooting</a>
@@ -157,28 +163,53 @@
     </tr>
     <tr>
       <th>spot_minreads</th>
-      <td><p>@param spot_maxreads the minimum (or maximum) number of total reads for a spot to be retained</p></td>
+      <td><p>the minimum number of total reads for a spot to be retained</p></td>
+    </tr>
+    <tr>
+      <th>spot_maxreads</th>
+      <td><p>the maximum number of total reads for a spot to be retained</p></td>
     </tr>
     <tr>
       <th>spot_mingenes</th>
-      <td><p>@param spot_maxgenes the minimum (or maximum) number of non-zero counts for a spot to be retained</p></td>
+      <td><p>the minimum number of non-zero counts for a spot to be retained</p></td>
+    </tr>
+    <tr>
+      <th>spot_maxgenes</th>
+      <td><p>the maximum number of non-zero counts for a spot to be retained</p></td>
     </tr>
     <tr>
       <th>spot_minpct</th>
-      <td><p>@param spot_maxpctExpr the minimum (or maximum) percentage of counts for features defined by <code>spot_pctexpr</code>
-for a spot to be retained. By default, mtDNA genes.</p></td>
+      <td><p>the minimum percentage of counts for features defined by <code>spot_pctexpr</code>
+for a spot to be retained.</p></td>
+    </tr>
+    <tr>
+      <th>spot_maxpct</th>
+      <td><p>the maximum percentage of counts for features defined by <code>spot_pctexpr</code>
+for a spot to be retained.</p></td>
     </tr>
     <tr>
       <th>gene_minreads</th>
-      <td><p>@param gene_maxreads the minimum (or maximum) number of total reads for a gene to be retained</p></td>
+      <td><p>the minimum number of total reads for a gene to be retained</p></td>
+    </tr>
+    <tr>
+      <th>gene_maxreads</th>
+      <td><p>the maximum number of total reads for a gene to be retained</p></td>
     </tr>
     <tr>
       <th>gene_minspots</th>
-      <td><p>@param gene_maxspots the minimum (or maximum) number of spots with non-zero counts for a gene to be retained</p></td>
+      <td><p>he minimum number of spots with non-zero counts for a gene to be retained</p></td>
+    </tr>
+    <tr>
+      <th>gene_maxspots</th>
+      <td><p>the maximum number of spots with non-zero counts for a gene to be retained</p></td>
     </tr>
     <tr>
       <th>gene_minpct</th>
-      <td><p>@param gene_maxpct the minimum (or maximum) percentage of spots with non-zero counts for a gene to be retained</p></td>
+      <td><p>the minimum percentage of spots with non-zero counts for a gene to be retained</p></td>
+    </tr>
+    <tr>
+      <th>gene_maxpct</th>
+      <td><p>the maximum percentage of spots with non-zero counts for a gene to be retained</p></td>
     </tr>
     <tr>
       <th>who</th>
@@ -221,7 +252,7 @@ counts or other results within the STList remain unaffected.</p>
 
       <footer>
       <div class="copyright">
-  <p>Developed by Oscar Ospina, Brooke Fridley.</p>
+  <p>Developed by Oscar Ospina, Brooke Fridley, Alex Soupir.</p>
 </div>
 
 <div class="pkgdown">

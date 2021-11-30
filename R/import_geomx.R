@@ -39,7 +39,7 @@ import_Geomx = function(dcc=NULL, pkc=NULL, annots=NULL, slide_col=NULL, id_col=
   for(i in 1:length(dcc_list)){
     roiName = append(roiName, dcc_list[[i]][1])
     dcc_list[[i]] = dcc_list[[i]][-1]
-    dcc_list[[i]] = tibble::as.tibble(dcc_list[[i]])
+    dcc_list[[i]] = tibble::as_tibble(dcc_list[[i]])
     dcc_list[[i]] = tidyr::separate(dcc_list[[i]], 1, into=c('probe', roiName[i]), sep=',')
     dcc_list[[i]][[2]] = as.numeric(dcc_list[[i]][[2]])
   }
@@ -111,6 +111,14 @@ import_Geomx = function(dcc=NULL, pkc=NULL, annots=NULL, slide_col=NULL, id_col=
     #   }
     # }
     return_list[['counts']][[i]] = return_list[['counts']][[i]][, -1]
+  }
+
+  # Change NAs to zero. Then remove potential zero-count spots
+  for(i in 1:length(names(return_list[['counts']]))){
+    return_list[['counts']][[i]][, -1][is.na(return_list[['counts']][[i]][, -1])] = 0
+    zeroSpots = colnames(return_list[['counts']][[i]][, -1])[colSums(return_list[['counts']][[i]][, -1]) == 0]
+    return_list[['counts']][[i]] = return_list[['counts']][[i]][, !(colnames(return_list[['counts']][[i]]) %in% zeroSpots)]
+    return_list[['coords']][[i]] = return_list[['coords']][[i]][(return_list[['coords']][[i]]$spot %in% colnames(return_list[['counts']][[i]][, -1])), ]
   }
 
   return(return_list)

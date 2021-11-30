@@ -87,3 +87,56 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
   return(cat_cols)
 }
 
+##
+#' @title load_images: Place tissue images within STList
+#' @description Loads the images from tissues to the appropriate STList slot.
+#' @details
+#' This function looks for `.PNG` files within a folder matching the sample names
+#' in an existing STList. Then, loads the images to the STList which can be used
+#' for plotting along with quilt plots.
+#'
+#' @param x an STList with transformed RNA counts.
+#' @param images a string indicating a folder to load images from
+#' @return an STList with images
+#'
+#' @export
+#
+#
+load_images = function(x=NULL, images=NULL){
+  # Test if an STList has been input.
+  if(is.null(x) | !is(x, 'STList')){
+    stop("The input must be a STList.")
+  }
+
+  if(is.null(images)){
+    stop("Please, provide a directory with images.")
+  }
+
+  # Get file names of images
+  imageFps = list.files(images, full.names=T)
+
+  # Process each image.
+  for(i in names(x@counts)){
+    fp = grep(i, imageFps, value=T)
+    if(length(fp) == 0){
+      cat(paste0("Image for sample ", i, " was not found."))
+      next
+    }
+
+    # Return warning if more than one file matches the sample name
+    if(length(fp) > 1){
+      cat(paste0("Multiple image files matched sample ", i, ". Using the first match (", fp[1], ")."))
+    }
+
+    img_obj = png::readPNG(fp[1])
+
+    # Downsize image if too large
+    if(any(dim(img_obj) > 1000)){
+      img_obj = EBImage::resize(img_obj, w=1000)
+    }
+
+    x@misc[['sp_images']][[i]] = img_obj
+  }
+  return(x)
+}
+
