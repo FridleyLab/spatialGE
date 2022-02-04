@@ -3,9 +3,9 @@
 #' @description Perform unsupervised spatially-informed clustering on the spots of an
 #' spatial array.
 #' @details
-#' The function takes an STList and performs PCA on the gene expression data, then
-#' calculates euclidean distances of the PCs and spatial distances. Weighted averages
-#' between the two distances are calculated to perform hierarchical clustering. The
+#' The function takes an STList and calculates euclidean distances between spots based on the x,y
+#' spatial locations and expression of the top variable genes (`Seurat::FindVariableFeatures`).
+#' Weighted averages between the two distances are calculated to perform hierarchical clustering. The
 #' user can define how much weight the spatial distance should have (values
 #' between 0.05 to 0.25 work reasonably well). The method aims to detect compartments
 #' within a tissue.
@@ -13,14 +13,14 @@
 #' @param x an STList with normalized expression data.
 #' @param weights a double (0-1) indicating the weight to be applied to spatial distances.
 #' Defaults to w=0.025.
-#' @param pcs the number of principal components (PCs) to retain.
-#' @param vperc the minimum percentage of explained variance explained by the PCs to
-#' decide how many of them to retain.
-#' @param method the linkage method applied to hierarchical clustering. It is passed
-#' to `hclust` and defaults to 'complete'.
+#' @param dist, the distrance measurement to be used. Defaults to 'euclidean'. Other
+#' options as provided by `wordspace::dist.matrix`.
+#' @param linkage the linkage method applied to hierarchical clustering. Passed to
+#' `hclust` and defaults to 'ward.D'.
 #' @param ks the range of k values to assess. Defaults to `dtc`, meaning `cutreeDynamic`
 #' is applied.
-#' @param topgenes the number of high spot-to-spot standard deviation to retain before PCA.
+#' @param topgenes the number of genes with highest spot-to-spot expression variation. The
+#' variance is calculated via `Seurat::FindVariableFeatures`.
 #' @param deepSplit, a logical or integer (1-4), to be passed to `cutreeDynamic` and
 #' control cluster resolution.
 #' @return x, the STList with cluster assignments.
@@ -36,9 +36,12 @@
 #' @export
 #
 #
-STclust = function(x=NULL, weights=0.025, pcs=NULL, vperc=NULL, method='ward.D', ks='dtc', topgenes=3000, deepSplit=F) {
+STclust = function(x=NULL, weights=0.025, dist='euclidean', linkage='ward.D', ks='dtc', topgenes=2000, deepSplit=F) {
 
   require('magrittr')
+
+  # Clustering method to use. Set because other methods will be supported in future versions
+  clmethod = 'hclust'
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){
@@ -52,19 +55,22 @@ STclust = function(x=NULL, weights=0.025, pcs=NULL, vperc=NULL, method='ward.D',
     }
   }
 
-  # Check to see what PC filter was requested
-  if(is.null(vperc) && is.null(pcs)){
-    cat('Using vperc = 0.8\n')
-    vperc <- 0.8
-  } else if(!is.null(vperc) && !is.null(pcs)){
-    cat('Both number of retained PCs and explanined variance specified. Using only specified vperc\n')
-    pcs <- NULL
-  }
-
   grp_list = list()
   for(i in 1:length(x@tr_counts)){
+
+    # Find tops variable genes using Seurat approach. In the past, instead of Seurat, genes with the highest stdev were used
+    if(any(colnames(x@gene_var[[i]]) == 'vst.variance.standardized')){
+      x@gene_var[[i]] = x@gene_var[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_var[[i]]))]
+    }
+    x@gene_var[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+      tibble::rownames_to_column(var='gene') %>%
+      dplyr::select('gene', 'vst.variance.standardized') %>%
+      dplyr::left_join(x@gene_var[[i]], ., by='gene')
+    topgenenames = x@gene_var[[i]][order(x@gene_var[[i]]$vst.variance.standardized, decreasing=T), ]
+    topgenenames = topgenenames[['gene']][1:topgenes]
+
     # Get transformed counts
-    trcounts_df = x@tr_counts[[i]][order(x@gene_var[[i]][['gene_stdevs']], decreasing=T), ][1:topgenes, ]
+    trcounts_df = x@tr_counts[[i]][x@tr_counts[[i]]$gene %in% topgenenames, ]
 
     # Convert counts and coordinate data to matrices
     A = t(as.matrix(trcounts_df[, -1]))
@@ -72,32 +78,8 @@ STclust = function(x=NULL, weights=0.025, pcs=NULL, vperc=NULL, method='ward.D',
     B = as.matrix(x@coords[[i]][,-1])
     rownames(B) = x@coords[[i]][[1]]
 
-    # Perform PCA
-    count_pcs = prcomp(A, scale=TRUE)
-    count_pcs_var = summary(count_pcs)
-    count_pcs_var = as.vector(count_pcs_var$importance[3, ])
-
-    # Define the number of PCs to retain
-    if(is.null(pcs)){
-      vperc_mask <- count_pcs_var <= vperc
-      if(sum(vperc_mask) == 0){
-        pcs = 1
-      } else{
-        pcs = sum(vperc_mask)
-      }
-    }
-
-    # Use all PCs if maximum variance is lower than vperc
-    if(max(count_pcs_var) > vperc){
-      pcs = length(count_pcs_var)
-    }
-
-    A = as.matrix(count_pcs$x[, 1:pcs])
-
     # Get distance matrices
-    #dA <- wordspace::dist.matrix(A)
-    #dA <- wordspace::dist.matrix(A, method='euclidean')
-    dA <- wordspace::dist.matrix(A, method='manhattan')
+    dA <- wordspace::dist.matrix(A, method=dist)
     dB <- dist(B, upper=T, diag=T)
     dAm <- as.matrix(dA)
     dBm <- as.matrix(dB)
@@ -116,38 +98,55 @@ STclust = function(x=NULL, weights=0.025, pcs=NULL, vperc=NULL, method='ward.D',
 
       # Apply wieight element-wise
       weight_m <- Reduce(`+`,Map(`*`, dMxs, weightList))
-      # COnvert result to matrix
+      # Convert result to matrix
       weight_m <- matrix(weight_m, nrow(dAm))
       weight_m_d <- as.dist(weight_m)
 
-      # Performe hclust
-      hierclusters <- hclust(weight_m_d, method=method)
+      if(clmethod == 'hclust'){
+        # Performe hclust
+        hierclusters <- hclust(weight_m_d, method=linkage)
 
-      # Apply dtc or split to k
-      if(is.character(ks)){
-        if(ks == 'dtc'){
-          x@misc[['STclust_cuttype']] <- 'dtc'
-          grp_df <- dynamicTreeCut::cutreeDynamic(hierclusters, method='hybrid', distM=weight_m, deepSplit=deepSplit, verbose=F)
-          grp_df <- tibble::tibble(colnames(dAm), as.factor(grp_df))
-          names(grp_df) <- c('libname', 'WCluster')
+        # Apply dtc or split to k
+        if(is.character(ks)){
+          if(ks == 'dtc'){
+            x@misc[['STclust_cuttype']] <- 'dtc'
+            grp_df <- dynamicTreeCut::cutreeDynamic(hierclusters, method='hybrid', distM=weight_m, deepSplit=deepSplit, verbose=F)
+            grp_df <- tibble::tibble(colnames(dAm), as.factor(grp_df))
+            names(grp_df) <- c('libname', 'WCluster')
 
-          grp_df$WCluster[grp_df$WCluster == 0] <- NA
+            grp_df$WCluster[grp_df$WCluster == 0] <- NA
 
-          grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='libname')
+            grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='libname')
 
-          grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w])]] <- grp_df
+            grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w])]] <- grp_df
+          }
+        }else if(is.numeric(ks)){
+          x@misc[['STclust_cuttype']] <- 'multiK'
+          for(k in ks){
+            singlek <-  cutree(hierclusters, k=k)
+            singlek <- tibble::tibble(colnames(dAm), as.factor(singlek))
+            names(singlek) <- c('libname', 'WCluster')
+            singlek <- dplyr::full_join(x@coords[[i]], singlek, by='libname')
+            grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w], '_k', k)]] <- singlek
+          }
+        } else{
+          stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')
         }
-      }else if(is.numeric(ks)){
-        x@misc[['STclust_cuttype']] <- 'multiK'
-        for(k in ks){
-          singlek <-  cutree(hierclusters, k=k)
-          singlek <- tibble::tibble(colnames(dAm), as.factor(singlek))
-          names(singlek) <- c('libname', 'WCluster')
-          singlek <- dplyr::full_join(x@coords[[i]], singlek, by='libname')
-          grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w], '_k', k)]] <- singlek
-        }
-      } else{
-        stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')
+      }
+      else{
+        clusterlouvain = bluster::clusterRows(weight_m,
+                                              BLUSPARAM=bluster::NNGraphParam(
+                                                shared=T,
+                                                cluster.fun="louvain", k=nn))
+        x@misc[['STclust_cuttype']] <- 'louvain'
+        grp_df <- tibble::tibble(colnames(dAm), as.factor(clusterlouvain))
+        names(grp_df) <- c('libname', 'WCluster')
+
+        #grp_df$WCluster[grp_df$WCluster == 0] <- NA
+
+        grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='libname')
+
+        grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w])]] <- grp_df
       }
     }
   }

@@ -57,6 +57,7 @@ gene_moran_I <- function(x=NULL, genes=NULL, who=NULL) {
 
     # Create distance matrix based on the coordinates of each sampled location.
     subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+    subj_dists[subj_dists == 0] = 0.0001
     subj_dists_inv = 1/subj_dists
     diag(subj_dists_inv) = 0
 
@@ -139,6 +140,7 @@ gene_geary_C <- function(x=NULL, genes=NULL, who=NULL) {
 
     # Create distance matrix based on the coordinates of each sampled location.
     subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+    subj_dists[subj_dists == 0] = 0.0001
     subj_dists_inv = 1/subj_dists
     diag(subj_dists_inv) = 0
 
@@ -221,6 +223,7 @@ gene_getis_Gi <- function(x=NULL, genes=NULL, who=NULL) {
 
     # Create distance matrix based on the coordinates of each sampled location.
     subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+    subj_dists[subj_dists == 0] = 0.0001
     subj_dists_inv = 1/subj_dists
     diag(subj_dists_inv) = 0
 

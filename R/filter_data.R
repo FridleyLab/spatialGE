@@ -72,6 +72,26 @@ filter_data = function(x=NULL,
     gene_minpct = 0
   }
 
+  # Remove entire samples/tissues
+  if(!is.null(rm_tissue)){
+    if(is.numeric(rm_tissue)){
+      samplename = names(x@counts)[rm_tissue]
+      x@counts = x@counts[-rm_tissue]
+      x@coords = x@coords[-rm_tissue]
+      if(nrow(x@clinical) != 0){
+        x@clinical = x@clinical[!(x@clinical[[1]] %in% samplename), ]
+      }
+    }  else if(is.character(rm_tissue)){
+      x@counts = x@counts[!grepl(paste0(rm_tissue, collapse="|"), names(x@counts))]
+      x@coords = x@coords[!grepl(paste0(rm_tissue, collapse="|"), names(x@counts))]
+      if(nrow(x@clinical) != 0){
+        x@clinical = x@clinical[!(x@clinical[[1]] %in% rm_tissue), ]
+      }
+    } else{
+      stop("Could not find the specified samples in the STList.")
+    }
+  }
+
   # Define set of samples to work on
   if(is.null(who)){
     who = names(x@counts)
@@ -79,19 +99,6 @@ filter_data = function(x=NULL,
     who = grep(paste0('^', who, '$', collapse="|"), names(x@counts))
   }else if(is.numeric(who)){
     who = names(x@counts[who])
-  }
-
-  # Remove entire samples/tissues
-  if(!is.null(rm_tissue)){
-    if(is.numeric(rm_tissue)){
-      x@counts = x@counts[-rm_tissue]
-      x@coords = x@coords[-rm_tissue]
-    }  else if(is.character(rm_tissue)){
-      x@counts = x@counts[!grepl(paste0(rm_tissue, collapse="|"), names(x@counts))]
-      x@coords = x@coords[!grepl(paste0(rm_tissue, collapse="|"), names(x@counts))]
-    } else{
-      stop("Could not find the specified samples in the STList.")
-    }
   }
 
   # Remove genes by name
