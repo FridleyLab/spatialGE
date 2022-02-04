@@ -7,11 +7,10 @@
 STclust(
   x = NULL,
   weights = 0.025,
-  pcs = NULL,
-  vperc = NULL,
-  method = "ward.D",
+  dist = "euclidean",
+  linkage = "ward.D",
   ks = "dtc",
-  topgenes = 3000,
+  topgenes = 2000,
   deepSplit = F
 )
 }
@@ -21,18 +20,17 @@ STclust(
 \item{weights}{a double (0-1) indicating the weight to be applied to spatial distances.
 Defaults to w=0.025.}
 
-\item{pcs}{the number of principal components (PCs) to retain.}
+\item{dist, }{the distrance measurement to be used. Defaults to 'euclidean'. Other
+options as provided by \code{wordspace::dist.matrix}.}
 
-\item{vperc}{the minimum percentage of explained variance explained by the PCs to
-decide how many of them to retain.}
-
-\item{method}{the linkage method applied to hierarchical clustering. It is passed
-to \code{hclust} and defaults to 'complete'.}
+\item{linkage}{the linkage method applied to hierarchical clustering. Passed to
+\code{hclust} and defaults to 'ward.D'.}
 
 \item{ks}{the range of k values to assess. Defaults to \code{dtc}, meaning \code{cutreeDynamic}
 is applied.}
 
-\item{topgenes}{the number of high spot-to-spot standard deviation to retain before PCA.}
+\item{topgenes}{the number of genes with highest spot-to-spot expression variation. The
+variance is calculated via \code{Seurat::FindVariableFeatures}.}
 
 \item{deepSplit, }{a logical or integer (1-4), to be passed to \code{cutreeDynamic} and
 control cluster resolution.}
@@ -45,9 +43,9 @@ Perform unsupervised spatially-informed clustering on the spots of an
 spatial array.
 }
 \details{
-The function takes an STList and performs PCA on the gene expression data, then
-calculates euclidean distances of the PCs and spatial distances. Weighted averages
-between the two distances are calculated to perform hierarchical clustering. The
+The function takes an STList and calculates euclidean distances between spots based on the x,y
+spatial locations and expression of the top variable genes (\code{Seurat::FindVariableFeatures}).
+Weighted averages between the two distances are calculated to perform hierarchical clustering. The
 user can define how much weight the spatial distance should have (values
 between 0.05 to 0.25 work reasonably well). The method aims to detect compartments
 within a tissue.
