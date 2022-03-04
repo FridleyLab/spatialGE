@@ -19,6 +19,8 @@
 <![endif]-->
 </head>
 <body data-spy="scroll" data-target="#toc">
+    
+
     <div class="container template-article">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -31,18 +33,12 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">spatialGE</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">1.0.0.0000</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.0.0.0000</span>
       </span>
     </div>
 
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-<li>
-  <a href="../index.html">
-    <span class="fas fa-home fa-lg"></span>
-     
-  </a>
-</li>
 <li>
   <a href="../reference/index.html">Reference</a>
 </li>
@@ -54,10 +50,10 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
-      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide Spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
+      <a href="../articles/melanoma_ST_vignette.html">spatialGE: Guide to spatial heterogeneity analysis in melanoma (Thrane et al. 2018)</a>
     </li>
     <li>
-      <a href="../articles/prostatecancer_Visium_vignette.html">spatialGE: Using PyKrige to study Visium data sets</a>
+      <a href="../articles/prostatecancer_Visium_vignette.html">spatialGE: Kriging for Visium data sets</a>
     </li>
     <li>
       <a href="../articles/read_GeoMx_output.html">spatialGE: Reading GeoMx-DSP outputs</a>
@@ -78,7 +74,7 @@
 
       
 
-      </header><script src="spatialGE_troubleshoot_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Troubleshooting</h1>
@@ -91,9 +87,21 @@
 
     
     
-<details><p><summary><strong>When using <code>readRDS</code> to load an STList, I get ‘Error: vector memory exhausted’. What can I do?</strong></summary> This error results from R’s default memoery limits. Provided your computer has enough memory to hold an STList in memory, this error message can be overridden by typing in a Terminal (Mac OS):</p>
+<details><summary><strong>When using <code>readRDS</code> to load an STList, I get ‘Error:
+vector memory exhausted’. What can I do?</strong>
+</summary><p>This error results from R’s default memoery limits. Provided your
+computer has enough memory to hold an STList in memory, this error
+message can be overridden by typing in a Terminal (Mac OS):</p>
 <pre><code>echo 'R_MAX_VSIZE=100Gb' &gt;&gt; ~/.Renviron</code></pre>
 Then, close and re-open R and try to load the STList again.
+</details><details><summary><strong>When using the Python kriging implementation, I receive an error
+about INTEL MKL. How can I solve it?</strong>
+</summary><p>Assuming an Anaconda environment is already set up
+(<code>r-reticulate</code>), the issue might be solved by typing in a
+Terminal (Mac OS):</p>
+<pre><code>conda activate r-reticulate
+conda install -c intel mkl</code></pre>
+Then, close and re-open R before running Python kriging again.
 </details>
 </div>
 
@@ -106,11 +114,14 @@ Then, close and re-open R and try to load the STList again.
 
 
       <footer><div class="copyright">
-  <p>Developed by Oscar Ospina, Brooke Fridley, Alex Soupir.</p>
+  <p></p>
+<p>Developed by Oscar Ospina, Brooke Fridley, Alex Soupir.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a>
+2.0.2.</p>
 </div>
 
       </footer>
@@ -118,6 +129,8 @@ Then, close and re-open R and try to load the STList again.
 
   
 
+
+  
 
   </body>
 </html>
