@@ -346,9 +346,7 @@ manner:</p>
 <code><a href="../reference/gene_krige.html">gene_krige()</a></code> and setting <code>python=T</code> to use the
 <code>PyKrige</code> implementation.</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">prvisium</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_krige.html">gene_krige</a></span><span class="op">(</span><span class="va">prvisium</span>, genes<span class="op">=</span><span class="st">'KLK3'</span>, univ<span class="op">=</span><span class="cn">F</span>, python<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
-<span class="co">#&gt; Loading required package: magrittr</span>
-<span class="co">#&gt; Warning in mccollect(jobs): 3 parallel jobs did not deliver results</span></code></pre></div>
+<code class="sourceCode R"><span class="va">prvisium</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/gene_krige.html">gene_krige</a></span><span class="op">(</span><span class="va">prvisium</span>, genes<span class="op">=</span><span class="st">'KLK3'</span>, univ<span class="op">=</span><span class="cn">F</span>, python<span class="op">=</span><span class="cn">T</span><span class="op">)</span></code></pre></div>
 <p>As mentioned at the beginning of this vignette, we have leveraged the
 <code>reticulate</code> package to benefit from the speed that python
 can bring to computationally expensive functions. For Kriging, we pass
@@ -360,8 +358,6 @@ into account, but takes much longer to perform, thus we set
 <p>We can now plot the transcriptomic surfaces:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">kplot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_gene_krige.html">plot_gene_krige</a></span><span class="op">(</span><span class="va">prvisium</span>, genes<span class="op">=</span><span class="st">'KLK3'</span>, color_pal<span class="op">=</span><span class="st">'sunset'</span>, image<span class="op">=</span><span class="cn">T</span><span class="op">)</span>
-<span class="co">#&gt; Warning in max(maxvalue): no non-missing arguments to max; returning -Inf</span>
-<span class="co">#&gt; Warning in min(minvalue): no non-missing arguments to min; returning Inf</span>
 <span class="co">#&gt; KLK3 kriging for subject 1 is not present in STList</span>
 <span class="co">#&gt; KLK3 kriging for subject 2 is not present in STList</span>
 <span class="co">#&gt; KLK3 kriging for subject 3 is not present in STList</span>
@@ -386,7 +382,7 @@ this data set.</p>
 <p>We can now plot the spot classification along side the expression
 plot and the H&amp;E image.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">eplot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_gene_quilt.html">plot_gene_quilt</a></span><span class="op">(</span><span class="va">prvisium</span>, genes<span class="op">=</span><span class="st">"KLK3"</span>, color_pal<span class="op">=</span><span class="st">"sunset"</span>, purity<span class="op">=</span><span class="cn">T</span>, image<span class="op">=</span><span class="cn">T</span>, ptsize<span class="op">=</span><span class="fl">1</span><span class="op">)</span>
+<code class="sourceCode R"><span class="va">eplot</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_gene_quilt.html">plot_gene_quilt</a></span><span class="op">(</span><span class="va">prvisium</span>, genes<span class="op">=</span><span class="st">"KLK3"</span>, color_pal<span class="op">=</span><span class="st">"sunset"</span>, purity<span class="op">=</span><span class="cn">T</span>, image<span class="op">=</span><span class="cn">T</span>, ptsize<span class="op">=</span><span class="fl">0.5</span><span class="op">)</span>
 <span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html" class="external-link">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">eplot</span>, ncol<span class="op">=</span><span class="fl">3</span>, nrow<span class="op">=</span><span class="fl">3</span>, legend<span class="op">=</span><span class="st">'bottom'</span><span class="op">)</span></code></pre></div>
 <p><img src="prostatecancer_Visium_vignette_files/figure-html/plot_estimate-1.png" width="1152"></p>
 <p>Note that the normal prostate sample has a spots classified as tumor

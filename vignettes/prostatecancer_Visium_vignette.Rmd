@@ -221,7 +221,7 @@ ggpubr::ggarrange(plotlist=qplot, ncol=2, nrow=3)
 ## Spatial interpolation of gene expression
 Transcriptomic surfaces are generated for the samples using the `gene_krige()`
 and setting `python=T` to use the `PyKrige` implementation.
-```{r gene_krige}
+```{r gene_krige, message=F, warning=F, error=F}
 prvisium <- gene_krige(prvisium, genes='KLK3', univ=F, python=T)
 ```
 
@@ -233,7 +233,7 @@ kriging takes spatial trends into account, but takes much longer to perform, thu
 `univ=F`.
 
 We can now plot the transcriptomic surfaces:
-```{r, fig.width=10, fig.height=12}
+```{r, fig.width=10, fig.height=12, message=F, warning=F, error=F}
 kplot <- plot_gene_krige(prvisium, genes='KLK3', color_pal='sunset', image=T)
 ggpubr::ggarrange(plotlist=kplot, ncol=2, nrow=3)
 ```
@@ -252,7 +252,7 @@ prvisium <- spatialDeconv(prvisium, method="none")
 
 We can now plot the spot classification along side the expression plot and the H&E image.
 ```{r plot_estimate, fig.width=12, fig.height=12}
-eplot <- plot_gene_quilt(prvisium, genes="KLK3", color_pal="sunset", purity=T, image=T, ptsize=1)
+eplot <- plot_gene_quilt(prvisium, genes="KLK3", color_pal="sunset", purity=T, image=T, ptsize=0.5)
 ggpubr::ggarrange(plotlist=eplot, ncol=3, nrow=3, legend='bottom')
 ```
 
