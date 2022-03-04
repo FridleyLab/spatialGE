@@ -30,6 +30,8 @@
 #' @param spot_pctExpr a expression to use with `spot_minpct`. By default '^MT-'.
 #'
 #' @export
+#'
+#' @importFrom magrittr %>%
 #
 #
 filter_data = function(x=NULL,
@@ -45,7 +47,7 @@ filter_data = function(x=NULL,
                        rm_partialgenes=NULL,
                        spot_pctExpr="^MT-"){
 
-  require('magrittr')
+  #require('magrittr')
 
   # Check than an STList was provided
   if(is.null(x)){

@@ -20,11 +20,14 @@
 #' # melanoma <- spatialTransform(melanoma, method='voom')
 #'
 #' @export
+#'
+#' @importFrom magrittr %>%
+#' @importFrom methods as is new
 #
 #
 spatialTransform = function(x=NULL, method='log', scale_f=10000){
 
-  require("magrittr")
+  #require("magrittr")
 
   # Detect transformation method
   if(method == 'voom'){
@@ -53,17 +56,19 @@ spatialTransform = function(x=NULL, method='log', scale_f=10000){
 # Helpers ----------------------------------------------------------------------
 
 ##
-# @title log_transf: Log-transformation of spatial arrays
-# @description Applies the natural logarithm [log(x+1)] to counts after library
-# size normalization and multiplication by scaling factor (by default 10^4).
-# The function produces similar results to Seurat's LogNormalize.
-#
-# @details
-# The function works on parallel using "forking" (not in Windows OS).
-#
-# @param x an STList with raw count matrices.
-# @param scale_f integer, the scaling factor to use.
-# @return x an updated STList with transformed counts.
+#' @title log_transf: Log-transformation of spatial arrays
+#' @description Applies the natural logarithm log(x+1) to counts after library
+#' size normalization and multiplication by scaling factor (by default 10^4).
+#' The function produces similar results to Seurat's LogNormalize.
+#'
+#' @details
+#' The function works on parallel using "forking" (not in Windows OS).
+#'
+#' @param x an STList with raw count matrices.
+#' @param scale_f integer, the scaling factor to use.
+#' @return x an updated STList with transformed counts.
+#'
+#' @importFrom methods as is new
 #
 #
 log_transf = function(x=NULL, scale_f=scale_f){
@@ -114,24 +119,26 @@ log_transf = function(x=NULL, scale_f=scale_f){
 }
 
 ##
-# @title voom_norm: voom transformation of ST arrays
-# @description Applies limma-voom transformation to spatial transcriptomics arrays data.
-# @details
-# This function takes an STList and returns roughly Gaussian count data matrices
-# in two steps. In the first step, (edgeR) normalization factors are used to scale
-# the counts from each library/spot. In the second step, limma-voom transformation
-# is applied. The resulting normalized count matrix is stored in the voom_counts
-# slot of the STList. The function also calculates gene-wise standard deviation from
-# the transformed counts and stores them in the gene_stdev slot.
-#
-# The function works on parallel using "forking" (not in Windows OS).
-#
-# @param x an STList with raw count matrices.
-# @return x an updated STList with transformed counts.
-#
-# @examples
-# # In this example, melanoma is an STList.
-# # melanoma <- voom_norm(melanoma)
+#' @title voom_norm: voom transformation of ST arrays
+#' @description Applies limma-voom transformation to spatial transcriptomics arrays data.
+#' @details
+#' This function takes an STList and returns roughly Gaussian count data matrices
+#' in two steps. In the first step, (edgeR) normalization factors are used to scale
+#' the counts from each library/spot. In the second step, limma-voom transformation
+#' is applied. The resulting normalized count matrix is stored in the voom_counts
+#' slot of the STList. The function also calculates gene-wise standard deviation from
+#' the transformed counts and stores them in the gene_stdev slot.
+#'
+#' The function works on parallel using "forking" (not in Windows OS).
+#'
+#' @param x an STList with raw count matrices.
+#' @return x an updated STList with transformed counts.
+#'
+#' @examples
+#' # In this example, melanoma is an STList.
+#' # melanoma <- voom_norm(melanoma)
+#'
+#' @importFrom methods as is new
 #
 #
 voom_norm = function(x=NULL){

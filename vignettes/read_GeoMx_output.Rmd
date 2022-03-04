@@ -27,18 +27,6 @@ For this example, we will use the Nanostring annotated kidney data set containin
 4 diabetic kidney disease samples and 3 normal kidney samples. Each tissue slice 
 contains a variable number of ROIs.
 
-## Setting up a Python environment
-`spatialGE` uses `reticulate` to bridge with the Python module `PyKrige`. To do this,
-a Python environment needs to be set up. We recommend installing [Anaconda](https://www.anaconda.com/products/individual)
-and create a dedicated environment (`r-reticulate` in this example), then install `PyKrige`
-within that environment. Next, the path to the Python environment needs to be set up
-for R to find it. The set up is done in the `.Renviron` file. On Mac OS, this is done by
-typing in the Terminal:
-
-```
-echo "RETICULATE_PYTHON=\"$HOME/opt/anaconda3/envs/r-reticulate/bin/python3\"" >> ~/.Renviron
-```
-
 ## Data acquisition
 The data set is publicly available and can be downloaded from the Nanostring Resources 
 [website](https://www.nanostring.com/resources/annotated-kidney-dataset/). Users
@@ -129,7 +117,7 @@ at least partially, the sample names in the STList (i.e. "disease3", "disease4",
 "normal3", etc...)
 
 First, we prepare a folder with the images to load. In your "geomx_input" folder, 
-create a subfolder called "images". As previously mentioned, after deompressing
+create a sub folder called "images". As previously mentioned, after decompressing
 the "ROI reports" file, users should decompress the zipped files within. From each
 of the resulting folder, copy the file ending in "_scan.png". For example, from 
 the folder "disease1B_scan", users should copy "disease1B_scan.png". This file is the

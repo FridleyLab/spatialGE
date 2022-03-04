@@ -25,6 +25,8 @@
 #' # kplots <- plot_gene_krige(melanoma, genes=c('CD74', 'SOX10'), plot_who=3, visium=F)
 #'
 #' @export
+#'
+#' @importFrom grDevices dev.off n2mfrow pdf
 #
 #
 plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, saveplot=NULL, visium=T, ptsize=0.5){

@@ -48,6 +48,11 @@ gene_moran_I <- function(x=NULL, genes=NULL, who=NULL) {
     }
   }
 
+  # Check whether or not a list of weights have been created
+  if(is.null(x@misc$listws)){
+    x@misc$listws = create_listw(x)
+  }
+
   # Define cores available
   cores = count_cores(nrow(combo))
   # Loop through combinations of samples x genes
@@ -56,16 +61,16 @@ gene_moran_I <- function(x=NULL, genes=NULL, who=NULL) {
     j = as.vector(unlist(combo[i_combo, 2]))
 
     # Create distance matrix based on the coordinates of each sampled location.
-    subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
-    subj_dists[subj_dists == 0] = 0.0001
-    subj_dists_inv = 1/subj_dists
-    diag(subj_dists_inv) = 0
+    # subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+    # subj_dists[subj_dists == 0] = 0.0001
+    # subj_dists_inv = 1/subj_dists
+    # diag(subj_dists_inv) = 0
 
     # Extract expression data (voom counts) for a given gene.
     gene_expr = unlist(x@tr_counts[[i]][x@tr_counts[[i]][[1]] == j, -1])
 
     # Estimate statistic.
-    stat_est = spdep::moran.test(gene_expr, spdep::mat2listw(subj_dists_inv))
+    stat_est = spdep::moran.test(x=gene_expr, listw=x@misc$listws[[i]])
 
     return(stat_est)
   }, mc.cores=cores, mc.preschedule=F)
@@ -131,6 +136,11 @@ gene_geary_C <- function(x=NULL, genes=NULL, who=NULL) {
     }
   }
 
+  # Check whether or not a list of weights have been created
+  if(is.null(x@misc$listws)){
+    x@misc$listws = create_listw(x)
+  }
+
   # Define cores available
   cores = count_cores(nrow(combo))
   # Loop through combinations of samples x genes
@@ -139,16 +149,16 @@ gene_geary_C <- function(x=NULL, genes=NULL, who=NULL) {
     j = as.vector(unlist(combo[i_combo, 2]))
 
     # Create distance matrix based on the coordinates of each sampled location.
-    subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
-    subj_dists[subj_dists == 0] = 0.0001
-    subj_dists_inv = 1/subj_dists
-    diag(subj_dists_inv) = 0
+    # subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+    # subj_dists[subj_dists == 0] = 0.0001
+    # subj_dists_inv = 1/subj_dists
+    # diag(subj_dists_inv) = 0
 
     # Extract expression data (voom counts) for a given gene.
     gene_expr = unlist(x@tr_counts[[i]][x@tr_counts[[i]][[1]] == j, -1])
 
     # Estimate statistic.
-    stat_est = spdep::geary.test(gene_expr, spdep::mat2listw(subj_dists_inv))
+    stat_est = spdep::geary.test(x=gene_expr, listw=x@misc$listws[[i]])
 
     return(stat_est)
   }, mc.cores=cores, mc.preschedule=F)
@@ -214,6 +224,11 @@ gene_getis_Gi <- function(x=NULL, genes=NULL, who=NULL) {
     }
   }
 
+  # Check whether or not a list of weights have been created
+  if(is.null(x@misc$listws)){
+    x@misc$listws = create_listw(x)
+  }
+
   # Define cores available
   cores = count_cores(nrow(combo))
   # Loop through combinations of samples x genes
@@ -222,18 +237,19 @@ gene_getis_Gi <- function(x=NULL, genes=NULL, who=NULL) {
     j = as.vector(unlist(combo[i_combo, 2]))
 
     # Create distance matrix based on the coordinates of each sampled location.
-    subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
-    subj_dists[subj_dists == 0] = 0.0001
-    subj_dists_inv = 1/subj_dists
-    diag(subj_dists_inv) = 0
+    # subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+    # subj_dists[subj_dists == 0] = 0.0001
+    # subj_dists_inv = 1/subj_dists
+    # diag(subj_dists_inv) = 0
 
     # Extract expression data (voom counts) for a given gene.
     gene_expr = unlist(x@tr_counts[[i]][x@tr_counts[[i]][[1]] == j, -1])
 
     # Estimate statistic.
-    stat_est = spdep::globalG.test(gene_expr, spdep::mat2listw(subj_dists_inv, style='B'))
+    stat_est = spdep::globalG.test(x=gene_expr, listw=x@misc$listws[[i]])
 
     return(stat_est)
+
   }, mc.cores=cores, mc.preschedule=F)
   names(stat_list) = paste(combo[[1]], combo[[2]], sep='&&')
 

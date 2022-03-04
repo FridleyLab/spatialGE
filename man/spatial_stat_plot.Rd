@@ -4,23 +4,15 @@
 \alias{spatial_stat_plot}
 \title{spatial_stat_plot: Plots association of samples variable and spatial statistics}
 \usage{
-spatial_stat_plot(
-  x = NULL,
-  samplevar = NULL,
-  gene = NULL,
-  cell = NULL,
-  color_pal = "muted"
-)
+spatial_stat_plot(x = NULL, var = NULL, gene = NULL, color_pal = "muted")
 }
 \arguments{
 \item{x}{an STList.}
 
-\item{samplevar}{a string indicating the name of the variable in the clinical
+\item{var}{a string indicating the name of the variable in the clinical
 data frame. If NULL, uses sample}
 
 \item{gene}{the name of the gene to plot.}
-
-\item{cell}{the name of the cell type to plot.}
 
 \item{color_pal}{a string of a color palette from khroma or RColorBrewer, or a
 vector with colors with enough elements to plot categories.}
@@ -40,6 +32,6 @@ and Getis-Ord Gi values of a gene.
 }
 \examples{
 # In this example, melanoma is an STList.
-# stat_p <- spatial_stat_plot(melanoma, samplevar='survival_months', gene='CD74')
+# stat_p <- spatial_stat_plot(melanoma, var='survival_months', gene='CD74')
 
 }

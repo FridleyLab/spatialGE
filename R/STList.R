@@ -74,8 +74,11 @@
 #
 #' @export STList
 #'
+#' @import Matrix
+#' @importFrom magrittr %>%
+#'
 STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_x_col=NULL, gmx_y_col=NULL, gmx_meta_cols=NULL) {
-  require('magrittr')
+  #require('magrittr')
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
 
@@ -213,7 +216,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
                    cell_deconv=list(),
                    cell_krige=list(),
                    st_clusters=list(),
-                   pheno_plots=list(),
+                   spstats_plots=list(),
                    misc=list(sp_images=img_obj, platform=platform)
   )
   cat(crayon::green$bold(paste("Completed STList!\n")))
@@ -231,7 +234,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
 # @return a sparsed data matrix
 #
 makeSparse = function(dataframe){
-  suppressMessages({library(Matrix)})
+  #suppressMessages({library(Matrix)})
   numdat = dataframe %>%
     tibble::column_to_rownames("gene") %>%
     as.matrix() %>% as(., "sparseMatrix")

@@ -24,6 +24,9 @@
 #' @return a list with plots.
 #'
 #' @export
+#'
+#' @importFrom grDevices dev.off n2mfrow pdf
+#' @importFrom methods as is new
 #
 #
 plot_QC_quilt = function(x = NULL, nreads=F, ngenes=F, pct_Expr=F, plot_who=NULL, spot_pctExpr='^MT-',

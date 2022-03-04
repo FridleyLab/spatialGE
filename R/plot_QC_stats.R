@@ -20,11 +20,13 @@
 #' @param saveplot File path to save a pdf with plots
 #'
 #' @export
+#'
+#' @import ggplot2
 #
 #
 plot_QC_stats = function(x=NULL, qc='percent_expr', plot_who=NULL, spot_pctExpr='^MT-', ptsize=0.5, ptalpha=0.5, ptjitter=0.2, saveplot=NULL, ylim=NULL){
 
-  require('ggplot2')
+  #require('ggplot2')
 
   # Define samples to plot if NULL
   if(is.null(plot_who)){

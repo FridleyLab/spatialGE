@@ -1,5 +1,5 @@
 ---
-title: "spatialGE: Using PyKrige to study Visium data sets"
+title: "spatialGE: Kriging for Visium data sets"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{spatialGE_tutorial_visium}
@@ -15,15 +15,15 @@ knitr::opts_chunk$set(
 ```
 
 The package `spatialGE` provides a set of tools for the visualization of spatially-resolved 
-transcriptomics. In this vignette we explore gene expression in two 10X Visium
-samples: A normal prostate tissue and a prostate adenocarcinoma sample. These data 
+transcriptomics. In this vignette we explore gene expression in three 10X Visium
+samples: A normal prostate tissue and two prostate adenocarcinoma samples. These data 
 sets were generated with the Visium FFPE technology, but the instructions in this 
 vignette can be used with other Visium data sets. Here we introduce the Python 
 implementation of kriging in `spatialGE`. We use `PyKrige` to generate transcriptomic
 surfaces in order to reduce run time of the spatial interpolation. Nonetheless, 
 kriging is a computationally expensive procedure, and even though `PyKrige` results
 in ~3X increases in speed, the interpolation of a Visium data set (~3,000-4,000 spots)
-takes some time.
+takes time.
 
 ## Setting up a Python environment
 `spatialGE` uses `reticulate` to bridge with the Python module `PyKrige`. To do this,
@@ -65,8 +65,8 @@ if("devtools" %in% rownames(installed.packages()) == FALSE) {
 ```
 
 After making sure `devtools` is installed, proceed to install `spatialGE`:
-```{r install_spatialGE}
-# devtools::install_github("fridleylab/spatialGE")
+```{r install_spatialGE, eval=F}
+devtools::install_github("fridleylab/spatialGE")
 ```
 
 To use `spatialGE`, load the package using the command:
@@ -103,7 +103,12 @@ visiumIDs <- c('Normal_Prostate',
                'Prostate_Acinar_Cell') 
 ```
 
-Then, we load the file paths and sample IDs to the `STList` function.
+Note: Instead of sample IDs, users could also provide a file with a comma- or 
+tab-delimited table with minimally two columns: sample IDs and file paths to the
+Visium folders, one row per sample. This method allows users to add clinical data 
+in subsequent columns. Please, refer to the [STList documentation for details](https://fridleylab.github.io/spatialGE/reference/STList.html).
+
+We load the Visium data sets and sample IDs to the `STList` function like so:
 ```{r create_STList}
 prvisium <- STList(rnacounts=visiumfp, samples=visiumIDs)
 ```
@@ -115,21 +120,23 @@ prvisium
 
 <details>
   <summary>**How to read data from a Seurat object?**</summary>
-  Seurat is one of the most widely used packages for the analysis of scRNAseq data,
-  and recently, new methods have been added to read and analyze ST data. Seurat
-  relies on a data structure called Seurat object to store data. We have implemented
-  in `spatialGE` to read spatial transcriptomics experiments directly from Seurat 
-  objects and complete analysis of spatial heterogeneity. 
+  Seurat is one of the most widely used packages for the analysis of scRNAseq data. 
+  Recently, new methods have been added to read and analyze 10X Visium data. Seurat
+  relies on an eponymous data structure (Seurat object) to store data. We have 
+  implemented functionality in `spatialGE` to read spatial transcriptomics experiments
+  from Seurat objects and complete analysis of spatial heterogeneity. 
   
   The function `STList()` can be provided a Seurat object via the `rnacounts` argument,
   yielding an STList object. To show this functionality, we use the [mouse brain data set](https://satijalab.org/seurat/articles/spatial_vignette.html)
   included in Seurat. The data set is split in two parts ("anterior" and "posterior").
   
   First, the data is installed, and the two samples loaded.
-```{r seurat_data}
-SeuratData::InstallData("stxBrain")
-brain_anterior <- SeuratData::LoadData("stxBrain", type="anterior1")
-brain_posterior <- SeuratData::LoadData("stxBrain", type="posterior1")
+```{r seurat_data, warning=F}
+library('SeuratData')
+options(timeout=600) # Allows time for R to download data
+InstallData("stxBrain")
+brain_anterior <- LoadData("stxBrain", type="anterior1")
+brain_posterior <- LoadData("stxBrain", type="posterior1")
 ```
 
   Samples are then merged using the Seurat function `merge`
@@ -173,11 +180,13 @@ qcplots3 = plot_QC_quilt(prvisium, nreads=T)
 ggpubr::ggarrange(plotlist=qcplots3, ncol=3, nrow=1, legend='bottom')
 ```
 
-We can filter out spots with low counts (<200). We also see a few spots with
-unusually high count in the acinar cell cancer sample. We can filter spots using
-the `filter_data()` function.
-```{r filter_data}
+We can filter out a few spots with unusually high count in the acinar cell cancer sample. 
+To filter spots, we use the `filter_data()` function.
+```{r quilt_ngenes2, fig.width=9, fig.height=4}
 prvisium = filter_data(prvisium, spot_maxreads=50000)
+
+qcplots4 = plot_QC_quilt(prvisium, nreads=T)
+ggpubr::ggarrange(plotlist=qcplots4, ncol=3, nrow=1, legend='bottom')
 ```
 
 ## Data normalization of spatially-resolved transcriptomic data
@@ -188,14 +197,16 @@ factor (`scale_f=10000` by default). `spatialGE` borrows methods from the field 
 spatial statistics, often requiring gaussian-shaped data distributions. Hence, users
 also can apply voom transformation, which could in certain situations, provide more 
 gaussian-shaped distributions than log-transformed data.
-```{r voom_transform}
+
+We will apply log-transformation:
+```{r logtransform}
 prvisium <- spatialTransform(prvisium)
 ```
 
 ## Visualization of gene expression
 We can plot now the gene expression levels of specific genes. When created from 
-Visium outputs or Seurat objects, STLists contain image data as well. We can 
-plot the images along with quilt plots by setting `image=T`. Let's create plots 
+Visium outputs or Seurat objects, STLists contain image data as well. We plot the 
+images along with quilt plots by setting `image=T`. Let's create plots 
 for _KLK3_:
 ```{r plot_gene_quilt}
 qplot <- plot_gene_quilt(prvisium, genes='KLK3', color_pal='sunset', image=T)
@@ -208,28 +219,33 @@ ggpubr::ggarrange(plotlist=qplot, ncol=2, nrow=3)
 ```
 
 ## Spatial interpolation of gene expression
-We can also generate transcriptomic surfaces for the samples using the `gene_krige()`
+Transcriptomic surfaces are generated for the samples using the `gene_krige()`
 and setting `python=T` to use the `PyKrige` implementation.
 ```{r gene_krige}
 prvisium <- gene_krige(prvisium, genes='KLK3', univ=F, python=T)
 ```
 
-As mentioned at the beginning of this vignette, we have leveraged the `reticulate` package to benefit from the speed that python can bring to computationally expensive functions. For Kriging, we pass in our STList, the same gene name that we were interested in before ( _KLK3_ ), `univ` is a parameter letting us decide between universal kriging or ordinary kriging (universal takes spatial trends into account, but takes much longer to do. Here we have it perform ordinary with `univ=F`.
+As mentioned at the beginning of this vignette, we have leveraged the `reticulate` 
+package to benefit from the speed that python can bring to computationally expensive 
+functions. For Kriging, we pass in our STList and the gene name that we are interested in 
+(*KLK3*). The `univ` parameter switch between universal or ordinary kriging. Universal 
+kriging takes spatial trends into account, but takes much longer to perform, thus we set
+`univ=F`.
 
-We can now plot the transcriptomic surfaces.
+We can now plot the transcriptomic surfaces:
 ```{r, fig.width=10, fig.height=12}
 kplot <- plot_gene_krige(prvisium, genes='KLK3', color_pal='sunset', image=T)
 ggpubr::ggarrange(plotlist=kplot, ncol=2, nrow=3)
 ```
 
-As expected, the expression of _KLK3_, known as prostatic antigen, is higher across 
+As expected, the expression of *KLK3*, known as prostatic antigen, is higher across 
 the the cancerous samples (middle and bottom), compared to the normal sample (top).
 
 We can also classify spots as likely tumor or likely stroma using the `spatialDeconv()` function. 
 `spatialGE` uses `ESTIMATE` to calculate tumor purity scores, followed by model-based
 clustering (`mclust`). Notice that we set `method='none'`, in order to avoid
 computing `xCell` scores for the purpose of this example. Users are encouraged to
-remove that argument and get cell scores.
+remove that argument and get cell scores to further explor this data set.
 ```{r ESTIMATE}
 prvisium <- spatialDeconv(prvisium, method="none")
 ```
@@ -241,7 +257,7 @@ ggpubr::ggarrange(plotlist=eplot, ncol=3, nrow=3, legend='bottom')
 ```
 
 Note that the normal prostate sample has a spots classified as tumor (dark squares).
-This is an artifact resulting from the model-base clustering performed by `spatialGE`,
+This is an artifact resulting from the model-based clustering performed by `spatialGE`,
 which fits `ESTIMATE` purity scores into two groups (k=2).
 
 <details>

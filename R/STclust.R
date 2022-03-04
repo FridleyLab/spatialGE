@@ -34,11 +34,15 @@
 #' # melanoma <- STclust(melanoma, ks=c(2:6), weights=0.1)
 #'
 #' @export
+#'
+#' @importFrom magrittr %>%
+#' @importFrom methods as is new
+#' @importFrom stats as.dist complete.cases cutree dist hclust prcomp sd
 #
 #
 STclust = function(x=NULL, weights=0.025, dist='euclidean', linkage='ward.D', ks='dtc', topgenes=2000, deepSplit=F) {
 
-  require('magrittr')
+  #require('magrittr')
 
   # Clustering method to use. Set because other methods will be supported in future versions
   clmethod = 'hclust'
@@ -134,19 +138,19 @@ STclust = function(x=NULL, weights=0.025, dist='euclidean', linkage='ward.D', ks
         }
       }
       else{
-        clusterlouvain = bluster::clusterRows(weight_m,
-                                              BLUSPARAM=bluster::NNGraphParam(
-                                                shared=T,
-                                                cluster.fun="louvain", k=nn))
-        x@misc[['STclust_cuttype']] <- 'louvain'
-        grp_df <- tibble::tibble(colnames(dAm), as.factor(clusterlouvain))
-        names(grp_df) <- c('libname', 'WCluster')
-
-        #grp_df$WCluster[grp_df$WCluster == 0] <- NA
-
-        grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='libname')
-
-        grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w])]] <- grp_df
+        # clusterlouvain = bluster::clusterRows(weight_m,
+        #                                       BLUSPARAM=bluster::NNGraphParam(
+        #                                         shared=T,
+        #                                         cluster.fun="louvain", k=nn))
+        # x@misc[['STclust_cuttype']] <- 'louvain'
+        # grp_df <- tibble::tibble(colnames(dAm), as.factor(clusterlouvain))
+        # names(grp_df) <- c('libname', 'WCluster')
+        #
+        # #grp_df$WCluster[grp_df$WCluster == 0] <- NA
+        #
+        # grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='libname')
+        #
+        # grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w])]] <- grp_df
       }
     }
   }

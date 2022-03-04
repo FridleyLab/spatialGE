@@ -1,19 +1,23 @@
 ##
-# @title spatial_xcell
-# @description Applies xCell to ST data.
-# @details
-# This function applies xCell to the stored transformed matrices in order to obtain
-# cell scores for each of the library/spots. The results are square-root transformed
-# scores, and p-values. Standard deviations are calculated for each cell type.
-# The function runs in parallel if unix system available.
-#
-# @param x, a STList with normalized count matrices.
-# @return x, an updated STList with xCell scores.
+#' @title spatial_xcell
+#' @description Applies xCell to ST data.
+#' @details
+#' This function applies xCell to the stored transformed matrices in order to obtain
+#' cell scores for each of the library/spots. The results are square-root transformed
+#' scores, and p-values. Standard deviations are calculated for each cell type.
+#' The function runs in parallel if unix system available.
+#'
+#' @param x, a STList with normalized count matrices.
+#' @return x, an updated STList with xCell scores.
+#'
+#' @import xCell
+#' @importFrom magrittr %>%
+#' @importFrom methods as is new
 #
 #
 spatial_xcell = function(x=NULL){
 
-  require('magrittr')
+  requireNamespace('magrittr')
   require('xCell') # Needs to be 'required' because of databases loaded by packages.
 
   # Test if an STList has been input.
@@ -29,6 +33,9 @@ spatial_xcell = function(x=NULL){
   # Define number of available cores to use
   # These will be used with xCell built-in parallelization
   cores = count_cores(length(x@tr_counts))
+
+  # Get xCell database
+  xCell.data = xCell::xCell.data
 
   # Estimate xCell cell type scores
   xcell_scores = list()

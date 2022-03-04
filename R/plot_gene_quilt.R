@@ -28,6 +28,9 @@
 #' # qplots <- plot_gene_quilt(melanoma, genes='CD74', plot_who=2, purity=T, visium=F)
 #'
 #' @export
+#'
+#' @importFrom grDevices dev.off n2mfrow pdf
+#' @importFrom methods as is new
 #
 #
 plot_gene_quilt = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', data_type='tr', purity=F, image=F, saveplot=NULL, inter=F, visium=T, ptsize=NULL){

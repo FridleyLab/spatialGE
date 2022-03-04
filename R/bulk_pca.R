@@ -19,13 +19,18 @@
 #' # bulk_pca(melanoma, clinvar='gender')
 #'
 #' @export
+#'
+#' @import Matrix
+#' @import ggplot2
+#' @importFrom magrittr %>%
+#' @importFrom methods as is new
 #
 #
 bulk_pca <- function(x=NULL, clinvar=NULL, color_pal="muted", tr_method='log', ptsize=5) {
 
-  require('magrittr')
-  require('Matrix')
-  require('ggplot2')
+  #require('magrittr')
+  #require('Matrix')
+  #require('ggplot2')
 
   if(!is.null(clinvar) && !(clinvar %in% colnames(x@clinical))){
     stop('Variable not in sample data. Verify that input matches variable name in sample data')

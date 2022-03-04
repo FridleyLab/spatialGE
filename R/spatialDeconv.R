@@ -18,6 +18,10 @@
 #' # melanoma <- spatial_deconv(melanoma, method='xcell')
 #'
 #' @export
+#'
+#' @import xCell
+#' @importFrom methods as is new
+#' @importFrom utils capture.output write.table
 #
 #
 spatialDeconv = function(x=NULL, method='xcell'){
@@ -49,7 +53,7 @@ spatialDeconv = function(x=NULL, method='xcell'){
   }
 
   if(method == 'xcell'){
-    require('xCell') # Needs to be 'required' because of databases loaded by packages.
+    #require('xCell') # Needs to be 'required' because of databases loaded by packages.
     x <- spatial_xcell(x)
   }
 
@@ -61,20 +65,22 @@ spatialDeconv = function(x=NULL, method='xcell'){
 # Helpers ----------------------------------------------------------------------
 
 ##
-# @title spatial_purity
-# @description Applies ESTIMATE to ST data.
-# @details
-# This function applies ESTIMATED to the stored transformed matrices in order to
-# obtain purity scores for each of the library/spots. The function runs on parallel
-# if unix system available.
-#
-# @param x, a STList with normalized count matrices.
-# @return x, an updated STList with ESTIMATE purity scores.
-#
+#' @title spatial_purity
+#' @description Applies ESTIMATE to ST data.
+#' @details
+#' This function applies ESTIMATED to the stored transformed matrices in order to
+#' obtain purity scores for each of the library/spots. The function runs on parallel
+#' if unix system available.
+#'
+#' @param x, a STList with normalized count matrices.
+#' @return x, an updated STList with ESTIMATE purity scores.
+#'
+#' @import estimate
+#' @importFrom methods as is new
 #
 spatial_purity <- function(x=NULL){
 
-  require('magrittr')
+  #require('magrittr')
   require('estimate') # Needs to be 'required' because of databases loaded by package.
 
   # Test if an STList has been input.
@@ -103,6 +109,8 @@ spatial_purity <- function(x=NULL){
     # If single core, will probably show progress.
     cat(paste0("Estimating 'purity' scores for sample ", names(x@tr_counts)[i], "...\n"))
 
+    #common.genes = estimate::common_genes
+
     # Write temporary file to store filtered data set. Required by ESTIMATE.
     tmp_filterexpr <- tempfile(fileext = ".gct", pattern='estimateCommonGenes_')
     estimate::filterCommonGenes(input.f=tmp_expr, output.f=tmp_filterexpr, id="GeneSymbol")
@@ -125,22 +133,24 @@ spatial_purity <- function(x=NULL){
 }
 
 ##
-# @title cluster_purity
-# @description Perform model-based clustering to define stromal/tumor clusters from
-# ESTIMATE purity scores.
-# @details
-# Takes ESTIMATE tumor purity scores and performs model-based clustering. The function
-# only evaluates k=2, to separate between likely tumor and stromal spots.
-#
-# @param x, an STList with ESTIMATE scores.
-# @return x, an STList with tumor/stroma classifications.
-#
+#' @title cluster_purity
+#' @description Perform model-based clustering to define stromal/tumor clusters from
+#' ESTIMATE purity scores.
+#' @details
+#' Takes ESTIMATE tumor purity scores and performs model-based clustering. The function
+#' only evaluates k=2, to separate between likely tumor and stromal spots.
+#'
+#' @param x, an STList with ESTIMATE scores.
+#' @return x, an STList with tumor/stroma classifications.
+#'
+#' @import mclust
+#' @importFrom methods as is new
 #
 cluster_purity <- function(x=NULL) {
 
-  suppressMessages(
-    require('mclust') #Mclust can't call mclust if the library is not loaded.
-  )
+  #suppressMessages(
+  #  require('mclust') #Mclust can't call mclust if the library is not loaded.
+  #)
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){

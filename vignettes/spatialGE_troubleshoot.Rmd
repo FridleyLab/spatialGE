@@ -25,3 +25,14 @@ echo 'R_MAX_VSIZE=100Gb' >> ~/.Renviron
 Then, close and re-open R and try to load the STList again.
 </details>
 
+
+<details>
+  <summary>**When using the Python kriging implementation, I receive an error about INTEL MKL. How can I solve it?**</summary>
+Assuming an Anaconda environment is already set up (`r-reticulate`), the issue might
+be solved by typing in a Terminal (Mac OS):
+```
+conda activate r-reticulate
+conda install -c intel mkl
+```
+Then, close and re-open R before running Python kriging again.
+</details>

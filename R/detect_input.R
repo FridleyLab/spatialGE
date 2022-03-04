@@ -1,21 +1,23 @@
 ##
-# @title detect_input: Determine what is being provided to STList
-# @description Detects the type of input being provided to the fucntion STList.
-# @details
-# This function detects what input is being provided to the STList() function. It
-# also detects the delimiter of the file when relevant. NOTE that the function does
-# minimum checking on the contents of file, limited mostly to detect if file is csv or tsv,
-# or if Visium files are available. Checks are performed on the first element only,
-# and thus other elements could not comply with the format.
-#
-# @param rnacounts, the file/directory with counts provided to STList.
-# @param spotcoords, the file with coordinates  provided to STList.
-# @param samples, the metadata or sample names provided to STList.
-# @return inputtype, a list containing file types of input arguments.
+#' @title detect_input: Determine what is being provided to STList
+#' @description Detects the type of input being provided to the fucntion STList.
+#' @details
+#' This function detects what input is being provided to the STList() function. It
+#' also detects the delimiter of the file when relevant. NOTE that the function does
+#' minimum checking on the contents of file, limited mostly to detect if file is csv or tsv,
+#' or if Visium files are available. Checks are performed on the first element only,
+#' and thus other elements could not comply with the format.
+#'
+#' @param rnacounts, the file/directory with counts provided to STList.
+#' @param spotcoords, the file with coordinates  provided to STList.
+#' @param samples, the metadata or sample names provided to STList.
+#' @return inputtype, a list containing file types of input arguments.
+#'
+#' @importFrom magrittr %>%
 #
 #
 detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
-  require('magrittr')
+  #require('magrittr')
   # Define output/return variable.
   # If variable remains NULL, then no valid input was given by the user.
   inputtype = list()

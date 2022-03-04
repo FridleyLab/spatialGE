@@ -24,12 +24,15 @@
 #' # cluster_p <- plot_STclusters(melanoma, purity=T, plot_who=c(2,3), visium=F)
 #'
 #' @export
+#'
+#' @import ggplot2
+#' @importFrom magrittr %>%
 #
 #
 plot_STclusters <- function(x, plot_who=NULL, ks=NULL, weights=NULL, purity=F, color_pal='light', visium=T, ptsize=NULL){
 
-  require('ggplot2')
-  require('magrittr')
+  #require('ggplot2')
+  #require('magrittr')
 
   if(rlang::is_empty(x@st_clusters)){
     stop('No clusters found in STList.')

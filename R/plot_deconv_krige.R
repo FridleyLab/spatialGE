@@ -29,6 +29,8 @@
 #' # kplots <- plot_deconv_krige(melanoma,  cells=c('b_cells', 'i_dc'), plot_who=2, visium=F)
 #'
 #' @export
+#'
+#' @importFrom grDevices dev.off n2mfrow pdf
 #
 #
 plot_deconv_krige <- function(x=NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr', method='xCell', saveplot=F, pvalues=F, purity=F, visium=T, ptsize=0.5){

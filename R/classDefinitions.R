@@ -1,13 +1,26 @@
 ## Class definitions -----------------------------------------------------------
 
 ##
-# Definition of an STList object class.
+#' Definition of an STList object class.
+#'
+#' @slot counts per spot RNA counts
+#' @slot coords per spot x,y coordinates
+#' @slot clinical dataframe with metadata per sample
+#' @slot tr_counts transfromed per spot counts
+#' @slot gene_var gene variances and standardized variances
+#' @slot gene_het spatial heterogeneity statistics per gene
+#' @slot gene_krige results from kriging on gene expression
+#' @slot cell_deconv results of ESTIMATE and cell type deconvolution
+#' @slot cell_krige results from kriging on cell type deconvolution scores
+#' @slot st_clusters cluster assignments from STclust
+#' @slot pheno_plots per gene plots of spatial heterogeneity statistics vs metadata variables
+#' @slot misc Parameters and images from ST data
 #
 #
 setClass(Class="STList",
          slots=list(counts="list",
                     coords="list",
-                    clinical="tbl",
+                    clinical=class(tibble::tibble())[1],
                     tr_counts="list",
                     gene_var="list",
                     gene_het="list",
@@ -15,7 +28,7 @@ setClass(Class="STList",
                     cell_deconv="list",
                     cell_krige="list",
                     st_clusters="list",
-                    pheno_plots="list",
+                    spstats_plots="list",
                     misc="list"
          )
 )
@@ -24,13 +37,13 @@ setClass(Class="STList",
 # STList Methods ---------------------------------------------------------------
 
 ##
-# @title show: Prints overview of STList oject.
-# @description Prints overview/summary of STList oject.
-# @details
-# This function takes an STList and prints a the number of spatial arrays in that
-# object and other information about the object.
-#
-# @param object, an STList object to show summary from.
+#' @title show: Prints overview of STList oject.
+#' @description Prints overview/summary of STList oject.
+#' @details
+#' This function takes an STList and prints a the number of spatial arrays in that
+#' object and other information about the object.
+#'
+#' @param object an STList object to show summary from.
 #
 #
 setMethod("show", signature="STList",
@@ -47,13 +60,13 @@ setMethod("show", signature="STList",
 )
 
 ##
-# @title summary: Prints overview of STList oject.
-# @description Prints overview/summary of STList oject.
-# @details
-# This function takes an STList and prints a the number of spatial arrays in that
-# object and other information about the object.
-#
-# @param object, an STList object to show summary from.
+#' @title summary: Prints overview of STList oject.
+#' @description Prints overview/summary of STList oject.
+#' @details
+#' This function takes an STList and prints a the number of spatial arrays in that
+#' object and other information about the object.
+#'
+#' @param object an STList object to show summary from.
 #
 #
 setMethod("summary", signature="STList",
@@ -70,13 +83,13 @@ setMethod("summary", signature="STList",
 )
 
 ##
-# @title dim: Prints the dimensions of count arrays within an STList object.
-# @description Returns the number of genes and spots for each array within an STList object
-# @details
-# This function takes an STList and prints the number of genes (rows) and spots (columns) of
-# each spatial array within that object.
-#
-# @param object, an STList object to show summary from.
+#' @title dim: Prints the dimensions of count arrays within an STList object.
+#' @description Returns the number of genes and spots for each array within an STList object
+#' @details
+#' This function takes an STList and prints the number of genes (rows) and spots (columns) of
+#' each spatial array within that object.
+#'
+#' @param x an STList object to show summary from.
 #
 #
 setMethod(dim, signature(x="STList"),

@@ -30,6 +30,9 @@
 #' # qplots <- plot_deconv_quilt(melanoma, genes='b_cells', plot_who=2, purity=T, visium=F, inter=T)
 #'
 #' @export
+#'
+#' @importFrom grDevices dev.off n2mfrow pdf
+#' @importFrom methods as is new
 #
 #
 plot_deconv_quilt <- function(x = NULL, cells=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, method='xcell', saveplot=NULL, inter=F, visium=T, ptsize=0.5){
