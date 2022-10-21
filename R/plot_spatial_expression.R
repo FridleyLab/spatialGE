@@ -27,6 +27,8 @@
 # @export
 #
 # @importFrom methods as is new
+#' @import ggplot2
+#' @importFrom magrittr %>%
 #
 #
 plot_gene_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuRd', data_type='tr', image=F, visium=T, ptsize=NULL){

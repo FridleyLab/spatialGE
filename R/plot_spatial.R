@@ -33,13 +33,13 @@ plot_spatial = function(x, samples=NULL, genes=NULL, data_type='tr', ks='dtc', w
 
   # Define if expression or metadata is to be plotted
   if(!is.null(genes)){
-    # Set default colorif NULL input
+    # Set default color if NULL input
     if(is.null(color_pal)){
       color_pal = 'BuRd'
     }
     plot_list = plot_gene_expression(x=x, genes=genes, samples=samples, color_pal=color_pal, data_type=data_type, image=image, visium=visium, ptsize=ptsize)
   } else{
-    # Set default colorif NULL input
+    # Set default color if NULL input
     if(is.null(color_pal)){
       color_pal = 'light'
     }
