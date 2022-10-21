@@ -1,3 +1,0 @@
-"0","count_files <- list.files(""~/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/code/spatialGE/inst/extdata/"", full.names=T, pattern='counts')"
-"0","coord_files <- list.files(""~/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/code/spatialGE/inst/extdata/"", full.names=T, pattern='mapping')"
-"0","clin_file <- ""~/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/code/spatialGE/inst/extdata/thrane_clinical.csv"""

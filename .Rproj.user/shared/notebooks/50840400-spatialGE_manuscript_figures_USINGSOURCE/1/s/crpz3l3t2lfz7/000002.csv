@@ -1,2 +1,0 @@
-"0","cell_names <- c('b_cells')"
-"0","thrane <- deconv_krige(thrane, cells=cell_names, univ=F)"

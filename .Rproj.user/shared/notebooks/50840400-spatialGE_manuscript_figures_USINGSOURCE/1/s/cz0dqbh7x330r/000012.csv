@@ -1,2 +1,0 @@
-"0","gene_names <- c('PMEL', 'SPP1', 'CD74', 'IGLL5', 'SOX10', 'SOX4')"
-"0","plist2 <- plot_gene_krige(thrane, genes=gene_names, plot_who=2, visium=F)"
