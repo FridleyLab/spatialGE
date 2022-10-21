@@ -19,15 +19,16 @@
 #
 setClass(Class="STList",
          slots=list(counts="list",
-                    coords="list",
-                    clinical=class(tibble::tibble())[1],
+                    spatial_meta="list",
+                    gene_meta="list",
+                    sample_meta=class(tibble::tibble())[1],
                     tr_counts="list",
-                    gene_var="list",
+                    #gene_var="list",
                     gene_het="list",
                     gene_krige="list",
                     cell_deconv="list",
                     cell_krige="list",
-                    st_clusters="list",
+                    #st_clusters="list",
                     spstats_plots="list",
                     misc="list"
          )

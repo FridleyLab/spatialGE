@@ -24,29 +24,30 @@
 #' @import ggplot2
 #
 #
-quilt_p <- function(data_f=NULL, color_pal="YlOrBr", leg_name='', title_name='', minvalue=minvalue, maxvalue=maxvalue, visium=T, ptsize=0.5){
-  requireNamespace('ggplot2')
+quilt_p <- function(data_f=NULL, color_pal="BuRd", leg_name='', title_name='', minvalue=minvalue, maxvalue=maxvalue, visium=T, ptsize=0.5){
+  #requireNamespace('ggplot2')
 
   # Creates color palette function.
   p_palette = color_parse(color_pal)
 
   # Create plot.
-  p <- ggplot(data=data_f, aes(x=x_pos, y=y_pos, color=values)) +
-    geom_point(size=ptsize) +
-    scale_color_gradientn(colours=p_palette, limits=c(minvalue, maxvalue)) +
-    xlab("X Position") +
-    ylab("Y Position") +
-    labs(color=leg_name, title=title_name) +
-    theme_classic()
+  p <- ggplot2::ggplot(data=data_f, ggplot2::aes(x=xpos, y=ypos, color=values)) +
+    ggplot2::geom_point(size=ptsize) +
+    ggplot2::scale_color_gradientn(colours=p_palette, limits=c(minvalue, maxvalue)) +
+    ggplot2::xlab("X Position") +
+    ggplot2::ylab("Y Position") +
+    ggplot2::labs(color=leg_name, title=title_name) +
+    ggplot2::theme_void()
 
     if(visium){
       p <- p + #scale_x_reverse() +
-        scale_y_reverse() + coord_fixed(ratio=1.7)
+        ggplot2::scale_y_reverse() + ggplot2::coord_fixed(ratio=1)
+        # scale_y_reverse() + coord_fixed(ratio=1.7)
     } else {
-      p <- p + coord_fixed(ratio=1)
+      p <- p + ggplot2::coord_fixed(ratio=1)
     }
 
-    p <- p + theme(legend.position="right")
+    p <- p + ggplot2::theme(legend.position="right")
 
   return(p)
 }
@@ -100,7 +101,8 @@ quilt_p_purity <- function(data_f=NULL, color_pal="YlOrBr", leg_name='', title_n
 
   if(visium){
     p1 <- p1 + #scale_x_reverse() +
-      scale_y_reverse() + coord_fixed(ratio=1.7)
+      scale_y_reverse() + coord_fixed(ratio=1)
+      # scale_y_reverse() + coord_fixed(ratio=1.7)
   } else{
     p1 <- p1 + coord_fixed(ratio=1)
   }
@@ -147,7 +149,8 @@ quilt_p_purity_bw <- function(data_f=NULL, title_name='', visium=T, ptsize=0.5){
 
     if(visium){
       p2 <- p2 + #scale_x_reverse() +
-        scale_y_reverse() + coord_fixed(ratio=1.7)
+        #scale_y_reverse() + coord_fixed(ratio=1.7)
+        scale_y_reverse() + coord_fixed(ratio=1)
     } else{
       p2 <- p2 + coord_fixed(ratio=1)
     }
@@ -212,7 +215,8 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
 
   if(visium){
     p <- p + scale_y_reverse() + #scale_x_reverse() +
-      coord_fixed(ratio=1.7)
+      #coord_fixed(ratio=1.7)
+      coord_fixed(ratio=1)
   } else{
     p <- p + coord_fixed(ratio=1)
   }
@@ -294,7 +298,8 @@ krige_p_pvals <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='
     theme(legend.position="right", plot.title=element_text(size=8))
 
   if(visium){
-    p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
+    #p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
+    p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1)
   } else{
     p <- p + coord_fixed(ratio=1)
   }
@@ -365,7 +370,8 @@ krige_p_purity <- function(data_f=NULL, tumorstroma=NULL, mask=NULL, color_pal="
     theme(legend.position="right", plot.title=element_text(size=8), legend.text = element_text(size=10))
 
   if(visium){
-    p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
+    #p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1.7)
+    p <- p + scale_x_reverse() + scale_y_reverse() + coord_fixed(ratio=1)
   } else{
     p <- p + coord_fixed(ratio=1)
   }

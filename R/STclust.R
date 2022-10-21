@@ -11,9 +11,9 @@
 #' within a tissue.
 #'
 #' @param x an STList with normalized expression data.
-#' @param weights a double (0-1) indicating the weight to be applied to spatial distances.
+#' @param ws a double (0-1) indicating the weight to be applied to spatial distances.
 #' Defaults to w=0.025.
-#' @param dist, the distrance measurement to be used. Defaults to 'euclidean'. Other
+#' @param dist.metric, the distance metric to be used. Defaults to 'euclidean'. Other
 #' options as provided by `wordspace::dist.matrix`.
 #' @param linkage the linkage method applied to hierarchical clustering. Passed to
 #' `hclust` and defaults to 'ward.D'.
@@ -40,12 +40,14 @@
 #' @importFrom stats as.dist complete.cases cutree dist hclust prcomp sd
 #
 #
-STclust = function(x=NULL, weights=0.025, dist='euclidean', linkage='ward.D', ks='dtc', topgenes=2000, deepSplit=F) {
-
-  #require('magrittr')
-
+STclust = function(x=NULL, ws=0.025, dist.metric='euclidean', linkage='ward.D', ks='dtc', topgenes=2000, deepSplit=F){
   # Clustering method to use. Set because other methods will be supported in future versions
   clmethod = 'hclust'
+
+  # Do not allow weights higher than 1
+  if(any(ws < 0) | any(ws > 1)){
+    stop('Please select a spatial weight between 0 and 1.')
+  }
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STList')){
@@ -61,100 +63,108 @@ STclust = function(x=NULL, weights=0.025, dist='euclidean', linkage='ward.D', ks
 
   grp_list = list()
   for(i in 1:length(x@tr_counts)){
-
     # Find tops variable genes using Seurat approach. In the past, instead of Seurat, genes with the highest stdev were used
-    if(any(colnames(x@gene_var[[i]]) == 'vst.variance.standardized')){
-      x@gene_var[[i]] = x@gene_var[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_var[[i]]))]
+    if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
+      x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
     }
-    x@gene_var[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+
+    x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
       tibble::rownames_to_column(var='gene') %>%
       dplyr::select('gene', 'vst.variance.standardized') %>%
-      dplyr::left_join(x@gene_var[[i]], ., by='gene')
-    topgenenames = x@gene_var[[i]][order(x@gene_var[[i]]$vst.variance.standardized, decreasing=T), ]
-    topgenenames = topgenenames[['gene']][1:topgenes]
+      dplyr::left_join(x@gene_meta[[i]], ., by='gene')
+
+    topgenenames = x@gene_meta[[i]] %>%
+      dplyr::arrange(desc(vst.variance.standardized)) %>%
+      dplyr::slice_head(n=topgenes) %>%
+      dplyr::select(gene) %>%
+      unlist() %>%
+      as.vector()
 
     # Get transformed counts
-    trcounts_df = x@tr_counts[[i]][x@tr_counts[[i]]$gene %in% topgenenames, ]
+    trcounts_df = x@tr_counts[[i]][rownames(x@tr_counts[[i]]) %in% topgenenames, ]
 
     # Convert counts and coordinate data to matrices
-    A = t(as.matrix(trcounts_df[, -1]))
-    rownames(A) = colnames(trcounts_df[, -1])
-    B = as.matrix(x@coords[[i]][,-1])
-    rownames(B) = x@coords[[i]][[1]]
+    A = t(as.matrix(trcounts_df))
+    B = x@spatial_meta[[i]] %>%
+      tibble::column_to_rownames(var='libname')
+    B = as.matrix(B[match(rownames(B), rownames(A)), ])
 
     # Get distance matrices
-    dA <- wordspace::dist.matrix(A, method=dist)
-    dB <- dist(B, upper=T, diag=T)
-    dAm <- as.matrix(dA)
-    dBm <- as.matrix(dB)
+    dA = wordspace::dist.matrix(A, method=dist.metric)
+    dB = dist(B, upper=T, diag=T)
+    dAm = as.matrix(dA)
+    dBm = as.matrix(dB)
 
     # Scale matrices
-    dAm <- dAm/max(dAm)
-    dBm <- dBm/max(dBm)
+    dAm = dAm/max(dAm)
+    dBm = dBm/max(dBm)
 
-    for(w in 1:length(weights)){
-      weight_d <- weights[w]
-      weight_g <- 1-weight_d
+    for(w in 1:length(ws)){
+      weight_d = ws[w]
+      weight_g = 1-weight_d
 
       # Create vector of weights for Reduce
-      weightList <- c(weight_g, weight_d)
-      dMxs <- list(dAm, dBm)
+      weightList = c(weight_g, weight_d)
+      dMxs = list(dAm, dBm)
 
-      # Apply wieight element-wise
-      weight_m <- Reduce(`+`,Map(`*`, dMxs, weightList))
+      # Apply weight element-wise
+      weight_m = Reduce('+', Map('*', dMxs, weightList))
       # Convert result to matrix
-      weight_m <- matrix(weight_m, nrow(dAm))
-      weight_m_d <- as.dist(weight_m)
+      weight_m_d = as.dist(weight_m)
 
       if(clmethod == 'hclust'){
-        # Performe hclust
-        hierclusters <- hclust(weight_m_d, method=linkage)
+        # Run hierarchical clustering
+        hierclusters = hclust(weight_m_d, method=linkage)
 
         # Apply dtc or split to k
         if(is.character(ks)){
           if(ks == 'dtc'){
-            x@misc[['STclust_cuttype']] <- 'dtc'
+            # Set list element names based on weight and deepSplit
+            if(is.logical(deepSplit)){
+              if(deepSplit){
+                dspl = 'True'
+              } else{
+                dspl = 'False'
+              }
+            } else{
+              dspl = deepSplit
+            }
+            col_name = paste0('stclust_spw', ws[w], '_dspl', dspl)
+
             grp_df <- dynamicTreeCut::cutreeDynamic(hierclusters, method='hybrid', distM=weight_m, deepSplit=deepSplit, verbose=F)
-            grp_df <- tibble::tibble(colnames(dAm), as.factor(grp_df))
-            names(grp_df) <- c('libname', 'WCluster')
+            grp_df <- tibble::tibble(libname=colnames(dAm), !!col_name:=as.factor(grp_df))
 
-            grp_df$WCluster[grp_df$WCluster == 0] <- NA
-
-            grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='libname')
-
-            grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w])]] <- grp_df
+            grp_df[[col_name]][grp_df[[col_name]] == 0] = NA
+            if(any(colnames(x@spatial_meta[[i]]) == col_name)){
+              x@spatial_meta[[i]] = x@spatial_meta[[i]] %>%
+                dplyr::select(-!!col_name)
+            }
+            x@spatial_meta[[i]] = x@spatial_meta[[i]] %>%
+              dplyr::full_join(., grp_df, by='libname')
           }
         }else if(is.numeric(ks)){
-          x@misc[['STclust_cuttype']] <- 'multiK'
           for(k in ks){
-            singlek <-  cutree(hierclusters, k=k)
-            singlek <- tibble::tibble(colnames(dAm), as.factor(singlek))
-            names(singlek) <- c('libname', 'WCluster')
-            singlek <- dplyr::full_join(x@coords[[i]], singlek, by='libname')
-            grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w], '_k', k)]] <- singlek
+            # Set list element names based on weight and k value
+            col_name = paste0('stclust_spw', ws[w], '_k', k)
+            singlek <- cutree(hierclusters, k=k)
+            singlek <- tibble::tibble(libname=colnames(dAm), !!col_name:=as.factor(singlek))
+
+            if(any(colnames(x@spatial_meta[[i]]) == col_name)){
+              x@spatial_meta[[i]] = x@spatial_meta[[i]] %>%
+                dplyr::select(-!!col_name)
+            }
+            x@spatial_meta[[i]] = x@spatial_meta[[i]] %>%
+              dplyr::full_join(., singlek, by='libname')
           }
         } else{
           stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')
         }
       }
       else{
-        # clusterlouvain = bluster::clusterRows(weight_m,
-        #                                       BLUSPARAM=bluster::NNGraphParam(
-        #                                         shared=T,
-        #                                         cluster.fun="louvain", k=nn))
-        # x@misc[['STclust_cuttype']] <- 'louvain'
-        # grp_df <- tibble::tibble(colnames(dAm), as.factor(clusterlouvain))
-        # names(grp_df) <- c('libname', 'WCluster')
-        #
-        # #grp_df$WCluster[grp_df$WCluster == 0] <- NA
-        #
-        # grp_df <- dplyr::full_join(x@coords[[i]], grp_df, by='libname')
-        #
-        # grp_list[[paste0(names(x@tr_counts[i]), "_spw", weights[w])]] <- grp_df
+        stop('Currently, only spatially-informed hierarchical clustering is supported.')
       }
     }
   }
-  x@st_clusters <- grp_list
 
   return(x)
 }
