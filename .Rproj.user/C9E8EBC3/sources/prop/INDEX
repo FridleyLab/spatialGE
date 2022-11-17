@@ -23,6 +23,7 @@
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2Fgeomx_tutorial_dataset%2Fcode%2Fgeomx_kidney_example_dataset.Rmd="DD349CB8"
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2FspatialGE%2FR%2FSTList.R="52BA7F11"
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2FspatialGE%2FR%2FSTclust.R="86971170"
+~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2FspatialGE%2FR%2FSTde.R="4AD99799"
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2FspatialGE%2FR%2Fbulk_pca.R="17960A1F"
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2FspatialGE%2FR%2Fcell_moran_I.R="71F1228A"
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2FspatialGE%2FR%2FclassDefinitions.R="30B9F61C"
@@ -37,3 +38,4 @@
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2FspatialGE%2Fvignettes%2FspatialGE_troubleshoot.Rmd="0CF6FBBD"
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2Fspatial_transcriptomics_manuscript%2FspatialGE_manuscript_figures%2FspatialGE_manuscript_figures_USINGSOURCE.Rmd="F68E5B54"
 ~%2FDropbox%20(Moffitt%20Cancer%20Center)%2FSPATIAL_TRANSCRIPTOMICS%2Fvisium_data_InnaSmalley%2FpooledSamples_clustering%2Fcode%2FpooledSamples_Seurat_clustering_regressSampleID.Rmd="51ADE80C"
+~%2FDropbox%20(Moffitt%20Cancer%20Center)%2Ftest_tmp_stde.R="B85546B5"

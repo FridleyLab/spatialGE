@@ -1,5 +1,5 @@
 ##
-#' @title STList: Creation of STList objects for spatial transcriptomics analysis
+#' @title STlist: Creation of STList objects for spatial transcriptomics analysis
 #' @description Creates an STList object from one or several spatial transcriptomic data sets.
 #' @details
 #' Objects of the S4 class STList can be created from two sources:
@@ -80,7 +80,7 @@
 #' @import Matrix
 #' @importFrom magrittr %>%
 #'
-STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_x_col=NULL, gmx_y_col=NULL, gmx_meta_cols=NULL) {
+STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_x_col=NULL, gmx_y_col=NULL, gmx_meta_cols=NULL) {
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
 
@@ -218,7 +218,7 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
   }
 
   # Creates STList object from both count and coordinates data.
-  STList_obj = new("STList",
+  STlist_obj = new("STlist",
                    counts=procLists[['counts']],
                    spatial_meta=procLists[['coords']],
                    gene_meta=list(),
@@ -232,8 +232,8 @@ STList = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, g
                    spstats_plots=list(),
                    misc=list(sp_images=img_obj, platform=platform)
   )
-  cat(crayon::green$bold(paste("Completed STList!\n")))
-  return(STList_obj)
+  cat(crayon::green$bold(paste("Completed STlist!\n")))
+  return(STlist_obj)
 }
 
 

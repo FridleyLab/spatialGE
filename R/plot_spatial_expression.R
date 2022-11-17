@@ -31,7 +31,7 @@
 #' @importFrom magrittr %>%
 #
 #
-plot_gene_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuRd', data_type='tr', image=F, visium=T, ptsize=NULL){
+plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuRd', data_type='tr', image=F, visium=T, ptsize=NULL){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
@@ -72,7 +72,7 @@ plot_gene_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuR
   for(i in samples){
     if(any(rownames(counts[[i]]) %in% genes)){
       counts[[i]] = counts[[i]] %>%
-        as.data.frame() %>%
+        expandSparse() %>%
         tibble::rownames_to_column(var='gene') %>%
         dplyr::filter(gene %in% genes) %>%
         tibble::column_to_rownames(var='gene') %>%

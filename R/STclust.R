@@ -13,7 +13,7 @@
 #' @param x an STList with normalized expression data.
 #' @param ws a double (0-1) indicating the weight to be applied to spatial distances.
 #' Defaults to w=0.025.
-#' @param dist.metric, the distance metric to be used. Defaults to 'euclidean'. Other
+#' @param dist_metric, the distance metric to be used. Defaults to 'euclidean'. Other
 #' options as provided by `wordspace::dist.matrix`.
 #' @param linkage the linkage method applied to hierarchical clustering. Passed to
 #' `hclust` and defaults to 'ward.D'.
@@ -40,7 +40,7 @@
 #' @importFrom stats as.dist complete.cases cutree dist hclust prcomp sd
 #
 #
-STclust = function(x=NULL, ws=0.025, dist.metric='euclidean', linkage='ward.D', ks='dtc', topgenes=2000, deepSplit=F){
+STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D', ks='dtc', topgenes=2000, deepSplit=F){
   # Clustering method to use. Set because other methods will be supported in future versions
   clmethod = 'hclust'
 
@@ -50,8 +50,8 @@ STclust = function(x=NULL, ws=0.025, dist.metric='euclidean', linkage='ward.D', 
   }
 
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STList')){
-    stop("The input must be a STList.")
+  if(is.null(x) | !is(x, 'STlist')){
+    stop("The input must be a STlist.")
   }
 
   # Check to ensure number of ks is acceptable
@@ -90,7 +90,7 @@ STclust = function(x=NULL, ws=0.025, dist.metric='euclidean', linkage='ward.D', 
     B = as.matrix(B[match(rownames(B), rownames(A)), ])
 
     # Get distance matrices
-    dA = wordspace::dist.matrix(A, method=dist.metric)
+    dA = wordspace::dist.matrix(A, method=dist_metric)
     dB = dist(B, upper=T, diag=T)
     dAm = as.matrix(dA)
     dBm = as.matrix(dB)

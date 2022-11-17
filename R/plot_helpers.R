@@ -214,11 +214,11 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
     theme_classic()
 
   if(visium){
-    p <- p + scale_y_reverse() + #scale_x_reverse() +
+    p <- p + ggplot2::scale_y_reverse() + #scale_x_reverse() +
       #coord_fixed(ratio=1.7)
-      coord_fixed(ratio=1)
+      ggplot2::coord_fixed(ratio=1)
   } else{
-    p <- p + coord_fixed(ratio=1)
+    p <- p + ggplot2::coord_fixed(ratio=1)
   }
 
   p <- p + theme(legend.position="right")

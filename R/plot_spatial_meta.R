@@ -125,11 +125,11 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         ggplot2::theme_void()
 
       if(visium){
-        p = p + scale_y_reverse() + coord_fixed(ratio=1) #scale_x_reverse()
+        p = p + ggplot2::scale_y_reverse() + ggplot2::coord_fixed(ratio=1) #scale_x_reverse()
       } else{
-        p = p + coord_fixed(ratio=1)
+        p = p + ggplot2::coord_fixed(ratio=1)
       }
-      p = p + theme(legend.title=element_blank())
+      p = p + ggplot2::theme(legend.title=ggplot2::element_blank())
 
       plot_list[[paste0(s, '_', metacol)]] = p
     }

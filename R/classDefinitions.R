@@ -1,7 +1,7 @@
 ## Class definitions -----------------------------------------------------------
 
 ##
-#' Definition of an STList object class.
+#' Definition of an STlist object class.
 #'
 #' @slot counts per spot RNA counts
 #' @slot coords per spot x,y coordinates
@@ -17,7 +17,7 @@
 #' @slot misc Parameters and images from ST data
 #
 #
-setClass(Class="STList",
+setClass(Class="STlist",
          slots=list(counts="list",
                     spatial_meta="list",
                     gene_meta="list",
@@ -47,15 +47,15 @@ setClass(Class="STList",
 #' @param object an STList object to show summary from.
 #
 #
-setMethod("show", signature="STList",
+setMethod("show", signature="STlist",
           function(object){
-            cat("Spatial Transcriptomics List (STList).\n")
+            cat("Spatial Transcriptomics List (STlist).\n")
             cat(length(object@counts), "spatial array(s):\n")
             cat(paste0('\t', names(object@counts), '\n'))
             cat('\n')
-            if(!rlang::is_empty(object@clinical)){
-              cat(paste0((ncol(object@clinical)-1), " variables in sample data:\n"))
-              cat('\t', paste0(colnames(object@clinical[, -1]), collapse = ', '))
+            if(!rlang::is_empty(object@sample_meta)){
+              cat(paste0((ncol(object@sample_meta)-1), " variables in sample data:\n"))
+              cat('\t', paste0(colnames(object@sample_meta[, -1]), collapse = ', '))
             }
           }
 )
@@ -70,15 +70,15 @@ setMethod("show", signature="STList",
 #' @param object an STList object to show summary from.
 #
 #
-setMethod("summary", signature="STList",
+setMethod("summary", signature="STlist",
           function(object){
-            cat("Spatial Transcriptomics List (STList).\n")
+            cat("Spatial Transcriptomics List (STlist).\n")
             cat(length(object@counts), "spatial array(s):\n")
             cat(paste0('\t', names(object@counts), '\n'))
             cat('\n')
-            if(!rlang::is_empty(object@clinical)){
-              cat(paste0((ncol(object@clinical)-1), " variables in sample data:\n"))
-              cat('\t', paste0(colnames(object@clinical[, -1]), collapse = ', '))
+            if(!rlang::is_empty(object@sample_meta)){
+              cat(paste0((ncol(object@sample_meta)-1), " variables in sample data:\n"))
+              cat('\t', paste0(colnames(object@sample_meta[, -1]), collapse = ', '))
             }
           }
 )
@@ -93,7 +93,7 @@ setMethod("summary", signature="STList",
 #' @param x an STList object to show summary from.
 #
 #
-setMethod(dim, signature(x="STList"),
+setMethod(dim, signature(x="STlist"),
           function(x){
             dim_res = list()
             for(i in seq(x@counts)){
