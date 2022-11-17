@@ -1,5 +1,5 @@
 ##
-#' @title spatialTransform: Data transformation of spatial transcriptomics data
+#' @title transform_data: Data transformation of spatial transcriptomics data
 #' @description Applies data transformation methods to spatia transcriptomics experiments of an STList
 #' @details
 #' This function takes an STList with raw counts and applies logarithmic transformation
@@ -21,7 +21,7 @@
 #' @importFrom methods as is new
 #
 #
-spatialTransform = function(x=NULL, scale_f=10000){
+transform_data = function(x=NULL, scale_f=10000){
 
   method = 'log'
 
@@ -82,8 +82,8 @@ spatialTransform = function(x=NULL, scale_f=10000){
 #
 log_transf = function(x=NULL, scale_f=NULL){
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, "STList")){
-    stop("The input must be a STList.")
+  if(is.null(x) | !is(x, "STlist")){
+    stop("The input must be a STlist.")
   }
 
   # Detect usable cores
@@ -102,7 +102,7 @@ log_transf = function(x=NULL, scale_f=NULL){
     if(any(libsizes == 0)){
       zero_size = as.vector(which(libsizes == 0))
       df_tmp = df_tmp[, -zero_size]
-      system(sprintf('echo "%s"', crayon::red(paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", i, " and from the entire STList."))))
+      system(sprintf('echo "%s"', crayon::red(paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", i, " and from the entire STlist."))))
       libsizes = libsizes[libsizes != 0]
     }
 
@@ -157,8 +157,8 @@ voom_norm = function(x=NULL){
   cores = count_cores(length(x@counts))
 
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, "STList")){
-    stop("The input must be a STList.")
+  if(is.null(x) | !is(x, "STlist")){
+    stop("The input must be a STlist.")
   }
 
   # Perform voom transformation on parallel if possible.
