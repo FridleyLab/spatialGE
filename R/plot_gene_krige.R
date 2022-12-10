@@ -6,16 +6,14 @@
 #' spatial arrays.
 #'
 #' @param x an STList with kriging objects for the genes selected.
-#' @param genes a vector of gene names (one or several) to plot.  If 'top', the 10
+#' @param genes a vector of gene names (one or several) to plot.  If 'all', the 10
 #' genes with highest standard deviation from each spatial array ar plotted.
-#' @param plot_who, a vector of numbers indicating the spatial arrays to plot
+#' @param top_n an integer indicating how many top genes to perform kriging. Default is 10.
+#' @param samples, a vector of numbers indicating the spatial arrays to plot
 #' genes from. Numbers follow the order in `names(x@counts)`. If NULL, will plot
 #' all spatial arrays.
 #' @param color_pal a color scheme from 'khroma' or RColorBrewer.
-#' @param purity logical, whether or not annotate tumor spots based on
-#' ESTIMATE tumor purity scores.
 #' @param image logical, whether to print the image stored for the spatial arrays
-#' @param saveplot, a file name specifying the name of a PDF file to write plots to.
 #' @param visium whether or not to reverse axes for Visium slides.
 #' @param ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
 #' @return a list with plots.
@@ -29,7 +27,7 @@
 #' @importFrom grDevices dev.off n2mfrow pdf
 #
 #
-plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr', purity=F, image=F, saveplot=NULL, visium=T, ptsize=0.5){
+plot_gene_krige = function(x=NULL, genes=NULL, top_n=10, samples=NULL, color_pal='YlOrBr', image=F, visium=T, ptsize=0.5){
 
   # Option to use plotly disabled (not supporting geomPolypath)
   inter=F
@@ -40,15 +38,24 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
   }
 
   # Test if no specific subject plot was requested.
-  if (is.null(plot_who)) {
-    plot_who <- c(1:length(x@counts))
+  if (is.null(samples)) {
+    samples <- c(1:length(x@counts))
   }
 
   # If genes='top', get names of 10 genes with the highest standard deviation.
   if(length(genes) == 1 && genes == 'top'){
     genes = c()
-    for(i in plot_who){
-      genes = append(genes, x@gene_stdev[[i]]$gene[order(x@gene_stdev[[i]]$gene_stdevs, decreasing=T)][1:10])
+    for(i in samples){
+      # Find tops variable genes using Seurat approach. In the past, instead of Seurat, genes with the highest stdev were used
+      if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
+        x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
+      }
+      x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+        tibble::rownames_to_column(var='gene') %>%
+        dplyr::select('gene', 'vst.variance.standardized') %>%
+        dplyr::left_join(x@gene_meta[[i]], ., by='gene')
+
+      genes = append(genes, x@gene_meta[[i]][['gene']][order(x@gene_meta[[i]][['vst.variance.standardized']], decreasing=T)][1:top_n])
     }
     # Get unique genes from most variable.
     genes = unique(genes)
@@ -57,7 +64,7 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
   # Store maximum and minimum expression value for plot color scaling
   maxvalue <- c()
   minvalue <- c()
-  for (i in plot_who) {
+  for (i in samples) {
     for (gene in genes) {
       # Test if kriging exists for a gene and subject.
       if (rlang::has_name(x@gene_krige, gene)){
@@ -78,7 +85,7 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
   kp_list <- list()
 
   # Loop through each of the subjects.
-  for (i in plot_who) {
+  for (i in samples) {
     # Loop though genes to plot.
     for (gene in genes) {
 
@@ -123,29 +130,30 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
       # Construct title.
       titlekrige <- paste0(gene, " (kriging)\nsample: ", names(x@tr_counts[i]))
 
-      if(purity){
-        tumorstroma_df <- dplyr::bind_cols(x@coords[[i]], cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
-        kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
-                             tumorstroma=tumorstroma_df,
-                             leg_name="pred_expr", title_name=titlekrige, minvalue=minvalue,
-                             maxvalue=maxvalue, visium=visium)
-        if(!(rlang::is_empty(x@cell_deconv))){
-          # Add a dummy duplicate column (expression values are added to this data frame when quilt plots)
-          df_q = dplyr::bind_cols(x@coords[[i]][,-1],
-                                  cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster,
-                                  cluster2=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
-          colnames(df_q) <- c('y_pos', 'x_pos', 'cluster', 'cluster2')
-          qpbw <- quilt_p_purity_bw(data_f=df_q, visium=visium,
-                                    title_name=paste0('ESTIMATE\ntumor/stroma\nsample: ', names(x@tr_counts[i])),
-                                    ptsize=ptsize)
-        } else{
-          stop("No tumor/stroma classification in the STList.")
-        }
-
-      } else{
+      # if(purity){
+      #   tumorstroma_df <- dplyr::bind_cols(x@coords[[i]], cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+      #   kp <- krige_p_purity(data_f=df, mask=bbox_mask_diff, color_pal=color_pal,
+      #                        tumorstroma=tumorstroma_df,
+      #                        leg_name="pred_expr", title_name=titlekrige, minvalue=minvalue,
+      #                        maxvalue=maxvalue, visium=visium)
+      #   if(!(rlang::is_empty(x@cell_deconv))){
+      #     # Add a dummy duplicate column (expression values are added to this data frame when quilt plots)
+      #     df_q = dplyr::bind_cols(x@coords[[i]][,-1],
+      #                             cluster=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster,
+      #                             cluster2=x@cell_deconv$ESTIMATE[[i]]$purity_clusters$cluster)
+      #     colnames(df_q) <- c('y_pos', 'x_pos', 'cluster', 'cluster2')
+      #     qpbw <- quilt_p_purity_bw(data_f=df_q, visium=visium,
+      #                               title_name=paste0('ESTIMATE\ntumor/stroma\nsample: ', names(x@tr_counts[i])),
+      #                               ptsize=ptsize)
+      #   } else{
+      #     stop("No tumor/stroma classification in the STList.")
+      #   }
+      #
+      # } else{
         kp <- krige_p(data_f=df, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
                       title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue, visium=visium)
-      }
+      #}
+
       # Append plot to list.
       kp_list[[paste0(gene, "_", i)]] <- kp
     }
@@ -156,30 +164,30 @@ plot_gene_krige = function(x=NULL, genes=NULL, plot_who=NULL, color_pal='YlOrBr'
         annotation_custom(img_obj)
     }
 
-    if(purity){
-      kp_list[[paste0('subj',i)]] <- qpbw
-    }
+    # if(purity){
+    #   kp_list[[paste0('subj',i)]] <- qpbw
+    # }
   }
 
-  row_col <- c(1, 1)
+  #row_col <- c(1, 1)
 
   # Test if plot should be saved to PDF.
-  if(!is.null(saveplot)){
-    # Print plots to PDF.
-    pdf(file=saveplot)
-    print(ggpubr::ggarrange(plotlist=kp_list, nrow=row_col[1], ncol=row_col[2], common.legend=F, legend='bottom'))
-    dev.off()
-  } else{
-    # Convert ggplots to plotly plots.
-    if(inter == T && purity == T && image == F){
-      for(p in 1:length(kp_list)){
-        kp_list[[p]] = plotly::ggplotly(kp_list[[p]])
-      }
-      return(kp_list)
-    }else{
+  # if(!is.null(saveplot)){
+  #   # Print plots to PDF.
+  #   pdf(file=saveplot)
+  #   print(ggpubr::ggarrange(plotlist=kp_list, nrow=row_col[1], ncol=row_col[2], common.legend=F, legend='bottom'))
+  #   dev.off()
+  # } else{
+  #   # Convert ggplots to plotly plots.
+  #   if(inter == T && purity == T && image == F){
+  #     for(p in 1:length(kp_list)){
+  #       kp_list[[p]] = plotly::ggplotly(kp_list[[p]])
+  #     }
+  #     return(kp_list)
+  #   }else{
       # Print plots to console.
       return(kp_list)
-    }
-  }
+  #   }
+  # }
 }
 

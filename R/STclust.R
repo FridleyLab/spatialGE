@@ -86,6 +86,7 @@ STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D', 
     # Convert counts and coordinate data to matrices
     A = t(as.matrix(trcounts_df))
     B = x@spatial_meta[[i]] %>%
+      dplyr::select(libname, xpos, ypos) %>%
       tibble::column_to_rownames(var='libname')
     B = as.matrix(B[match(rownames(B), rownames(A)), ])
 

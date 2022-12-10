@@ -80,7 +80,8 @@
 #' @import Matrix
 #' @importFrom magrittr %>%
 #'
-STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_x_col=NULL, gmx_y_col=NULL, gmx_meta_cols=NULL) {
+STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
+                  gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_x_col=NULL, gmx_y_col=NULL, gmx_meta_cols=NULL){
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
 
@@ -572,13 +573,26 @@ process_lists = function(counts_df_list, coords_df_list){
     array_col = names(coords_df_list[[name_i]])[3]
     # Sort coordinate data according to third column in the coordinate data frame.
     coords_df_list[[name_i]] = coords_df_list[[name_i]] %>%
-      dplyr::arrange(!!array_col)#[order(coords_df_list[[name_i]][, 3]), ]
+      dplyr::arrange(!!array_col)
 
     # Order column names in count data frame according to sorted coordinate data.
-    counts_df_list[[name_i]] = counts_df_list[[name_i]][, c(colnames(counts_df_list[[name_i]][1]), unlist(coords_df_list[[name_i]][, 1]))]
+    if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
+      counts_df_list[[name_i]] = counts_df_list[[name_i]][, unlist(coords_df_list[[name_i]][, 1])]
+    } else{
+      counts_df_list[[name_i]] = counts_df_list[[name_i]][, c(colnames(counts_df_list[[name_i]])[1], coords_df_list[[name_i]][[1]])]
+    }
 
     # Put column names to coordinate data.
-    colnames(coords_df_list[[name_i]] ) = c('libname', 'ypos', 'xpos')
+    colnames(coords_df_list[[name_i]]) = c('libname', 'ypos', 'xpos')
+
+    # Get total gene counts and genes with no-zero counts
+    if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
+      coords_df_list[[name_i]][['total_counts']] = colSums(as.matrix(counts_df_list[[name_i]]))
+      coords_df_list[[name_i]][['total_genes']] = colSums(as.matrix(counts_df_list[[name_i]]) != 0)
+    } else{
+      coords_df_list[[name_i]][['total_counts']] = colSums(counts_df_list[[name_i]][, -1])
+      coords_df_list[[name_i]][['total_genes']] = colSums(counts_df_list[[name_i]][, -1] != 0)
+    }
   }
 
   proc_return_lists = list()

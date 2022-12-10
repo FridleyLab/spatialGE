@@ -92,9 +92,21 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
 
     for(metacol in plot_meta){
       df_tmp2 = df_tmp %>%
-        dplyr::select(libname, ypos, xpos, meta:=!!metacol) %>%
-        dplyr::mutate(meta=tidyr::replace_na(as.character(meta), 'No_Data')) %>%
-        dplyr::mutate(meta=as.factor(meta))
+        dplyr::select(libname, ypos, xpos, meta:=!!metacol)
+
+      if(!is.numeric(df_tmp2[['meta']]) & length(unique(df_tmp2[['meta']])) < 100){
+        # Convert meta data to factor
+        df_tmp2 = df_tmp2 %>%
+          dplyr::mutate(meta=tidyr::replace_na(as.character(meta), 'No_Data')) %>%
+          dplyr::mutate(meta=as.factor(meta))
+
+        # Create color palette.
+        meta_cols = color_parse(color_pal, n_cats=length(unique(df_tmp2[['meta']])))
+        names(meta_cols) = unique(df_tmp2[['meta']])
+        if(any(names(meta_cols) == 'No_Data')){
+          meta_cols[names(meta_cols) == 'No_Data'] = 'gray50'
+        }
+      }
 
       # Prepare titles for plots
       if(grepl('^stclust_', metacol)){
@@ -111,21 +123,31 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         title_p = paste0(metacol, '\nsample: ', s)
       }
 
-      # Create color palette.
-      meta_cols = color_parse(color_pal, n_cats=length(unique(df_tmp2[['meta']])))
-      names(meta_cols) = unique(df_tmp2[['meta']])
-      if(any(names(meta_cols) == 'No_Data')){
-        meta_cols[names(meta_cols) == 'No_Data'] = 'gray50'
+      # Create plot
+      p = ggplot2::ggplot(df_tmp2) +
+        ggplot2::geom_point(ggplot2::aes(x=xpos, y=ypos, color=meta), size=ptsize)
+      # Assign color palette to plot for categorical or numerical variable
+      if(is.factor(df_tmp2[['meta']])){
+        p = p + ggplot2::scale_color_manual(values=c(meta_cols))
+      } else{
+        if(!is.null(color_pal)){
+          # Get color palette and number of colors needed.
+          # Get names of Khroma colors.
+          khroma_cols = khroma::info()
+          khroma_cols = khroma_cols$palette
+          if(color_pal %in% khroma_cols){
+            p = p + khroma::scale_color_picker(palette=color_pal)
+          } else{
+            p = p + ggplot2::scale_color_distiller(palette=color_pal)
+          }
+        }
       }
 
-      p = ggplot2::ggplot(df_tmp2) +
-        ggplot2::geom_point(ggplot2::aes(x=xpos, y=ypos, color=meta), size=ptsize) +
-        ggplot2::scale_color_manual(values=c(meta_cols)) +
-        ggplot2::ggtitle(title_p) +
+      p = p + ggplot2::ggtitle(title_p) +
         ggplot2::theme_void()
 
       if(visium){
-        p = p + ggplot2::scale_y_reverse() + ggplot2::coord_fixed(ratio=1) #scale_x_reverse()
+        p = p + ggplot2::scale_y_reverse() + ggplot2::coord_fixed(ratio=1)
       } else{
         p = p + ggplot2::coord_fixed(ratio=1)
       }
