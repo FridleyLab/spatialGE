@@ -37,7 +37,11 @@ plot_spatial = function(x, samples=NULL, genes=NULL, data_type='tr', ks='dtc', w
     if(is.null(color_pal)){
       color_pal = 'BuRd'
     }
-    plot_list = plot_spatial_expression(x=x, genes=genes, samples=samples, color_pal=color_pal, data_type=data_type, image=image, visium=visium, ptsize=ptsize)
+    if(is.list(genes)){
+      plot_list = plot_spatial_geneset(x=x, genes=genes, samples=samples, color_pal=color_pal, visium=visium, ptsize=ptsize)
+    } else{
+      plot_list = plot_spatial_expression(x=x, genes=genes, samples=samples, color_pal=color_pal, data_type=data_type, image=image, visium=visium, ptsize=ptsize)
+    }
   } else{
     # Set default color if NULL input
     if(is.null(color_pal)){

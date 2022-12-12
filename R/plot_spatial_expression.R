@@ -125,7 +125,8 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
     for (gene in colnames(counts[[i]] %>% dplyr::select(-libname, -xpos, -ypos))){
       # Extract relevant data frame
       df_tmp = counts[[i]] %>%
-        dplyr::rename(values:=!!gene)
+        #dplyr::rename(values:=!!gene)
+        dplyr::select(xpos, ypos, values:=!!gene)
 
       # Set legend title
       if(data_type == 'tr'){
