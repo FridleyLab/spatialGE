@@ -1,46 +1,52 @@
 ##
-#' @title gene_krige: Spatial interpolation of gene expression
-#' @description Performs spatial interpolation ('kriging') of transformed gene
-#' counts in spatially-resolved transcriptomics data.
+#' @title gene_interpolation: Spatial interpolation of gene expression
+#' @description Performs spatial interpolation of transformed gene
+#' counts from ST samples
 #' @details
-#' This function takes a STList and a vector of gene names and generates spatial
-#' interpolation of gene expression values. It also calculates spatial heterogeneity
-#' statistics. The function can perform ordinary or universal kriging. If genes='top',
-#' then the 10 genes  with the highest standard deviation for each tissue array are
-#' interpolated. The function supports kriging via the Python package PyKrige or
-#' geoR. The first option is faster but requires a Python environment to be set up.
+#' This function takes an STlist and a vector of gene names and generates spatial
+#' interpolation of gene expression values. If genes='top', then the 10 genes with
+#' the highest standard deviation for each ST sample are interpolated. The resulting
+#' interpolations can be visualized via the `STplot_interpolation` function
 #'
-#' @param x an STList with transformed RNA counts.
-#' @param genes a vector of HUGO names or 'top'. If 'top' (default), kriging of
-#' the 10 genes (`top_n` default) with highest standard deviation in each spatial
-#' sample is estimated.
-#' @param top_n an integer indicating how many top genes to perform kriging. Default is 10.
-#' @param res a double to adjust the resolution of the plot. Fractions of 1 lead to
-#' more resolution, but longer run times. Default is 0.5 for Visium ST arrays.
-#' @param samples, the spatial arrays for which kriging will be performed. If NULL (Default),
-#' all arrays are kriged.
-#' @param python a logical, whether or not to use the Python implementation. If FALSE,
-#' geoR is used.
-#' @return x, a STList including spatial interpolations.
-#'
-#' @examples
-#' # In this example, melanoma is an STList.
-#' # Kriging of spatial arrays 2 and 3 for 2 genes.
-#' # melanoma <- gene_krige(melanoma, genes=c('CD74', 'SOX10'), who=c(2, 3), python=F)
-#'
-#' #' # Kriging of spatial array 1 for the 10 most variable genes and using the Python implementation.
-#' # melanoma <- gene_krige(melanoma, genes='top', who=1, python=T)
+#' @param x an STlist with transformed RNA counts.
+#' @param genes a vector of gene names or 'top'. If 'top' (default), interpolation of
+#' the 10 genes (`top_n` default) with highest standard deviation in each ST sample
+#' is estimated.
+#' @param top_n an integer indicating how many top genes to perform interpolation Default is 10.
+#' @param samples the spatial samples for which interpolations will be performed. If NULL (Default),
+#' all samples are interpolated.
+#' @param ngrid an integer indicating the number of point to predict. Default is 10000, resulting in a
+#' grid of 100 x 100 points. Larger numbers provide more resolution, but computation
+#' time is longer.
+#' @return x a STList including spatial interpolations.
 #'
 #' @export
 #'
 #' @importFrom magrittr %>%
+#' @importFrom fields stationary.cov
 #
 #
-gene_krige = function(x=NULL, genes='top', top_n=10, res=NULL, samples=NULL, python=T){
-  require("magrittr")
+gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid=10000){
+  #require("magrittr")
+
+  #import::from(fields, stationary.cov)
 
   # Universal kriging not implemented for now
   univ=F
+  # Python kriging disabled
+  python=F
+  # Resolution removed after implementation of `fields` interpolation
+  res=0.5
+  # Covariance structure between spots/cells
+  # May later allow users to select Exponential or Mattern (both supported by fields)
+  covstr = 'Exponential'
+  #covstr = 'Matern'
+  #smoothness = 0.5
+  # Specify number of spots in grid
+  nxy = round(sqrt(ngrid), 0)
+
+  top_n = as.integer(top_n)
+  res = as.double(res)
 
   # geoR implementation of universal kriging to be implemented.
   # Probably will allow users to specify parameters from variogram
@@ -55,7 +61,11 @@ gene_krige = function(x=NULL, genes='top', top_n=10, res=NULL, samples=NULL, pyt
 
   # Test if no specific subject plot was requested.
   if (is.null(samples)) {
-    samples = c(1:length(x@tr_counts))
+    samples = names(x@tr_counts)
+  } else{
+    if(is.numeric(samples)){
+      samples = names(x@tr_counts)[samples]
+    }
   }
 
   # Test that a gene name was entered.
@@ -86,7 +96,7 @@ gene_krige = function(x=NULL, genes='top', top_n=10, res=NULL, samples=NULL, pyt
   for(gene in genes){
     if(is.null(x@gene_krige[[gene]]) && rlang::is_empty(x@gene_krige[[gene]])){
       x@gene_krige[[gene]] = list()
-      for(i in 1:length(x@tr_counts)){
+      for(i in samples){
         x@gene_krige[[gene]][[names(x@tr_counts[i])]] = list()
       }
     }
@@ -106,17 +116,20 @@ gene_krige = function(x=NULL, genes='top', top_n=10, res=NULL, samples=NULL, pyt
   x@misc[['gene_krige_res']] = res
 
   # Give warning about kriging res < 0.5 for large matrices (e.g. Visium)
-  if(res < 0.5 & (nrow(x@spatial_meta[[1]]) > 1000)){
-    cat('Kriging at the requested resolution might take some time.\n')
+  sizes = lapply(x@spatial_meta[samples], nrow)
+  if(res < 0.5 & (any(sizes > 1000))){
+    cat('Kriging at the requested resolution might take some time. Setting to res=0.5\n')
+    res=0.5
   }
+  rm(sizes) # Clean environment
 
   # Create lists to store prediction grids and borders.
   if(is.null(x@misc[['krige_border']])){
     x@misc[['krige_border']] = list()
-    x@misc[['gene_krige_grid']] = list()
-    for(k in length(x@tr_counts)){
+    #x@misc[['gene_krige_grid']] = list()
+    for(k in samples){
       x@misc[['krige_border']][[k]] = list()
-      x@misc[['gene_krige_grid']][[k]] = list()
+      #x@misc[['gene_krige_grid']][[k]] = list()
     }
   }
 
@@ -125,47 +138,50 @@ gene_krige = function(x=NULL, genes='top', top_n=10, res=NULL, samples=NULL, pyt
   for(i in samples){
     subsetgenes_mask = genes %in% rownames(x@tr_counts[[i]])
     subsetgenes = genes[subsetgenes_mask]
-    combo = dplyr::bind_rows(combo, expand.grid(names(x@tr_counts)[i], subsetgenes))
+    combo = dplyr::bind_rows(combo, expand.grid(i, subsetgenes))
 
     # Get genes not present.
     notgenes = genes[!subsetgenes_mask]
 
     if(!rlang::is_empty(notgenes)){
-      cat(paste(paste(notgenes, collapse=', '), ": Not present in the transformed counts for sample ", names(x@tr_counts)[i], ".\n"))
+      cat(paste(paste(notgenes, collapse=', '), ": Not present in the transformed counts for sample ", i, ".\n"))
     }
 
     # Create concave hull to "cookie cut" border kriging surface.
     x@misc[['krige_border']][[i]] = concaveman::concaveman(as.matrix(x@spatial_meta[[i]][, c('xpos', 'ypos')]))
 
     # Create grid for PyKrige or geoR.
-    if(python == T){
-      gridx = seq(min(x@spatial_meta[[i]][['xpos']]), max(x@spatial_meta[[i]][['xpos']]), res)
-      gridy = seq(min(x@spatial_meta[[i]][['ypos']]), max(x@spatial_meta[[i]][['ypos']]), res)
-      gridx = gridx[-length(gridx)]
-      gridy = gridy[-length(gridy)]
-      gene_geo_grid = expand.grid(
-        seq(min(gridx), max(gridx), by=res),
-        seq(min(gridy), max(gridy), by=res)
-      )
-      x@misc[['gene_krige_grid']][[i]] = gene_geo_grid
-    } else if(python == F && univ == F){ #  Create grid for geoR estimation.
-      gene_geo_grid <-expand.grid(
-        seq((min(x@spatial_meta[[i]][['xpos']])-1), (max(x@spatial_meta[[i]][['xpos']])+1), by=res),
-        seq((min(x@spatial_meta[[i]][['ypos']])-1), (max(x@spatial_meta[[i]][['ypos']])+1), by=res)
-      )
-      x@misc[['gene_krige_grid']][[i]] = gene_geo_grid
-    }
+    # if(python == T){
+    #   gridx = seq(min(x@spatial_meta[[i]][['xpos']]), max(x@spatial_meta[[i]][['xpos']]), res)
+    #   gridy = seq(min(x@spatial_meta[[i]][['ypos']]), max(x@spatial_meta[[i]][['ypos']]), res)
+    #   gridx = gridx[-length(gridx)]
+    #   gridy = gridy[-length(gridy)]
+    #   gene_geo_grid = expand.grid(
+    #     seq(min(gridx), max(gridx), by=res),
+    #     seq(min(gridy), max(gridy), by=res)
+    #   )
+    #   x@misc[['gene_krige_grid']][[i]] = gene_geo_grid
+    # } else if(python == F && univ == F){ #  Create grid for geoR estimation.
+    # gene_geo_grid <-expand.grid(
+    #   seq((min(x@spatial_meta[[i]][['xpos']])-1), (max(x@spatial_meta[[i]][['xpos']])+1), by=res),
+    #   seq((min(x@spatial_meta[[i]][['ypos']])-1), (max(x@spatial_meta[[i]][['ypos']])+1), by=res)
+    # )
+    # gene_geo_grid = list(xpos=gene_geo_grid[[1]], ypos=gene_geo_grid[[2]])
+    #   x@misc[['gene_krige_grid']][[i]] = gene_geo_grid
+    # }
+
+    rm(subsetgenes_mask, subsetgenes, notgenes) # Clean env
   }
 
   # Store prediction grid and kriging algorithm in STList.
   if(python){
     x@misc[['gene_krige_algorithm']] = 'pykrige'
   } else{
-    x@misc[['gene_krige_algorithm']] = 'geor'
+    x@misc[['gene_krige_algorithm']] = 'fields'
   }
 
   # Store decompressed transformed counts list in separate object
-  tr_counts = x@tr_counts
+  tr_counts = list()
   for(mtx in samples){
     tr_counts[[mtx]] = expandSparse(x@tr_counts[[mtx]])
   }
@@ -184,8 +200,8 @@ gene_krige = function(x=NULL, genes='top', top_n=10, res=NULL, samples=NULL, pyt
       tibble::rownames_to_column(., var="position")
     # Match order of library names in counts data and coordinate data.
     gene_expr = gene_expr[match(x@spatial_meta[[i]][[1]], gene_expr[[1]]), ]
-    gene_geo_df = cbind(x@spatial_meta[[i]][c('xpos', 'ypos')], as.numeric(gene_expr[[2]]))
-    colnames(gene_geo_df)[3] = "gene_expr"
+    gene_geo_df = dplyr::bind_cols(x@spatial_meta[[i]][c('xpos', 'ypos')], gene_expr=as.numeric(gene_expr[[2]]))
+
     # Call the requested Kriging algorithm
     if(python == T){
       # Call PyKrige implementation.
@@ -195,9 +211,19 @@ gene_krige = function(x=NULL, genes='top', top_n=10, res=NULL, samples=NULL, pyt
       gridy = gridy[-length(gridy)]
       kriging_res = krige_py(gridx=gridx, gridy=gridy, geo_df=gene_geo_df, univ=univ)
     } else{
-      # Create geodata object from expression and coordinate data
-      gene_geo <- geoR::as.geodata(gene_geo_df, coords.col=c(1,2), data.col=3)
-      kriging_res = krige_geor(geodata=gene_geo, locations=x@misc[['gene_krige_grid']][[grep(i, names(x@tr_counts))]], univ=univ)
+      # Give hope to users...
+      system(sprintf('echo "%s"', crayon::yellow(paste0("\tInterpolating ", j, ' in ', i, "...."))))
+      # Fit spatial process
+      suppressMessages({
+        cov_est = fields::spatialProcess(gene_geo_df[, c('ypos', 'xpos')], gene_geo_df[['gene_expr']],
+                                         cov.args=list(Covariance=covstr#,
+                                                       #smoothness=smoothness
+                                                       ), verbose=F)
+      })
+      # Compute surface
+      kriging_res = fields::predictSurface(cov_est, nx=nxy, ny=nxy, extrap=T#,
+                                            #grid.list=gene_geo_grid
+      )
     }
     return(kriging_res)
   }, mc.cores=cores, mc.preschedule=F)
