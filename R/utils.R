@@ -64,7 +64,6 @@ count_cores = function(n){
 #
 #
 color_parse = function(color_pal=NULL, n_cats=NULL){
-
   # Get color palette and number of colors needed.
   # Get names of Khroma colors.
   khroma_cols = khroma::info()
@@ -94,16 +93,16 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 }
 
 ##
-#' @title load_images: Place tissue images within STList
-#' @description Loads the images from tissues to the appropriate STList slot.
+#' @title load_images: Place tissue images within STlist
+#' @description Loads the images from tissues to the appropriate STlist slot.
 #' @details
 #' This function looks for `.PNG` files within a folder matching the sample names
 #' in an existing STList. Then, loads the images to the STList which can be used
 #' for plotting along with quilt plots.
 #'
-#' @param x an STList with transformed RNA counts.
+#' @param x an STlist
 #' @param images a string indicating a folder to load images from
-#' @return an STList with images
+#' @return an STlist with images
 #'
 #' @export
 #'
@@ -150,23 +149,22 @@ load_images = function(x=NULL, images=NULL){
 
 ##
 #' @title create_listw
-#' @param x an STList
+#' @param x an STlist
 #
 create_listw = function(x=NULL){
-
   # Define cores available
-  cores = count_cores(length(x@coords))
+  cores = count_cores(length(x@spatial_meta))
 
   # Create distance matrix based on the coordinates of each sampled location.
-  listw_list = parallel::mclapply(seq_along(1:length(x@coords)), function(i){
-    subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
+    subj_dists = as.matrix(dist(x@spatial_meta[[i]][, c('ypos', 'xpos')]))
     subj_dists[subj_dists == 0] = 0.0001
     subj_dists_inv = 1/subj_dists
     diag(subj_dists_inv) = 0
     subj_dists_inv=spdep::mat2listw(subj_dists_inv, style='B')
     return(subj_dists_inv)
   }, mc.cores=cores, mc.preschedule=F)
-  names(listw_list) = names(x@coords)
+  names(listw_list) = names(x@spatial_meta)
   return(listw_list)
 }
 

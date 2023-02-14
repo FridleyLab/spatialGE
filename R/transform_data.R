@@ -1,8 +1,9 @@
 ##
 #' @title transform_data: Data transformation of spatial transcriptomics data
-#' @description Applies data transformation methods to spatia transcriptomics experiments of an STList
+#' @description Applies data transformation methods to spatial transcriptomics
+#' samples within an STlist
 #' @details
-#' This function takes an STList with raw counts and applies logarithmic transformation
+#' This function takes an STlist with raw counts and applies logarithmic transformation
 #' after library size normalization. This logarithmic transformation uses
 #' a scaling factor (10^4) by default.  The function works on parallel using
 #' "forking" (not available in Windows OS).
@@ -12,8 +13,8 @@
 #' @return x an updated STList with transformed counts.
 #'
 #' @examples
-#' # In this example, melanoma is an STList.
-#' # melanoma <- spatialTransform(melanoma)
+#' # In this example, melanoma is an STlist.
+#' # melanoma <- transform_data(melanoma)
 #'
 #' @export
 #'

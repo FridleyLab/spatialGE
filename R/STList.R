@@ -1,20 +1,20 @@
 ##
-#' @title STlist: Creation of STList objects for spatial transcriptomics analysis
-#' @description Creates an STList object from one or several spatial transcriptomic data sets.
+#' @title STlist: Creation of STlist objects for spatial transcriptomics analysis
+#' @description Creates an STlist object from one or multiple spatial transcriptomic data sets.
 #' @details
-#' Objects of the S4 class STList can be created from two sources:
+#' Objects of the S4 class STlist can be created from two sources:
 #' \itemize{
-#' \item Raw gene counts with genes in rows and samples units (e.g., cells, spots,
+#' \item Raw gene counts with genes in rows and sampling units (e.g., cells, spots,
 #' ROIs) in columns, and spatial coordinates with sample units in rows and three
 #' columns: sample unit IDs, Y position, and X position.
 #' \item Visium outputs from Space Ranger. The Visium directory should generally have
 #' the file structure resulting from `spaceranger count`, with a `spatial` directory and
 #' MEX format matrix files (within a filtered_feature_bc_matrix directory) and/or a
-#' a h5 file matchging at least partially the name `filtered_feature_bc_matrix.h5`.
+#' a h5 file partially matching the name `filtered_feature_bc_matrix.h5`.
 #' }
 #' Optionally, the user can input a path to a table containing sample-level metadata
 #' (e.g., clinical variables). This sample metadata file should contain
-#' sample IDs in the first column matching (at least partially) the file names of the
+#' sample IDs in the first column partially matching the file names of the
 #' count/coordinate file paths or Visium directories.
 #'
 #' The function will read data in parallel if unix system is available (Windows users
@@ -23,39 +23,43 @@
 #' @param rnacounts The count data which can be provided in one of these formats:
 #' \itemize{
 #' \item File paths to comma- or tab-delimited files containing raw RNA counts, one
-#' for each spatial array. The first column contains gene names. Subsequent columns
-#' contain data for each spot. Duplicate gene names will be appended a suffix ('_d**').
-#' Requires `spotcoords` and `samples`.
-#' \item File paths to Visium output folders (one per spatial array). The folder should have the
-#' structure resulting from `spaceranger count` and contain the `.h5` files and `spatial` folder.
-#' Requires `samples`.
+#' for each spatial sample. The first column contains gene names and subsequent columns
+#' contain the expression data for each cell/spot. Duplicate gene names will be appended
+#' modified using `make.unique`. Requires `spotcoords` and `samples`.
+#' \item File paths to Visium output directories (one per spatial sample). The directory
+#' must have the structure resulting from `spaceranger count`. The directory contains
+#' the `.h5` and `spatial` sub-directory (spot coordinates and images). If no `.h5` file is
+#' available, sparse matrices (MEX) from `spaceranger count` can be provided within the
+#' directory. In that case a the sub-directory `filtered_feature_bc_matrix` contains the
+#' `barcodes.tsv.gz`, `features.tsv.gz`, and `matrix.mtx.gz` files. Requires `samples`.
 #' \item File path to `.dcc` files from GeoMx output. Requires `samples`.
-#' \item One named list of data frames with raw RNA counts (one data frame per spatial array).
+#' \item One named list of data frames with raw RNA counts (one data frame per spatial sample).
 #' Requires `spotcoords` and `samples`.
 #' }
-#' @param spotcoords The spot coordinates, which are required if inputs are not Visium outputs.
-#' The user can provide one of these formats:
+#' @param spotcoords The cell/spot coordinates. Not required if inputs are Visium
+#' (`spaceranger count`) directories. The user can provide one of these formats:
 #' \itemize{
-#' \item File paths to comma- or tab-delimited files containing spot coordinates, one
-#' for each spatial array. The files must contain three columns: spot IDs, y positions, and
-#' x positions. The spot IDs must match the column names for each spot (column) in the RNA count files.
-#' \item One named list of data frames with spot coordinates. The list names must match list
+#' \item File paths to comma- or tab-delimited files containing cell/spot coordinates, one
+#' for each spatial sample. The files must contain three columns: cell/spot IDs, y positions, and
+#' x positions. The cell/spot IDs must match the column names for each cells/spots (columns) in
+#' the RNA count files.
+#' \item One named list of data frames with cell/spot coordinates. The list names must match list
 #' names of the RNA counts list.
 #' }
-#' @param samples The metadata associated to each spatial array. This file can also include
-#' system paths to RNA count and spot coordinate files, bypassing the need to specify `rnacounts`
+#' @param samples The metadata associated with each spatial sample. This file can also include
+#' system paths to RNA count and cell/spot coordinate files, bypassing the need to specify `rnacounts`
 #' and `spotcoords`. One of the following options should be entered to create an STList:
 #' \itemize{
-#' \item A vector with sample names, which will be used to partial match RNA count and
-#' spot coordinates file paths. A sample name must not match two file paths.
-#' \item A path to  the file containing metadata for each spatial array. This file is a comma-
-#' or tab-separated file with one sample per row and sample names in the first column.
-#' Paths to RNA count and coordinate files can be in the second and third column respectively,
-#' and omitting the `rnacounts` and `spotcoords` arguments. If Visium, only the second
-#' column with paths to output folders is expected. Subsequent columns can contain
-#' variables associated to each spatial array.
-#' Note: For GeoMx, the metadata file contains one row per ROI. This information is later summarized
-#' to one row per slide by this function.
+#' \item A vector with sample names, which will be used to partially match RNA count and
+#' cell/spot coordinates file paths. A sample name must not match two file paths.
+#' \item A path to the file containing metadata. This file is a comma- or tab-separated file with
+#' one sample per row and sample names in the first column. Paths to RNA count and coordinate
+#' files can be in the second and third column respectively, and omitting the `rnacounts`
+#' and `spotcoords` arguments. If Visium directories are provided, only the second column
+#' with paths to `spaceranger count` directories is expected. Subsequent columns can contain
+#' variables associated with each spatial sample
+#' Note: For GeoMx, the metadata file contains one row per ROI. This information is automatically
+#' summarized to one row per tissue slice.
 #' }
 #' @param gmx_pkc, the file path to the `.pkc` (for GeoMx input)
 #' @param gmx_slide_col, the name of the column in the metadata table containing the slide names (for GeoMx input)
@@ -290,7 +294,7 @@ read_list_dfs = function(rnacounts, spotcoords){
   sorted_names = sort(names(rnacounts))
 
   # Process duplicate gene names
-  # NOTE: Duplicate genes coming from matrices are only appended a '_d[0-9]+', but
+  # NOTE: Duplicate genes coming from matrices are modified with `make.unique`, but
   # are not comparable across matrices because unique identifiers for the probes are not used.
   for(i in 1:length(rnacounts)){
     if(any(duplicated(rnacounts[[i]][[1]]))){
@@ -394,14 +398,14 @@ read_matrices_fps = function(filepaths, input_check){
 
   rm(delrna, delcoords) # Clean environment
 
-    # Process duplicate gene names
-    # NOTE: Duplicate genes coming from matrices are only appended a '_d[0-9]+', but
-    # are not comparable across matrices because unique identifiers for the probes are not used.
-    for(i in 1:length(counts_df_list)){
-      if(any(duplicated(counts_df_list[[i]][[1]]))){
-        counts_df_list[[i]][[1]] = make.unique(counts_df_list[[i]][[1]])
-      }
+  # Process duplicate gene names
+  # NOTE: Duplicate genes coming from matrices are modified with `make.unique`, but
+  # are not comparable across matrices because unique identifiers for the probes are not used.
+  for(i in 1:length(counts_df_list)){
+    if(any(duplicated(counts_df_list[[i]][[1]]))){
+      counts_df_list[[i]][[1]] = make.unique(counts_df_list[[i]][[1]])
     }
+  }
 
   return_lists = list()
   return_lists[['counts']] = counts_df_list
@@ -425,8 +429,10 @@ read_visium_outs = function(filepaths, input_check){
     # Get all system paths within output folder (h5/MEX, coordinates, image)
     temp_fps = list.files(filepaths[['count_found']][i], recursive=T, include.dirs=T, full.names=T)
 
-    vimage = grep('spatial\\/tissue_lowres_image.png', temp_fps, value=T)
-    vcoords = grep('spatial\\/tissue_positions_list.csv', temp_fps, value=T)
+    vimage = grep('spatial\\/', temp_fps, value=T) %>%
+      grep('tissue_hires_image.png|tissue_lowres_image.png', ., value=T)
+    vcoords = grep('spatial\\/', temp_fps, value=T) %>%
+      grep('tissue_positions_list.csv', ., value=T)
     # Filter out 'SPATIAL_RNA_COUNTER' folders (intermediate files from Space Ranger?).
     vcoords = vcoords[!grepl('SPATIAL_RNA_COUNTER', vcoords)]
 

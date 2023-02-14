@@ -5,36 +5,48 @@
 #' distances between cells/spots with high expression of a gene set is lower than
 #' the sum of distances of randomly selected cells/spots. The cells/spots are
 #' considered as having high gene set expression if the average expression of genes in a
-#' set is higher than the average expression plus a number of standard deviations
-#' defined by `min_sd`. Control over the size of regions with high expression is
-#' provided by setting the minimum number of cells or spots (`min_units`). This method
-#' is a modification of the method devised by Hunter et al. 2021 (zebrafish melanoma study)
+#' set is higher than the average expression plus a `num_sds` times the standard deviation.
+#' Control over the size of regions with high expression is provided by setting the
+#' minimum number of cells or spots (`min_units`). This method is a modification of
+#' the method devised by Hunter et al. 2021 (zebrafish melanoma study)
 #'
 #' @param x an STlist with transformed gene expression
-#' @param gene_sets a named list of gene sets to test
-#' @param reps the numbe rof random samples to extract
-#' @param min_sd the number of standard deviations to set the minimum gene set expression threshold
+#' @param gene_sets a named list of gene sets to test. The names of the list should
+#' identify the gene sets to be tested
+#' @param reps the number of random samples to be extracted. Default is 1000 replicates
+#' @param num_sds the number of standard deviations to set the minimum gene set
+#' expression threshold. Default is one (1) standard deviation
 #' @param min_units Minimum number of spots with high expression of a pathway for
-#' that gene set to be considered in the analysis
+#' that gene set to be considered in the analysis. Defaults to 20 spots or cells
 #' @param min_genes the minimum number of genes of a gene set present in the data set
-#' for that gene set to be included
-#' @param pval_adj_method the method for multiple comparison adjustment of p-values. Options
-#' passed to `p.adjust`
-#' @param seed the seed number for the selection of random samples
-#' @param cores the number of cores used during parallelization
+#' for that gene set to be included. Default is 5 genes
+#' @param pval_adj_method the method for multiple comparison adjustment of p-values.
+#' Options are the same as that of `p.adjust`. Default is 'BH'
+#' @param seed the seed number for the selection of random samples. Default is 12345
+#' @param cores the number of cores used during parallelization. If NULL (default),
+#' the number of cores is defined automatically
 #' @return a list of data frames with the results of the test
+#'
+#' @export
 #'
 #' @importFrom magrittr %>%
 #
-STenrich = function(x=NULL, gene_sets=NULL, reps=1000, min_sd=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
+#
+STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
   cat(crayon::yellow("Running STenrich...\n"))
+
+  reps = as.integer(reps)
+  num_sds = as.double(num_sds)
+  min_units = as.integer(min_units)
+  min_genes = as.integer(min_genes)
+
   set.seed(seed)
   # Loop through samples in STlist
   result_dfs = list()
   for(i in names(x@tr_counts)){
     cat(crayon::yellow(paste0('\tSample: ', i, '...\n')))
     # Extract spots to be used in analysis
-    # This selection implemented proactively as analysis might later be applied to tissue nuches within samples
+    # This selection implemented proactively as analysis might later be applied to tissue niches within samples
     tissue_spots = x@spatial_meta[[i]][['libname']]
 
     # Extract gene expression
@@ -62,12 +74,12 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, min_sd=1, min_units=20, m
         # Find spots that highly express this pathway (mean + stdev_t*std in this case)
         avg = mean(pw_avg_exp)
         std = sd(pw_avg_exp)
-        exp_thresh = avg + (min_sd*std)
+        exp_thresh = avg + (num_sds*std)
 
         # Extract spots with average expression above sd threshold
         high_spots_bc = names(which(pw_avg_exp >= exp_thresh))
 
-        # Are there at least X number of cells/spots?
+        # Are there at least 'min_units' number of cells/spots?
         if(length(high_spots_bc) >= min_units){
 
           # Compute the distance between these spots' XY coordinates with high expression
@@ -89,22 +101,21 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, min_sd=1, min_units=20, m
           # Compute p-value
           # Ho: sum of observed distances is larger than sum of random distances
           # Ha: sum of observed distances is smaller than sum of random distances
-          count_test = sum(sum_high_distances > sum_rand_distances) # Times observed dist was higher than random dists
+          count_test = sum(sum_rand_distances < sum_high_distances) # Times observed dist was higher than random dists
           p_val = count_test / reps
 
-          # Get results in data frame form
-          pval_tmp = tibble::tibble(gene_set=names(gene_sets)[pw],
-                                    size_test=length(pw_genes),
-                                    size_gene_set=length(gene_sets[[pw]]),
-                                    p_value=p_val)
-
+        } else{
+          p_val=NA
         } # Close test minimum spots
       } else{
-        pval_tmp = tibble::tibble(gene_set=names(gene_sets)[pw],
-                                  size_test=length(pw_genes),
-                                  size_gene_set=length(gene_sets[[pw]]),
-                                  p_value=NA)
+        p_val=NA
       } # Close test minimum genes
+
+      # Get results in data frame form
+      pval_tmp = tibble::tibble(gene_set=pw,
+                                size_test=length(pw_genes),
+                                size_gene_set=length(gene_sets[[pw]]),
+                                p_value=p_val)
 
       return(pval_tmp)
     }, mc.cores=cores) # Close mclappy

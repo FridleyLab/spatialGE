@@ -1,25 +1,20 @@
 ##
-# @title plot_spatial_geneset: Gene set expression at each spot from an spatial array
+# @title plot_spatial_geneset: Averaged gene set expression at each spot in an ST sample
 # @description Plot averaged transformed expression of gene within a gene set (quilt plot).
 # @details
 # This function produces a quilt plot for a series of gene sets and spatial
-# arrays within an STList.
+# arrays within an STlist.
 #
-# @param x an STList
-# @param genes a vector of one or more gene names to plot.
-# @param plot_who a vector of numbers indicating the spatial arrays to plot
-# genes from. Numbers follow the order of `names(x@counts)`. If NULL, will plot
-# all spatial arrays.
-# @param color_pal, a color scheme from 'khroma' or RColorBrewer.
-# @param visium logical, whether or not the samples are from a Visium experiment.
-# @param ptsize a number specifying the size of the points. Passed to `size` aesthetic.
-# @return a list with plots.
-#
-# @examples
-# # In this example, melanoma is an STList.
-# # qplots <- plot_gene_quilt(melanoma, genes=gene_sets, samples=2, visium=F)
-#
-# @export
+# @param x an STlist
+# @param genes a named list of gene sets to plot
+# @param samples a vector of numbers indicating the ST samples to plot, or their
+# sample names. If vector of numbers, it follow the order of `names(x@counts)`.
+# If NULL, the function plots all samples
+# @param color_pal a color scheme from 'khroma' or RColorBrewer
+# @param visium logical, whether or not the samples are from a Visium experiment
+# @param ptsize a number specifying the size of the points in the quilt plot.
+# Passed to the `size` aesthetic
+# @return a list with plots
 #
 # @importFrom methods as is new
 #' @import ggplot2

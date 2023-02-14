@@ -1,30 +1,25 @@
 ##
-# @title plot_gene_expression: Gene expression at each spot from an spatial array
+# @title plot_spatial_expression: Plots gene expression at each spot from an ST sample
 # @description Plot raw or transformed gene expression levels at each spot (quilt plot)
-# within a spatially-resolved transcriptomic array.
+# within a spatially-resolved transcriptomic sample
 # @details
-# This function produces a quilt plot for a series of gene names and spatial
-# arrays within an STList. The function can also plot tumor/stroma classifications
-# from ESTIMATE deconvolution results.
+# This function produces a 'quilt plot' for a one or several genes and ST samples
+# within an STlist. A quilt plot shows the levels of gene expression at each spot r
+# cell as a color gradient
 #
-# @param x, an STList
-# @param genes, a vector of one or more gene names to plot.
-# @param plot_who, a vector of numbers indicating the spatial arrays to plot
-# genes from. Numbers follow the order of `names(x@counts)`. If NULL, will plot
-# all spatial arrays.
-# @param color_pal, a color scheme from 'khroma' or RColorBrewer.
-# @param data_type, one of 'tr' or 'raw', to plot transformed or raw counts
-# respectively.
-# @param image logical, whether to print the image stored for the spatial arrays
-# @param visium, logical, whether or not the samples are from a Visium experiment.
-# @param ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
-# @return a list with plots.
-#
-# @examples
-# # In this example, melanoma is an STList.
-# # qplots <- plot_gene_quilt(melanoma, genes='CD74', samples=2, visium=F)
-#
-# @export
+# @param x an STlist
+# @param genes a vector of one or more gene names to plot.
+# @param samples a vector of numbers indicating the ST samples to plot, or their
+# sample names. If vector of numbers, it follow the order of `names(x@counts)`.
+# If NULL, the function plots all samples
+# @param color_pal a color scheme from 'khroma' or RColorBrewer.
+# @param data_type one of 'tr' or 'raw', to plot transformed or raw counts
+# respectively
+# @param image logical, whether to print the image stored for the samples
+# @param visium logical, whether or not the samples are from a Visium experiment.
+# @param ptsize a number specifying the size of the points in the quilt plot.
+# Passed to the `size` aesthetic
+# @return a list with plots
 #
 # @importFrom methods as is new
 #' @import ggplot2

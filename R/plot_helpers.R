@@ -38,16 +38,14 @@ quilt_p <- function(data_f=NULL, color_pal="BuRd", leg_name='', title_name='', m
     ggplot2::ylab("Y Position") +
     ggplot2::labs(color=leg_name, title=title_name) +
     ggplot2::theme_void()
+    #ggplot2::theme_classic()
 
-    if(visium){
-      p <- p + #scale_x_reverse() +
-        ggplot2::scale_y_reverse() + ggplot2::coord_fixed(ratio=1)
-        # scale_y_reverse() + coord_fixed(ratio=1.7)
-    } else {
-      p <- p + ggplot2::coord_fixed(ratio=1)
-    }
+  if(visium){
+    p <- p + ggplot2::scale_y_reverse()
+    # scale_y_reverse() + coord_fixed(ratio=1.7)
+  }
 
-    p <- p + ggplot2::theme(legend.position="right")
+  p <- p + ggplot2::coord_equal() + theme(legend.position="right")
 
   return(p)
 }
@@ -203,25 +201,21 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
 
   # Create plot.
   p <- ggplot(data=data_f, aes(x=x_pos, y=y_pos)) +
-    geom_raster(aes(fill=krige)) +
+    geom_raster(aes(fill=krige), interpolate=F) +
     scale_fill_gradientn(colors=p_palette, limits=c(minvalue, maxvalue), oob=scales::squish) +
     xlab("X Position") +
     ylab("Y Position") +
     labs(fill=leg_name, title=title_name) +
-    ggpolypath::geom_polypath(aes(long,lat,group=group), mask_df, fill="white"
-                              , inherit.aes = FALSE
-    ) +
-    theme_classic()
+    ggpolypath::geom_polypath(aes(long, lat, group=group), mask_df, size=2, color='white', fill="white", inherit.aes=F) +
+    #theme_classic()
+    theme_void()
 
   if(visium){
-    p <- p + ggplot2::scale_y_reverse() + #scale_x_reverse() +
+    p <- p + ggplot2::scale_y_reverse() #+ scale_x_reverse() +
       #coord_fixed(ratio=1.7)
-      ggplot2::coord_fixed(ratio=1)
-  } else{
-    p <- p + ggplot2::coord_fixed(ratio=1)
   }
 
-  p <- p + theme(legend.position="right")
+  p <- p + ggplot2::coord_equal() + theme(legend.position="right")
 
   return(p)
 

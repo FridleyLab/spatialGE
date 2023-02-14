@@ -1,37 +1,28 @@
 ##
-#' @title STclust: Detect clusters on ST arrays
-#' @description Perform unsupervised spatially-informed clustering on the spots of an
-#' spatial array.
+#' @title STclust: Detect clusters on ST samples
+#' @description Perform unsupervised spatially-informed clustering on the spots/cells of a
+#' ST sample
 #' @details
-#' The function takes an STList and calculates euclidean distances between spots based on the x,y
-#' spatial locations and expression of the top variable genes (`Seurat::FindVariableFeatures`).
-#' Weighted averages between the two distances are calculated to perform hierarchical clustering. The
-#' user can define how much weight the spatial distance should have (values
-#' between 0.05 to 0.25 work reasonably well). The method aims to detect compartments
-#' within a tissue.
+#' The function takes an STlist and calculates euclidean distances between cells or spots
+#' based on the x,y spatial locations and expression of the top variable genes
+#' (`Seurat::FindVariableFeatures`). The resulting distances are weighted by
+#' applying 1-`ws` to the gene expression distances and `ws` to the spatial distances.
+#' Hierarchical clustering is performed on the sum of the weighted distance matrices
 #'
-#' @param x an STList with normalized expression data.
+#' @param x an STlist with normalized expression data
 #' @param ws a double (0-1) indicating the weight to be applied to spatial distances.
-#' Defaults to w=0.025.
-#' @param dist_metric, the distance metric to be used. Defaults to 'euclidean'. Other
-#' options as provided by `wordspace::dist.matrix`.
+#' Defaults to 0.025
+#' @param dist_metric the distance metric to be used. Defaults to 'euclidean'. Other
+#' options are the same as in `wordspace::dist.matrix`
 #' @param linkage the linkage method applied to hierarchical clustering. Passed to
-#' `hclust` and defaults to 'ward.D'.
+#' `hclust` and defaults to 'ward.D'
 #' @param ks the range of k values to assess. Defaults to `dtc`, meaning `cutreeDynamic`
-#' is applied.
+#' is applied
 #' @param topgenes the number of genes with highest spot-to-spot expression variation. The
 #' variance is calculated via `Seurat::FindVariableFeatures`.
-#' @param deepSplit, a logical or integer (1-4), to be passed to `cutreeDynamic` and
-#' control cluster resolution.
-#' @return x, the STList with cluster assignments.
-#'
-#' @examples
-#' # In this example, melanoma is an STList.
-#' # Using Dynamic Tree Cuts:
-#' # melanoma <- STclust(melanoma, ks='dtc', weights=0.1)
-#'
-#' # Using a range of ks:
-#' # melanoma <- STclust(melanoma, ks=c(2:6), weights=0.1)
+#' @param deepSplit a logical or integer (1-4), to be passed to `cutreeDynamic` and
+#' control cluster resolution
+#' @return x, the STlist with cluster assignments
 #'
 #' @export
 #'
@@ -43,6 +34,9 @@
 STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D', ks='dtc', topgenes=2000, deepSplit=F){
   # Clustering method to use. Set because other methods will be supported in future versions
   clmethod = 'hclust'
+
+  ws = as.double(ws)
+  topgenes = as.integer(topgenes)
 
   # Do not allow weights higher than 1
   if(any(ws < 0) | any(ws > 1)){

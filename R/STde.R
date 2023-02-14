@@ -4,41 +4,38 @@
 #' exponential or spherical spatial covariance structures.
 #' @details
 #' The method tests for differentially expressed genes between groups of spots/cells
-#' (e.g., clusters) in a spatial transcriptomics sample (e.g., spots in a Visium tissue slice).
-#' Specifically, tests for genes with significantly higher or lower gene expression in
-#' one group of spots/cells with respect to the rest of spots/cells in the sample.
-#' The method first runs linear models on the genes to detect differentially expressed
-#' genes. Then on a subset of differentially expressed genes, linear models with spherical
-#' and exponential covariance structure are run using the x,y coordinates of each spot/sample.
-#' The function outputs the Akaike (AIC) and Bayesian Information Criterion (BIC) for
-#' the spherical and exponential models to aid in selection of differentially expressed
+#' (e.g., clusters) in a spatial transcriptomics sample (e.g., spots in a Visium array
+#' or cells from a SMI slice). Specifically, the function tests for genes with
+#' significantly higher or lower gene expression in one group of spots/cells with
+#' respect to the rest of spots/cells in the sample. The method first runs linear
+#' models on the genes to detect differentially expressed genes. Then on a subset of
+#' differentially expressed genes, linear models (`sp_topgenes`) with spherical or
+#' exponential covariance structures are fitted using the x,y coordinates of each
+#' spot/cell. The function outputs the Akaike (AIC) and Bayesian Information Criterion (BIC)
+#' for the spherical and exponential models to aid in selection of differentially expressed
 #' genes under the spatial model with the best fit.
 #'
 #' @param x an STlist
 #' @param samples an integer indicating the spatial samples to be included in the DE tests.
 #' Numbers follow the order in `names(x@counts)`. Sample names are also allowed.
-#' If NULL, performs tests in all samples.
+#' If NULL, performs tests in all samples
 #' @param annot a column name in `x@spatial_meta` containing the groups/clusters to
-#' be tested.
+#' be tested
 #' @param ws the spatial weight used in STclust
-#' @param ks the k value used in STclust, or `dtc` (default) for dynamic tree cut.
-#' @param deepSplit the deepSplit value if used in STclust.
+#' @param ks the k value used in STclust, or `dtc` (default) for dynamicTreeCut clusters
+#' @param deepSplit the deepSplit value if used in STclust
 #' @param topgenes an integer indicating the top variable genes to select from each sample
-#' based on variance (default=2000).
+#' based on variance (default=2000)
 #' @param pval_thr Cut off of adjusted p-values to define differentially expressed genes from
-#' non-spatial linear models. Default=0.05.
+#' non-spatial linear models. Default=0.05
 #' @param pval_adj Method to adjust p-values from non-spatial models. Defaults to
-#' `bonferroni`. Other options as available from `p.adjust`.
+#' `bonferroni`. Other options as available from `p.adjust`
 #' @param sp_topgenes Proportion of differentially expressed genes from non-spatial
 #' linear models (and controlled by `pval_thr`) to use in differential gene expression
-#' analysis with spatial linear models. Default=0.2.
+#' analysis with spatial linear models. Default=0.2
 #' @param cores Number of cores to use in parallelization. If `NULL`, the number of
-#' cores is to use is detected automatically.
-#' @return a data frame with results of differential gene expression analysis.
-#'
-#' @examples
-#' # In this example, melanoma is an STList.
-#' # de_genes <- STde(melanoma, samples=c(2,3), ks=3, ws=0.025)
+#' cores is to use is detected automatically
+#' @return a data frame with results of differential gene expression analysis
 #'
 #' @export
 #'
@@ -50,6 +47,10 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
                 topgenes=2000, pval_thr=0.05, pval_adj=NULL, sp_topgenes=0.2, cores=NULL){
   # Record time
   zero_t = Sys.time()
+
+  topgenes = as.integer(topgenes)
+  pval_thr = as.double(pval_thr)
+  sp_topgenes = as.double(sp_topgenes)
 
   # Stop function if topgenes and sp_topgenes are not valid
   if((round(topgenes, 0) <= 0) | (sp_topgenes < 0 | sp_topgenes > 1)){
@@ -173,7 +174,7 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
                            stringsAsFactors=F) %>% dplyr::arrange(meta)
 
     # Run models in parallel and get DE results
-    non_sp_models = non_spatial_de(expr_df=expr_df, combo=combo_df, pval_adj=pval_adj, cores=cores)
+    non_sp_models = non_spatial_de(expr_df=expr_df, combo=combo_df, cores=cores)
     rm(combo_df) # Clean environment
 
     # Summarize DE analyses
@@ -315,13 +316,11 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
 # as well as coordinates (x,y), and a group variable for random effects.
 # @param combo a data frame with two columns (meta and gene) containing all
 # combinations of gene x cluster to test.
-# @param pval_adj a character string with the method for p-value adjustment. Passed
-# to p.adjust.
 # @param cores number of cores to use in parallelization. If `NULL`, the number of
 # cores is to use is detected automatically.
-# @return a list containing a dataframe wit DE results and a list of lme models
+# @return a list containing lme models
 #
-non_spatial_de = function(expr_df=NULL, combo=NULL, pval_adj=NULL, cores=NULL){
+non_spatial_de = function(expr_df=NULL, combo=NULL, cores=NULL){
   # Paralellize lme models
   if(is.null(cores)){
     cores = count_cores(nrow(combo))

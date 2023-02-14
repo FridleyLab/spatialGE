@@ -15,11 +15,7 @@ Authors@R: c(
     person(given = "Alex",
            family = "Soupir",
            role = c("aut"),
-           email = "Alex.Soupir@moffitt.org"),
-    person(given = "Christopher",
-           family = "Wilson",
-           role = c("ctb"),
-           email = "Christopher.Wilson@moffitt.org")
+           email = "Alex.Soupir@moffitt.org")
            )
 Description: Visualization and analysis of spatially resolved transcriptomics data. The functions in spatialGE allow for the study of gene expression in tissue sections via spatial interpolation, RNA-Seq data deconvolution, and autocorrelation statistics, as well as correlation with clinical/phenotype data.
 License: MIT + file LICENSE
@@ -35,23 +31,17 @@ Imports:
 	dplyr,
 	EBImage,
 	edgeR,
-	estimate,
-	geoR,
 	ggplot2,
 	ggpolypath,
 	ggpubr,
 	ggrepel,
 	janitor,
 	khroma (>= 1.6.0),
-	limma,
 	magrittr,
 	Matrix,
-	mclust,
 	methods,
 	parallel,
-	plotly,
 	png,
-	raster,
 	RColorBrewer,
 	reticulate,
 	readr,
@@ -63,10 +53,10 @@ Imports:
 	sp,
 	spdep,
 	stringr,
+	terra,
 	tibble,
 	tidyr,
 	wordspace,
-	xCell
 Suggests: 
 	kableExtra,
     knitr,
