@@ -176,7 +176,7 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
     cat(crayon::yellow(paste0('\t\tRunning ', nrow(combo), ' non-spatial tests...')))
 
     # Run models in parallel and get DE results
-    non_sp_models = non_spatial_de(expr_df=expr_df, combo=combo_df, verbose=verbose, cores=cores)
+    non_sp_models = non_spatial_de(expr_df=expr_df, combo=combo_df, cores=cores)
     rm(combo_df) # Clean environment
 
     # Summarize DE analyses
@@ -225,7 +225,7 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
       cat(crayon::yellow(paste0('\t\tRunning ', length(non_sp_models), ' spatial tests...')))
 
       # Run models
-      sp_models = spatial_de(non_sp_mods=non_sp_models, sp_topgenes=sp_topgenes, cores=cores)
+      sp_models = spatial_de(non_sp_mods=non_sp_models, sp_topgenes=sp_topgenes, verbose=verbose, cores=cores)
 
       rm(expr_df) # Clean environment
       end_t = difftime(Sys.time(), start_t, units='min')
