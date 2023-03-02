@@ -173,7 +173,7 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
                            stringsAsFactors=F) %>% dplyr::arrange(meta)
 
     start_t = Sys.time()
-    cat(crayon::yellow(paste0('\t\tRunning ', nrow(combo), ' non-spatial tests...')))
+    cat(crayon::yellow(paste0('\t\tRunning ', nrow(combo_df), ' non-spatial tests...')))
 
     # Run models in parallel and get DE results
     non_sp_models = non_spatial_de(expr_df=expr_df, combo=combo_df, cores=cores)
