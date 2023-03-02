@@ -534,14 +534,12 @@ read_visium_outs = function(filepaths, input_check){
   return_lists[['coords']] = list()
   return_lists[['images']] = list()
   for(i in 1:length(output_temp)){
-    if(rlang::is_empty(output_temp[[i]])){
-      return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
-      return_lists[['coords']][[fp_list[[i]]$runname]] = output_temp[[i]]$coords
-      return_lists[['images']][[fp_list[[i]]$runname]] = NULL
-    }
     return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
     return_lists[['coords']][[fp_list[[i]]$runname]] = output_temp[[i]]$coords
-    return_lists[['images']][[fp_list[[i]]$runname]] = png::readPNG(fp_list[[i]]$image)
+    return_lists[['images']][[fp_list[[i]]$runname]] = NULL
+    if(!rlang::is_empty(fp_list[[i]]$image)){
+      return_lists[['images']][[fp_list[[i]]$runname]] = png::readPNG(fp_list[[i]]$image)
+    }
   }
 
   rm(fp_list) # Clean environment

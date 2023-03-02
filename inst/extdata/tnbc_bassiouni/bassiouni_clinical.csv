@@ -1,0 +1,9 @@
+﻿sample_id,patient_id,neoadjuvant,overall_survival_days
+sample_117d,2,yes,2733
+sample_117e,2,yes,2733
+sample_120d,8,no,1453
+sample_120e,8,no,1453
+sample_092a,9,no,308
+sample_092b,9,no,308
+sample_094c,14,yes,718
+sample_094d,14,yes,718

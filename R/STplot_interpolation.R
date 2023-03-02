@@ -18,6 +18,7 @@
 #'
 #' @export
 #'
+#' @importFrom magrittr %>%
 #
 #
 STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, color_pal='YlOrBr', image=F, visium=T){

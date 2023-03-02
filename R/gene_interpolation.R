@@ -22,14 +22,13 @@
 #'
 #' @export
 #'
+#' @import fields
 #' @importFrom magrittr %>%
-#' @importFrom fields stationary.cov
 #
 #
 gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid=10000){
   #require("magrittr")
-
-  #import::from(fields, stationary.cov)
+  suppressPackageStartupMessages(require('fields'))
 
   # Universal kriging not implemented for now
   univ=F

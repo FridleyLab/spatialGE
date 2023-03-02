@@ -113,10 +113,10 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         title_w = as.character(stringr::str_extract(metacol, paste0("spw0\\.?[0-9]*"))) %>% gsub('spw', '', .)
         if(grepl('_k[0-9]+$', metacol)){
           title_k = as.character(stringr::str_extract(metacol, paste0("_k[0-9]+"))) %>% gsub('_k', '', .)
-          title_p = paste0("STclust assignments k=", title_k, "\nspatial weight=", title_w, '\nsample: ')
+          title_p = paste0("STclust k=", title_k, "\nspatial weight=", title_w, '\nsample: ')
         } else if(grepl('_dspl[0-9TrueFalse]+$', metacol)){
           title_dspl = stringr::str_extract(metacol, '[0-9]+$|True$|False$')
-          title_p = paste0("STclust assignments (dtc; deepSplit=", title_dspl, ")\nspatial weight=", title_w, '\nsample: ')
+          title_p = paste0("STclust (dtc; deepSplit=", title_dspl, ")\nspatial weight=", title_w, '\nsample: ')
         }
         title_p = paste0(title_p, s)
       } else{

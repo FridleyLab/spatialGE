@@ -44,7 +44,8 @@
 #
 #
 STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=NULL,
-                topgenes=2000, pval_thr=0.05, pval_adj=NULL, sp_topgenes=0.2, cores=NULL){
+                topgenes=2000, pval_thr=0.05, pval_adj=NULL, sp_topgenes=0.2,
+                verbose=2, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
@@ -166,15 +167,16 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
       tibble::column_to_rownames(var='libname')
 
     # Run non-spatial models
-    start_t = Sys.time()
-    cat(crayon::yellow('\t\tRunning non-spatial tests... '))
     # Create a table with combinations of samples, genes, and annotations to test using parallelization
     combo_df = expand.grid(meta=unique(expr_df[['meta']]),
                            gene=colnames(expr_df %>% dplyr::select(-group, -ypos, -xpos, -meta)),
                            stringsAsFactors=F) %>% dplyr::arrange(meta)
 
+    start_t = Sys.time()
+    cat(crayon::yellow(paste0('\t\tRunning ', nrow(combo), ' non-spatial tests...')))
+
     # Run models in parallel and get DE results
-    non_sp_models = non_spatial_de(expr_df=expr_df, combo=combo_df, cores=cores)
+    non_sp_models = non_spatial_de(expr_df=expr_df, combo=combo_df, verbose=verbose, cores=cores)
     rm(combo_df) # Clean environment
 
     # Summarize DE analyses
@@ -220,7 +222,7 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
     # Run spatial tests on subset of significant genes
     if(sp_topgenes > 0){
       start_t = Sys.time()
-      cat(crayon::yellow('\t\tRunning spatial tests... '))
+      cat(crayon::yellow(paste0('\t\tRunning ', length(non_sp_models), ' spatial tests...')))
 
       # Run models
       sp_models = spatial_de(non_sp_mods=non_sp_models, sp_topgenes=sp_topgenes, cores=cores)
@@ -368,7 +370,7 @@ non_spatial_de = function(expr_df=NULL, combo=NULL, cores=NULL){
 # cores is to use is detected automatically.
 # @return a list of spatial models
 #
-spatial_de = function(non_sp_mods=NULL, sp_topgenes=NULL, cores=NULL){
+spatial_de = function(non_sp_mods=NULL, sp_topgenes=NULL, verbose=verbose, cores=NULL){
   # Paralellize lme models
   if(is.null(cores)){
     cores = count_cores(length(non_sp_mods))
@@ -384,6 +386,10 @@ spatial_de = function(non_sp_mods=NULL, sp_topgenes=NULL, cores=NULL){
 
     # Rewrite the lme command call so that it works on the new environment
     non_sp_mods[[i]][['call']] = str2lang('nlme::lme.formula(fixed=as.formula(paste0("`", genenodash_tmp, "`", "~meta")), data=expr_tmp, random=~1|group, method="REML")')
+
+    if(verbose == 2){
+      system(sprintf('echo "%s"', crayon::green(i)))
+    }
 
     # Run spherical model and catch error if no convergence
     sph_out = tryCatch({

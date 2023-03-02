@@ -93,7 +93,7 @@ log_transf = function(x=NULL, scale_f=NULL){
   # Perform log-transformation on parallel if possible.
   log_counts = parallel::mclapply(seq_along(x@counts), function(i){
     # Show progress
-    system(sprintf('echo "%s"', crayon::yellow(paste0("Log-transforming sample ", i, "...."))))
+    system(sprintf('echo "%s"', crayon::yellow(paste0("Log-transforming sample ", names(x@counts)[i], "...."))))
 
     df_tmp = as.matrix(x@counts[[i]])
     # Calculate (spot/cell) library sizes.
