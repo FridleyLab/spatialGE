@@ -45,7 +45,7 @@
 #
 STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=NULL,
                 topgenes=2000, pval_thr=0.05, pval_adj=NULL, sp_topgenes=0.2,
-                verbose=2, cores=NULL){
+                verbose=F, cores=NULL){
   # Record time
   zero_t = Sys.time()
 

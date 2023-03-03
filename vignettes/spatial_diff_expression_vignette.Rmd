@@ -51,9 +51,11 @@ This melanoma ST data set also contains sample-level meta data. We will also pro
 clin_file <- list.files(data_files, full.names=T, pattern='clinical')
 ```
 
-Load spatialGE:
+Load `spatialGE` and `nlme` (to demonstrate use of linear models with covariance 
+structures):
 
 ```{r load_spatialge, message=F, warning=F}
+library('nlme')
 library('spatialGE')
 #devtools::load_all('../')
 ```
@@ -129,7 +131,7 @@ distance between two spots/cells. If spatial dependency is present, we should se
 a trend towards higher smiovariance as distance increases. In other words, variance
 between close spots is lower than variance between distant spots.
 
-```{r vgm_chunk, fig.asp=1, fig.width=2}
+```{r vgm_chunk, fig.asp=1, fig.width=5, fig.align='center'}
 # Create geodata object
 geodata_obj = geoR::as.geodata(df_vgm, coords.col=c('xpos', 'ypos'), data.col='geneexpr')
 # Calculate empirical variogram
@@ -177,7 +179,7 @@ gau_mod = update(null_mod, correlation=gau_covstr, method="REML")
 
 We then use the estimated parameters to fit the models to the empirical variogram.
 
-```{r vgmplot_chunk1, message=F, fig.asp=1, fig.width=2}
+```{r vgmplot_chunk1, message=F, fig.asp=1, fig.width=5, fig.align='center'}
 exp_vgm = geoR::variofit(emp_vgm, fix.nugget=T, cov.model='exponential',
                          ini.cov.pars=c(exp_mod$sigma^2,
                                         exp_mod$modelStruct$corStruct[1]),
@@ -223,7 +225,7 @@ melanoma <- STclust(melanoma,
 
 Results of clustering can be plotted via the `STplot()` function:
 
-```{r plotclustspots_chunk, fig.align='center'}
+```{r plotclustspots_chunk, fig.align='center', fig.height=4, fig.width=3}
 cluster_p <- STplot(melanoma, 
                     samples='ST_mel1_rep1', 
                     ws=0.025,
@@ -241,7 +243,7 @@ With clusters identified, we can run the `STde` function. We test de genes on th
 100 genes with the highest variation (as defined by `Seurat`'s function `FindVariableFeatures`).
 
 ```{r stde_chunk}
-deg = STde(melanoma, samples='ST_mel1_rep1', w=0.025, ks='dtc', topgenes=1000)
+deg = STde(melanoma, samples='ST_mel1_rep1', w=0.025, ks='dtc', topgenes=1000, verbose=1)
 ```
 
 The output of `STde` is a list, where each element of the list is a data frame containing
@@ -283,7 +285,7 @@ p2 = ggplot(log_pval, aes(x=log_p_val, y=log_exp_p_val)) +
 
 ```
 
-```{r compare_pval_p, warning=F}
+```{r compare_pval_p, warning=F, fig.width=7.5, fig.height=4, fig.align='center'}
 p1 + p2
 ```
 
@@ -300,7 +302,7 @@ help users evaluate which model was better supported compared to the non-spatial
 models. An easy way to summarize which model fitted the data better is to compare the 
 BICs (or AICs) using scatterplots.
 
-```{r bic_scatter, warning=F, fig.asp=0.8, fig.width=2}
+```{r bic_scatter, warning=F, fig.width=4, fig.height=4, fig.align='center'}
 deg$ST_mel1_rep1 %>%
   select(gene, sph_bic, exp_bic) %>%
   ggplot(aes(x=sph_bic, y=exp_bic)) +
@@ -334,7 +336,7 @@ melanoma = gene_interpolation(melanoma, genes=exp_deg[['gene']], samples='ST_mel
 p3 = STplot_interpolation(melanoma, genes=exp_deg[['gene']], samples='ST_mel1_rep1')
 ```
 
-```{r degenes_plots, fig.height=2, fig.width=5}
+```{r degenes_plots, fig.height=4, fig.width=9, fig.align='center'}
 ggpubr::ggarrange(plotlist=p3, ncol=3, nrow=1)
 ```
 
