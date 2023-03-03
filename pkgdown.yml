@@ -2,6 +2,7 @@ pandoc: 2.19.2
 pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
-  melanoma_ST_vignette: melanoma_ST_vignette.html
-last_built: 2023-02-23T21:20Z
+  basic_functions_vignette: basic_functions_vignette.html
+  spatial_diff_expression_vignette: spatial_diff_expression_vignette.html
+last_built: 2023-03-03T20:53Z
 
