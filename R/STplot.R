@@ -35,7 +35,13 @@
 #' @importFrom magrittr %>%
 #
 #
-STplot = function(x, samples=NULL, genes=NULL, data_type='tr', ks='dtc', ws=NULL, deepSplit=NULL, plot_meta=NULL, color_pal=NULL, visium=T, ptsize=NULL, image=F){
+STplot = function(x, samples=NULL, genes=NULL, plot_meta=NULL, ks='dtc', ws=NULL, deepSplit=NULL, color_pal=NULL, data_type='tr', ptsize=NULL, image=F){
+
+  # Check if data set is Visium to flip y axis (may consider remove this in the future)
+  visium = F
+  if(x@misc[['platform']] == 'visium'){
+    visium = T
+  }
 
   # Define if expression or metadata is to be plotted
   if(!is.null(genes)){
@@ -49,10 +55,6 @@ STplot = function(x, samples=NULL, genes=NULL, data_type='tr', ks='dtc', ws=NULL
       plot_list = plot_spatial_expression(x=x, genes=genes, samples=samples, color_pal=color_pal, data_type=data_type, image=image, visium=visium, ptsize=ptsize)
     }
   } else{
-    # Set default color if NULL input
-    if(is.null(color_pal)){
-      color_pal = 'light'
-    }
     plot_list = plot_spatial_meta(x=x, samples=samples, ks=ks, ws=ws, deepSplit=deepSplit, plot_meta=plot_meta, color_pal=color_pal, visium=visium, ptsize=ptsize)
   }
 

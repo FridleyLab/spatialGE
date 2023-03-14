@@ -82,6 +82,15 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
 
   plot_list = list()
   for(s in samples){
+
+    # Set default color if NULL input
+    if(is.null(color_pal)){
+      color_pal = 'light'
+      if(is.numeric(x@spatial_meta[[s]][[plot_meta]])){
+        color_pal = 'BuRd'
+      }
+    }
+
     # Extract metadata for specific sample
     df_tmp = x@spatial_meta[[s]]
 

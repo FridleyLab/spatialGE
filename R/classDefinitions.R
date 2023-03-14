@@ -27,9 +27,9 @@ setClass(Class="STlist",
                     gene_het="list",
                     gene_krige="list",
                     cell_deconv="list",
-                    cell_krige="list",
+                    #cell_krige="list",
                     #st_clusters="list",
-                    spstats_plots="list",
+                    #spstats_plots="list",
                     misc="list"
          )
 )

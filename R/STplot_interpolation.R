@@ -21,7 +21,7 @@
 #' @importFrom magrittr %>%
 #
 #
-STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, color_pal='YlOrBr', image=F, visium=T){
+STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, color_pal='BuRd', image=F, visium=T){
 
   # Option to use plotly disabled (not supporting geomPolypath)
   inter=F

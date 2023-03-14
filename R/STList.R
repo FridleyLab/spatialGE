@@ -232,9 +232,9 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
                    gene_het=list(),
                    gene_krige=list(),
                    cell_deconv=list(),
-                   cell_krige=list(),
+                   #cell_krige=list(),
                    #st_clusters=list(),
-                   spstats_plots=list(),
+                   #spstats_plots=list(),
                    misc=list(sp_images=img_obj, platform=platform)
   )
   cat(crayon::green$bold(paste("Completed STlist!\n")))
@@ -254,8 +254,9 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
 makeSparse = function(dataframe){
   #suppressMessages({library(Matrix)})
   if(!is.matrix(dataframe)){
+    genecol = colnames(dataframe)[1]
     numdat = dataframe %>%
-      tibble::column_to_rownames("gene") %>%
+      tibble::column_to_rownames(genecol) %>%
       as.matrix() %>% as(., "sparseMatrix")
   } else {
     numdat = dataframe %>% as(., "sparseMatrix")
@@ -538,7 +539,9 @@ read_visium_outs = function(filepaths, input_check){
     return_lists[['coords']][[fp_list[[i]]$runname]] = output_temp[[i]]$coords
     return_lists[['images']][[fp_list[[i]]$runname]] = NULL
     if(!rlang::is_empty(fp_list[[i]]$image)){
-      return_lists[['images']][[fp_list[[i]]$runname]] = png::readPNG(fp_list[[i]]$image)
+      image_read = tryCatch({png::readPNG(fp_list[[i]]$image[1])},
+                            error=function(e){png::readPNG(fp_list[[i]]$image[2])})
+      return_lists[['images']][[fp_list[[i]]$runname]] = image_read
     }
   }
 
