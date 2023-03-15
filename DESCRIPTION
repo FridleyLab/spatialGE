@@ -34,7 +34,6 @@ Imports:
 	fields,
 	ggplot2,
 	ggpolypath,
-	ggpubr,
 	ggrepel,
 	janitor,
 	khroma (>= 1.6.0),
@@ -50,6 +49,7 @@ Imports:
 	rjson,
 	rlang,
 	scales,
+	sctransform,
 	Seurat,
 	sp,
 	spdep,
@@ -59,6 +59,7 @@ Imports:
 	tidyr,
 	wordspace,
 Suggests: 
+	ggpubr,
 	kableExtra,
     knitr,
     progress,
