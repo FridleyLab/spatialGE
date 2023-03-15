@@ -3,14 +3,23 @@
 #' @description Applies data transformation methods to spatial transcriptomics
 #' samples within an STlist
 #' @details
-#' This function takes an STlist with raw counts and applies logarithmic transformation
-#' after library size normalization. This logarithmic transformation uses
-#' a scaling factor (10^4) by default.  The function works on parallel using
-#' "forking" (not available in Windows OS).
+#' This function takes an STlist with raw counts and performs data transformation.
+#' The user has the option to select between log transformation after library size
+#' normalization (`method='log'`), or SCTransform (`method='sct'`). In the case of
+#' logarithmic transformation, a scaling factor (10^4 by default) is applied. The
+#' function works on parallel using "forking" (not available in Windows OS). Note
+#' that the method `sct` returns a matrix with less genes as filtering is done for
+#' lowly expressed genes.
 #'
 #' @param x an STList with raw count matrices.
+#' @param method one of `log` or `sct`. If `log`, log-normalization is performed.
+#' If `sct`, then the SCTransform method is applied by calling sctransform::vst.
 #' @param scale_f, the scale factor used in logarithmic transformation.
-#' @return x an updated STList with transformed counts.
+#' @param sct_n_regr_genes the number of genes to be used in the regression model
+#' during SCTransform. The function sctransform::vst selects genes randomly.
+#' @param sct_min_cells The minimum number of spots/cells to be used in the regression
+#' model.
+#' @return x an updated STlist with transformed counts.
 #'
 #' @examples
 #' # In this example, melanoma is an STlist.
@@ -22,30 +31,39 @@
 #' @importFrom methods as is new
 #
 #
-transform_data = function(x=NULL, scale_f=10000){
-
-  method = 'log'
+transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=3000, sct_min_cells=5){
 
   # Detect transformation method
   if(method == 'voom'){
-    x@tr_counts = voom_norm(x)
-    x@misc[['transform']] = 'voom'
+    stop('voom normalization has been deprecated. Please use "log" or "sct".')
+    #x@tr_counts = voom_norm(x)
+    #x@misc[['transform']] = 'voom'
   } else if(method == 'log'){
     # log-normalize counts and obtain spots/cells with zero counts
-    log_results = log_transf(x, scale_f=scale_f)
-    for(i in names(x@counts)){
-      # Remove zero counts spots/cells if any
-      if(!is.null(log_results[[i]][['zero_size']])){
-        zero_size = log_results[[i]][['zero_size']]
-        x@counts[[i]] = x@counts[[i]][, -zero_size]
-        libnames = colnames(x@counts[[i]])
-        x@spatial_meta[[i]] = x@spatial_meta[[i]] %>%
-          dplyr::filter(libname %in% libnames)
-        rm(zero_size, libnames) # Clean environment
-      }
-      x@tr_counts[[i]] = makeSparse(log_results[[i]][['counts']])
-    }
+    tr_results = log_transf(x, scale_f=scale_f)
     x@misc[['transform']] = 'log'
+  } else if(method == 'sct'){
+    # Apply SCTransform counts and obtain spots/cells with zero counts
+    tr_results = sct_transf(x, sct_n_regr_genes=sct_n_regr_genes, sct_min_cells=sct_min_cells)
+    x@misc[['transform']] = 'sct'
+  }
+
+  # Put transformed counts in STlist
+  for(i in names(x@counts)){
+    if(class(tr_results[[i]][['counts']])[1] != "dgCMatrix"){
+      x@tr_counts[[i]] = makeSparse(tr_results[[i]][['counts']])
+    } else{
+      x@tr_counts[[i]] = tr_results[[i]][['counts']]
+    }
+    # Remove zero counts spots/cells if any from raw counts
+    if(!is.null(tr_results[[i]][['zero_size']])){
+      zero_size = tr_results[[i]][['zero_size']]
+      x@counts[[i]] = x@counts[[i]][, -zero_size]
+      libnames_nonzero = colnames(x@counts[[i]])
+      x@spatial_meta[[i]] = x@spatial_meta[[i]] %>%
+        dplyr::filter(libname %in% libnames_nonzero)
+      rm(zero_size, libnames_nonzero) # Clean environment
+    }
   }
 
   # Calculate gene-wise standard deviations in parallel if possible.
@@ -103,7 +121,7 @@ log_transf = function(x=NULL, scale_f=NULL){
     if(any(libsizes == 0)){
       zero_size = as.vector(which(libsizes == 0))
       df_tmp = df_tmp[, -zero_size]
-      system(sprintf('echo "%s"', crayon::red(paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", i, " and from the entire STlist."))))
+      system(sprintf('echo "%s"', crayon::red(paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", names(x@counts)[i], " and from the entire STlist."))))
       libsizes = libsizes[libsizes != 0]
     }
 
@@ -129,6 +147,62 @@ log_transf = function(x=NULL, scale_f=NULL){
 
   return(log_counts)
 }
+
+
+##
+# @title sct_transf: Applies SCTransform on spatial samples
+# @description Applies Seurat's SCTransform method.
+#
+# @details
+# The function works on parallel using "forking" (not in Windows OS).
+#
+# @param x an STList with raw count matrices.
+# @return x an updated STList with transformed counts.
+#
+#' @importFrom methods as is new
+#
+#
+sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5){
+  # Test if an STlist has been input.
+  if(is.null(x) | !is(x, "STlist")){
+    stop("The input must be a STlist.")
+  }
+
+  # Detect usable cores
+  cores = count_cores(length(x@counts))
+
+  # Perform log-transformation on parallel if possible.
+  sct_counts = parallel::mclapply(seq_along(x@counts), function(i){
+    # Show progress
+    system(sprintf('echo "%s"', crayon::yellow(paste0("Applying SCTransform to sample ", names(x@counts)[i], "...."))))
+
+    df_tmp = as.matrix(x@counts[[i]])
+    # Calculate (spot/cell) library sizes.
+    libsizes = colSums(df_tmp)
+    # Check that there are not zero-count spot/cells
+    zero_size = NULL
+    if(any(libsizes == 0)){
+      zero_size = as.vector(which(libsizes == 0))
+      df_tmp = df_tmp[, -zero_size]
+      system(sprintf('echo "%s"', crayon::red(paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", names(x@counts)[i], " and from the entire STlist."))))
+      libsizes = libsizes[libsizes != 0]
+    }
+
+    df_tmp = sctransform::vst(df_tmp, n_genes=sct_n_regr_genes, min_cells=sct_min_cells,
+                              return_corrected_umi=T, verbosity=0)
+
+    result_list = list(counts=df_tmp[['umi_corrected']], zero_size=zero_size)
+
+    return(result_list)
+  }, mc.cores=cores, mc.preschedule=F)
+
+  # Copy list names from raw counts to transformed counts
+  names(sct_counts) = names(x@counts)
+  names(sct_counts) = names(x@counts)
+
+  return(sct_counts)
+}
+
 
 ##
 # @title voom_norm: voom transformation of ST arrays
