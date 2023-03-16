@@ -137,8 +137,7 @@ pseudobulk_pca <- function(x=NULL, plot_meta=NULL, n_genes=5000, color_pal="mute
   cat_shapes <- (16:25)[1:n_cats]
   names(cat_shapes) <- levels(as.factor(pca_tbl[[plot_meta]]))
 
-# NOTE: INSTEAD OF NUMBERS, WOULD BE GREAT TO HAVE SAMPLE ID PLOTTED
-  ggplot(pca_tbl) +
+  pca_p = ggplot(pca_tbl) +
     geom_point(aes(x=PC1, y=PC2, shape=get(plot_meta), color=get(plot_meta)), size=ptsize) +
     ggrepel::geom_text_repel(aes(x=PC1, y=PC2, label=pca_labs)) +
     scale_color_manual(plot_meta, values=cat_cols) +
@@ -147,4 +146,5 @@ pseudobulk_pca <- function(x=NULL, plot_meta=NULL, n_genes=5000, color_pal="mute
     coord_fixed() +
     theme_bw()
 
+  return(pca_p)
 }
