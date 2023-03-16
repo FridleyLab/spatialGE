@@ -44,8 +44,8 @@ pseudobulk_pca <- function(x=NULL, plot_meta=NULL, n_genes=5000, color_pal="mute
   }
 
   # Stop function if only one sample provided.
-  if(length(x@counts) < 2){
-    stop('Refusing to plot a PCA containing a single sample!')
+  if(length(x@counts) < 3){
+    stop('Refusing to make a PCA plot containing less than two samples!')
   }
 
   # Extract clinical/metadata from specified variable. If none specified, use the
@@ -96,14 +96,14 @@ pseudobulk_pca <- function(x=NULL, plot_meta=NULL, n_genes=5000, color_pal="mute
     libsizes = colSums(bulkcounts_df[, -1])
     # Check that there are not zero-count spots
     if(any(libsizes == 0)){
-      stop('Please, remove spots containing zero reads...')
+      stop('Please, remove samples containing zero reads...')
     }
     # Divide each count value by their respective column (spot) normalization factor.
     normcounts_df = sweep(bulkcounts_df[, -1], 2, libsizes, '/')
     # Then multiply by scaling factor
     # df = df * scale_f
     # Apply log transformation to count data.
-    tr_df = log1p(normcounts_df)
+    tr_df = log1p(normcounts_df * 100000)
     # Put back gene names to matrix and store in object.
     tr_df = tibble::as_tibble(tr_df) %>%
       tibble::add_column(gene=bulkcounts_df[[1]], .before=1) %>%
