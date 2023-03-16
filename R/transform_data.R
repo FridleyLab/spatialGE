@@ -188,10 +188,13 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5){
       libsizes = libsizes[libsizes != 0]
     }
 
+    # Apply SCTransform
     df_tmp = sctransform::vst(df_tmp, n_genes=sct_n_regr_genes, min_cells=sct_min_cells,
                               return_corrected_umi=T, verbosity=0)
+    # log transform the corrected UMI counts from SCTransform
+    df_tmp = log1p(df_tmp[['umi_corrected']])
 
-    result_list = list(counts=df_tmp[['umi_corrected']], zero_size=zero_size)
+    result_list = list(counts=df_tmp, zero_size=zero_size)
 
     return(result_list)
   }, mc.cores=cores, mc.preschedule=F)

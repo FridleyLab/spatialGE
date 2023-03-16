@@ -9,9 +9,9 @@
 #'
 #' @param x an STList.
 #' @param plot_meta a string indicating the name of the variable in the sample metadata.
+#' @param n_genes Number of most variable genes (standard deviation) to use in PCA
 #' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
 #' vector with colors with enough elements to plot categories.
-#' @param tr_method one of 'log' or 'voom'. The method to transform the "pseudo bulk" data.
 #' @param ptsize the size of the points in the plot. Passed to `size` aesthetic from `ggplot2`.
 #'
 #' @examples
@@ -26,11 +26,13 @@
 #' @importFrom methods as is new
 #
 #
-pseudobulk_pca <- function(x=NULL, plot_meta=NULL, color_pal="muted", tr_method='log', ptsize=5) {
+pseudobulk_pca <- function(x=NULL, plot_meta=NULL, n_genes=5000, color_pal="muted", ptsize=5) {
 
   #require('magrittr')
   #require('Matrix')
   #require('ggplot2')
+
+  tr_method='log'
 
   if(!is.null(plot_meta) && !(plot_meta %in% colnames(x@sample_meta))){
     stop('Variable not in sample metadata. Verify that input matches variable name in sample data')
@@ -104,11 +106,15 @@ pseudobulk_pca <- function(x=NULL, plot_meta=NULL, color_pal="muted", tr_method=
     tr_df = log1p(normcounts_df)
     # Put back gene names to matrix and store in object.
     tr_df = tibble::as_tibble(tr_df) %>%
-      tibble::add_column(gene=bulkcounts_df[[1]], .before=1)
+      tibble::add_column(gene=bulkcounts_df[[1]], .before=1) %>%
+      tibble::column_to_rownames('gene')
   }
 
   # Turn transformed counts to a transposed matrix.
-  tr_df <- t(as.matrix(tr_df[, -1]))
+  tr_df <- t(as.matrix(tr_df))
+  # Get variable genes and subset
+  vargenes = sort(apply(tr_df, 2, sd), decreasing=T)
+  tr_df = tr_df[, names(vargenes[1:n_genes])]
 
   # Perform PCA on transoposed matrix.
   pca_expr <- prcomp(tr_df, scale=TRUE)
@@ -117,7 +123,6 @@ pseudobulk_pca <- function(x=NULL, plot_meta=NULL, color_pal="muted", tr_method=
   pca_tbl <- tibble::as_tibble(pca_expr$x)
   pca_tbl <- pca_tbl %>%
     tibble::add_column(clinvar_vals, .before=1)
-
 
   # Get number of categories from selected variable.
   n_cats <- nlevels(as.factor(pca_tbl[[plot_meta]]))
