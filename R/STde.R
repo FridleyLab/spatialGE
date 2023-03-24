@@ -70,7 +70,7 @@ STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=N
     }
   }
 
-  # Define columns to plot
+  # Define columns to test
   if(is.null(annot)){
     annot = grep('^stclust_spw', colnames(x@spatial_meta[[1]]), value=T)
     if(!is.null(ws)){
