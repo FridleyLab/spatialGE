@@ -22,7 +22,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran'){
     samples = names(x@tr_counts)
   } else{
     if(is.numeric(samples)){
-      samples = names(x@trcounts)[samples]
+      samples = names(x@tr_counts)[samples]
     }
   }
 

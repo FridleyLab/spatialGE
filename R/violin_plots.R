@@ -23,7 +23,7 @@
 #
 #
 violin_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, data_type='tr',
-                        color_pal='roma', plot_type='violin', ptsize=0.5, ptalpha=0.5){
+                        color_pal='okabeito', plot_type='violin', ptsize=0.5, ptalpha=0.5){
   #require('ggplot2')
 
   # Define samples to plot if NULL or numeric
@@ -78,7 +78,7 @@ violin_plots_spot = function(x=NULL, plot_meta='total_counts', samples=NULL,
     meta_cols = color_parse(color_pal, n_cats=length(samples))
 
     # Create plot
-    p_list[[meta]] = ggplot2::ggplot(df_tmp, aes(x=samplename, y=.data[[meta]], color=samplename))
+    p_list[[meta]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=samplename, y=.data[[meta]], color=samplename))
     if(plot_type == 'box'){
       p_list[[meta]] = p_list[[meta]] +
         ggplot2::geom_boxplot(outlier.size=ptsize)
@@ -90,9 +90,9 @@ violin_plots_spot = function(x=NULL, plot_meta='total_counts', samples=NULL,
     p_list[[meta]] = p_list[[meta]] +
       ggplot2::xlab(NULL) +
       ggplot2::scale_color_manual(values=meta_cols) +
-      ggplot2::theme(axis.text.x=element_text(angle=30, hjust=1),
-                     panel.border=element_rect(fill=NA, color='black'),
-                     legend.title=element_blank())
+      ggplot2::theme(axis.text.x=ggplot2::element_text(angle=30, hjust=1),
+                     panel.border=ggplot2::element_rect(fill=NA, color='black'),
+                     legend.title=ggplot2::element_blank())
   }
 
   return(p_list)
@@ -136,7 +136,7 @@ violin_plots_gene = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
     gene_cols = color_parse(color_pal, n_cats=length(samples))
 
     # Create plot
-    p_list[[gene]] = ggplot2::ggplot(df_tmp, aes(x=samplename, y=.data[['geneexpr']], color=samplename))
+    p_list[[gene]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=samplename, y=.data[['geneexpr']], color=samplename))
     if(plot_type == 'box'){
       p_list[[gene]] = p_list[[gene]] +
         ggplot2::geom_boxplot(outlier.size=ptsize)
@@ -149,9 +149,9 @@ violin_plots_gene = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
       ggplot2::ylab(paste0(p_title, gene)) +
       ggplot2::xlab(NULL) +
       ggplot2::scale_color_manual(values=gene_cols) +
-      ggplot2::theme(axis.text.x=element_text(angle=30, hjust=1),
-                     panel.border=element_rect(fill=NA, color='black'),
-                     legend.title=element_blank())
+      ggplot2::theme(axis.text.x=ggplot2::element_text(angle=30, hjust=1),
+                     panel.border=ggplot2::element_rect(fill=NA, color='black'),
+                     legend.title=ggplot2::element_blank())
   }
 
   return(p_list)
