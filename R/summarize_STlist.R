@@ -30,12 +30,12 @@ summarize_STlist = function(x=NULL){
 
     df_tmp = dplyr::bind_rows(df_tmp,
                               tibble::tibble(sample_name=i,
-                                             mean_counts_per_spotcell=mean_counts_spot,
                                              min_counts_per_spotcell=min_counts_spot,
+                                             mean_counts_per_spotcell=mean_counts_spot,
                                              max_counts_per_spotcell=max_counts_spot,
-                                             mean_genes_per_spotcell=mean_genes_spot,
                                              min_genes_per_spotcell=min_genes_spot,
-                                             max_genes_per_spotcell=max_genes_spot,))
+                                             mean_genes_per_spotcell=mean_genes_spot,
+                                             max_genes_per_spotcell=max_genes_spot))
   }
   return(df_tmp)
 }

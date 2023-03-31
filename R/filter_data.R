@@ -213,14 +213,32 @@ filter_data = function(x=NULL,
 
     # Subset data in STlist
     df_tmp = tibble::rownames_to_column(df_tmp, var='gene')
-    x@counts[[i]] = makeSparse(df_tmp)
-    x@spatial_meta[[i]] = x@spatial_meta[[i]][x@spatial_meta[[i]]$libname %in% colnames(df_tmp), ]
-    if(!rlang::is_empty(x@tr_counts)){
-      x@tr_counts[[i]] = x@tr_counts[[i]][rownames(x@tr_counts[[i]]) %in% rownames(x@counts[[i]]),
-                                          colnames(x@tr_counts[[i]]) %in% colnames(x@counts[[i]])]
-    }
-    if(!rlang::is_empty(x@gene_meta)){
-      x@gene_meta[[i]] = x@gene_meta[[i]][x@gene_meta[[i]][['gene']] %in% rownames(x@counts[[i]]), ]
+    if(ncol(df_tmp) > 1){ # At least one spot
+      x@counts[[i]] = makeSparse(df_tmp)
+      x@spatial_meta[[i]] = x@spatial_meta[[i]][x@spatial_meta[[i]]$libname %in% colnames(x@counts[[i]]), ] %>%
+        dplyr::select(-total_counts, -total_genes) %>%
+        dplyr::left_join(., tibble::tibble(libname=colnames(x@counts[[i]]),
+                                           total_counts=Matrix::colSums(x@counts[[i]]),
+                                           total_genes=Matrix::colSums(x@counts[[i]] != 0)), by='libname')
+      if(!rlang::is_empty(x@tr_counts)){
+        x@tr_counts[[i]] = x@tr_counts[[i]][rownames(x@tr_counts[[i]]) %in% rownames(x@counts[[i]]),
+                                            colnames(x@tr_counts[[i]]) %in% colnames(x@counts[[i]])]
+      }
+      if(!rlang::is_empty(x@gene_meta)){
+        x@gene_meta[[i]] = tibble::tibble(dplyr::mutate(gene_mean=as.vector(Matrix::rowMeans(x@tr_counts[[i]]))) %>%
+                                            dplyr::mutate(gene_stdevs=as.vector(apply(x@tr_counts[[i]], 1, sd))) %>%
+                                            tibble::add_column(gene=rownames(x@tr_counts[[i]]), .before=1))
+      }
+    } else{
+      warning(paste0('All spots from ', i, ' were removed. Removing sample from STlist...'))
+      x@counts = x@counts[!grepl(i, names(x@counts))]
+      x@spatial_meta = x@spatial_meta[!grepl(i, names(x@spatial_meta))]
+      if(!rlang::is_empty(x@tr_counts)){
+        x@tr_counts = x@tr_counts[!grepl(i, names(x@tr_counts))]
+      }
+      if(!rlang::is_empty(x@gene_meta)){
+        x@gene_meta = x@gene_meta[!grepl(i, names(x@gene_meta))]
+      }
     }
   }
   return(x)
