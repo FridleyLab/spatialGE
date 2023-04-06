@@ -225,9 +225,12 @@ filter_data = function(x=NULL,
                                             colnames(x@tr_counts[[i]]) %in% colnames(x@counts[[i]])]
       }
       if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta[[i]] = tibble::tibble(dplyr::mutate(gene_mean=as.vector(Matrix::rowMeans(x@tr_counts[[i]]))) %>%
-                                            dplyr::mutate(gene_stdevs=as.vector(apply(x@tr_counts[[i]], 1, sd))) %>%
-                                            tibble::add_column(gene=rownames(x@tr_counts[[i]]), .before=1))
+        x@gene_meta[[i]] = x@gene_meta[[i]] %>%
+          dplyr::select(-gene_mean, -gene_stdevs) %>%
+          dplyr::left_join(tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(x@tr_counts[[i]])),
+                                          gene_stdevs=as.vector(apply(x@tr_counts[[i]], 1, sd)),
+                                          gene=rownames(x@tr_counts[[i]])),. , by='gene') %>%
+          dplyr::relocate(gene_mean, gene_stdevs, .after='gene')
       }
     } else{
       warning(paste0('All spots from ', i, ' were removed. Removing sample from STlist...'))

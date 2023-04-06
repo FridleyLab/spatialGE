@@ -108,10 +108,12 @@ violin_plots_gene = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
   # Extract data slot
   if(data_type == 'tr'){
     expr_tmp = x@tr_counts
-    p_title = 'normalized expr - '
+    p_title = 'normalized expression - '
+    ax_title = 'Normalized expression'
   } else {
     expr_tmp = x@counts
-    p_title = 'raw expr - '
+    p_title = 'Raw expr - '
+    ax_title = 'Counts'
   }
 
   p_list = list()
@@ -146,7 +148,8 @@ violin_plots_gene = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
         ggforce::geom_sina(size=ptsize)
     }
     p_list[[gene]] = p_list[[gene]] +
-      ggplot2::ylab(paste0(p_title, gene)) +
+      ggplot2::ggtitle(gene) +
+      ggplot2::ylab(ax_title) +
       ggplot2::xlab(NULL) +
       ggplot2::scale_color_manual(values=gene_cols) +
       ggplot2::theme(axis.text.x=ggplot2::element_text(angle=30, hjust=1),
