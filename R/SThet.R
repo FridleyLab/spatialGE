@@ -10,13 +10,14 @@
 #' @param genes a vector of gene names to compute statistics
 #' @param samples the samples to compute statistics
 #' @param method The spatial statistic(s) to estimate. Default is 'moran',
+#' @param dist_thr the number of euclidean distance units to consider a cell/spot a neighbor.
 #' but a vector with any combination of 'moran' or 'geary' can be passed.
 #'
 #' @export
 #'
 #
 #
-SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran'){
+SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', dist_thr=2){
   # Select sample names if NULL or if number entered
   if (is.null(samples)){
     samples = names(x@tr_counts)
@@ -61,6 +62,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran'){
 
   # Create binary 1/0 adjacency matrix
   # Use 2 x euclidean distance to define neighbors
+  dist_thr = as.numeric(dist_thr)
   adj_ls = list()
   for(i in samples){
     adj = as.matrix(dist(x@spatial_meta[[i]][, c('xpos', 'ypos')]))
@@ -68,7 +70,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran'){
     colnames(adj) = x@spatial_meta[[i]][['libname']]
     rownames(adj) = x@spatial_meta[[i]][['libname']]
     min_tmp = min(adj, na.rm=T)
-    adj[adj >= min_tmp * 0.5 & adj <= min_tmp * 2] = 1
+    adj[adj >= min_tmp * 0.5 & adj <= min_tmp * dist_thr] = 1
     adj[adj > min_tmp * 2] = 0
     diag(adj) = 0
 
