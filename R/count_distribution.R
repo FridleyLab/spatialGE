@@ -48,8 +48,9 @@ count_distribution = function(x=NULL, samples=NULL, data_type='tr', plot_type='d
       # Subsample data according
       set.seed(subset_seed)
       df_tmp[[i]] = df_tmp[[i]][sample(1:nrow(df_tmp[[i]]), nrow(df_tmp[[i]])*distrib_subset), ]
-      # X axis title
-      p_title = 'normalized expression'
+      # Plot and X axis title
+      p_title = 'Normalized expression distribution'
+      ax_title = 'Normalized expression'
     } else{
       df_tmp[[i]] = as.matrix(x@counts[[i]]) %>%
         as.data.frame() %>%
@@ -58,8 +59,9 @@ count_distribution = function(x=NULL, samples=NULL, data_type='tr', plot_type='d
       # Subsample data according
       set.seed(subset_seed)
       df_tmp[[i]] = df_tmp[[i]][sample(1:nrow(df_tmp[[i]]), nrow(df_tmp[[i]])*distrib_subset), ]
-      # X axis title
-      p_title = 'raw expression'
+      # Plot and X axis title
+      p_title = 'Raw expression distribution'
+      ax_title = 'Raw counts'
     }
   }
 
@@ -74,7 +76,9 @@ count_distribution = function(x=NULL, samples=NULL, data_type='tr', plot_type='d
   if(any(grepl('density', plot_type))){
     d_plot[['density']] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=expr_values, fill=sample_name)) +
       ggplot2::geom_density() +
-      ggplot2::xlab(p_title) +
+      ggplot2::xlab(ax_title) +
+      ggplot2::ylab('Density') +
+      ggplot2::ggtitle(p_title) +
       ggplot2::labs(fill='Sample') +
       ggplot2::scale_fill_manual(values=meta_cols) +
       ggplot2::theme(panel.border=ggplot2::element_rect(fill=NA, color='black'))
@@ -83,18 +87,24 @@ count_distribution = function(x=NULL, samples=NULL, data_type='tr', plot_type='d
     d_plot[['violin']] = ggplot2::ggplot(df_tmp, ggplot2::aes(y=expr_values, x=sample_name, fill=sample_name)) +
       ggplot2::geom_violin() +
       #ggforce::geom_sina(size=0.1) +
-      ggplot2::xlab(p_title) +
+      ggplot2::ggtitle(p_title) +
+      ggplot2::ylab(ax_title) +
+      ggplot2::xlab(NULL) +
       ggplot2::labs(fill='Sample') +
       ggplot2::scale_fill_manual(values=meta_cols) +
-      ggplot2::theme(panel.border=ggplot2::element_rect(fill=NA, color='black'))
+      ggplot2::theme(panel.border=ggplot2::element_rect(fill=NA, color='black'),
+                     axis.text.x=ggplot2::element_text(angle=30, vjust=1, hjust=0.8))
   }
   if(any(grepl('box', plot_type))){
     d_plot[['boxplot']] = ggplot2::ggplot(df_tmp, ggplot2::aes(y=expr_values, x=sample_name, fill=sample_name)) +
       ggplot2::geom_boxplot() +
-      ggplot2::xlab(p_title) +
+      ggplot2::ggtitle(p_title) +
+      ggplot2::ylab(ax_title) +
+      ggplot2::xlab(NULL) +
       ggplot2::labs(fill='Sample') +
       ggplot2::scale_fill_manual(values=meta_cols) +
-      ggplot2::theme(panel.border=ggplot2::element_rect(fill=NA, color='black'))
+      ggplot2::theme(panel.border=ggplot2::element_rect(fill=NA, color='black'),
+                     axis.text.x=ggplot2::element_text(angle=30, vjust=1, hjust=0.8))
   }
 
   return(d_plot)
