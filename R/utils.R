@@ -89,6 +89,10 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
     }
   }
 
+  # Subset colors is more colors in palette than categories
+  if(length(cat_cols) > n_cats){
+    cat_cols = cat_cols[1:n_cats]
+  }
   return(cat_cols)
 }
 

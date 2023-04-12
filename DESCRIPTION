@@ -30,7 +30,6 @@ Imports:
 	dynamicTreeCut,
 	dplyr,
 	EBImage,
-	edgeR,
 	fields,
 	ggplot2,
 	ggpolypath,

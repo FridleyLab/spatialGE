@@ -34,11 +34,12 @@
 transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=3000, sct_min_cells=5){
 
   # Detect transformation method
-  if(method == 'voom'){
-    stop('voom normalization has been deprecated. Please use "log" or "sct".')
-    #x@tr_counts = voom_norm(x)
-    #x@misc[['transform']] = 'voom'
-  } else if(method == 'log'){
+  # if(method == 'voom'){
+  #   stop('voom normalization has been deprecated. Please use "log" or "sct".')
+  #   #x@tr_counts = voom_norm(x)
+  #   #x@misc[['transform']] = 'voom'
+  # } else
+    if(method == 'log'){
     # log-normalize counts and obtain spots/cells with zero counts
     tr_results = log_transf(x, scale_f=scale_f)
     x@misc[['transform']] = 'log'
@@ -207,7 +208,7 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5){
 }
 
 
-##
+## DEPRECATED
 # @title voom_norm: voom transformation of ST arrays
 # @description Applies limma-voom transformation to spatial transcriptomics arrays data.
 # @details
@@ -227,46 +228,46 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5){
 # # In this example, melanoma is an STList.
 # # melanoma <- voom_norm(melanoma)
 #
-#' @importFrom methods as is new
+# #' @importFrom methods as is new
 #
 #
-voom_norm = function(x=NULL){
-  # Define number of available cores to use.
-  cores = count_cores(length(x@counts))
-
-  # Test if an STList has been input.
-  if(is.null(x) | !is(x, "STlist")){
-    stop("The input must be a STlist.")
-  }
-
-  # Perform voom transformation on parallel if possible.
-  voom_counts = parallel::mclapply(seq_along(x@counts), function(i){
-
-    # Progress will probably show if cores=1
-    cat(paste0("Normalizing spatial sample: ", names(x@counts[i]), "...\n"))
-
-    # Expand sparse matrix
-    df = expandSparse(x@counts[[i]])
-
-    # Calculate edgeR normalization factors.
-    norm_factors = edgeR::calcNormFactors(df, method="TMM", lib.size=NULL)
-
-    # Divide each count value by their respective column (spot) normalization factor.
-    df = sweep(df, 2, norm_factors, '/')
-
-    # Apply voom transformation to count data.
-    df_voom = limma::voom(df, design=NULL, lib.size=colSums(df), normalize.method="none", plot=F)
-
-    # Put back gene names to matrix and store in object.
-    df_voom = tibble::as_tibble(df_voom$E) %>%
-      tibble::add_column(gene=rownames(x@counts[[i]]), .before=1)
-
-    return(df_voom)
-
-  }, mc.cores=cores, mc.preschedule=F)
-
-  # Copy list names from raw counts to transformed counts
-  names(voom_counts) = names(x@counts)
-
-  return(voom_counts)
-}
+# voom_norm = function(x=NULL){
+#   # Define number of available cores to use.
+#   cores = count_cores(length(x@counts))
+#
+#   # Test if an STList has been input.
+#   if(is.null(x) | !is(x, "STlist")){
+#     stop("The input must be a STlist.")
+#   }
+#
+#   # Perform voom transformation on parallel if possible.
+#   voom_counts = parallel::mclapply(seq_along(x@counts), function(i){
+#
+#     # Progress will probably show if cores=1
+#     cat(paste0("Normalizing spatial sample: ", names(x@counts[i]), "...\n"))
+#
+#     # Expand sparse matrix
+#     df = expandSparse(x@counts[[i]])
+#
+#     # Calculate edgeR normalization factors.
+#     norm_factors = edgeR::calcNormFactors(df, method="TMM", lib.size=NULL)
+#
+#     # Divide each count value by their respective column (spot) normalization factor.
+#     df = sweep(df, 2, norm_factors, '/')
+#
+#     # Apply voom transformation to count data.
+#     df_voom = limma::voom(df, design=NULL, lib.size=colSums(df), normalize.method="none", plot=F)
+#
+#     # Put back gene names to matrix and store in object.
+#     df_voom = tibble::as_tibble(df_voom$E) %>%
+#       tibble::add_column(gene=rownames(x@counts[[i]]), .before=1)
+#
+#     return(df_voom)
+#
+#   }, mc.cores=cores, mc.preschedule=F)
+#
+#   # Copy list names from raw counts to transformed counts
+#   names(voom_counts) = names(x@counts)
+#
+#   return(voom_counts)
+# }
