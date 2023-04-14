@@ -117,6 +117,15 @@ pseudobulk_plots = function(x=NULL, plot_meta=NULL, max_var_genes=5000, hm_displ
 
   # Turn transformed counts to a transposed matrix.
   tr_df <- t(as.matrix(tr_df))
+
+  # Check that number of genes specified by user is lower than genes available across all samples
+  min_genes_pseudobulk = ncol(tr_df)
+  if(max_var_genes > min_genes_pseudobulk){
+    warning(paste0('Not enough genes in the pseudobulk matrix. Setting max_var_genes to ', min_genes_pseudobulk, '.'))
+    max_var_genes = min_genes_pseudobulk
+  }
+  rm(min_genes_pseudobulk) # Clean env
+
   # Get variable genes and subset
   vargenes = sort(apply(tr_df, 2, sd), decreasing=T)
   tr_df = tr_df[, match(names(vargenes[1:max_var_genes]), colnames(tr_df))]
@@ -145,7 +154,7 @@ pseudobulk_plots = function(x=NULL, plot_meta=NULL, max_var_genes=5000, hm_displ
 #
 pseudobulk_pca = function(scaled_mtx=NULL, color_pal=NULL, meta_df=NULL, meta_name=NULL, ptsize=NULL){
   # Perform PCA on transposed matrix.
-  pca_expr <- prcomp(scaled_mtx, scale=F)
+  pca_expr <- prcomp(scaled_mtx, scale=F, center=F)
   # Get PCA coordinates and add clinical variable data.
   pca_tbl <- tibble::as_tibble(pca_expr$x)
   pca_tbl <- pca_tbl %>%
