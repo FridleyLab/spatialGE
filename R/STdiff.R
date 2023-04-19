@@ -1,5 +1,5 @@
 ##
-#' @title STde: Differential gene expression analysis for spatial transcriptomics data
+#' @title STdiff: Differential gene expression analysis for spatial transcriptomics data
 #' @description Tests for differentially expressed genes using linear models with
 #' exponential or spherical spatial covariance structures.
 #' @details
@@ -43,7 +43,7 @@
 #' @importFrom nlme lme.formula
 #
 #
-STde = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=NULL,
+STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=NULL,
                 topgenes=2000, pval_thr=0.05, pval_adj=NULL, sp_topgenes=0.2,
                 verbose=F, cores=NULL){
   # Record time

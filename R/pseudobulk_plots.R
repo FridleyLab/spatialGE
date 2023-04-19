@@ -156,9 +156,9 @@ pseudobulk_pca = function(scaled_mtx=NULL, color_pal=NULL, meta_df=NULL, meta_na
   # Perform PCA on transposed matrix.
   pca_expr <- prcomp(scaled_mtx, scale=F, center=F)
   # Get PCA coordinates and add clinical variable data.
-  pca_tbl <- tibble::as_tibble(pca_expr$x)
+  pca_tbl <- as.data.frame(pca_expr$x) %>% tibble::rownames_to_column(var='pca_labs')
   pca_tbl <- pca_tbl %>%
-    tibble::add_column(meta_df, .before=1)
+    tibble::add_column(meta_df, .after=1)
   # Get number of categories from selected variable.
   n_cats <- nlevels(as.factor(pca_tbl[[meta_name]]))
   # Create color palette.
@@ -169,7 +169,6 @@ pseudobulk_pca = function(scaled_mtx=NULL, color_pal=NULL, meta_df=NULL, meta_na
   cat_shapes <- (16:25)[1:n_cats]
   names(cat_shapes) <- levels(as.factor(pca_tbl[[meta_name]]))
   # Make plot
-  pca_tbl = pca_tbl %>% tibble::rownames_to_column('pca_labs')
   pca_p = ggplot(pca_tbl) +
     geom_point(aes(x=PC1, y=PC2, shape=get(meta_name), color=get(meta_name)), size=ptsize) +
     ggrepel::geom_text_repel(aes(x=PC1, y=PC2, label=pca_labs)) +
@@ -212,12 +211,12 @@ pseudobulk_heatmap = function(scaled_mtx=NULL, color_pal=NULL, meta_df=NULL, met
   # Make heatmap
   hm_p = ComplexHeatmap::Heatmap(hm_mtx, show_row_dend=F,
                                  top_annotation=hm_ann,
-                                 column_names_rot=30,
+                                 column_names_rot=60,
                                  heatmap_legend_param=list(title="Scaled mean\nexpression"),
                                  row_names_gp=grid::gpar(fontsize=8),
-                                 show_column_names=F, column_title='Aggregated gene expression\n("pseudobulk")')
+                                 show_column_names=T, column_title='Aggregated gene expression\n("pseudobulk")')
 
-  hm_p = ComplexHeatmap::draw(hm_p, merge_legend=T)
+  hm_p = ComplexHeatmap::draw(hm_p, merge_legend=T, padding=unit(c(2, 10, 2, 2), "mm"))
 
   return(hm_p)
 }
