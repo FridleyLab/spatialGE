@@ -17,7 +17,7 @@
 #'
 #
 #
-SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', dist_thr=2){
+SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran'){
   # Select sample names if NULL or if number entered
   if (is.null(samples)){
     samples = names(x@tr_counts)
@@ -28,11 +28,11 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', dist_thr=2){
   }
 
   # Generate combination of sample x gene to for.
-  combo = tibble::tibble()
+  combo_tmp = tibble::tibble()
   for(i in samples){
     # Check if gene names are in the data set
     subsetgenes = genes[genes %in% rownames(x@tr_counts[[i]])]
-    combo = dplyr::bind_rows(combo, expand.grid(i, subsetgenes))
+    combo_tmp = dplyr::bind_rows(combo_tmp, expand.grid(i, subsetgenes))
 
     # Get genes not present.
     notgenes = genes[!(genes %in% rownames(x@tr_counts[[i]]))]
@@ -60,78 +60,87 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', dist_thr=2){
     # }
   }
 
-  # Create binary 1/0 adjacency matrix
-  # Use 2 x euclidean distance to define neighbors
-  dist_thr = as.numeric(dist_thr)
-  adj_ls = list()
-  for(i in samples){
-    adj = as.matrix(dist(x@spatial_meta[[i]][, c('xpos', 'ypos')]))
-    diag(adj) = NA
-    colnames(adj) = x@spatial_meta[[i]][['libname']]
-    rownames(adj) = x@spatial_meta[[i]][['libname']]
-    min_tmp = min(adj, na.rm=T)
-    adj[adj >= min_tmp * 0.5 & adj <= min_tmp * dist_thr] = 1
-    adj[adj > min_tmp * 2] = 0
-    diag(adj) = 0
-
-    adj_ls[[i]] = adj
-
-    rm(min_tmp, adj) # Clean env
-  }
-
   if('moran' %in% method){
-    x = gene_moran_i(x=x, combo=combo, adjmtx=adj_ls)
+    x = gene_moran_I(x=x, combo=combo_tmp) # Capital I instead to differentiate from new implementation
   }
   if('geary' %in% method){
-    x = gene_geary_c(x=x, combo=combo, adjmtx=adj_ls)
+    x = gene_geary_C(x=x, combo=combo_tmp) # Capital C instead to differentiate from new implementation
   }
   # if('getisord' %in% method){
-  #   x = gene_getisord_gi(x=x, combo=combo, adjmtx=adj_ls)
+  #   x = gene_getisord_gi(x=x, combo=combo_tmp, adjmtx=adj_ls)
   # }
 
   return(x)
 }
 
 
+# Helpers ----------------------------------------------------------------------
+
 ##
-# @title gene_moran_i
+# @title gene_moran_I
 # @description Calculates Moran's I from ST data.
 # @details
-# This function takes an STlist and a vector with HUGO gene names and returns
-# Morans' I stored in the gene_meta slot.
+# This function takes an STList and a vector with HUGO gene names and returns
+# Morans' I for each element of the vector.
 #
-# @param x an STlist with normalized gene counts.
-# @param combo data frame with combination of samples and genes to analyze
-# @param adjmtx a list of adjacency matrices. Each element of the list represents
-# one sample
-# @return x a STlist including the values corresponding to Moran's I for each
+# @param x, an STList with normalized gene counts.
+# @param genes, a vector with gene names in the normalized count matrix.
+# @param who, the indexes of the spatial arrays for which the statistic
+# will be calculated.
+# @return x, a STList including the values corresponding to Moran's I for each
 # gene in genes.
 #
+# @export
 #
-gene_moran_i = function(x=NULL, combo=NULL, adjmtx=NULL){
+#
+gene_moran_I <- function(x=NULL, combo=NULL) {
+
+  genes = as.vector(unique(combo[[2]]))
+  # Test if list with kriging exists for each gene. If not create it.
+  for(gene in genes){
+    if(is.null(x@gene_het[[gene]]) && rlang::is_empty(x@gene_het[[gene]])){
+      x@gene_het[[gene]] = list()
+      for(i in 1:length(x@tr_counts)){
+        x@gene_het[[gene]][[names(x@tr_counts[i])]] = list(morans_I=NULL,
+                                                           gearys_C=NULL#,
+                                                           #getis_ord_Gi=NULL
+                                                           )
+      }
+    }
+  }
+
+  # Check whether or not a list of weights have been created
+  if(is.null(x@misc$listws)){
+    x@misc$listws = create_listw(x)
+  }
+
   # Define cores available
   cores = count_cores(nrow(combo))
-
-  # Use method to compute Moran's I described in tutorial of https://rspatial.org/
   # Loop through combinations of samples x genes
   stat_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
     i = as.vector(unlist(combo[i_combo, 1]))
     j = as.vector(unlist(combo[i_combo, 2]))
 
-    # Get expression values
-    y = x@tr_counts[[i]][j, ][match(colnames(adjmtx[[i]]), colnames(x@tr_counts[[i]]))]
+    # Create distance matrix based on the coordinates of each sampled location.
+    # subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+    # subj_dists[subj_dists == 0] = 0.0001
+    # subj_dists_inv = 1/subj_dists
+    # diag(subj_dists_inv) = 0
 
-    # Compute Moran's I
-    moran_val = terra::autocor(x=y, w=adjmtx[[i]], method="moran")
+    # Extract expression data for a given gene.
+    gene_expr = x@tr_counts[[i]][j, ]
 
-    return(moran_val)
+    # Estimate statistic.
+    stat_est = spdep::moran.test(x=gene_expr, listw=x@misc$listws[[i]])
+
+    return(stat_est)
   }, mc.cores=cores, mc.preschedule=F)
   names(stat_list) = paste(combo[[1]], combo[[2]], sep='&&')
 
   # Store kriging results in STList.
   for(i in 1:nrow(combo)){
     combo_name = unlist(strsplit(names(stat_list)[i], split = '&&'))
-    x@gene_meta[[ combo_name[1] ]][ x@gene_meta[[ combo_name[1] ]][['gene']] == combo_name[2], 'moran_i'] = stat_list[[i]]
+    x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i'] = as.vector(stat_list[[i]]$estimate[1])
   }
 
   return(x)
@@ -139,44 +148,70 @@ gene_moran_i = function(x=NULL, combo=NULL, adjmtx=NULL){
 
 
 ##
-# @title gene_geary_c
+# @title gene_geary_C
 # @description Calculates Geary's C from ST data.
 # @details
-# This function takes an STlist and a vector with HUGO gene names and returns
-# Geary's C stored in the gene_meta slot.
+# This function takes an STList and a vector with HUGO gene names and returns
+# Geary's C for each element of the vector.
 #
-# @param x an STlist with normalized gene counts.
-# @param combo data frame with combination of samples and genes to analyze
-# @param adjmtx a list of adjacency matrices. Each element of the list represents
-# one sample
-# @return x a STlist including the values corresponding to Geary's C for each
+# @param x, an STList with normalized gene counts.
+# @param genes, a vector with gene names in the normalized count matrix.
+# @param who, the index of the spatial array for which the statistic
+# will be calculated.
+# @return x, a STList including the values corresponding to Geary's C for each
 # gene in genes.
 #
+# @export
 #
-gene_geary_c = function(x=NULL, combo=NULL, adjmtx=NULL){
+#
+gene_geary_C <- function(x=NULL, combo=NULL) {
+
+  genes = as.vector(unique(combo[[2]]))
+  # Test if list with kriging exists for each gene. If not create it.
+  for(gene in genes){
+    if(is.null(x@gene_het[[gene]]) && rlang::is_empty(x@gene_het[[gene]])){
+      x@gene_het[[gene]] = list()
+      for(i in 1:length(x@tr_counts)){
+        x@gene_het[[gene]][[names(x@tr_counts[i])]] = list(morans_I=NULL,
+                                                           gearys_C=NULL#,
+                                                           #getis_ord_Gi=NULL
+                                                           )
+      }
+    }
+  }
+
+  # Check whether or not a list of weights have been created
+  if(is.null(x@misc$listws)){
+    x@misc$listws = create_listw(x)
+  }
+
   # Define cores available
   cores = count_cores(nrow(combo))
-
-  # Use method to compute autocorrelation described in tutorial of https://rspatial.org/
   # Loop through combinations of samples x genes
   stat_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
     i = as.vector(unlist(combo[i_combo, 1]))
     j = as.vector(unlist(combo[i_combo, 2]))
 
-    # Get expression values
-    y = x@tr_counts[[i]][j, ][match(colnames(adjmtx[[i]]), colnames(x@tr_counts[[i]]))]
+    # Create distance matrix based on the coordinates of each sampled location.
+    # subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+    # subj_dists[subj_dists == 0] = 0.0001
+    # subj_dists_inv = 1/subj_dists
+    # diag(subj_dists_inv) = 0
 
-    # Compute Geary's C
-    geary_val = terra::autocor(x=y, w=adjmtx[[i]], method="geary")
+    # Extract expression data for a given gene.
+    gene_expr = x@tr_counts[[i]][j, ]
 
-    return(geary_val)
+    # Estimate statistic.
+    stat_est = spdep::geary.test(x=gene_expr, listw=x@misc$listws[[i]])
+
+    return(stat_est)
   }, mc.cores=cores, mc.preschedule=F)
   names(stat_list) = paste(combo[[1]], combo[[2]], sep='&&')
 
-  # Store kriging results in STList.
+  # Store results in STList.
   for(i in 1:nrow(combo)){
     combo_name = unlist(strsplit(names(stat_list)[i], split = '&&'))
-    x@gene_meta[[ combo_name[1] ]][ x@gene_meta[[ combo_name[1] ]][['gene']] == combo_name[2], 'geary_c'] = stat_list[[i]]
+    x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'geary_c'] = as.vector(stat_list[[i]]$estimate[1])
   }
 
   return(x)
@@ -184,46 +219,90 @@ gene_geary_c = function(x=NULL, combo=NULL, adjmtx=NULL){
 
 
 ##
-# @title gene_getisord_gi
-# @description Calculates Getis-Ord Gi from ST data.
+# @title gene_getis_Gi
+# @description Calculates Getis-Ord Gi C from ST data.
 # @details
-# This function takes an STlist and a vector with HUGO gene names and returns
-# Getis-Ord Gi stored in the gene_meta slot.
+# This function takes an STList and a vector with HUGO gene names and returns
+# Getis-Ord Gi for each element of the vector.
 #
-# @param x an STlist with normalized gene counts.
-# @param combo data frame with combination of samples and genes to analyze
-# @param adjmtx a list of adjacency matrices. Each element of the list represents
-# one sample
-# @return x a STlist including the values corresponding to Getis-Ord Gi for each
+# @param x, an STList with normalized gene counts.
+# @param genes, a vector with gene names in the normalized count matrix.
+# @param who, the indexes of the spatial arrays for which the statistic
+# will be calculated.
+# @return x, a STList including the values corresponding to Getis-Ord Gi for each
 # gene in genes.
 #
+# @export
 #
-gene_getisord_gi = function(x=NULL, combo=NULL, adjmtx=NULL){
-  # Define cores available
-  cores = count_cores(nrow(combo))
-
-  # Use method to compute autocorrelation described in tutorial of https://rspatial.org/
-  # Loop through combinations of samples x genes
-  stat_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
-    i = as.vector(unlist(combo[i_combo, 1]))
-    j = as.vector(unlist(combo[i_combo, 2]))
-
-    # Get expression values
-    y = x@tr_counts[[i]][j, ][match(colnames(adjmtx[[i]]), colnames(x@tr_counts[[i]]))]
-
-    # Compute Geary's C
-    getisord_val = terra::autocor(x=y, w=adjmtx[[i]], method="Gi")
-
-    return(getisord_val)
-  }, mc.cores=cores, mc.preschedule=F)
-  names(stat_list) = paste(combo[[1]], combo[[2]], sep='&&')
-
-  # Store kriging results in STList.
-  for(i in 1:nrow(combo)){
-    combo_name = unlist(strsplit(names(stat_list)[i], split = '&&'))
-    x@gene_meta[[ combo_name[1] ]][ x@gene_meta[[ combo_name[1] ]][['gene']] == combo_name[2], 'getisord_gi'] = stat_list[[i]]
-  }
-
-  return(x)
-}
+#
+# gene_getis_Gi <- function(x=NULL, genes=NULL, who=NULL) {
+#   # Test if no specific subject plot was requested.
+#   if (is.null(who)) {
+#     who = c(1:length(x@tr_counts))
+#   }
+#
+#   # Generate combination of sample x gene to for.
+#   combo = tibble::tibble()
+#   for(i in who){
+#     subsetgenes_mask = genes %in% x@tr_counts[[i]]$gene
+#     subsetgenes = genes[subsetgenes_mask]
+#     combo = dplyr::bind_rows(combo, expand.grid(names(x@tr_counts[i]), subsetgenes))
+#
+#     # Get genes not present.
+#     notgenes = genes[!subsetgenes_mask]
+#
+#     if(!rlang::is_empty(notgenes)){
+#       cat(paste0(paste(notgenes, collapse=', '), ": Not present in the transformed counts for sample ", names(x@tr_counts[i]), ".\n"))
+#     }
+#   }
+#
+#   # Test if list with kriging exists for each gene. If not create it.
+#   for(gene in genes){
+#     if(is.null(x@gene_het[[gene]]) && rlang::is_empty(x@gene_het[[gene]])){
+#       x@gene_het[[gene]] = list()
+#       for(i in 1:length(x@tr_counts)){
+#         x@gene_het[[gene]][[names(x@tr_counts[i])]] = list(morans_I=NULL,
+#                                                            gearys_C=NULL,
+#                                                            getis_ord_Gi=NULL)
+#       }
+#     }
+#   }
+#
+#   # Check whether or not a list of weights have been created
+#   if(is.null(x@misc$listws)){
+#     x@misc$listws = create_listw(x)
+#   }
+#
+#   # Define cores available
+#   cores = count_cores(nrow(combo))
+#   # Loop through combinations of samples x genes
+#   stat_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
+#     i = as.vector(unlist(combo[i_combo, 1]))
+#     j = as.vector(unlist(combo[i_combo, 2]))
+#
+#     # Create distance matrix based on the coordinates of each sampled location.
+#     # subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
+#     # subj_dists[subj_dists == 0] = 0.0001
+#     # subj_dists_inv = 1/subj_dists
+#     # diag(subj_dists_inv) = 0
+#
+#     # Extract expression data for a given gene.
+#     gene_expr = x@tr_counts[[i]][j, ]
+#
+#     # Estimate statistic.
+#     stat_est = spdep::globalG.test(x=gene_expr, listw=x@misc$listws[[i]])
+#
+#     return(stat_est)
+#
+#   }, mc.cores=cores, mc.preschedule=F)
+#   names(stat_list) = paste(combo[[1]], combo[[2]], sep='&&')
+#
+#   # Store kriging results in STList.
+#   for(i in 1:nrow(combo)){
+#     combo_name = unlist(strsplit(names(stat_list)[i], split = '&&'))
+#     x@gene_het[[combo_name[2]]][[combo_name[1]]][['getis_ord_Gi']] = stat_list[[i]]
+#   }
+#
+#   return(x)
+# }
 
