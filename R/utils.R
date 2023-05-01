@@ -115,8 +115,8 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 #
 load_images = function(x=NULL, images=NULL){
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STList')){
-    stop("The input must be a STList.")
+  if(is.null(x) | !is(x, 'STlist')){
+    stop("The input must be a STlist.")
   }
 
   if(is.null(images)){
@@ -170,5 +170,49 @@ create_listw = function(x=NULL){
   }, mc.cores=cores, mc.preschedule=F)
   names(listw_list) = names(x@spatial_meta)
   return(listw_list)
+}
+
+##
+#' @title get_gene_meta: Extract gene-level metadata and statistics
+#' @description Extracts gene-level metadata and spatial statistics (if already computed)
+#' @details
+#' This function extracts data from the `x@gene_meta` slot, optionally subsetting
+#' only to those genes for which spatial statistics (Moran's I or Geary's C, see `SThet`)
+#' have been calculated. The output is a data frame with data from all samples in the
+#' STlist
+#'
+#' @param x an STlist
+#' @param sthet_only logical, return only genes with spatial statistics
+#' @return a data frame with gene-level data
+#'
+#' @export
+#
+#
+get_gene_meta = function(x=NULL, sthet_only=F){
+  # Test if an STList has been input.
+  if(is.null(x) | !is(x, 'STlist')){
+    stop("The input must be a STlist.")
+  }
+  # Test is gene_meta is empty (no normalization performed on STlist)
+  if(rlang::is_empty(x@gene_meta)){
+    stop('No gene-level metadata available in this STlist.')
+  }
+
+  # Loop through samples
+  genemeta_dfs = list()
+  for(i in names(x@gene_meta)){
+    genemeta_dfs[[i]] = x@gene_meta[[i]] %>%
+      tibble::add_column(sample=i, .before=1)
+    # Subset genes if only SThet stats are required
+    if(sthet_only & any(colnames(x@gene_meta[[i]]) %in% c('moran_i', 'geary_c'))){
+      genemeta_dfs[[i]] = genemeta_dfs[[i]] %>%
+        dplyr::filter(!is.na(moran_i) | !is.na(geary_c))
+    }
+  }
+  res = do.call(dplyr::bind_rows, genemeta_dfs)
+  if(nrow(res) == 0){
+    stop('No gene-level meta available. If only spatial statistics requested, please make sure SThet was run.')
+  }
+  return(res)
 }
 
