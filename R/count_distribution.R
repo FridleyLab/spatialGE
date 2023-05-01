@@ -75,7 +75,7 @@ count_distribution = function(x=NULL, samples=NULL, data_type='tr', plot_type='d
   d_plot = list()
   if(any(grepl('density', plot_type))){
     d_plot[['density']] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=expr_values, fill=sample_name)) +
-      ggplot2::geom_density() +
+      ggplot2::geom_density(alpha=0.5) +
       ggplot2::xlab(ax_title) +
       ggplot2::ylab('Density') +
       ggplot2::ggtitle(p_title) +
