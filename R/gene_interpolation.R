@@ -214,10 +214,10 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
       system(sprintf('echo "%s"', crayon::yellow(paste0("\tInterpolating ", j, ' in ', i, "...."))))
       # Fit spatial process
       suppressMessages({
-        cov_est = fields::spatialProcess(x=gene_geo_df[, c('ypos', 'xpos')], y=jitter(gene_geo_df[['gene_expr']], amount=0.000001),
+        cov_est = fields::spatialProcess(x=gene_geo_df[, c('ypos', 'xpos')], y=gene_geo_df[['gene_expr']],
                                          cov.args=list(Covariance=covstr#,
                                                        #smoothness=smoothness
-                                                       ), verbose=F, REML=T)
+                                                       ), verbose=F, REML=F)
       })
       # Compute surface
       kriging_res = fields::predictSurface(cov_est, nx=nxy, ny=nxy, extrap=T#,
