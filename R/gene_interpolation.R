@@ -217,7 +217,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
         cov_est = fields::spatialProcess(x=gene_geo_df[, c('ypos', 'xpos')], y=gene_geo_df[['gene_expr']],
                                          cov.args=list(Covariance=covstr#,
                                                        #smoothness=smoothness
-                                                       ), verbose=F, REML=F)
+                                                       ), verbose=F, REML=F, reltol=1e-3)
       })
       # Compute surface
       kriging_res = fields::predictSurface(cov_est, nx=nxy, ny=nxy, extrap=T#,
