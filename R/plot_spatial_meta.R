@@ -129,7 +129,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         }
         title_p = paste0(title_p, s)
       } else{
-        title_p = paste0(metacol, '\nsample: ', s)
+        title_p = paste0('Sample: ', s)
       }
 
       # Create plot
@@ -152,15 +152,16 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         }
       }
 
-      p = p + ggplot2::ggtitle(title_p) +
-        ggplot2::theme_void()
+      #p = p + ggplot2::ggtitle(title_p) + ggplot2::theme_void() # MAY 09, 2023 PUT META DATA NAME ON LEGEND TITLE, NOT PLOT TITLE
+      p = p +
+        labs(color=metacol, title=title_p) + ggplot2::theme_void()
 
       if(visium){
         p = p + ggplot2::scale_y_reverse() + ggplot2::coord_fixed(ratio=1)
       } else{
         p = p + ggplot2::coord_fixed(ratio=1)
       }
-      p = p + ggplot2::theme(legend.title=ggplot2::element_blank())
+      #p = p + ggplot2::theme(legend.title=ggplot2::element_blank()) # MAY 09, 2023 PUT META DATA NAME ON LEGEND TITLE, NOT PLOT TITLE
 
       plot_list[[paste0(s, '_', metacol)]] = p
     }
