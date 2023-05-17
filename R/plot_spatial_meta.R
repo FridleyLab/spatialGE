@@ -46,6 +46,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
   # Define columns to plot
   if(is.null(plot_meta)){
     plot_meta = grep('^stclust_spw', colnames(x@spatial_meta[[1]]), value=T)
+
     if(!is.null(ws)){
       if(any(ws == 0)){ # To avoid zero ('0') matching other weights
         ws_tmp = ws[ws != 0]
@@ -66,7 +67,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
       plot_meta = grep(paste0('_k', ks,'$', collapse='|'), plot_meta, value=T)
     } else if(ks[1] == 'dtc'){
       if(!is.null(deepSplit)){
-        plot_meta = grep(paste0('_dspl', deepSplit, '$', collapse='|'), plot_meta, value=T)
+        plot_meta = grep(paste0('_dspl', stringr::str_to_title(as.character(deepSplit)), '$', collapse='|'), plot_meta, value=T)
       } else{
         plot_meta = grep('_dspl', plot_meta, value=T)
       }
@@ -82,15 +83,6 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
 
   plot_list = list()
   for(s in samples){
-
-    # Set default color if NULL input
-    if(is.null(color_pal)){
-      color_pal = 'light'
-      if(is.numeric(x@spatial_meta[[s]][[plot_meta]])){
-        color_pal = 'BuRd'
-      }
-    }
-
     # Extract metadata for specific sample
     df_tmp = x@spatial_meta[[s]]
 
@@ -100,6 +92,14 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
     }
 
     for(metacol in plot_meta){
+      # Set default color if NULL input
+      if(is.null(color_pal)){
+        color_pal = 'light'
+        if(is.numeric(x@spatial_meta[[s]][[metacol]])){
+          color_pal = 'BuRd'
+        }
+      }
+
       df_tmp2 = df_tmp %>%
         dplyr::select(libname, ypos, xpos, meta:=!!metacol)
 
@@ -125,11 +125,13 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
           title_p = paste0("STclust k=", title_k, "\nspatial weight=", title_w, '\nsample: ')
         } else if(grepl('_dspl[0-9TrueFalse]+$', metacol)){
           title_dspl = stringr::str_extract(metacol, '[0-9]+$|True$|False$')
-          title_p = paste0("STclust (dtc; deepSplit=", title_dspl, ")\nspatial weight=", title_w, '\nsample: ')
+          title_p = paste0("STclust (dtc; deepSplit=", title_dspl, ")\nSpatial weight=", title_w, '\nSample: ')
         }
         title_p = paste0(title_p, s)
+        title_leg = 'Clusters'
       } else{
         title_p = paste0('Sample: ', s)
+        title_leg = 'Groups'
       }
 
       # Create plot
@@ -154,7 +156,8 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
 
       #p = p + ggplot2::ggtitle(title_p) + ggplot2::theme_void() # MAY 09, 2023 PUT META DATA NAME ON LEGEND TITLE, NOT PLOT TITLE
       p = p +
-        labs(color=metacol, title=title_p) + ggplot2::theme_void()
+        ggplot2::guides(color=guide_legend(override.aes=list(size=ptsize+1))) +
+        labs(color=title_leg, title=title_p) + ggplot2::theme_void()
 
       if(visium){
         p = p + ggplot2::scale_y_reverse() + ggplot2::coord_fixed(ratio=1)

@@ -1,27 +1,5 @@
 ##
-# #' @title xcell_names: Prints xCell cell type names
-# #' @description Prints the available cell types as provided by xCell deconvolution.
-# #' @details
-# #' Shows the names of cell types that can be used in other spatialGE functions.
-# #' This function access the xCell cell type names after cleaning via the janitor
-# #' package.
-# #'
-# #' @return The xCell cell type names after cleaning.
-# #'
-# #' @examples
-# #' # xcell_names()
-# #'
-# #' @export
-# #'
-# #' @importFrom methods as is new
-#
-#
-# xcell_names = function(){
-#   #xcellnames = x@cell_deconv$xCell[[1]]$cell_stdev$cell
-#   xcellnames = rownames(xCell::xCell.data$spill$K)
-#   xcellnames = janitor::make_clean_names(xcellnames)
-#   print(xcellnames)
-# }
+# Utility and helper functions
 
 ##
 #' Get the number of cores to use in parallel as a function of the number of
@@ -46,6 +24,7 @@ count_cores = function(n){
   }
   return(cores)
 }
+
 
 ##
 #' @title color_parse: Creates a color palette
@@ -95,6 +74,7 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
   }
   return(cat_cols)
 }
+
 
 ##
 #' @title load_images: Place tissue images within STlist
@@ -151,6 +131,7 @@ load_images = function(x=NULL, images=NULL){
   return(x)
 }
 
+
 ##
 #' @title create_listw
 #' @param x an STlist
@@ -171,6 +152,33 @@ create_listw = function(x=NULL){
   names(listw_list) = names(x@spatial_meta)
   return(listw_list)
 }
+
+
+##
+#' @title create_listw_from_knn
+#' @param x an STlist
+#' @param ks
+#
+create_listw_from_knn = function(x=NULL, ks=NULL){
+  # Define cores available
+  cores = count_cores(length(x@spatial_meta))
+
+  # Create distance matrix based on the coordinates of each sampled location.
+  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
+    #subj_dists = as.matrix(dist(x@spatial_meta[[i]][, c('ypos', 'xpos')]))
+    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
+    subj_dists_inv = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k = 4)))
+    #subj_dists[subj_dists == 0] = 0.0001
+    #subj_dists_inv = 1/subj_dists
+    #diag(subj_dists_inv) = 0
+    #subj_dists_inv=spdep::mat2listw(subj_dists_inv, style='B')
+    subj_listw = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k=ks)))
+    return(subj_listw)
+  }, mc.cores=cores, mc.preschedule=F)
+  names(listw_list) = names(x@spatial_meta)
+  return(listw_list)
+}
+
 
 ##
 #' @title get_gene_meta: Extract gene-level metadata and statistics
