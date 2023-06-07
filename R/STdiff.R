@@ -225,7 +225,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
 
   #Paralellize spaMM models
   if(is.null(cores)){
-    cores = count_cores(nrow(combo))
+    cores = count_cores(nrow(combo_df))
   }
   non_sp_models = pbmcapply::pbmclapply(1:length(clusters), function(i){
     # Subset combo_df to those of a given cluster
