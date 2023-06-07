@@ -143,7 +143,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     if(input_check$rna[1] != 'list_dfs'){
       # Read sample nanes
       sample_names = readr::read_delim(samples, show_col_types=F)
-      sample_names = sample_names[[1]]
+      sample_names = as.character(sample_names[[1]])
       # Get list of filepaths
       filepaths = process_sample_names(rnacounts, spotcoords, sample_names, input_check)
       # Check if input is Visium or count/coord matrices
@@ -163,7 +163,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
   if(input_check$samples == 'sample_names' && !is.null(rnacounts)){
     if(input_check$rna[1] != 'list_dfs'){
       # Get list of filepaths
-      filepaths = process_sample_names(rnacounts, spotcoords, samples, input_check)
+      filepaths = process_sample_names(rnacounts, spotcoords, as.character(samples), input_check)
       # Check if input is Visium or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
         cat(crayon::green(paste("Found Visium Data.\n")))
@@ -222,7 +222,11 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     platform = 'generic'
   }
 
-  # Creates STList object from both count and coordinates data.
+  # Make sure sample IDs are character
+  if(nrow(samples_df) > 0){
+    samples_df[[1]] = as.character(samples_df[[1]])
+  }
+  # Creates STList object from processed data
   STlist_obj = new("STlist",
                    counts=procLists[['counts']],
                    spatial_meta=procLists[['coords']],

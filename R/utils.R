@@ -56,7 +56,7 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
   # Test if input is a Khroma name or RColorBrewer.
   # If so, create palette.
   if(color_pal[1] %in% khroma_cols){
-    p_palette = khroma::colour(color_pal[1])
+    p_palette = khroma::colour(color_pal[1], force=T)
     cat_cols = as.vector(p_palette(n_cats))
   }else if(color_pal[1] %in% rownames(RColorBrewer::brewer.pal.info)){
     cat_cols = RColorBrewer::brewer.pal(n_cats, color_pal[1])
@@ -218,6 +218,16 @@ get_gene_meta = function(x=NULL, sthet_only=F){
     }
   }
   res = do.call(dplyr::bind_rows, genemeta_dfs)
+
+  # Check if sample meta data available and add to output
+  if(nrow(x@sample_meta) > 0){
+    df_tmp = x@sample_meta
+    colnames(df_tmp)[1] = colnames(res)[1]
+    res = dplyr::left_join(df_tmp, res, by="sample", multiple='all')
+
+    rm(df_tmp) # Clean env
+  }
+
   if(nrow(res) == 0){
     stop('No gene-level meta available. If only spatial statistics requested, please make sure SThet was run.')
   }
