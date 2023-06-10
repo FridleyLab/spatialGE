@@ -29,7 +29,7 @@
 #' @importFrom magrittr %>%
 #
 #
-plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL, plot_meta=NULL, color_pal='light', visium=T, ptsize=NULL){
+plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL, plot_meta=NULL, color_pal=NULL, visium=T, ptsize=NULL){
 
   # Define which samples to plot
   if(is.null(samples)){
@@ -96,7 +96,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
       if(is.null(color_pal)){
         color_pal = 'light'
         if(is.numeric(x@spatial_meta[[s]][[metacol]])){
-          color_pal = 'BuRd'
+          color_pal = 'sunset'
         }
       }
 
@@ -131,7 +131,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         title_leg = 'Clusters'
       } else{
         title_p = paste0('Sample: ', s)
-        title_leg = 'Groups'
+        title_leg = plot_meta
       }
 
       # Create plot
@@ -155,8 +155,12 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
       }
 
       #p = p + ggplot2::ggtitle(title_p) + ggplot2::theme_void() # MAY 09, 2023 PUT META DATA NAME ON LEGEND TITLE, NOT PLOT TITLE
+
+      if(!is.numeric(df_tmp2[['meta']])){ # Test if it's not numeric and make legend spots/dots larger
+        p = p +
+          ggplot2::guides(color=guide_legend(override.aes=list(size=ptsize+1)))
+      }
       p = p +
-        ggplot2::guides(color=guide_legend(override.aes=list(size=ptsize+1))) +
         labs(color=title_leg, title=title_p) + ggplot2::theme_void()
 
       if(visium){
