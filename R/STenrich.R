@@ -84,7 +84,7 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
 
           # Compute the distance between these spots' XY coordinates with high expression
           coords_high_spots = coords_df[coords_df[['libname']] %in% high_spots_bc, ]
-          distances_high_spots = as.matrix(rdist::rdist(coords_high_spots[, c('xpos', 'ypos')], metric='euclidean')) # Distance computation
+          distances_high_spots = as.matrix(stats::dist(coords_high_spots[, c('xpos', 'ypos')], method='euclidean')) # Distance computation
           distances_high_spots[upper.tri(distances_high_spots)] = 0 # Make upper half zero to avoid sum of distances twice
           sum_high_distances = sum(distances_high_spots)
 
@@ -93,7 +93,7 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
           for(rep in 1:reps){
             rand_idx = sample(x=1:nrow(coords_df), size=length(high_spots_bc))
             rand_coord = coords_df[rand_idx, ]
-            rand_dist = as.matrix(rdist::rdist(rand_coord[, c('xpos', 'ypos')], metric='euclidean')) # Distance computation for random spots
+            rand_dist = as.matrix(stats::dist(rand_coord[, c('xpos', 'ypos')], method='euclidean')) # Distance computation for random spots
             rand_dist[upper.tri(rand_dist)] = 0 # Make upper half zero to avoid sum of distances twice
             sum_rand_distances = append(sum_rand_distances, sum(rand_dist))
           }
@@ -112,7 +112,7 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
       } # Close test minimum genes
 
       # Get results in data frame form
-      pval_tmp = tibble::tibble(gene_set=pw,
+      pval_tmp = tibble::tibble(gene_set=names(gene_sets)[pw],
                                 size_test=length(pw_genes),
                                 size_gene_set=length(gene_sets[[pw]]),
                                 p_value=p_val)
