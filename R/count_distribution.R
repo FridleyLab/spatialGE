@@ -74,10 +74,17 @@ count_distribution = function(x=NULL, samples=NULL, data_type='tr', plot_type='d
   # Create plots
   d_plot = list()
   if(any(grepl('density', plot_type))){
+    # Define bandwidth
+    bandw = round(mean(unlist(lapply(unique(df_tmp$sample_name), function(i){
+      bw = stats::bw.nrd0(df_tmp[['expr_values']][df_tmp$sample_name == i])
+      return(bw)
+    }))), 2)
+
     d_plot[['density']] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=expr_values, fill=sample_name)) +
-      ggplot2::geom_density(alpha=0.5) +
+#      ggplot2::geom_density(alpha=cvalpha) +
+      ggplot2::stat_density(color='gray30', alpha=cvalpha, bw=bandw, position="identity") +
       ggplot2::xlab(ax_title) +
-      ggplot2::ylab('Density') +
+      ggplot2::ylab(paste0('Density (Bandwidth=', bandw, ')')) +
       ggplot2::ggtitle(p_title) +
       ggplot2::labs(fill='Sample') +
       ggplot2::scale_fill_manual(values=meta_cols) +
