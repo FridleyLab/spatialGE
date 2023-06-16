@@ -56,11 +56,17 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
     # Extract spot coordinates and match order of spots
     coords_df = x@spatial_meta[[i]][, c('libname', 'xpos', 'ypos')]
     coords_df = coords_df[match(colnames(exp), coords_df[['libname']]), ]
+    coords_df = coords_df %>% tibble::column_to_rownames(var='libname')
+
+    # Calculate distances for the sample
+    distances_spots = as.matrix(stats::dist(coords_df[, c('xpos', 'ypos')], method='euclidean'))
+    rm(coords_df) # Clean env
 
     # Define number of cores to use
     if(is.null(cores)){
       cores = count_cores(length(names(gene_sets)))
     }
+
     # Perform tests in parallel
     pval_ls = parallel::mclapply(seq(names(gene_sets)), function(pw){
       pw_genes = gene_sets[[pw]]
@@ -83,19 +89,21 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
         if(length(high_spots_bc) >= min_units){
 
           # Compute the distance between these spots' XY coordinates with high expression
-          coords_high_spots = coords_df[coords_df[['libname']] %in% high_spots_bc, ]
-          distances_high_spots = as.matrix(stats::dist(coords_high_spots[, c('xpos', 'ypos')], method='euclidean')) # Distance computation
+          distances_high_spots = distances_spots[high_spots_bc, high_spots_bc]
           distances_high_spots[upper.tri(distances_high_spots)] = 0 # Make upper half zero to avoid sum of distances twice
           sum_high_distances = sum(distances_high_spots)
+
+          rm(distances_high_spots) # Clean env
 
           # Compute random distance permutations
           sum_rand_distances = c()
           for(rep in 1:reps){
-            rand_idx = sample(x=1:nrow(coords_df), size=length(high_spots_bc))
-            rand_coord = coords_df[rand_idx, ]
-            rand_dist = as.matrix(stats::dist(rand_coord[, c('xpos', 'ypos')], method='euclidean')) # Distance computation for random spots
+            rand_idx = sample(x=colnames(distances_spots), size=length(high_spots_bc))
+            rand_dist = distances_spots[rand_idx, rand_idx]
             rand_dist[upper.tri(rand_dist)] = 0 # Make upper half zero to avoid sum of distances twice
             sum_rand_distances = append(sum_rand_distances, sum(rand_dist))
+
+            rm(rand_idx, rand_dist) # Clean env
           }
 
           # Compute p-value
@@ -104,6 +112,7 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
           count_test = sum(sum_rand_distances < sum_high_distances) # Times observed dist was higher than random dists
           p_val = count_test / reps
 
+          rm(high_spots_bc) # Clean env
         } else{
           p_val=NA
         } # Close test minimum spots
