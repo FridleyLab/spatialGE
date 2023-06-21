@@ -26,20 +26,6 @@
 #
 STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
                       out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, cores=NULL){
-
-  # x=normalized_stlist
-  # samples=NULL
-  # topgenes=100
-  # annot="stclust_spw0_dspl1.5"
-  # ref=2
-  # exclude=NULL
-  # out_rm=F
-  # limit=NULL
-  # distsumm='min'
-  # min_nb=3
-  # robust=T
-  # cores=3
-
   # Make sure the reference cluster is character
   ref = as.character(ref)
 
@@ -206,14 +192,14 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
           rm(list=grep("iqr|quarts|low_up|dfdist2ref", ls(), value=T)) # Clean environment
         }
 
-
         # Calculate Spearman's correlations
         # Initialize data frame to store results
         dist_cor = tibble::tibble(gene=character(),
                                   lm_coef=numeric(),
                                   lm_pval=numeric(),
                                   spearman_r=numeric(),
-                                  spearman_r_pval=numeric())
+                                  spearman_r_pval=numeric(),
+                                  pval_warning=character())
 
         # CORRELATIONS DISTANCE TO REFERENCE CLUSTER
         genes_sample = colnames(vargenes_expr %>% dplyr::select(-c('ypos', 'xpos', 'dist2ref')))
@@ -222,7 +208,8 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                       lm_coef=numeric(),
                                       lm_pval=numeric(),
                                       spearman_r=numeric(),
-                                      spearman_r_pval=numeric())
+                                      spearman_r_pval=numeric(),
+                                      pval_warning=character())
 
           df_gene = vargenes_expr %>% dplyr::select(dist2ref, !!!gene)
 
@@ -230,8 +217,12 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
           cor_res = list(estimate=NA, p.value=NA)
           if(out_rm & !robust){ # Regular linear models after removal of outliers
             # Remove outliers
-            df_gene_outrm = df_gene %>%
-              filter(!(rownames(df_gene) %in% outs_dist2ref[[gene]]))
+            if(length(outs_dist2ref[[gene]]) > 0){
+              df_gene_outrm = df_gene %>%
+                dplyr::filter( !(rownames(.) %in% outs_dist2ref[[gene]]) )
+            } else{
+              df_gene_outrm = df_gene
+            }
             if(nrow(df_gene_outrm) > 1){
               # Run linear model and get summary
               lm_tmp = lm(df_gene_outrm[[gene]] ~ df_gene_outrm[['dist2ref']])
@@ -241,7 +232,16 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                               estimate_p=lm_summ_tmp[2,4])
               }
               # Calculate Spearman correlation
-              cor_res = cor.test(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]], method='spearman')
+              cor_res = tryCatch({cor.test(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]], method='spearman')}, warning=function(w){return(w)})
+              pval_warn = NA_character_
+              if(any(class(cor_res) == 'simpleWarning')){ # Let known user if p-value could not be exactly calculated
+                if(grepl('standard deviation is zero', cor_res$message)){
+                  pval_warn = 'zero_standard_dev'
+                } else if(grepl('Cannot compute exact p-value with ties', cor_res$message)){
+                  pval_warn = 'non_exact_pvalue'
+                }
+                cor_res = cor.test(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]], method='spearman', exact=F)
+              }
             }
           } else {
             if(robust){ # Robust linear models?
@@ -255,7 +255,16 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                   lm_res = list(estimate=summary(lm_tmp)[['coefficients']][2,1],
                                 estimate_p=lm_test_tmp[['p.value']])
                   # Calculate Spearman correlation
-                  cor_res= cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')
+                  cor_res = tryCatch({cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')}, warning=function(w){return(w)})
+                  pval_warn = NA_character_
+                  if(any(class(cor_res) == 'simpleWarning')){ # Let known user if p-value could not be exactly calculated
+                    if(grepl('standard deviation is zero', cor_res$message)){
+                      pval_warn = 'zero_standard_dev'
+                    } else if(grepl('Cannot compute exact p-value with ties', cor_res$message)){
+                      pval_warn = 'non_exact_pvalue'
+                    }
+                    cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman', exact=F)
+                  }
                 }
               }
             } else{ # Regular linear models without outlier removal
@@ -267,7 +276,17 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                   lm_res = list(estimate=lm_summ_tmp[2,1],
                                 estimate_p=lm_summ_tmp[2,4])
                 }
-                cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')
+                # Calculate Spearman correlation
+                cor_res = tryCatch({cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')}, warning=function(w){return(w)})
+                pval_warn = NA_character_
+                if(any(class(cor_res) == 'simpleWarning')){ # Let known user if p-value could not be exactly calculated
+                  if(grepl('standard deviation is zero', cor_res$message)){
+                    pval_warn = 'zero_standard_dev'
+                  } else if(grepl('Cannot compute exact p-value with ties', cor_res$message)){
+                    pval_warn = 'non_exact_pvalue'
+                  }
+                  cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman', exact=F)
+                }
               }
             }
           }
@@ -277,9 +296,10 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                       lm_coef=lm_res[['estimate']],
                                       lm_pval=lm_res[['estimate_p']],
                                       spearman_r=cor_res[['estimate']],
-                                      spearman_r_pval=cor_res[['p.value']])
+                                      spearman_r_pval=cor_res[['p.value']],
+                                      pval_warning=pval_warn)
 
-          rm(list=grep("lm_|_res|_test|cor_|df_gene", ls(), value=T)) # Clean environment
+          rm(list=grep("lm_|_res|_test|cor_|df_gene|exact_p", ls(), value=T)) # Clean environment
 
           # Add row to result table if there is one row with results
           if(nrow(tibble_tmp) == 1){
