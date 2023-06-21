@@ -54,6 +54,7 @@ Imports:
 	scales,
 	sctransform,
 	Seurat,
+	sfsmisc,
 	sp,
 	spaMM,
 	spdep,

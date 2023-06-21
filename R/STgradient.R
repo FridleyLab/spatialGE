@@ -146,6 +146,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
     # Get expression from variable genes
     # Genes are identified within the range limit
     # Extract expression data (non-transformed counts to be passed to FindVariableFeatures)
+    dist_cor = tibble::tibble() # Initialize result data frame in case no computations can be done (e.g., sample without non-ref spots/cells)
     if(nrow(dists_summ_tmp) > 1){
       raw_cts = expandSparse(x@counts[[samplenames[i]]])
 
@@ -163,145 +164,158 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
           unlist() %>%
           as.vector()
         vargenes = vargenes[1:topgenes] # Get number of genes defined by user
-      }
-    }
 
-    # Get transformed gene expression data (will be used for the correlations with distance)
-    # Matrices will contain only the non-reference spots (as defined by non-NA value in distance)
-    if(length(vargenes) > 0){
-      vargenes_expr = expandSparse(x@tr_counts[[samplenames[i]]])
-      vargenes_expr = vargenes_expr[(rownames(vargenes_expr) %in% vargenes), , drop=F] %>%
-        t() %>%
-        as.data.frame() %>%
-        tibble::rownames_to_column(var='barcode') %>%
-        dplyr::left_join(dists_summ_tmp, ., by='barcode') %>%
-        dplyr::filter(barcode %in% colnames(vargenes_expr)) %>%
-        dplyr::right_join(x@spatial_meta[[samplenames[i]]] %>%
-                            tibble::rownames_to_column(var='barcode') %>%
-                            dplyr::select(barcode=libname, ypos, xpos), ., by='barcode') %>%
-        tibble::column_to_rownames('barcode')
+        # Get transformed gene expression data (will be used for the correlations with distance)
+        # Matrices will contain only the non-reference spots (as defined by non-NA value in distance)
+        if(length(vargenes) > 0){
+          vargenes_expr = expandSparse(x@tr_counts[[samplenames[i]]])
+          vargenes_expr = vargenes_expr[(rownames(vargenes_expr) %in% vargenes), , drop=F] %>%
+            t() %>%
+            as.data.frame() %>%
+            tibble::rownames_to_column(var='barcode') %>%
+            dplyr::left_join(dists_summ_tmp, ., by='barcode') %>%
+            dplyr::filter(barcode %in% colnames(vargenes_expr)) %>%
+            dplyr::right_join(x@spatial_meta[[samplenames[i]]] %>%
+                                tibble::rownames_to_column(var='barcode') %>%
+                                dplyr::select(barcode=libname, ypos, xpos), ., by='barcode') %>%
+            tibble::column_to_rownames('barcode')
 
-      rm(vargenes) # Clean environment
-    } else{
-      vargenes_expr = tibble::tibble()
-    }
+          rm(vargenes) # Clean environment
+        } else{
+          vargenes_expr = tibble::tibble()
+        }
 
-    # Detect gene expression outlier spots for each sample and gene
-    if(out_rm & !robust){
-      outs_dist2ref = list()
-      dfdist2ref = vargenes_expr[!is.na(vargenes_expr[['dist2ref']]), ] %>%
-        dplyr::select(-c('ypos', 'xpos', 'dist2ref'))
+        # Detect gene expression outlier spots for each sample and gene
+        if(out_rm & !robust){
+          outs_dist2ref = list()
+          dfdist2ref = vargenes_expr[!is.na(vargenes_expr[['dist2ref']]), ] %>%
+            dplyr::select(-c('ypos', 'xpos', 'dist2ref'))
 
-      for(gene in colnames(dfdist2ref)){
-        # Calculate gene expression quartiles
-        quarts = quantile(dfdist2ref[[gene]], probs=c(0.25, 0.75))
-        # Calculate inter-quartile range
-        iqr_dist2ref = IQR(dfdist2ref[[gene]])
-        # Calculate distribution lower and upper limits
-        low_up_limits = c((quarts[1]-1.5*iqr_dist2ref),
-                          (quarts[2]+1.5*iqr_dist2ref))
+          for(gene in colnames(dfdist2ref)){
+            # Calculate gene expression quartiles
+            quarts = quantile(dfdist2ref[[gene]], probs=c(0.25, 0.75))
+            # Calculate inter-quartile range
+            iqr_dist2ref = IQR(dfdist2ref[[gene]])
+            # Calculate distribution lower and upper limits
+            low_up_limits = c((quarts[1]-1.5*iqr_dist2ref),
+                              (quarts[2]+1.5*iqr_dist2ref))
 
-        # Save outliers (barcodes)
-        outs_dist2ref[[gene]] = rownames(dfdist2ref)[ dfdist2ref[[gene]] < low_up_limits[1] | dfdist2ref[[gene]] > low_up_limits[2] ]
-      }
-      rm(list=grep("iqr|quarts|low_up|dfdist2ref", ls(), value=T)) # Clean environment
-    }
+            # Save outliers (barcodes)
+            outs_dist2ref[[gene]] = rownames(dfdist2ref)[ dfdist2ref[[gene]] < low_up_limits[1] | dfdist2ref[[gene]] > low_up_limits[2] ]
+          }
+          rm(list=grep("iqr|quarts|low_up|dfdist2ref", ls(), value=T)) # Clean environment
+        }
 
-    # Calculate Spearman's correlations
-    # Initialize data frame to store results
-    dist_cor = tibble::tibble(gene=character(),
-                              lm_coef=numeric(),
-                              lm_pval=numeric(),
-                              spearman_r=numeric(),
-                              spearman_r_pval=numeric())
 
-    # CORRELATIONS DISTANCE TO REFERENCE CLUSTER
-    genes_sample = colnames(vargenes_expr %>% dplyr::select(-c('ypos', 'xpos', 'dist2ref')))
-    for(gene in genes_sample){
-      tibble_tmp = tibble::tibble(gene=character(),
+        # Calculate Spearman's correlations
+        # Initialize data frame to store results
+        dist_cor = tibble::tibble(gene=character(),
                                   lm_coef=numeric(),
                                   lm_pval=numeric(),
                                   spearman_r=numeric(),
                                   spearman_r_pval=numeric())
 
-      df_gene = vargenes_expr %>% dplyr::select(dist2ref, !!!gene)
+        # CORRELATIONS DISTANCE TO REFERENCE CLUSTER
+        genes_sample = colnames(vargenes_expr %>% dplyr::select(-c('ypos', 'xpos', 'dist2ref')))
+        for(gene in genes_sample){
+          tibble_tmp = tibble::tibble(gene=character(),
+                                      lm_coef=numeric(),
+                                      lm_pval=numeric(),
+                                      spearman_r=numeric(),
+                                      spearman_r_pval=numeric())
 
-      lm_res = list(estimate=NA, estimate_p=NA)
-      cor_res = list(estimate=NA, p.value=NA)
-      if(out_rm & !robust){ # Regular linear models after removal of outliers
-        # Remove outliers
-        df_gene_outrm = df_gene %>%
-          filter(!(rownames(df_gene) %in% outs_dist2ref[[gene]]))
-        if(nrow(df_gene_outrm) > 1){
-          # Run linear model and get summary
-          lm_tmp = lm(df_gene_outrm[[gene]] ~ df_gene_outrm[['dist2ref']])
-          lm_summ_tmp = summary(lm_tmp)[['coefficients']]
-          if(nrow(lm_summ_tmp) > 1){ # Test a linear model could be run
-            lm_res = list(estimate=lm_summ_tmp[2,1],
-                          estimate_p=lm_summ_tmp[2,4])
-          }
-          # Calculate Spearman correlation
-          cor_res = cor.test(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]], method='spearman')
-        }
-      } else {
-        if(robust){ # Robust linear models?
-          df_gene_range = df_gene
-          if(nrow(df_gene_range) > 1){
-            # Run robust linear model and get summary
-            lm_tmp = MASS::rlm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']], maxit=100)
-            if(lm_tmp[['converged']] & lm_tmp[['coefficients']][2] != 0){ # Check the model converged and an effect was estimated
-              # Run Wald test (MASS::rlm does not provide a p-value)
-              lm_test_tmp = sfsmisc::f.robftest(lm_tmp)
-              lm_res = list(estimate=summary(lm_tmp)[['coefficients']][2,1],
-                            estimate_p=lm_test_tmp[['p.value']])
+          df_gene = vargenes_expr %>% dplyr::select(dist2ref, !!!gene)
+
+          lm_res = list(estimate=NA, estimate_p=NA)
+          cor_res = list(estimate=NA, p.value=NA)
+          if(out_rm & !robust){ # Regular linear models after removal of outliers
+            # Remove outliers
+            df_gene_outrm = df_gene %>%
+              filter(!(rownames(df_gene) %in% outs_dist2ref[[gene]]))
+            if(nrow(df_gene_outrm) > 1){
+              # Run linear model and get summary
+              lm_tmp = lm(df_gene_outrm[[gene]] ~ df_gene_outrm[['dist2ref']])
+              lm_summ_tmp = summary(lm_tmp)[['coefficients']]
+              if(nrow(lm_summ_tmp) > 1){ # Test a linear model could be run
+                lm_res = list(estimate=lm_summ_tmp[2,1],
+                              estimate_p=lm_summ_tmp[2,4])
+              }
               # Calculate Spearman correlation
-              cor_res= cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')
+              cor_res = cor.test(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]], method='spearman')
+            }
+          } else {
+            if(robust){ # Robust linear models?
+              df_gene_range = df_gene
+              if(nrow(df_gene_range) > 1){
+                # Run robust linear model and get summary
+                lm_tmp = MASS::rlm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']], maxit=100)
+                if(lm_tmp[['converged']] & lm_tmp[['coefficients']][2] != 0){ # Check the model converged and an effect was estimated
+                  # Run Wald test (MASS::rlm does not provide a p-value)
+                  lm_test_tmp = sfsmisc::f.robftest(lm_tmp)
+                  lm_res = list(estimate=summary(lm_tmp)[['coefficients']][2,1],
+                                estimate_p=lm_test_tmp[['p.value']])
+                  # Calculate Spearman correlation
+                  cor_res= cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')
+                }
+              }
+            } else{ # Regular linear models without outlier removal
+              df_gene_range = df_gene
+              if(nrow(df_gene_range) > 1){
+                lm_tmp = lm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']])
+                lm_summ_tmp = summary(lm_tmp)[['coefficients']]
+                if(nrow(lm_summ_tmp) > 1){ # Test a linear model could be run
+                  lm_res = list(estimate=lm_summ_tmp[2,1],
+                                estimate_p=lm_summ_tmp[2,4])
+                }
+                cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')
+              }
             }
           }
-        } else{ # Regular linear models without outlier removal
-          df_gene_range = df_gene
-          if(nrow(df_gene_range) > 1){
-            lm_tmp = lm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']])
-            lm_summ_tmp = summary(lm_tmp)[['coefficients']]
-            if(nrow(lm_summ_tmp) > 1){ # Test a linear model could be run
-              lm_res = list(estimate=lm_summ_tmp[2,1],
-                            estimate_p=lm_summ_tmp[2,4])
-            }
-            cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')
+
+          # Create row with results
+          tibble_tmp = tibble::tibble(gene=gene,
+                                      lm_coef=lm_res[['estimate']],
+                                      lm_pval=lm_res[['estimate_p']],
+                                      spearman_r=cor_res[['estimate']],
+                                      spearman_r_pval=cor_res[['p.value']])
+
+          rm(list=grep("lm_|_res|_test|cor_|df_gene", ls(), value=T)) # Clean environment
+
+          # Add row to result table if there is one row with results
+          if(nrow(tibble_tmp) == 1){
+            dist_cor = dplyr::bind_rows(dist_cor, tibble_tmp)
+            rm(tibble_tmp) # Clean environment
           }
         }
-      }
-
-      # Create row with results
-      tibble_tmp = tibble::tibble(gene=gene,
-                                  lm_coef=lm_res[['estimate']],
-                                  lm_pval=lm_res[['estimate_p']],
-                                  spearman_r=cor_res[['estimate']],
-                                  spearman_r_pval=cor_res[['p.value']])
-
-      rm(list=grep("lm_|_res|_test|cor_|df_gene", ls(), value=T)) # Clean environment
-
-      # Add row to result table if there is one row with results
-      if(nrow(tibble_tmp) == 1){
-        dist_cor = dplyr::bind_rows(dist_cor, tibble_tmp)
-        rm(tibble_tmp) # Clean environment
+        rm(genes_sample) # Clean environment
       }
     }
-    rm(genes_sample) # Clean environment
 
-    # Adjust p-values for multiple comparison
-    dist_cor[['spearman_r_pval_adj']] = p.adjust(dist_cor[['spearman_r_pval']], method='BH')
-    dist_cor = dist_cor %>%
-      dplyr::relocate(spearman_r_pval_adj, .after=spearman_r_pval) %>%
-      dplyr::arrange(spearman_r_pval_adj)
+    if(nrow(dist_cor) > 0){
+      # Adjust p-values for multiple comparison
+      dist_cor[['spearman_r_pval_adj']] = p.adjust(dist_cor[['spearman_r_pval']], method='BH')
+      dist_cor = dist_cor %>%
+        dplyr::relocate(spearman_r_pval_adj, .after=spearman_r_pval) %>%
+        dplyr::arrange(spearman_r_pval_adj)
 
-    # Rename columns
-    colnames(dist_cor) = c('gene', paste0(distsumm, '_', colnames(dist_cor[, -1])))
+      # Rename columns
+      colnames(dist_cor) = c('gene', paste0(distsumm, '_', colnames(dist_cor[, -1])))
+    }
 
     return(dist_cor)
   }, mc.cores=cores)
 
   names(results_ls) = samplenames
+
+  sample_rm = c()
+  for(i in names(results_ls)){
+    if(nrow(results_ls[[i]]) == 0){
+      sample_rm = append(sample_rm, i)
+    }
+  }
+  if(length(sample_rm) > 0){
+    results_ls = results_ls[ !(names(results_ls) %in% sample_rm) ]
+  }
 
   return(results_ls)
 }
