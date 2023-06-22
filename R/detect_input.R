@@ -239,7 +239,8 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
     }
 
     # Determine what was entered as `samples`.
-    if(length(samples) == 1 && file.exists(samples)){
+#    if(length(samples) == 1 && file.exists(samples)){
+    if(length(samples) == 1 && file.exists(samples) && !dir.exists(samples)){ # Suggested by Mr. Manjarres
       # Read samples file and see which delimiter has.
       samples_file = readLines(samples, n=2)
       is_tab_samples = grepl("\t", samples_file[2])
