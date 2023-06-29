@@ -93,7 +93,7 @@
 #' # count_files <- grep("counts", data_files, value=T)
 #' # coord_files <- grep("mapping", data_files, value=T)
 #' # clin_file <- grep("thrane_clinical", data_files, value=T)
-#' # melanoma <- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' # melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
 #' # melanoma
 #
 #' @export STList
@@ -179,7 +179,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
   }
 
   # CASE: FILE PATH(S) TO COUNT/COORDINATES MATRICES OR VISIUM DIRS, AND SAMPLE NAMES VECTOR.
-  if(input_check$samples == 'sample_names' && !is.null(rnacounts)){
+  if(any(input_check$samples == 'sample_names') && !is.null(rnacounts)){
     if(input_check$rna[1] != 'list_dfs'){
       # Get list of filepaths
       filepaths = process_sample_names(rnacounts, spotcoords, as.character(samples), input_check)
