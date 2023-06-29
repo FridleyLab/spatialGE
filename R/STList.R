@@ -1,81 +1,98 @@
 ##
 #' @title STlist: Creation of STlist objects for spatial transcriptomics analysis
-#' @description Creates an STlist object from one or multiple spatial transcriptomic data sets.
+#' @description Creates an STlist object from one or multiple spatial transcriptomic samples.
 #' @details
-#' Objects of the S4 class STlist can be created from two sources:
+#' Objects of the S4 class STlist are the starting point of analyses in **`spatialGE`**.
+#' The STlist contains data from one or multiple samples (i.e., tissue slices), and
+#' results from most `spatialGE`'s functions are stored within the object.
 #' \itemize{
-#' \item Raw gene counts with genes in rows and sampling units (e.g., cells, spots,
-#' ROIs) in columns, and spatial coordinates with sample units in rows and three
-#' columns: sample unit IDs, Y position, and X position.
-#' \item Visium outputs from Space Ranger. The Visium directory should generally have
-#' the file structure resulting from `spaceranger count`, with a `spatial` directory and
-#' MEX format matrix files (within a filtered_feature_bc_matrix directory) and/or a
-#' a h5 file partially matching the name `filtered_feature_bc_matrix.h5`.
+#' \item Raw gene counts and spatial coordinates. Gene count data have genes in rows and
+#' sampling units (e.g., cells, spots, ROIs) in columns. Spatial coordinates have
+#' sampling units in rows and three columns: sample unit IDs, Y position, and X position.
+#' \item Visium outputs from *space ranger*. The Visium directory should generally have
+#' the file structure resulting from `spaceranger count`, with either a count matrix
+#' represented in MEX files or a h5 file. The directory should also contain a `spatial`
+#' sub-directory, with the spatial coordinates (`tissue_positions_list.csv`), and
+#' optionally the high resolution tissue image and scaling factor file `scalefactors_json.json`.
 #' }
-#' Optionally, the user can input a path to a table containing sample-level metadata
-#' (e.g., clinical variables). This sample metadata file should contain
-#' sample IDs in the first column partially matching the file names of the
-#' count/coordinate file paths or Visium directories.
+#' Optionally, the user can input a path to a file containing a table of sample-level
+#' metadata (e.g., clinical outcomes, tissue type, age). This sample metadata file
+#' should contain sample IDs in the first column partially matching the file names of
+#' the count/coordinate file paths or Visium directories.
 #'
-#' The function will read data in parallel if unix system is available (Windows users
-#' will experience longer times depending on the number of samples).
+#' The function uses parallelization if run in a unix system. Windows users
+#' will experience longer times depending on the number of samples.
 #'
-#' @param rnacounts The count data which can be provided in one of these formats:
+#' @param rnacounts the count data which can be provided in one of these formats:
 #' \itemize{
-#' \item File paths to comma- or tab-delimited files containing raw RNA counts, one
+#' \item File paths to comma- or tab-delimited files containing raw gene counts, one file
 #' for each spatial sample. The first column contains gene names and subsequent columns
-#' contain the expression data for each cell/spot. Duplicate gene names will be appended
-#' modified using `make.unique`. Requires `spotcoords` and `samples`.
+#' contain the expression data for each cell/spot. Duplicate gene names will be
+#' modified using `make.unique`. Requires `spotcoords` and `samples`
 #' \item File paths to Visium output directories (one per spatial sample). The directory
-#' must have the structure resulting from `spaceranger count`. The directory contains
-#' the `.h5` and `spatial` sub-directory (spot coordinates and images). If no `.h5` file is
-#' available, sparse matrices (MEX) from `spaceranger count` can be provided within the
-#' directory. In that case a the sub-directory `filtered_feature_bc_matrix` contains the
-#' `barcodes.tsv.gz`, `features.tsv.gz`, and `matrix.mtx.gz` files. Requires `samples`.
-#' \item File path to `.dcc` files from GeoMx output. Requires `samples`.
-#' \item One named list of data frames with raw RNA counts (one data frame per spatial sample).
-#' Requires `spotcoords` and `samples`.
+#' should follow the structure resulting from `spaceranger count`. The directory contains
+#' the `.h5` and `spatial` sub-directory. If no `.h5` file is available, sparse
+#' matrices (MEX) from `spaceranger count`. In that case a second sub-directory
+#' called `filtered_feature_bc_matrix` should contain contain the `barcodes.tsv.gz`,
+#' `features.tsv.gz`, and `matrix.mtx.gz` files. The `spatial` sub-directory minimally
+#' contains the coordinates (`tissue_positions_list.csv`), and optionally the high
+#' resolution PNG image and accompanying scaling factors (`scalefactors_json.json`).
+#' Requires `samples`
+#' \item A named list of data frames with raw gene counts (one data frame per spatial
+#' sample). Requires `spotcoords`
+#' \item File path to `.dcc` files from GeoMx output. Requires `samples`
 #' }
-#' @param spotcoords The cell/spot coordinates. Not required if inputs are Visium
-#' (`spaceranger count`) directories. The user can provide one of these formats:
+#' @param spotcoords the cell/spot coordinates. Not required if inputs are Visium
+#' space ranger outputs or GeoMx DCC files
 #' \itemize{
 #' \item File paths to comma- or tab-delimited files containing cell/spot coordinates, one
-#' for each spatial sample. The files must contain three columns: cell/spot IDs, y positions, and
-#' x positions. The cell/spot IDs must match the column names for each cells/spots (columns) in
-#' the RNA count files.
-#' \item One named list of data frames with cell/spot coordinates. The list names must match list
-#' names of the RNA counts list.
+#' for each spatial sample. The files must contain three columns: cell/spot IDs, Y positions, and
+#' X positions. The cell/spot IDs must match the column names for each cells/spots (columns) in
+#' the gene count files
+#' \item A named list of data frames with cell/spot coordinates. The list names must
+#' match list names of the gene counts list
 #' }
-#' @param samples The metadata associated with each spatial sample. This file can also include
-#' system paths to RNA count and cell/spot coordinate files, bypassing the need to specify `rnacounts`
-#' and `spotcoords`. One of the following options should be entered to create an STList:
+#' @param samples the sample names/IDs and (optionally) metadata associated with
+#' each spatial sample. This file can also include files paths to gene counts and
+#' cell/spot coordinate files, bypassing the need to specify `rnacounts` and `spotcoords`.
+#' The following options are available for `samples`:
 #' \itemize{
-#' \item A vector with sample names, which will be used to partially match RNA count and
-#' cell/spot coordinates file paths. A sample name must not match two file paths.
-#' \item A path to the file containing metadata. This file is a comma- or tab-separated file with
-#' one sample per row and sample names in the first column. Paths to RNA count and coordinate
-#' files can be in the second and third column respectively, and omitting the `rnacounts`
-#' and `spotcoords` arguments. If Visium directories are provided, only the second column
-#' with paths to `spaceranger count` directories is expected. Subsequent columns can contain
+#' \item A vector with sample names, which will be used to partially match gene
+#' counts and cell/spot coordinates file paths. A sample name must not match file
+#' paths for two different samples
+#' \item A path to a file containing a table with metadata. This file is a comma- or
+#' tab-separated table with one sample per row and sample names/IDs in the first
+#' column. Paths to gene counts and coordinate files can be placed in the second and
+#' third columns respectively (while leaving the `rnacounts` and `spotcoords` arguments
+#' empty). If Visium directories are provided, only the second column with paths to
+#' `spaceranger count` directories are expected. Subsequent columns can contain
 #' variables associated with each spatial sample
-#' Note: For GeoMx, the metadata file contains one row per ROI. This information is automatically
-#' summarized to one row per tissue slice.
+#' Note: For GeoMx, the metadata file contains one row per ROI. This information is
+#' automatically summarized to one row per tissue slice. This metadata file usually
+#' also contains the X and Y positions, which can be identified via `gmx_y_col` and
+#' `gmx_x_col` arguments
 #' }
-#' @param gmx_pkc, the file path to the `.pkc` (for GeoMx input)
-#' @param gmx_slide_col, the name of the column in the metadata table containing the slide names (for GeoMx input)
-#' @param gmx_roi_col, the name of the column in the metadata table containing the ROI IDs, matching IDs in the DCC files (for GeoMx input)
-#' @param gmx_x_col, the name of the column in the metadata table containing the x coordinates (for GeoMx input)
-#' @param gmx_y_col, the name of the column in the metadata table containing the y coordinates (for GeoMx input)
-#' @param gmx_meta_cols, a vector with column names in the metadata table containing clinical data (for GeoMx input)
-#' @return x, the STList object containing the counts and coordinates, and optionally
-#' the sample metadata.
+#' @param gmx_pkc the file path to the `.pkc` probe set file (for GeoMx input)
+#' @param gmx_slide_col the name of the column in the metadata table containing
+#' the slide names (for GeoMx input)
+#' @param gmx_roi_col the name of the column in the metadata table containing the
+#' ROI IDs, matching IDs in the DCC files (for GeoMx input)
+#' @param gmx_y_col the name of the column in the metadata table containing the
+#' Y positions (for GeoMx input)
+#' @param gmx_x_col the name of the column in the metadata table containing the
+#' X positions (for GeoMx input)
+#' @param gmx_meta_cols a vector with column names in the metadata table containing
+#' clinical data (for GeoMx input)
+#' @return x an STlist object containing the counts and coordinates, and optionally
+#' the sample metadata, which can be used for downstream analysis with `spatialGE`
 #'
 #' @examples
 #' # Using included melanoma example (Thrane et al.)
-#' # data_files <- system.file("extdata", package="spatialGEdev")
-#' # count_files <- grep("genes", data_files, value=T)
+#' # library('spatialGE')
+#' # data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' # count_files <- grep("counts", data_files, value=T)
 #' # coord_files <- grep("mapping", data_files, value=T)
-#' # clin_file <- grep("clinical", data_files, value=T)
+#' # clin_file <- grep("thrane_clinical", data_files, value=T)
 #' # melanoma <- STList(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
 #' # melanoma
 #
@@ -85,7 +102,7 @@
 #' @importFrom magrittr %>%
 #'
 STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
-                  gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_x_col=NULL, gmx_y_col=NULL, gmx_meta_cols=NULL){
+                  gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_y_col=NULL, gmx_x_col=NULL, gmx_meta_cols=NULL){
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
 
@@ -218,6 +235,11 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
   # Detect if image from Visium out is available
   if(!exists('img_obj')){
     img_obj = NULL
+  }
+
+  # Detect if image scale info is available
+  if(!exists('image_scale')){
+    image_scale = NULL
   }
 
   # If no specific platform was found, then make generic
