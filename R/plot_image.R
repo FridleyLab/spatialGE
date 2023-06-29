@@ -19,10 +19,6 @@
 #
 plot_image = function(x=NULL, samples=NULL){
 
-  x=example_stlist
-  samples=NULL
-  crop=T
-
   # Define which samples to plot
   if(is.null(samples)){
     samples = names(x@spatial_meta)
