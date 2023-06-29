@@ -36,6 +36,7 @@ Imports:
 	ggpolypath,
 	ggrepel,
 	janitor,
+	jsonlite,
 	khroma (>= 1.6.0),
 	magrittr,
 	Matrix,

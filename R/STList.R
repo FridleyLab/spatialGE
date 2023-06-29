@@ -131,6 +131,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       cat(crayon::green(paste("Found Visium Data.\n")))
       pre_lists = read_visium_outs(filepaths, input_check=input_check)
       img_obj = pre_lists[['images']]
+      image_scale = pre_lists[['json_scale']]
       platform = 'visium'
     } else{
       cat(crayon::green(paste("Found Matrix Data.\n")))
@@ -148,9 +149,10 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       filepaths = process_sample_names(rnacounts, spotcoords, sample_names, input_check)
       # Check if input is Visium or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
-        cat(crayon::green(paste("Found Visium Data.\n")))
+        cat(crayon::green(paste("Found Visium data.\n")))
         pre_lists = read_visium_outs(filepaths, input_check)
         img_obj = pre_lists[['images']]
+        image_scale = pre_lists[['json_scale']]
         platform = 'visium'
       } else{
         cat(crayon::green(paste("Found Matrix Data.\n")))
@@ -169,6 +171,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
         cat(crayon::green(paste("Found Visium Data.\n")))
         pre_lists = read_visium_outs(filepaths, input_check)
         img_obj = pre_lists[['images']]
+        image_scale = pre_lists[['json_scale']]
         platform = 'visium'
       } else{
         cat(crayon::green(paste("Found Matrix Data.\n")))
@@ -239,7 +242,9 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
                    #cell_krige=list(),
                    #st_clusters=list(),
                    #spstats_plots=list(),
-                   misc=list(sp_images=img_obj, platform=platform)
+                   misc=list(sp_images=img_obj,
+                             image_scaling=image_scale,
+                             platform=platform)
   )
   cat(crayon::green$bold(paste("Completed STlist!\n")))
   return(STlist_obj)
@@ -436,6 +441,8 @@ read_visium_outs = function(filepaths, input_check){
 
     vimage = grep('spatial\\/', temp_fps, value=T) %>%
       grep('tissue_hires_image.png|tissue_lowres_image.png', ., value=T)
+    vjson = grep('spatial\\/', temp_fps, value=T) %>%
+      grep('scalefactors_json.json$', ., value=T)
     vcoords = grep('spatial\\/', temp_fps, value=T) %>%
       grep('tissue_positions_list.csv', ., value=T)
     # Filter out 'SPATIAL_RNA_COUNTER' folders (intermediate files from Space Ranger?).
@@ -501,12 +508,13 @@ read_visium_outs = function(filepaths, input_check){
 
     fp_list[[i]]$coords = vcoords
     fp_list[[i]]$image = vimage
+    fp_list[[i]]$json = vjson
     fp_list[[i]]$runname = filepaths[['sampleids']][i]
 
     rm(temp_fps, vcoords, vimage) # Clean environment
   }
 
-  cat(crayon::green$bold(paste("Found", length(filepaths$sampleids)-missingSamples, "Visium Samples\n")))
+  cat(crayon::green$bold(paste("Found", length(filepaths$sampleids)-missingSamples, "Visium samples\n")))
 
   # Define number of available cores to use.
   cores = count_cores(length(filepaths[['count_found']]))
@@ -538,14 +546,26 @@ read_visium_outs = function(filepaths, input_check){
   return_lists[['counts']] = list()
   return_lists[['coords']] = list()
   return_lists[['images']] = list()
+  return_lists[['json_scale']] = list()
   for(i in 1:length(output_temp)){
     return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
     return_lists[['coords']][[fp_list[[i]]$runname]] = output_temp[[i]]$coords
     return_lists[['images']][[fp_list[[i]]$runname]] = NULL
+    return_lists[['json_scale']][[fp_list[[i]]$runname]] = NULL
+    # Test if image file is present
     if(!rlang::is_empty(fp_list[[i]]$image)){
       image_read = tryCatch({png::readPNG(fp_list[[i]]$image[1])},
                             error=function(e){png::readPNG(fp_list[[i]]$image[2])})
       return_lists[['images']][[fp_list[[i]]$runname]] = image_read
+    }
+    # Test if JSON scaling factor file is present
+    if(!rlang::is_empty(fp_list[[i]]$json)){
+      # image_read = tryCatch({jsonlite::read_json(fp_list[[i]]$json[1])},
+      #                       error=function(e){png::readPNG(fp_list[[i]]$image[2])})
+      json_read = jsonlite::read_json(fp_list[[i]]$json[1])
+      return_lists[['json_scale']][[fp_list[[i]]$runname]] = json_read
+    } else{
+      return_lists[['json_scale']][[fp_list[[i]]$runname]] = 'no_scaling_available'
     }
   }
 
