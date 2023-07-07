@@ -1,11 +1,12 @@
 ##
 #' @title filter_data: Filters cells/spots, genes, or samples
-#' @description Filtering of spots/cells and genes based on counts or entire samples.
+#' @description Filtering of spots/cells, genes or samples, as well as count-based
+#' filtering
 #' @details
 #' This function provides options to filter elements in an STlist. It can remove
 #' cells/spots or genes based on raw counts (`x@counts`). Users can input an
-#' regular expression to query gene names and calculate percentages (for example % mtDNA
-#' genes). The function also can filter entire samples. Note that the function
+#' regular expression to query gene names and calculate percentages (for example %
+#' mtDNA genes). The function also can filter entire samples. Note that the function
 #' removes cells/spots, genes, and/or samples in the raw counts, transformed counts,
 #' spatial variables, gene variables, and sample metadata. Also note that the function
 #' filters in the following order:
@@ -34,6 +35,17 @@
 #' @param rm_genes vector of gene names to remove from STlist. Removes genes in `x@counts`, `x@tr_counts`, and `x@gene_meta`
 #' @param rm_genes_expr a regular expression that matches genes to remove. Removes genes in `x@counts`, `x@tr_counts`, and `x@gene_meta`
 #' @param spot_pct_expr a expression to use with `spot_minpct` and `spot_maxpct`. By default '^MT-'.
+#' @return an STlist containing the filtered data
+#'
+#' @examples
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- filter_data(melanoma, spot_minreads=2000)
 #'
 #' @export
 #'

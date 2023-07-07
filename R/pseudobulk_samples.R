@@ -1,32 +1,39 @@
 ##
-#' @title pseudobulk_samples: Aggregates spot/cell counts into "pseudo bulk" samples
-#' @description Aggregates counts into "pseudo bulk" samples
+#' @title pseudobulk_samples: Aggregates counts into "pseudo bulk" samples
+#' @description Aggregates spot/cell counts into "pseudo bulk" samples for data exploration
 #' @details
 #' This function takes an STlist and aggregates the spot/cell counts into "pseudo bulk"
-#' counts by summing all counts from all cell/spots for each gene.
+#' counts by summing all counts from all cell/spots for each gene. Then performs
+#' Principal Component Analysis (PCA) to explore non-spatial sample-to-sample
+#' variation
 #'
-#' @param x an STList.
-#' @param max_var_genes number of most variable genes (standard deviation) to use in pseudobulk analysis
+#' @param x an STlist.
+#' @param max_var_genes number of most variable genes (standard deviation) to use in
+#' pseudobulk analysis
+#' @return an STlist with appended pseudobulk counts and PCA coordinates
 #'
 #' @examples
-#' # In this example, melanoma is an STlist.
-#' # pseudobulk_samples(melanoma, max_var_genes=5000)
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- pseudobulk_samples(melanoma)
+#' pseudobulk_pca_plot(melanoma)
 #'
-#' @export
+#' @export pseudobulk_samples
 #'
 #' @import Matrix
 #' @import ggplot2
 #' @importFrom magrittr %>%
 #' @importFrom methods as is new
-#
-#
-pseudobulk_samples = function(x=NULL, max_var_genes=5000) {
-
+#'
+pseudobulk_samples = function(x=NULL, max_var_genes=5000){
   #require('magrittr')
   #require('Matrix')
   #require('ggplot2')
-
-  tr_method='log'
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STlist')){
@@ -52,40 +59,21 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000) {
     bulkcounts_df <- dplyr::inner_join(bulkcounts_df, bulk_expr, by='gene')
   }
 
-  # Apply voom or log transform
-  # if(tr_method == 'voom'){
-  #   # Get normalization factors from the "bulk" libraries.
-  #   norm_factors <- edgeR::calcNormFactors(bulkcounts_df[, -1], method='TMM', lib.size=NULL)
-  #   # Create new object to store the size-corrected counts.
-  #   normcounts_df <- c()
-  #   # Divide each count value by their respective column (sample) normalization factor.
-  #   for(raw_col in names(bulkcounts_df[, -1])){
-  #     normcounts_df <- dplyr::bind_cols(normcounts_df, tibble::as_tibble(bulkcounts_df[raw_col] / norm_factors[raw_col]))
-  #   }
-  #   # Apply limma-voom to lib-size normalized "bulk" libraries.
-  #   tr_df <- limma::voom(normcounts_df, design=NULL, lib.size=colSums(bulkcounts_df[, -1]), normalize.method='none', plot=F)
-  #   # Put back gene names to matrix and store in object.
-  #   tr_df = tibble::as_tibble(tr_df$E) %>%
-  #     tibble::add_column(gene=bulkcounts_df[[1]], .before=1)
-  # } else
-  if(tr_method == 'log'){
-    # Calculate (spot) library sizes. Then, add 1 to each library size.
-    libsizes = colSums(bulkcounts_df[, -1])
-    # Check that there are not zero-count spots
-    if(any(libsizes == 0)){
-      stop('Please, remove samples containing zero reads...')
-    }
-    # Divide each count value by their respective column (spot) normalization factor.
-    normcounts_df = sweep(bulkcounts_df[, -1], 2, libsizes, '/')
-    # Then multiply by scaling factor
-    # df = df * scale_f
-    # Apply log transformation to count data.
-    tr_df = log1p(normcounts_df * 100000)
-    # Put back gene names to matrix and store in object.
-    tr_df = tibble::as_tibble(tr_df) %>%
-      tibble::add_column(gene=bulkcounts_df[[1]], .before=1) %>%
-      tibble::column_to_rownames('gene')
+  # Apply log transform
+  # Calculate (spot) library sizes. Then, add 1 to each library size.
+  libsizes = colSums(bulkcounts_df[, -1])
+  # Check that there are not zero-count spots
+  if(any(libsizes == 0)){
+    stop('Please, remove samples containing zero reads...')
   }
+  # Divide each count value by their respective column (spot) normalization factor.
+  normcounts_df = sweep(bulkcounts_df[, -1], 2, libsizes, '/')
+  # Apply log transformation to count data.
+  tr_df = log1p(normcounts_df * 100000)
+  # Put back gene names to matrix and store in object.
+  tr_df = tibble::as_tibble(tr_df) %>%
+    tibble::add_column(gene=bulkcounts_df[[1]], .before=1) %>%
+    tibble::column_to_rownames('gene')
 
   # Turn transformed counts to a transposed matrix.
   tr_df <- t(as.matrix(tr_df))
@@ -119,18 +107,37 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000) {
 
 
 ##
-#' @title pseudobulk_pca_plot
+#' @title pseudobulk_pca_plot: Plot PCA of pseudobulk samples
+#' @description Generates a PCA plot after computation of "pseudobulk" counts
+#' @details
+#' Generates a Principal Components Analysis plot to help in initial data exploration of
+#' differences among samples. The points in the plot represent "pseudobulk" samples.
+#' This function follows after usage of `pseudobulk_samples`.
 #'
-#' @param x an STList with pseudobulk counts in the `@misc` slot
-#' @param plot_meta a string indicating the name of the variable in the sample metadata.
+#' @param x an STlist with pseudobulk PCA results in the `@misc` slot (generated by
+#' `pseudobulk_samples`)
 #' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
-#' vector with colors with enough elements to plot categories.
-#' @param ptsize the size of the points in the PCA plot. Passed to `size` aesthetic from `ggplot2`.
+#' vector of color names or HEX values. Each color represents a category in the
+#' variable specified in `plot_meta`
+#' @param plot_meta a string indicating the name of the variable in the sample
+#' metadata to color points in the PCA plot
+#' @param ptsize the size of the points in the PCA plot. Passed to the `size`
+#' aesthetic from `ggplot2`
 #' @return a ggplot object
 #'
-#' @export
-#
-#
+#' @examples
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- pseudobulk_samples(melanoma)
+#' pseudobulk_pca_plot(melanoma, plot_meta='patient')
+#'
+#' @export pseudobulk_pca_plot
+#'
 pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1, pcy=2, ptsize=5){
   # Prepare meta data
   meta_df = prepare_pseudobulk_meta(x, plot_meta) %>%
@@ -152,7 +159,7 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
   # Associate colors with categories.
   names(cat_cols) <- levels(as.factor(pca_tbl[[plot_meta]]))
   # Define shapes of points according to clinical variable.
-  cat_shapes <- (16:25)[1:n_cats]
+  cat_shapes <- (15:25)[1:n_cats]
   names(cat_shapes) <- levels(as.factor(pca_tbl[[plot_meta]]))
 
   pcx = grep(paste0('^PC', pcx, '$'), colnames(pca_tbl), value=T)
@@ -181,18 +188,38 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
 
 
 ##
-#' @title pseudobulk_heatmap
+#' @title pseudobulk_heatmap: Heatmap of pseudobulk samples
+#' @description Generates a heatmap plot after computation of "pseudobulk" counts
+#' @details
+#' Generates a heatmap of transformed "pseudobulk" counts to help in initial data
+#' exploration of differences among samples. Each column in the heatmap represents a
+#' "pseudobulk" sample. Rows are genes, with the number of genes displayed controlled by
+#' the `hm_display_genes` argument. This function follows after usage of `pseudobulk_samples`.
 #'
-#' @param x an STList with pseudobulk counts in the `@misc` slot
-#' @param plot_meta a string indicating the name of the variable in the sample metadata.
-#' @param hm_display_genes number of genes to display in heatmap. Must be equal or lower than `max_var_genes`
+#' @param x an STlist with pseudobulk counts in the `@misc` slot (generated by
+#' `pseudobulk_samples`)
 #' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
-#' vector with colors with enough elements to plot categories.
-#' @return a ComplexHeatmap object
+#' vector of color names or HEX values. Each color represents a category in the
+#' variable specified in `plot_meta`
+#' @param plot_meta a string indicating the name of the variable in the sample
+#' metadata to annotate heatmap columns
+#' @param hm_display_genes number of genes to display in heatmap, selected based on
+#' decreasing order of standard deviation across samples
+#' @return a ggplot object
 #'
-#' @export
-#
-#
+#' @examples
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- pseudobulk_samples(melanoma)
+#' pseudobulk_heatmap(melanoma, plot_meta='BRAF_status', hm_display_genes=30)
+#'
+#' @export pseudobulk_heatmap
+#'
 pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_display_genes=30){
   # Prepare meta data
   meta_df = prepare_pseudobulk_meta(x, plot_meta)
@@ -227,7 +254,7 @@ pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_disp
                                  row_names_gp=grid::gpar(fontsize=8),
                                  show_column_names=T, column_title='Aggregated gene expression\n("pseudobulk")')
 
-  hm_p = ComplexHeatmap::draw(hm_p, merge_legend=T, padding=unit(c(2, 10, 2, 2), "mm"))
+  hm_p = capture.output(ComplexHeatmap::draw(hm_p, merge_legend=T, padding=unit(c(2, 10, 2, 2), "mm")))
 
   return(hm_p)
 }
@@ -239,9 +266,8 @@ pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_disp
 # @title prepare_pseudobulk_meta
 #
 # @param x a STlist
-# @param plot_meta a string indicating the name of the variable in the sample metadata.
+# @param plot_meta a string indicating the name of the variable in the sample metadata
 # @return a data frame with sample-level metadata
-#
 #
 prepare_pseudobulk_meta = function(x=NULL, plot_meta=NULL){
   if(!is.null(plot_meta) && !(plot_meta %in% colnames(x@sample_meta))){
@@ -254,10 +280,10 @@ prepare_pseudobulk_meta = function(x=NULL, plot_meta=NULL){
   if(!is.null(plot_meta)){
     clinvar_vals <- as.character(x@sample_meta[[plot_meta]])
     clinvar_vals <- tibble::tibble(!!plot_meta := clinvar_vals,
-                                   sample_name=x@sample_meta[['samplename']]) %>%
+                                   sample_name=x@sample_meta[[1]]) %>%
       tibble::column_to_rownames('sample_name')
   } else{
-    plot_meta <- 'ST_sample'
+    #plot_meta <- 'ST_sample'
     clinvar_vals = names(x@counts)
     clinvar_vals <- tibble::tibble(ST_sample=clinvar_vals,
                                    sample_name=clinvar_vals) %>%

@@ -1,5 +1,5 @@
 ##
-#' @title transform_data: Data transformation of spatial transcriptomics data
+#' @title transform_data: Transformation of spatial transcriptomics data
 #' @description Applies data transformation methods to spatial transcriptomics
 #' samples within an STlist
 #' @details
@@ -7,30 +7,36 @@
 #' The user has the option to select between log transformation after library size
 #' normalization (`method='log'`), or SCTransform (`method='sct'`). In the case of
 #' logarithmic transformation, a scaling factor (10^4 by default) is applied. The
-#' function works on parallel using "forking" (not available in Windows OS). Note
-#' that the method `sct` returns a matrix with less genes as filtering is done for
-#' lowly expressed genes.
+#' function uses parallelization using "forking" (not available in Windows OS).
+#' Note that the method `sct` returns a matrix with less genes as filtering is
+#' done for low expression genes.
 #'
-#' @param x an STList with raw count matrices.
+#' @param x an STlist with raw count matrices.
 #' @param method one of `log` or `sct`. If `log`, log-normalization is performed.
-#' If `sct`, then the SCTransform method is applied by calling sctransform::vst.
-#' @param scale_f, the scale factor used in logarithmic transformation.
+#' If `sct`, then the SCTransform method is applied by calling `sctransform::vst`
+#' @param scale_f the scale factor used in logarithmic transformation
 #' @param sct_n_regr_genes the number of genes to be used in the regression model
-#' during SCTransform. The function sctransform::vst selects genes randomly.
+#' during SCTransform. The function `sctransform::vst` makes a random gene selection
+#' based on this number
 #' @param sct_min_cells The minimum number of spots/cells to be used in the regression
-#' model.
+#' model fit by `sctransform::vst`
 #' @return x an updated STlist with transformed counts.
 #'
 #' @examples
-#' # In this example, melanoma is an STlist.
-#' # melanoma <- transform_data(melanoma)
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- transform_data(melanoma, method='log')
 #'
 #' @export
 #'
 #' @importFrom magrittr %>%
 #' @importFrom methods as is new
-#
-#
+#'
 transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=3000, sct_min_cells=5){
 
   # Detect transformation method
@@ -207,67 +213,3 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5){
   return(sct_counts)
 }
 
-
-## DEPRECATED
-# @title voom_norm: voom transformation of ST arrays
-# @description Applies limma-voom transformation to spatial transcriptomics arrays data.
-# @details
-# This function takes an STList and returns roughly Gaussian count data matrices
-# in two steps. In the first step, (edgeR) normalization factors are used to scale
-# the counts from each library/spot. In the second step, limma-voom transformation
-# is applied. The resulting normalized count matrix is stored in the voom_counts
-# slot of the STList. The function also calculates gene-wise standard deviation from
-# the transformed counts and stores them in the gene_stdev slot.
-#
-# The function works on parallel using "forking" (not in Windows OS).
-#
-# @param x an STList with raw count matrices.
-# @return x an updated STList with transformed counts.
-#
-# @examples
-# # In this example, melanoma is an STList.
-# # melanoma <- voom_norm(melanoma)
-#
-# #' @importFrom methods as is new
-#
-#
-# voom_norm = function(x=NULL){
-#   # Define number of available cores to use.
-#   cores = count_cores(length(x@counts))
-#
-#   # Test if an STList has been input.
-#   if(is.null(x) | !is(x, "STlist")){
-#     stop("The input must be a STlist.")
-#   }
-#
-#   # Perform voom transformation on parallel if possible.
-#   voom_counts = parallel::mclapply(seq_along(x@counts), function(i){
-#
-#     # Progress will probably show if cores=1
-#     cat(paste0("Normalizing spatial sample: ", names(x@counts[i]), "...\n"))
-#
-#     # Expand sparse matrix
-#     df = expandSparse(x@counts[[i]])
-#
-#     # Calculate edgeR normalization factors.
-#     norm_factors = edgeR::calcNormFactors(df, method="TMM", lib.size=NULL)
-#
-#     # Divide each count value by their respective column (spot) normalization factor.
-#     df = sweep(df, 2, norm_factors, '/')
-#
-#     # Apply voom transformation to count data.
-#     df_voom = limma::voom(df, design=NULL, lib.size=colSums(df), normalize.method="none", plot=F)
-#
-#     # Put back gene names to matrix and store in object.
-#     df_voom = tibble::as_tibble(df_voom$E) %>%
-#       tibble::add_column(gene=rownames(x@counts[[i]]), .before=1)
-#
-#     return(df_voom)
-#
-#   }, mc.cores=cores, mc.preschedule=F)
-#
-#   # Copy list names from raw counts to transformed counts
-#   names(voom_counts) = names(x@counts)
-#
-#   return(voom_counts)
-# }

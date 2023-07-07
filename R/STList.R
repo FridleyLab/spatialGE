@@ -88,15 +88,15 @@
 #'
 #' @examples
 #' # Using included melanoma example (Thrane et al.)
-#' # library('spatialGE')
-#' # data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
-#' # count_files <- grep("counts", data_files, value=T)
-#' # coord_files <- grep("mapping", data_files, value=T)
-#' # clin_file <- grep("thrane_clinical", data_files, value=T)
-#' # melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
-#' # melanoma
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma
 #
-#' @export STList
+#' @export STlist
 #'
 #' @import Matrix
 #' @importFrom magrittr %>%
@@ -115,7 +115,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
   # METADATA INFO OPTIONAL.
   if(!is.null(input_check$rna)){
     if(input_check$rna[1] == 'list_dfs' && input_check$coords[1] == 'list_dfs'){
-      cat(crayon::green(paste("Found List of Dataframes...\n")))
+      cat(crayon::green(paste("Found list of dataframes.\n")))
       pre_lists = read_list_dfs(rnacounts, spotcoords)
     }
   }
@@ -145,13 +145,13 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     filepaths = process_sample_names_from_file(samples=samples, input_check=input_check)
     # Check if input is Visium or count/coord matrices
     if(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex')){
-      cat(crayon::green(paste("Found Visium Data.\n")))
+      cat(crayon::green(paste("Found Visium data.\n")))
       pre_lists = read_visium_outs(filepaths, input_check=input_check)
       img_obj = pre_lists[['images']]
       image_scale = pre_lists[['json_scale']]
       platform = 'visium'
     } else{
-      cat(crayon::green(paste("Found Matrix Data.\n")))
+      cat(crayon::green(paste("Found matrix data.\n")))
       pre_lists = read_matrices_fps(filepaths, input_check)
     }
   }
@@ -172,7 +172,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
         image_scale = pre_lists[['json_scale']]
         platform = 'visium'
       } else{
-        cat(crayon::green(paste("Found Matrix Data.\n")))
+        cat(crayon::green(paste("Found matrix data.\n")))
         pre_lists = read_matrices_fps(filepaths, input_check)
       }
     }
@@ -185,13 +185,13 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       filepaths = process_sample_names(rnacounts, spotcoords, as.character(samples), input_check)
       # Check if input is Visium or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
-        cat(crayon::green(paste("Found Visium Data.\n")))
+        cat(crayon::green(paste("Found Visium data.\n")))
         pre_lists = read_visium_outs(filepaths, input_check)
         img_obj = pre_lists[['images']]
         image_scale = pre_lists[['json_scale']]
         platform = 'visium'
       } else{
-        cat(crayon::green(paste("Found Matrix Data.\n")))
+        cat(crayon::green(paste("Found matrix data.\n")))
         pre_lists = read_matrices_fps(filepaths, input_check)
       }
     }
@@ -202,10 +202,10 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     stop('No input provided. Please refer to documentation.')
   }
 
-  cat(crayon::green(paste("Requested", length(pre_lists[['counts']]), "Samples\n")))
+  cat(crayon::green(paste("Requested", length(pre_lists[['counts']]), "samples\n")))
 
-  # Process count and coordinate lists before placing within STList
-  cat(crayon::yellow(paste("Cleaning Count and Coordinate Data Gene Names.\n")))
+  # Process count and coordinate lists before placing within STlist
+  cat(crayon::yellow(paste("Cleaning count and coordinate data gene names.\n")))
   procLists = process_lists(pre_lists[['counts']], pre_lists[['coords']])
 
   # Process metadata if provided or make an empty tibble
@@ -220,13 +220,13 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
 
   if(!is.null(input_check$rna[1])){
     if(!(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex'))){
-      cat(crayon::yellow(paste("Converting Counts to Sparse Matrices\n")))
+      cat(crayon::yellow(paste("Converting counts to sparse matrices\n")))
       procLists[['counts']] = parallel::mclapply(procLists[['counts']], function(x){
         makeSparse(x)
       })
     }
   } else if(!(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex'))){
-    cat(crayon::yellow(paste("Converting Counts to Sparse Matrices\n")))
+    cat(crayon::yellow(paste("Converting counts to sparse matrices\n")))
     procLists[['counts']] = parallel::mclapply(procLists[['counts']], function(x){
       makeSparse(x)
     })
@@ -251,7 +251,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
   if(nrow(samples_df) > 0){
     samples_df[[1]] = as.character(samples_df[[1]])
   }
-  # Creates STList object from processed data
+  # Creates STlist object from processed data
   STlist_obj = new("STlist",
                    counts=procLists[['counts']],
                    spatial_meta=procLists[['coords']],
@@ -342,7 +342,7 @@ read_list_dfs = function(rnacounts, spotcoords){
 }
 
 ##
-# read_seurat: Takes a Seurat object and converts it to a STList.
+# read_seurat: Takes a Seurat object and converts it to a STlist.
 # @param rnacounts, a seurat object with spatial slot
 # @return return_lists a list with two lists within (one with counts, one with coordinates)
 #
@@ -597,7 +597,7 @@ read_visium_outs = function(filepaths, input_check){
 
 ##
 # process_lists: Takes two named lists of counts and coordinates and process gene and
-# spot names before placing them within an STList
+# spot names before placing them within an STlist
 # @param rnacounts, a named list with counts
 # @param spotcoords, a named list with coordinates
 # @return return_lists a list with two lists within (one with counts, one with coordinates)
@@ -788,11 +788,11 @@ process_sample_names_from_file = function(rnacounts, spotcoords, samples, input_
 
 ##
 # process_meta: Takes the input file path of a metadata table and return the processed
-# data frame for the STList
+# data frame for the STlist
 # @param samples, the file path to metadata file
 # @param input_check, a list resulting from detect_input
 # @param counts_df_list, a list with counts resulting from process_lists
-# @return samples_df, a data frame to be placed within the clinical slot of the STList
+# @return samples_df, a data frame to be placed within the clinical slot of the STlist
 #
 process_meta = function(samples, input_check, counts_df_list){
   # Get delimiter of file from input_check

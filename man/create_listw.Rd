@@ -7,7 +7,7 @@
 create_listw(x = NULL)
 }
 \arguments{
-\item{x}{an STList}
+\item{x}{an STlist}
 }
 \description{
 create_listw

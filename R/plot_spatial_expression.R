@@ -15,7 +15,6 @@
 # @param color_pal a color scheme from 'khroma' or RColorBrewer.
 # @param data_type one of 'tr' or 'raw', to plot transformed or raw counts
 # respectively
-# @param image logical, whether to print the image stored for the samples
 # @param visium logical, whether or not the samples are from a Visium experiment.
 # @param ptsize a number specifying the size of the points in the quilt plot.
 # Passed to the `size` aesthetic
@@ -26,7 +25,7 @@
 #' @importFrom magrittr %>%
 #
 #
-plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuRd', data_type='tr', image=F, visium=T, ptsize=NULL){
+plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuRd', data_type='tr', visium=T, ptsize=NULL){
 
   # Test that a gene name was entered.
   if (is.null(genes)) {
@@ -139,12 +138,6 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
       qp_list[[paste0(gene, "_", i)]] = qp
 
       rm(df_tmp) # Clean environment
-    }
-
-    if(image && !is.null(x@misc[['sp_images']][[i]])){
-      img_obj = grid::rasterGrob(x@misc[['sp_images']][[i]])
-      qp_list[[paste0('image', names(counts[i]))]] = ggplot() +
-        annotation_custom(img_obj)
     }
   }
 

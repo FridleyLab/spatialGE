@@ -1,31 +1,44 @@
 ##
 #' @title gene_interpolation: Spatial interpolation of gene expression
-#' @description Performs spatial interpolation of transformed gene
-#' counts from ST samples
+#' @description Performs spatial interpolation ("kriging") of transformed gene counts
 #' @details
 #' This function takes an STlist and a vector of gene names and generates spatial
-#' interpolation of gene expression values. If genes='top', then the 10 genes with
-#' the highest standard deviation for each ST sample are interpolated. The resulting
-#' interpolations can be visualized via the `STplot_interpolation` function
+#' interpolation of gene expression values via "kriging". If genes='top', then
+#' the 10 genes (default) with the highest standard deviation for each ST sample
+#' are interpolated. The resulting interpolations can be visualized via the
+#' `STplot_interpolation` function
 #'
-#' @param x an STlist with transformed RNA counts.
+#' @param x an STlist with transformed RNA counts
 #' @param genes a vector of gene names or 'top'. If 'top' (default), interpolation of
 #' the 10 genes (`top_n` default) with highest standard deviation in each ST sample
 #' is estimated.
-#' @param top_n an integer indicating how many top genes to perform interpolation Default is 10.
-#' @param samples the spatial samples for which interpolations will be performed. If NULL (Default),
-#' all samples are interpolated.
-#' @param ngrid an integer indicating the number of point to predict. Default is 10000, resulting in a
-#' grid of 100 x 100 points. Larger numbers provide more resolution, but computation
-#' time is longer.
-#' @return x a STList including spatial interpolations.
+#' @param top_n an integer indicating how many top genes to perform interpolation.
+#' Default is 10.
+#' @param samples the spatial samples for which interpolations will be performed.
+#' If NULL (Default), all samples are interpolated.
+#' @param ngrid an integer indicating the number of point to predict. Default is 10000,
+#' resulting in a grid of 100 x 100 points. Larger numbers provide more resolution,
+#' but computing time is longer.
+#' @return x a STlist including spatial interpolations.
+#'
+#' @examples
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- transform_data(melanoma)
+#' melanoma <- gene_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
+#' kp = STplot_interpolation(melanoma, genes=c('MLANA', 'COL1A1'))
+#' ggpubr::ggarrange(plotlist=kp)
 #'
 #' @export
 #'
 #' @import fields
 #' @importFrom magrittr %>%
-#
-#
+#'
 gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid=10000){
   #require("magrittr")
   suppressPackageStartupMessages(require('fields'))

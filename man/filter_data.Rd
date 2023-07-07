@@ -2,31 +2,32 @@
 % Please edit documentation in R/filter_data.R
 \name{filter_data}
 \alias{filter_data}
-\title{filter_data: Removes spots, genes, or samples}
+\title{filter_data: Filters cells/spots, genes, or samples}
 \usage{
 filter_data(
   x = NULL,
-  spot_minreads = NULL,
+  spot_minreads = 0,
   spot_maxreads = NULL,
-  spot_mingenes = NULL,
+  spot_mingenes = 0,
   spot_maxgenes = NULL,
-  spot_minpct = NULL,
+  spot_minpct = 0,
   spot_maxpct = NULL,
-  gene_minreads = NULL,
+  gene_minreads = 0,
   gene_maxreads = NULL,
-  gene_minspots = NULL,
+  gene_minspots = 0,
   gene_maxspots = NULL,
-  gene_minpct = NULL,
+  gene_minpct = 0,
   gene_maxpct = NULL,
-  who = NULL,
+  samples = NULL,
   rm_tissue = NULL,
+  rm_spots = NULL,
   rm_genes = NULL,
-  rm_partialgenes = NULL,
-  spot_pctExpr = "^MT-"
+  rm_genes_expr = NULL,
+  spot_pct_expr = "^MT-"
 )
 }
 \arguments{
-\item{x}{an STList}
+\item{x}{an STlist}
 
 \item{spot_minreads}{the minimum number of total reads for a spot to be retained}
 
@@ -36,11 +37,9 @@ filter_data(
 
 \item{spot_maxgenes}{the maximum number of non-zero counts for a spot to be retained}
 
-\item{spot_minpct}{the minimum percentage of counts for features defined by \code{spot_pctexpr}
-for a spot to be retained.}
+\item{spot_minpct}{the minimum percentage of counts for features defined by \code{spot_pct_expr} for a spot to be retained.}
 
-\item{spot_maxpct}{the maximum percentage of counts for features defined by \code{spot_pctexpr}
-for a spot to be retained.}
+\item{spot_maxpct}{the maximum percentage of counts for features defined by \code{spot_pct_expr} for a spot to be retained.}
 
 \item{gene_minreads}{the minimum number of total reads for a gene to be retained}
 
@@ -54,23 +53,49 @@ for a spot to be retained.}
 
 \item{gene_maxpct}{the maximum percentage of spots with non-zero counts for a gene to be retained}
 
-\item{who}{vector of integers (as in \code{x@counts}) or sample names to perform filtering}
+\item{samples}{samples (as in \code{names(x@counts)}) to perform filtering.}
 
-\item{rm_tissue}{vector of integers (as in \code{x@counts}) or sample names to remove from STList}
+\item{rm_tissue}{sample (as in \code{names(x@counts)}) to remove from STlist. Removes samples in \code{x@counts}, \code{x@tr_counts}, \code{x@spatial_meta}, \code{x@gene_meta}, and \code{x@sample_meta}}
 
-\item{rm_genes}{vector of gene names to remove from STList}
+\item{rm_spots}{vector of spot/cell IDs to remove. Removes spots/cells in \code{x@counts}, \code{x@tr_counts}, and \code{x@spatial_meta}}
 
-\item{rm_partialgenes}{a expression to match gene names. Useful to remove entire gene classes (for example mtDNA '^MT-')}
+\item{rm_genes}{vector of gene names to remove from STlist. Removes genes in \code{x@counts}, \code{x@tr_counts}, and \code{x@gene_meta}}
 
-\item{spot_pctExpr}{a expression to use with \code{spot_minpct}. By default '^MT-'.}
+\item{rm_genes_expr}{a regular expression that matches genes to remove. Removes genes in \code{x@counts}, \code{x@tr_counts}, and \code{x@gene_meta}}
+
+\item{spot_pct_expr}{a expression to use with \code{spot_minpct} and \code{spot_maxpct}. By default '^MT-'.}
+}
+\value{
+an STlist containing the filtered data
 }
 \description{
-Provides methods to remove spots and genes or entire samples.
+Filtering of spots/cells, genes or samples, as well as count-based
+filtering
 }
 \details{
-This function provides methods to filter an STList. It can remove spots or genes
-based on absolute counts or percentages. Users can input a expression to be matched
-with gene names to calculate percentages (for example \%mtDNA genes).
-Note that the function removes counts raw counts and spatial information. Transformed
-counts or other results within the STList remain unaffected.
+This function provides options to filter elements in an STlist. It can remove
+cells/spots or genes based on raw counts (\code{x@counts}). Users can input an
+regular expression to query gene names and calculate percentages (for example \%
+mtDNA genes). The function also can filter entire samples. Note that the function
+removes cells/spots, genes, and/or samples in the raw counts, transformed counts,
+spatial variables, gene variables, and sample metadata. Also note that the function
+filters in the following order:
+\enumerate{
+\item Samples (\code{rm_tissue})
+\item Spots (\code{rm_spots})
+\item Genes (\code{rm_genes})
+\item Genes matching \code{rm_genes_expr}
+\item Min and max counts
+}
+}
+\examples{
+# Using included melanoma example (Thrane et al.)
+library('spatialGE')
+data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+count_files <- grep("counts", data_files, value=T)
+coord_files <- grep("mapping", data_files, value=T)
+clin_file <- grep("thrane_clinical", data_files, value=T)
+melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+melanoma <- filter_data(melanoma, spot_minreads=2000)
+
 }

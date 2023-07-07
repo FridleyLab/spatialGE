@@ -1,13 +1,15 @@
 ##
-#' @title STclust: Detect clusters on ST samples
+#' @title STclust: Detect clusters of spots/cells
 #' @description Perform unsupervised spatially-informed clustering on the spots/cells of a
 #' ST sample
 #' @details
 #' The function takes an STlist and calculates euclidean distances between cells or spots
-#' based on the x,y spatial locations and expression of the top variable genes
+#' based on the x,y spatial locations, and the expression of the top variable genes
 #' (`Seurat::FindVariableFeatures`). The resulting distances are weighted by
 #' applying 1-`ws` to the gene expression distances and `ws` to the spatial distances.
-#' Hierarchical clustering is performed on the sum of the weighted distance matrices
+#' Hierarchical clustering is performed on the sum of the weighted distance matrices.
+#' The `STclust` method allows for identification of tissue niches/domains that are
+#' spatially cohesive.
 #'
 #' @param x an STlist with normalized expression data
 #' @param ws a double (0-1) indicating the weight to be applied to spatial distances.
@@ -22,7 +24,18 @@
 #' variance is calculated via `Seurat::FindVariableFeatures`.
 #' @param deepSplit a logical or integer (1-4), to be passed to `cutreeDynamic` and
 #' control cluster resolution
-#' @return x, the STlist with cluster assignments
+#' @return an STlist with cluster assignments
+#'
+#' @examples
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- transform_data(melanoma, method='log')
+#' melanoma <- STclust(melanoma, ws=c(0, 0.025), samples=c('ST_mel1_rep2', 'ST_mel2_rep1'))
 #'
 #' @export
 #'

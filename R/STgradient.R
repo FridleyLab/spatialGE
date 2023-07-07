@@ -1,8 +1,8 @@
 ##
-#' @title STgradient
-#' @description
-#' @details XXXXXXX
-#' XXXXXXX
+#' @title STgradient: Tests for spatial gene expression gradients
+#' @description Calculates Sperman's coefficients to detect genes showing expression gradients
+#' @details
+#' The `STgradient` function fits linear models and calculates Spearman coefficients
 #'
 #' @param x an STlist with transformed gene expression
 #' @param samples

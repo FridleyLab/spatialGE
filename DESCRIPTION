@@ -30,7 +30,6 @@ Imports:
 	data.table,
 	dynamicTreeCut,
 	dplyr,
-	EBImage,
 	fields,
 	ggplot2,
 	ggpolypath,
@@ -50,7 +49,6 @@ Imports:
 	reticulate,
 	readr,
 	readxl,
-	rjson,
 	rlang,
 	scales,
 	sctransform,
@@ -74,4 +72,6 @@ Suggests:
     R.utils,
     SeuratData,
     tidyverse
-VignetteBuilder: knitr, rmarkdown
+VignetteBuilder: 
+	knitr, 
+	rmarkdown

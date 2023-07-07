@@ -1,20 +1,25 @@
 ##
-#' @title violin_plots: Generates violin plots and boxplots of meta data or gene expression
-#' @description Generates violin plots and boxplots of continuous variables in the spatial meta
-#' data or expression of genes to make comparisons across samples
-#' @details The function allows to visualize the distribution of spot/cell total counts, genes, or
-#' expression of specific genes across all samples for comparative purposes.
+#' @title per_unit_counts: Generates distribution plots of spot/cell meta data or gene expression
+#' @description Generates violin plots, boxplots, or density plots of continuous
+#' variables in the spatial meta data or of gene expression to make comparisons
+#' across samples
+#' @details The function allows to visualize the distribution of spot/cell total
+#' counts, total genes, or expression of specific genes across all samples for
+#' comparative purposes.
 #'
 #' @param x an STlist
-#' @param plot_meta vector of variables in `x@spatial_meta` to plot distributions. Default is 'total_counts'
+#' @param plot_meta vector of variables in `x@spatial_meta` to plot distributions.
+#' If 'total_counts', the function plots the counts per spot/cell. If 'total_genes',
+#' the function plots the number of genes per spot/cell are plotted.
 #' @param genes vector of genes to plot expression distribution
 #' @param samples samples to include in the plot. Default (NULL) includes all samples
 #' @param data_type one of 'tr' or 'raw', to plot transformed or raw counts
 #' @param color_pal  a string of a color palette from `khroma` or `RColorBrewer`, or a
 #' vector with colors
-#' @param plot_type one of "violin" or "box" (violin plots or box plots)
+#' @param plot_type one of "violin", "box", or "density" (violin plots, box plots, or
+#' density plots respectively)
 #' @param ptsize the size of points in the plots
-#' @param ptalpha the transparency of points in plots
+#' @param ptalpha the transparency of points (violin/box plot) or curves (density plots)
 #' @param ptjitter the dispersion of points in the plots
 #'
 #' @export
@@ -22,8 +27,8 @@
 #' @import ggplot2
 #
 #
-violin_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, data_type='tr',
-                        color_pal='okabeito', plot_type='violin', ptsize=0.5, ptalpha=0.5){
+distribution_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, data_type='tr',
+                              color_pal='okabeito', plot_type='violin', ptsize=0.5, ptalpha=0.5){
   #require('ggplot2')
 
   # Define samples to plot if NULL or numeric
@@ -37,12 +42,15 @@ violin_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, data_t
   if(!is.null(plot_meta) & !is.null(genes)){
     stop("Plots can be generated only for plot_meta OR genes at a time.")
   } else if(!is.null(plot_meta)){
-    plist = violin_plots_spot(x=x, plot_meta=plot_meta, samples=samples,
-                               plot_type=plot_type, color_pal=color_pal, ptsize=ptsize, ptalpha=ptalpha)
+    plist = spot_plots(x=x, plot_meta=plot_meta, samples=samples,
+                       plot_type=plot_type, color_pal=color_pal, ptsize=ptsize, ptalpha=ptalpha)
+  } else if(!is.null(genes)){
+    plist = gene_plots(x=x, genes=genes, samples=samples, data_type=data_type,
+                       plot_type=plot_type, color_pal=color_pal, ptsize=ptsize, ptalpha=ptalpha)
   } else {
-    plist = violin_plots_gene(x=x, genes=genes, samples=samples, data_type=data_type,
-                               plot_type=plot_type, color_pal=color_pal, ptsize=ptsize, ptalpha=ptalpha)
+    stop('Specify a spot/cell meta data variable or a gene to plot.')
   }
+
   return(plist)
 }
 
@@ -53,9 +61,8 @@ violin_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, data_t
 # violin_plots_spot
 #
 
-violin_plots_spot = function(x=NULL, plot_meta='total_counts', samples=NULL,
-                              plot_type='violin', color_pal='roma', ptsize=0.5, ptalpha=0.5){
-
+spot_plots = function(x=NULL, plot_meta=NULL, samples=NULL,
+                      plot_type='violin', color_pal='roma', ptsize=0.5, ptalpha=0.5){
   p_list = list()
   # Loop through meta data variables
   for(meta in plot_meta){
@@ -69,7 +76,7 @@ violin_plots_spot = function(x=NULL, plot_meta='total_counts', samples=NULL,
       } else{
         df_tmp = dplyr::bind_rows(df_tmp,
                                   x@spatial_meta[[i]] %>%
-                                    dplyr::select(libname, meta) %>%
+                                    dplyr::select(libname, !!meta) %>%
                                     tibble::add_column(samplename=i))
       }
     }
@@ -78,17 +85,26 @@ violin_plots_spot = function(x=NULL, plot_meta='total_counts', samples=NULL,
     meta_cols = color_parse(color_pal, n_cats=length(samples))
 
     # Create plot
-    p_list[[meta]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=samplename, y=.data[[meta]], color=samplename))
     if(plot_type == 'box'){
-      p_list[[meta]] = p_list[[meta]] +
+      p_list[[meta]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=samplename, y=.data[[meta]], color=samplename)) +
         ggplot2::geom_boxplot(outlier.size=ptsize)
     } else if(plot_type == 'violin'){
-      p_list[[meta]] = p_list[[meta]] +
+      p_list[[meta]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=samplename, y=.data[[meta]], color=samplename)) +
         ggplot2::geom_violin() +
         ggforce::geom_sina(size=ptsize)
+    } else if(plot_type == 'density'){
+      # Define bandwidth
+      bandw = round(mean(unlist(lapply(unique(df_tmp[['samplename']]), function(i){
+        bw = stats::bw.nrd0(df_tmp[[meta]][df_tmp[['samplename']] == i])
+        return(bw)
+      }))), 2)
+      p_list[[meta]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=.data[[meta]], fill=samplename)) +
+        ggplot2::stat_density(color='gray30', alpha=ptalpha, bw=bandw, position="identity") +
+        ggplot2::ylab(paste0('Density (Average bandwidth=', bandw, ')'))
     }
     p_list[[meta]] = p_list[[meta]] +
       ggplot2::xlab(NULL) +
+      ggplot2::ggtitle(paste0('Variable: ', meta)) +
       ggplot2::scale_color_manual(values=meta_cols) +
       ggplot2::theme(axis.text.x=ggplot2::element_text(angle=30, hjust=1),
                      panel.border=ggplot2::element_rect(fill=NA, color='black'),
@@ -103,8 +119,8 @@ violin_plots_spot = function(x=NULL, plot_meta='total_counts', samples=NULL,
 # violin_plots_gene
 #
 
-violin_plots_gene = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
-                              plot_type='violin', color_pal='roma', ptsize=0.5, ptalpha=0.5){
+gene_plots = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
+                      plot_type='violin', color_pal='roma', ptsize=0.5, ptalpha=0.5){
   # Extract data slot
   if(data_type == 'tr'){
     expr_tmp = x@tr_counts
@@ -138,14 +154,23 @@ violin_plots_gene = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
     gene_cols = color_parse(color_pal, n_cats=length(samples))
 
     # Create plot
-    p_list[[gene]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=samplename, y=.data[['geneexpr']], color=samplename))
+    p_list[[gene]] =
     if(plot_type == 'box'){
-      p_list[[gene]] = p_list[[gene]] +
+      p_list[[gene]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=samplename, y=.data[['geneexpr']], color=samplename)) +
         ggplot2::geom_boxplot(outlier.size=ptsize)
     } else if(plot_type == 'violin'){
-      p_list[[gene]] = p_list[[gene]] +
+      p_list[[gene]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=samplename, y=.data[['geneexpr']], color=samplename)) +
         ggplot2::geom_violin() +
         ggforce::geom_sina(size=ptsize)
+    } else if(plot_type == 'density'){
+      # Define bandwidth
+      bandw = round(mean(unlist(lapply(unique(df_tmp[['samplename']]), function(i){
+        bw = stats::bw.nrd0(df_tmp[['geneexpr']][df_tmp[['samplename']] == i])
+        return(bw)
+      }))), 2)
+      p_list[[gene]] = ggplot2::ggplot(df_tmp, ggplot2::aes(x=.data[['geneexpr']], fill=samplename)) +
+        ggplot2::stat_density(color='gray30', alpha=ptalpha, bw=bandw, position="identity") +
+        ggplot2::ylab(paste0('Density (Average bandwidth=', bandw, ')'))
     }
     p_list[[gene]] = p_list[[gene]] +
       ggplot2::ggtitle(paste0(p_title, gene)) +

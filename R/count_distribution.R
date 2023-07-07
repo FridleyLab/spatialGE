@@ -1,23 +1,44 @@
 ##
-#' @title count_distribution: Generates a density plot for the distribution of counts
-#' @description Generates density plots, violin plots, or boxplots for the distribution of
-#' counts per spot/cell in the samples
-#' @details The function allows to visualize the distribution of spot/cell counts.
-#' The user can select between density plots, violin plots, or box plots as visualization
-#' options. Useful for assessment of the effect of data transformations
+#' @title count_distribution: Generates plots for the distribution of counts
+#' @description Generates density plots, violin plots, and/or boxplots for the
+#' distribution of count values
+#' @details
+#' The function allows to visualize the distribution counts across all genes and spots
+#' in the STlist. The user can select between density plots, violin plots, or box
+#' plots as visualization options. Useful for assessment of the effect of filtering and
+#' data transformations and to assess zero-inflation. To plot counts or genes per
+#' spot/cell, the function `per_unit_counts` should be used instead.
 #'
 #' @param x an STlist
 #' @param samples samples to include in the plot. Default (NULL) includes all samples
-#' @param data_type one of 'tr' or 'raw', to plot transformed or raw counts
+#' @param data_type one of `tr` or `raw`, to plot transformed or raw counts
+#' @param plot_type one or several of `density`, `violin`, and `box`, to generate
+#' density plots, violin plots, and/or boxplots
 #' @param color_pal  a string of a color palette from `khroma` or `RColorBrewer`, or a
 #' vector with colors
-#' @param cvalpha the transparency of the density curves
+#' @param cvalpha the transparency of the density plots
+#' @param distrib_subset the proportion of spots/cells to plot. Generating these
+#' plots can be time consuming due to the large amount of elements to plot. This
+#' argument provides control on how many randomly values to show to speed plotting
+#' @param subset_seed related to `distrib_subset`. Sets the seed number to ensure
+#' the same subset of values is selected for plotting
+#' @return a list of ggplot objects
+#'
+#' @examples
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' cp <- count_distribution(melanoma, data_type='raw', plot_type=c('violin', 'box'))
+#' ggpubr::ggarrange(plotlist=cp)
 #'
 #' @export
 #'
 #' @import ggplot2
-#
-#
+#'
 count_distribution = function(x=NULL, samples=NULL, data_type='tr', plot_type='density',
                               color_pal='okabeito', cvalpha=0.5, distrib_subset=0.5,
                               subset_seed=12345){

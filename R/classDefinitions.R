@@ -51,11 +51,13 @@ setMethod("show", signature="STlist",
           function(object){
             cat("Spatial Transcriptomics List (STlist).\n")
             cat(length(object@counts), "spatial array(s):\n")
-            cat(paste0('\t', names(object@counts), '\n'))
+            for(i in names(object@counts)){
+              cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+            }
             cat('\n')
             if(!rlang::is_empty(object@sample_meta)){
-              cat(paste0((ncol(object@sample_meta)-1), " variables in sample data:\n"))
-              cat('\t', paste0(colnames(object@sample_meta[, -1]), collapse = ', '))
+              cat(paste0((ncol(object@sample_meta)-1), " variables in sample-level data:\n"))
+              cat('\t', paste0(colnames(object@sample_meta[, -1]), collapse = ', '), '\n')
             }
           }
 )
@@ -74,11 +76,13 @@ setMethod("summary", signature="STlist",
           function(object){
             cat("Spatial Transcriptomics List (STlist).\n")
             cat(length(object@counts), "spatial array(s):\n")
-            cat(paste0('\t', names(object@counts), '\n'))
+            for(i in names(object@counts)){
+              cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+            }
             cat('\n')
             if(!rlang::is_empty(object@sample_meta)){
-              cat(paste0((ncol(object@sample_meta)-1), " variables in sample data:\n"))
-              cat('\t', paste0(colnames(object@sample_meta[, -1]), collapse = ', '))
+              cat(paste0((ncol(object@sample_meta)-1), " variables in sample-level data:\n"))
+              cat('\t', paste0(colnames(object@sample_meta[, -1]), collapse = ', '), '\n')
             }
           }
 )
@@ -99,6 +103,7 @@ setMethod(dim, signature(x="STlist"),
             for(i in seq(x@counts)){
               dim_res[[i]] = c(base::nrow(x@counts[[i]]), base::ncol(x@counts[[i]]))
             }
+            names(dim_res) = names(x@counts)
             return(dim_res)
           }
 )
