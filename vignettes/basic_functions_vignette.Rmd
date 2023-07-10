@@ -4,9 +4,9 @@ date: '`r format(Sys.Date())`'
 output: rmarkdown::html_vignette
 bibliography: vignette_references.bib
 vignette: >
-  %\VignetteIndexEntry{spatialGE_tutorial_main}
-  %\VignetteEncoding{UTF-8}
+  %\VignetteIndexEntry{spatialge_tutorial_main}
   %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r vig_settings, include=F}
@@ -35,10 +35,9 @@ After making sure `devtools` is installed, proceed to install `spatialGE`:
 devtools::install_github("fridleylab/spatialGE")
 ```
 
-To use `spatialGE`, load the package. But first, note we load the `magrittr` package, since we'll use piping (`%>%`) in this vignette.
+To use `spatialGE`, load the package.
 
 ```{r load_spatialGE, include=F, message=F}
-library('magrittr') # Use of pipe operator in this vignette
 library('spatialGE')
 ```
 
@@ -222,6 +221,10 @@ We can see that from `w=0` and `w=0.05`, we can only detect two tissue niches. A
 To explore the relationship between a clinical (sample-level) variable of interest and the level of gene expression spatial uniformity within a sample, we can use the `SThet()` function:
 
 ```{r sthet_chunk}
+tnbc <- SThet_3(tnbc, 
+              genes=c('NDRG1', 'IGKC'),
+              method='moran')
+
 tnbc <- SThet(tnbc, 
               genes=c('NDRG1', 'IGKC'),
               method='moran')
@@ -244,6 +247,7 @@ The calculation of spatial statistics with `SThet` and and multi-sample comparis
 See the table below for a simplistic interpretation of the spatial autocorrelation statistics calculated in `spatialGE`:
 
 ```{r sphet_table, echo=F}
+library('magrittr') # Use of pipe operator
 sphet_info <- tibble::tibble("Low"=c('Dispersion', 'Clustering'),
 "Statistic"=c('Moran’s I', 'Geary’s C'),
 "High"=c('Clustering', 'Dispersion')

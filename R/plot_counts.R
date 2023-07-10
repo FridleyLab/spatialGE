@@ -1,5 +1,5 @@
 ##
-#' @title count_distribution: Generates plots for the distribution of counts
+#' @title plot_counts: Generates plots for the distribution of counts
 #' @description Generates density plots, violin plots, and/or boxplots for the
 #' distribution of count values
 #' @details
@@ -7,7 +7,7 @@
 #' in the STlist. The user can select between density plots, violin plots, or box
 #' plots as visualization options. Useful for assessment of the effect of filtering and
 #' data transformations and to assess zero-inflation. To plot counts or genes per
-#' spot/cell, the function `per_unit_counts` should be used instead.
+#' spot/cell, the function `distribution_plots` should be used instead.
 #'
 #' @param x an STlist
 #' @param samples samples to include in the plot. Default (NULL) includes all samples
@@ -39,9 +39,9 @@
 #'
 #' @import ggplot2
 #'
-count_distribution = function(x=NULL, samples=NULL, data_type='tr', plot_type='density',
-                              color_pal='okabeito', cvalpha=0.5, distrib_subset=0.5,
-                              subset_seed=12345){
+plot_counts = function(x=NULL, samples=NULL, data_type='tr', plot_type='density',
+                       color_pal='okabeito', cvalpha=0.5, distrib_subset=0.5,
+                       subset_seed=12345){
   #require('ggplot2')
 
   # Define samples to plot if NULL or numeric

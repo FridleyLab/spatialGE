@@ -1,13 +1,15 @@
 ---
 title: "Differential gene expression accounting for spatial dependency (melanoma data set from Thrane et al. 2018)"
+date: '`r format(Sys.Date())`'
 output: rmarkdown::html_vignette
+bibliography: vignette_references.bib
 vignette: >
   %\VignetteIndexEntry{spatialge_tutorial_stdiff}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r vig_settings, include = FALSE}
+```{r vig_settings, include=F}
 knitr::opts_chunk$set(
   collapse=TRUE,
   comment="#>",

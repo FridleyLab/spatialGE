@@ -261,12 +261,10 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
                    gene_het=list(),
                    gene_krige=list(),
                    cell_deconv=list(),
-                   #cell_krige=list(),
-                   #st_clusters=list(),
-                   #spstats_plots=list(),
                    misc=list(sp_images=img_obj,
                              image_scaling=image_scale,
-                             platform=platform)
+                             platform=platform,
+                             sthet=list())
   )
   cat(crayon::green$bold(paste("Completed STlist!\n")))
   return(STlist_obj)

@@ -5,8 +5,8 @@
 #' Get the number of cores to use in parallel as a function of the number of
 #' data to process. It will not yield a higher number of cores than half of the
 #' total available cores. Will default to 1 core if not Unix
-#' @param n, an integer representing the number of units to process
-#' @return cores, the number of cores to use
+#' @param n an integer representing the number of units to process
+#' @return the number of cores to use
 #'
 #' @importFrom methods as is new
 #
@@ -88,7 +88,7 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 #' @param images a string indicating a folder to load images from
 #' @return an STlist with images
 #'
-#' @export
+# @export
 #'
 #' @importFrom methods as is new
 #
@@ -165,14 +165,50 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
 
   # Create distance matrix based on the coordinates of each sampled location.
   listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
-    #subj_dists = as.matrix(dist(x@spatial_meta[[i]][, c('ypos', 'xpos')]))
     coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
-    subj_dists_inv = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k = 4)))
-    #subj_dists[subj_dists == 0] = 0.0001
-    #subj_dists_inv = 1/subj_dists
-    #diag(subj_dists_inv) = 0
-    #subj_dists_inv=spdep::mat2listw(subj_dists_inv, style='B')
-    subj_listw = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k=ks)))
+    subj_listw = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k=ks, longlat=F)), style='B')
+    return(subj_listw)
+  }, mc.cores=cores, mc.preschedule=F)
+  names(listw_list) = names(x@spatial_meta)
+  return(listw_list)
+}
+
+
+##
+#' @title create_listw_from_dist
+#' @param x an STlist
+#' @param ks
+#
+create_listw_from_dist = function(x=NULL){
+  # Define cores available
+  cores = count_cores(length(x@spatial_meta))
+
+  # Create distance matrix based on the coordinates of each sampled location.
+  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
+    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
+    adj = as.matrix(stats::dist(coords_mtx))
+    adj = adj/max(adj)
+    diag(adj) = NA
+    colnames(adj) = x@spatial_meta[[i]][['libname']]
+    rownames(adj) = x@spatial_meta[[i]][['libname']]
+
+    neighbours = list()
+    weights = list()
+    for(id in 1:nrow(adj)){
+      idx = 1:nrow(adj)
+      neighbours[[id]] = idx[!(rownames(adj) %in% rownames(adj)[id])]
+      names(neighbours[[id]]) = idx[!(rownames(adj) %in% rownames(adj)[id])]
+      weights[[id]] = as.vector(adj[id, ])
+      #weights[[id]] = weights[[id]][!(rownames(adj) %in% rownames(adj)[id])]
+      weights[[id]] = 1/(weights[[id]][!(rownames(adj) %in% rownames(adj)[id])])
+    }
+    class(neighbours) = 'nb'
+
+    subj_listw = list(style='B',
+                      neighbours=neighbours,
+                      weights=weights)
+    class(subj_listw) = c("listw", "nb")
+
     return(subj_listw)
   }, mc.cores=cores, mc.preschedule=F)
   names(listw_list) = names(x@spatial_meta)
@@ -193,9 +229,20 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
 #' @param sthet_only logical, return only genes with spatial statistics
 #' @return a data frame with gene-level data
 #'
+#' @examples
+#' # Using included melanoma example (Thrane et al.)
+#' library('spatialGE')
+#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+#' count_files <- grep("counts", data_files, value=T)
+#' coord_files <- grep("mapping", data_files, value=T)
+#' clin_file <- grep("thrane_clinical", data_files, value=T)
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- transform_data(melanoma, method='log')
+#' melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
+#' get_gene_meta(melanoma, sthet_only=T)
+#'
 #' @export
-#
-#
+#'
 get_gene_meta = function(x=NULL, sthet_only=F){
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STlist')){

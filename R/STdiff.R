@@ -485,9 +485,8 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
 
       rm(tibble_tmp) # Clean env
     }
+    rm(sp_de) # Clean environment
   }
-
-  rm(sp_de) # Clean environment
 
   # Print time
   end_t = difftime(Sys.time(), zero_t, units='min')
