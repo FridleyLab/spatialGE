@@ -24,7 +24,7 @@
 #' @importFrom magrittr %>%
 #
 #
-STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
+STgradient_dbg = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
                       out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, cores=NULL){
   # Make sure the reference cluster is character
   ref = as.character(ref)
@@ -203,6 +203,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                   pval_warning=character())
 
         # CORRELATIONS DISTANCE TO REFERENCE CLUSTER
+        data_ls = list()
         genes_sample = colnames(vargenes_expr %>% dplyr::select(-c('ypos', 'xpos', 'dist2ref')))
         for(gene in genes_sample){
           tibble_tmp = tibble::tibble(gene=character(),
@@ -224,6 +225,9 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
             } else{
               df_gene_outrm = df_gene
             }
+
+            data_ls[[gene]] = df_gene_outrm # SAVE DATA FOR DEBUGGING
+
             if(nrow(df_gene_outrm) > 1){
               # Run linear model and get summary
               lm_tmp = lm(df_gene_outrm[[gene]] ~ df_gene_outrm[['dist2ref']])
@@ -290,6 +294,9 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                 }
               }
             }
+
+            data_ls[[gene]] = df_gene_range # SAVE DATA FOR DEBUGGING
+
           }
 
           # Create row with results
@@ -323,19 +330,24 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       colnames(dist_cor) = c('gene', paste0(distsumm, '_', colnames(dist_cor[, -1])))
     }
 
-    return(dist_cor)
+    #return(dist_cor)
+    return(list(results=dist_cor,
+                data=data_ls))
   }, mc.cores=cores)
 
   names(results_ls) = samplenames
 
   sample_rm = c()
-  for(i in names(results_ls)){
-    if(nrow(results_ls[[i]]) == 0){
+  #for(i in names(results_ls)){
+  for(i in names(results_ls[['results']])){
+    #if(nrow(results_ls[[i]]) == 0){
+    if(nrow(results_ls[['results']][[i]]) == 0){
       sample_rm = append(sample_rm, i)
     }
   }
   if(length(sample_rm) > 0){
-    results_ls = results_ls[ !(names(results_ls) %in% sample_rm) ]
+    #results_ls = results_ls[ !(names(results_ls) %in% sample_rm) ]
+    results_ls[['results']] = results_ls[['results']][ !(names(results_ls[['results']]) %in% sample_rm) ]
   }
 
   return(results_ls)
