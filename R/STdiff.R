@@ -52,8 +52,8 @@
 #
 #
 STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=NULL,
-                topgenes=5000, pval_thr=0.05, pval_adj='fdr', test_type='mm', sp_topgenes=0.2,
-                clusters=NULL, pairwise=F, verbose=1L, cores=NULL){
+                  topgenes=5000, pval_thr=0.05, pval_adj='fdr', test_type='mm', sp_topgenes=0.2,
+                  clusters=NULL, pairwise=F, verbose=1L, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
@@ -156,7 +156,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
     test_print = paste0('Testing metadata: ', annot[1], '...\n')
   }
 
-  if(verbose != 0L){
+  if(verbose > 0L){
     cat(crayon::yellow(test_print))
   }
   rm(test_print) # Clean environment
@@ -215,24 +215,25 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   } else{
     stop('Test type needs to be one of "mm", "t_test", or "wilcoxon".')
   }
-  if(verbose != 0L){
+  if(verbose > 0L){
     cat(crayon::yellow(paste0('\tRunning ', test_print, '...\n')))
   }
 
   # Get annotations to run in parallel
   clusters_tmp = unique(combo_df[['meta1']])
-  # if(pairwise){   ##### NOT NEEDED AS ALL PAIRWISE COMPARISONS REPRESENTED WITH FIRST COLUMN (meta1)?
-  #   clusters_tmp = unique(append(clusters_tmp, unique(combo_df[['meta2']])))
-  # }
+  if(pairwise){
+    clusters_tmp = unique(append(clusters_tmp, unique(combo_df[['meta2']])))
+  }
 
   #Paralellize spaMM models
   if(is.null(cores)){
     cores = count_cores(nrow(combo_df))
   }
-  non_sp_models = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){
+  #non_sp_models = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){
+  non_sp_models = parallel::mclapply(1:length(clusters_tmp), function(i){
     # Subset combo_df to those of a given cluster
     combo_clust = combo_df %>%
-      dplyr::filter(meta1 == clusters_tmp[i])
+      dplyr::filter(meta1 == clusters_tmp[i]) ### meta1 should contain all clusters, so no need to check meta2 if pairwise
 
     # Loop through samples
     res = list()
@@ -264,11 +265,28 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
       expr_df = expr_df %>% dplyr::select(-c('meta_orig')) %>% dplyr::relocate(meta, .before=1)
 
       # Run non-spatial models
-      if(verbose == 1L){
-        system(sprintf('echo "%s"', crayon::green(paste0("\n\t\t",
-                                                         sample_name, ", ",
-                                                         meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
-                                                         " (", nrow(combo_clust), " tests)..."))))
+      if(verbose >= 1L){
+        if(pairwise){
+          stdout_print = combo_clust %>% dplyr::filter(samplename == sample_name & meta1 == clusters_tmp[i]) %>%
+            dplyr::select('meta2') %>% unlist() %>% unique()
+          stdout_print_tmp = c()
+          for(m2 in stdout_print){
+            stdout_print_tmp = append(stdout_print_tmp,
+                                      meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == m2 ])
+          }
+          stdout_print = stdout_print_tmp %>% paste0(., collapse=', ')
+          system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
+                                                           sample_name, ", ",
+                                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
+                                                           " vs. ", stdout_print,
+                                                           " (", nrow(combo_tmp), " tests)..."))))
+          rm(stdout_print, stdout_print_tmp)
+        } else {
+          system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
+                                                           sample_name, ", ",
+                                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
+                                                           " (", nrow(combo_tmp), " tests)..."))))
+        }
       }
       if(test_type == 'mm'){
         res_tmp = non_spatial_de(expr_data=expr_df, combo=combo_tmp, pairwise=pairwise)
@@ -362,13 +380,6 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
       models_keep = result_de[[sample_name]] %>%
         dplyr::filter(adj_p_val < pval_thr) %>%
         dplyr::arrange(adj_p_val)
-      # Recode annotations gene_and_meta
-      for(spotrow in 1:nrow(models_keep)){
-        models_keep[['cluster_1']][spotrow] = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] == models_keep[['cluster_1']][spotrow] ]
-        if(pairwise){
-          models_keep[['cluster_2']][spotrow] = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] == models_keep[['cluster_2']][spotrow] ]
-        }
-      }
       if(pairwise){
         models_keep = models_keep %>%
           dplyr::group_by(cluster_1, cluster_2)
@@ -380,7 +391,31 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
         dplyr::slice_head(prop=sp_topgenes) %>%
         dplyr::ungroup()
 
+      # Add label to indicate if gene x cluster was selected for spatial test
+      if(pairwise){
+        result_de[[sample_name]] = result_de[[sample_name]] %>%
+          dplyr::full_join(., models_keep %>%
+                             tibble::add_column(comments='spatial_test') %>%
+                             dplyr::select(c("sample", "gene", "cluster_1", "cluster_2", "comments")), by=c("sample", "gene", "cluster_1", "cluster_2"))
+      } else{
+        result_de[[sample_name]] = result_de[[sample_name]] %>%
+          dplyr::full_join(., models_keep %>%
+                             tibble::add_column(comments='spatial_test') %>%
+                             dplyr::select(c("sample", "gene", "cluster_1", "comments")), by=c("sample", "gene", "cluster_1"))
+      }
+      result_de[[sample_name]] = result_de[[sample_name]] %>%
+        dplyr::mutate(comments=dplyr::case_when(comments == 'spatial_test' ~ NA_character_, TRUE ~ 'no_spatial_test'))
+
+      # Recode annotations gene_and_meta
+      for(spotrow in 1:nrow(models_keep)){
+        models_keep[['cluster_1']][spotrow] = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] == models_keep[['cluster_1']][spotrow] ]
+        if(pairwise){
+          models_keep[['cluster_2']][spotrow] = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] == models_keep[['cluster_2']][spotrow] ]
+        }
+      }
+
       if(nrow(models_keep) > 0){
+        # Create combinations of gene x cluster
         if(pairwise){
           models_keep = models_keep %>%
             dplyr::select(c('sample', 'gene', 'cluster_1', 'cluster_2')) %>%
@@ -392,7 +427,10 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
         }
         clusters_tmp = unique(models_keep[['cluster_1']])
 
-        sp_models[[sample_name]] = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){
+        sp_models[[sample_name]] = parallel::mclapply(1:length(clusters_tmp), function(i){ ####### MCLAPPLY INSTEAD OF PBMCLAPPLY (PBMCLAPPY MAY HAVE ISSUES WITH TRYCATCH)
+
+          #sp_models[[sample_name]] = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){ ####### TEST LOOP INSTEAD MCLAPPLY
+          #for(i in 1:length(clusters_tmp)){  ####### TEST LOOP INSTEAD MCLAPPLY
           # Non-spatial models to update
           models_keep_tmp = models_keep %>%
             dplyr::filter(cluster_1 == clusters_tmp[i]) %>%
@@ -401,16 +439,36 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
           non_sp_models_tmp = non_sp_models[[clusters_tmp[i]]][models_keep_tmp]
 
           if(verbose == 1L){
-            system(sprintf('echo "%s"', crayon::green(paste0("\n\t\t",
-                                                             sample_name, ", ",
-                                                             meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
-                                                             " (", length(models_keep_tmp), " tests)..."))))
+            if(pairwise){
+              stdout_print = models_keep_tmp %>%
+                stringr::str_extract(., paste0('(?<=', clusters_tmp[i], '_)c[0-9]+$')) %>%
+                stringr::str_split(., '_') %>% unlist() %>% unique()
+              stdout_print_tmp = c()
+              for(m2 in stdout_print){
+                stdout_print_tmp = append(stdout_print_tmp,
+                                          meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == m2 ])
+              }
+              stdout_print = stdout_print_tmp %>% paste0(., collapse=', ')
+              system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
+                                                               sample_name, ", ",
+                                                               meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
+                                                               " vs. ", stdout_print,
+                                                               " (", length(models_keep_tmp), " tests)..."))))
+              rm(stdout_print)
+            } else {
+              system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
+                                                               sample_name, ", ",
+                                                               meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
+                                                               " (", length(models_keep_tmp), " tests)..."))))
+            }
           }
 
           # Run models
-          sp_mods = spatial_de(non_sp_mods=non_sp_models_tmp, verbose=verbose)
-          return(sp_mods)
-        }, mc.cores=cores)
+          sp_mods = spatial_de(non_sp_mods=non_sp_models_tmp, meta_dict=meta_dict, verbose=verbose)
+          return(sp_mods) ####### TEST LOOP INSTEAD MCLAPPLY
+        }, mc.cores=cores) ####### TEST LOOP INSTEAD MCLAPPLY
+        #sp_models[[sample_name]] = sp_mods  ####### TEST LOOP INSTEAD MCLAPPLY
+        #} ####### TEST LOOP INSTEAD MCLAPPLY
         rm(models_keep, clusters_tmp) # Clean environment
       } else{
         warning(paste0('No genes to test for ',  sample_name, '. Try increasing sp_topgenes.'))
@@ -429,8 +487,16 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
           if(any(class(sp_models[[i]][[cl]][[test_name]][['spmod']]) == 'HLfit')){
             exp_summ = spaMM::summary.HLfit(sp_models[[i]][[cl]][[test_name]][['spmod']], details=c(p_value='Wald'), verbose=F)
             exp_summ = exp_summ[['beta_table']]
+            exp_warn = NA_character_
+          } else if(sp_models[[i]][[cl]][[test_name]][['spmod']] == 'time_out'){
+            exp_summ = data.frame(c(NA,NA), c(NA,NA), c(NA,NA), c(NA, -9999))
+            exp_warn = 'time_limit'
+          } else if(sp_models[[i]][[cl]][[test_name]][['spmod']] == 'no_conv'){
+            exp_summ = data.frame(c(NA,NA), c(NA,NA), c(NA,NA), c(NA, -9999))
+            exp_warn = 'no_convergence'
           } else{
-            exp_summ = beta_table=data.frame(c(NA,NA), c(NA,NA), c(NA,NA), c(NA, -9999))
+            exp_summ = data.frame(c(NA,NA), c(NA,NA), c(NA,NA), c(NA, -9999))
+            exp_warn = 'unknown_na'
           }
           meta1_exp_tmp = stringr::str_replace(test_name, paste0(i, '_', sp_models[[i]][[cl]][[test_name]][['gene']], '_'), '') %>%
             stringr::str_replace(., '_other$', '')
@@ -443,31 +509,49 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
           tibble_tmp = tibble::tibble(sample=i,
                                       gene=sp_models[[i]][[cl]][[test_name]][['gene']],
                                       cluster_1=as.vector(unlist(meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == meta1_exp_tmp ])),
-                                      exp_p_val=exp_summ[[2, 4]])
+                                      exp_p_val=exp_summ[[2, 4]],
+                                      comments_spatial=exp_warn)
           if(pairwise){
             tibble_tmp = tibble_tmp %>%
               tibble::add_column(cluster_2=as.vector(unlist(meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == meta2_exp_tmp ])), .after='cluster_1')
           }
           sp_de = dplyr::bind_rows(sp_de, tibble_tmp)
 
-          rm(list=grep('meta1_exp_tmp|meta2_exp_tmp|exp_summ', ls(), value=T))
+          rm(list=grep('meta1_exp_tmp|meta2_exp_tmp|exp_summ|exp_warn', ls(), value=T))
         }
       }
     }
 
     # Merge spatial and non-spatial DE results
     for(sample_name in names(result_de)){
-      # Adjust spatial p-values
-      tibble_tmp = sp_de %>%
-        dplyr::filter(sample == sample_name) %>%
-        dplyr::filter(!is.na(exp_p_val) & exp_p_val != -9999) %>%
-        tibble::add_column(exp_adj_p_val=p.adjust(.[['exp_p_val']], method=pval_adj))
-
       if(pairwise){
+        # Adjust spatial p-values
+        tibble_tmp = sp_de %>%
+          dplyr::select(-c('exp_p_val')) %>%
+          dplyr::filter(sample == sample_name) %>%
+          dplyr::left_join(., sp_de %>%
+                             dplyr::select(-c('comments_spatial')) %>%
+                             dplyr::filter(sample == sample_name) %>%
+                             dplyr::filter(!is.na(exp_p_val) & exp_p_val != -9999) %>%
+                             tibble::add_column(exp_adj_p_val=p.adjust(.[['exp_p_val']], method=pval_adj)), by=c('sample', 'gene', 'cluster_1', 'cluster_2')) %>%
+          dplyr::relocate(comments_spatial, .after='exp_adj_p_val')
         result_de[[sample_name]] = dplyr::full_join(result_de[[sample_name]], tibble_tmp, by=c('sample', 'gene', 'cluster_1', 'cluster_2'))
       } else{
+        tibble_tmp = sp_de %>%
+          dplyr::select(-c('exp_p_val')) %>%
+          dplyr::filter(sample == sample_name) %>%
+          dplyr::left_join(., sp_de %>%
+                             dplyr::select(-c('comments_spatial')) %>%
+                             dplyr::filter(sample == sample_name) %>%
+                             dplyr::filter(!is.na(exp_p_val) & exp_p_val != -9999) %>%
+                             tibble::add_column(exp_adj_p_val=p.adjust(.[['exp_p_val']], method=pval_adj)), by=c('sample', 'gene', 'cluster_1')) %>%
+          dplyr::relocate(comments_spatial, .after='exp_adj_p_val')
         result_de[[sample_name]] = dplyr::full_join(result_de[[sample_name]], tibble_tmp, by=c('sample', 'gene', 'cluster_1'))
       }
+      result_de[[sample_name]] = result_de[[sample_name]] %>%
+        dplyr::mutate(comments=dplyr::case_when(is.na(comments) ~ comments_spatial, TRUE ~ comments)) %>%
+        dplyr::select(-c('comments_spatial')) %>%
+        dplyr::relocate(comments, .after='exp_adj_p_val')
 
       result_de[[sample_name]] = result_de[[sample_name]] %>%
         #dplyr::mutate(exp_adj_p_val=dplyr::case_when(exp_p_val == -9999 ~ -9999, TRUE ~ exp_adj_p_val)) %>%
@@ -486,7 +570,8 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
       rm(tibble_tmp) # Clean env
     }
     rm(sp_de) # Clean environment
-  }
+
+  }   ##### CLOSES IF TO ENTER SPATIAL TESTS CODE
 
   # Print time
   end_t = difftime(Sys.time(), zero_t, units='min')
@@ -559,27 +644,46 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
 # cores is to use is detected automatically.
 # @return a list of spatial models
 #
-spatial_de = function(non_sp_mods=NULL, verbose=verbose){
+spatial_de = function(non_sp_mods=NULL, meta_dict=NULL, verbose=1L){
   res_ls = list()
   for(i in names(non_sp_mods)){
     # Extract sample name
     sample_tmp = non_sp_mods[[i]][['samplename']]
     # Extract gene name
     gene_tmp = non_sp_mods[[i]][['gene']]
+
+    # Print information of test
     if(verbose == 2L){
-      system(sprintf('echo "%s"', crayon::green(paste0('Sample: ', sample_tmp, '; ', gene_tmp, ', test ', which(names(non_sp_mods) == i)))))
+      if(grepl('_c[0-9]+_other$', i)){
+        stdout_print = i %>%
+          stringr::str_extract(., 'c[0-9]+_other$') %>%
+          stringr::str_replace(., '_other$', '')
+        stdout_print = meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == stdout_print ]
+      } else{
+        stdout_print = i %>%
+          stringr::str_extract(., paste0('c[0-9]+_c[0-9]+$')) %>%
+          stringr::str_split(., '_') %>% unlist() %>% unique()
+        stdout_print = c(meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == stdout_print[1] ],
+                         meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == stdout_print[2] ])
+        stdout_print = paste0(stdout_print[1], ' vs. ', stdout_print[2])
+      }
+      system(sprintf('echo "%s"', crayon::green(paste0('\t\tSample: ', sample_tmp, '; ', gene_tmp, ', ', stdout_print))))
     }
 
     exp_out = tryCatch({
+      #R.utils::withTimeout({
       spaMM::fitme(formula=as.formula(paste0("exprval~meta+Matern(1|xpos+ypos)")),
                    data=non_sp_mods[[i]][['nonspmod']][['data']],
                    fixed=list(nu=0.5), method="REML",
-                   control.HLfit=list(algebra="decorr"))}, error=function(err){return(err)})
+                   control.HLfit=list(algebra="decorr"))
+      #}, timeout=5)
+    }, error=function(err){return(err)})
 
     res_ls[[i]] = list()
-    if(any(class(exp_out) == 'simpleError')){
+    if(any(class(exp_out) == 'TimeoutException')){
+      res_ls[[i]][['spmod']] = 'time_out'
+    } else if(any(class(exp_out) == 'simpleError')){
       res_ls[[i]][['spmod']] = 'no_conv'
-
     } else{
       res_ls[[i]][['spmod']] = exp_out
     }
@@ -604,15 +708,16 @@ prepare_stdiff_combo = function(to_expand=NULL, pairwise=NULL){
       # Get unique combinations of each two annotation, without repeating (e.g., c1 vs c2 and c2 vs c1)
       # Get combinations for each cluster
       combo_meta = tibble::tibble()
+      annots_tmp2 = annots_tmp
       for(cl_tmp in annots_tmp){
         combo_meta = dplyr::bind_rows(combo_meta,
                                       expand.grid(cl_tmp,
-                                                  grep(cl_tmp, annots_tmp, value=T, invert=T),
+                                                  grep(cl_tmp, annots_tmp2, value=T, invert=T),
                                                   stringsAsFactors=F))
-        annots_tmp = grep(cl_tmp, annots_tmp, value=T, invert=T)
+        annots_tmp2 = grep(cl_tmp, annots_tmp2, value=T, invert=T)
       }
       names(combo_meta) = c('meta1', 'meta2')
-      rm(cl_tmp) #Clean env
+      rm(cl_tmp, annots_tmp2) #Clean env
 
       # Add genes to each combination
       combo_meta_gene = tibble::tibble()
