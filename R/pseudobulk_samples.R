@@ -254,7 +254,8 @@ pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_disp
                                  row_names_gp=grid::gpar(fontsize=8),
                                  show_column_names=T, column_title='Aggregated gene expression\n("pseudobulk")')
 
-  hm_p = capture.output(ComplexHeatmap::draw(hm_p, merge_legend=T, padding=unit(c(2, 10, 2, 2), "mm")))
+  #hm_p = capture.output(ComplexHeatmap::draw(hm_p, merge_legend=T, padding=unit(c(2, 10, 2, 2), "mm")))
+  hm_p = ComplexHeatmap::draw(hm_p, merge_legend=T, padding=unit(c(2, 10, 2, 2), "mm"))
 
   return(hm_p)
 }
