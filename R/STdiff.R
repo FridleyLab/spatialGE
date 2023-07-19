@@ -57,9 +57,15 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   # Record time
   zero_t = Sys.time()
 
+  # Convert user inputs to expected inputs
   topgenes = as.integer(topgenes)
   pval_thr = as.double(pval_thr)
   sp_topgenes = as.double(sp_topgenes)
+
+  # Check that at least two clusters have been specified if pairwise
+  if(pairwise & length(clusters) < 2){
+    stop('If pairwise tests requested, at least two clusters are required.')
+  }
 
   verbose = as.integer(verbose)
   if(!is.integer(verbose) | !(verbose %in% c(0L, 1L, 2L))){
@@ -164,9 +170,10 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   # Extract sample annotations for each sample
   metas = tibble::tibble()
   for(sample_name in samples){
-    metas = dplyr::bind_rows(metas,
-                             tibble::tibble(samplename=sample_name,
-                                            meta_orig=as.character(unique(x@spatial_meta[[sample_name]][[annot]]))))
+    meta_tmp = tibble::tibble(samplename=sample_name,
+                              meta_orig=as.character(unique(x@spatial_meta[[sample_name]][[annot]])))
+    metas = dplyr::bind_rows(metas, meta_tmp)
+    rm(meta_tmp) # Clean env
   }
 
   # Find variable genes for each sample
@@ -187,7 +194,6 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
 
   # Merge sample names, genes, and annotations in the same data frame
   gene_and_meta = dplyr::full_join(genes, metas, by='samplename', multiple='all')
-
   rm(genes, metas) # Clean env
 
   # Create "dictionary" with coded annotations (to avoid potentially problematic characters)
@@ -201,7 +207,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   rm(spotrow) # Clean env
 
   # Create a table with unique combinations of genes and annotations to test using parallelization
-  combo_df = prepare_stdiff_combo(to_expand=gene_and_meta, pairwise=pairwise)
+  combo_df = prepare_stdiff_combo(to_expand=gene_and_meta, clusters=clusters, annot_dict=meta_dict, pairwise=pairwise)
   rm(gene_and_meta) # Clean env
 
   ######## ######## ######## BEGIN NON-SPATIAL TESTS ######## ######## ########
@@ -223,6 +229,18 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   clusters_tmp = unique(combo_df[['meta1']])
   if(pairwise){
     clusters_tmp = unique(append(clusters_tmp, unique(combo_df[['meta2']])))
+  }
+
+  # If user specified certain clusters, then subset to those clusters only
+  if(!is.null(clusters)){
+    coded_metas = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] %in% clusters ]
+    clusters_tmp = clusters_tmp[ clusters_tmp %in% coded_metas ]
+    rm(coded_metas) # Clean env
+
+    # Throw error if user-input clusters are present in data
+    if(length(clusters_tmp) < 1){
+     stop('The specified clusters are not present in the data.')
+    }
   }
 
   #Paralellize spaMM models
@@ -368,12 +386,16 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   rm(non_sp_de_tmp) # Clean env
 
   end_t = difftime(Sys.time(), start_t, units='min')
-  cat(crayon::green(paste0('\tCompleted ', test_print, ' (', round(end_t, 2), ' min).\n')))
+  if(verbose > 0L){
+    cat(crayon::green(paste0('\tCompleted ', test_print, ' (', round(end_t, 2), ' min).\n')))
+  }
 
   ######## ######## ######## BEGIN SPATIAL TESTS ######## ######## ########
   if(test_type == 'mm' & sp_topgenes > 0){
     start_t = Sys.time()
-    cat(crayon::yellow(paste0('\tRunning spatial tests...\n')))
+    if(verbose > 0L){
+      cat(crayon::yellow(paste0('\tRunning spatial tests...\n')))
+    }
     sp_models = list()
     for(sample_name in names(result_de)){
       # Subset list of genes based on adjusted p-values
@@ -427,8 +449,8 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
         }
         clusters_tmp = unique(models_keep[['cluster_1']])
 
-        sp_models[[sample_name]] = parallel::mclapply(1:length(clusters_tmp), function(i){ ####### MCLAPPLY INSTEAD OF PBMCLAPPLY (PBMCLAPPY MAY HAVE ISSUES WITH TRYCATCH)
-
+        #sp_models[[sample_name]] = parallel::mclapply(1:length(clusters_tmp), function(i){ ####### MCLAPPLY INSTEAD OF PBMCLAPPLY (PBMCLAPPY MAY HAVE ISSUES WITH TRYCATCH)
+        sp_models[[sample_name]] = bettermc::mclapply(1:length(clusters_tmp), function(i){  ####### TRY BETTERMC INSTEAD OF PARALLEL
           #sp_models[[sample_name]] = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){ ####### TEST LOOP INSTEAD MCLAPPLY
           #for(i in 1:length(clusters_tmp)){  ####### TEST LOOP INSTEAD MCLAPPLY
           # Non-spatial models to update
@@ -464,7 +486,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
           }
 
           # Run models
-          sp_mods = spatial_de(non_sp_mods=non_sp_models_tmp, meta_dict=meta_dict, verbose=verbose)
+          sp_mods = spatial_de(non_sp_mods=non_sp_models_tmp, annot_dict=meta_dict, verb=verbose)
           return(sp_mods) ####### TEST LOOP INSTEAD MCLAPPLY
         }, mc.cores=cores) ####### TEST LOOP INSTEAD MCLAPPLY
         #sp_models[[sample_name]] = sp_mods  ####### TEST LOOP INSTEAD MCLAPPLY
@@ -475,7 +497,9 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
       }
     }
     end_t = difftime(Sys.time(), start_t, units='min')
-    cat(crayon::green(paste0('\n\tCompleted spatial mixed models (', round(end_t, 2), ' min).\n')))
+    if(verbose > 0L){
+      cat(crayon::green(paste0('\n\tCompleted spatial mixed models (', round(end_t, 2), ' min).\n')))
+    }
     rm(non_sp_models) # Clean environment
 
     # Compile results of spatial models and merge with non-spatial results
@@ -536,6 +560,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
                              tibble::add_column(exp_adj_p_val=p.adjust(.[['exp_p_val']], method=pval_adj)), by=c('sample', 'gene', 'cluster_1', 'cluster_2')) %>%
           dplyr::relocate(comments_spatial, .after='exp_adj_p_val')
         result_de[[sample_name]] = dplyr::full_join(result_de[[sample_name]], tibble_tmp, by=c('sample', 'gene', 'cluster_1', 'cluster_2'))
+        rm(tibble_tmp) # Clean env
       } else{
         tibble_tmp = sp_de %>%
           dplyr::select(-c('exp_p_val')) %>%
@@ -547,6 +572,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
                              tibble::add_column(exp_adj_p_val=p.adjust(.[['exp_p_val']], method=pval_adj)), by=c('sample', 'gene', 'cluster_1')) %>%
           dplyr::relocate(comments_spatial, .after='exp_adj_p_val')
         result_de[[sample_name]] = dplyr::full_join(result_de[[sample_name]], tibble_tmp, by=c('sample', 'gene', 'cluster_1'))
+        rm(tibble_tmp) # Clean env
       }
       result_de[[sample_name]] = result_de[[sample_name]] %>%
         dplyr::mutate(comments=dplyr::case_when(is.na(comments) ~ comments_spatial, TRUE ~ comments)) %>%
@@ -567,7 +593,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
       result_de[[sample_name]] = result_de[[sample_name]] %>%
         dplyr::select(-c('spatialmod'))
 
-      rm(tibble_tmp) # Clean env
+      #rm(tibble_tmp) # Clean env
     }
     rm(sp_de) # Clean environment
 
@@ -575,8 +601,9 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
 
   # Print time
   end_t = difftime(Sys.time(), zero_t, units='min')
-  cat(crayon::green(paste0('STdiff completed in ', round(end_t, 2), ' min.\n')))
-
+  if(verbose > 0L){
+    cat(crayon::green(paste0('STdiff completed in ', round(end_t, 2), ' min.\n')))
+  }
   return(result_de)
 }
 
@@ -644,7 +671,7 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
 # cores is to use is detected automatically.
 # @return a list of spatial models
 #
-spatial_de = function(non_sp_mods=NULL, meta_dict=NULL, verbose=1L){
+spatial_de = function(non_sp_mods=NULL, annot_dict=NULL, verb=NULL){
   res_ls = list()
   for(i in names(non_sp_mods)){
     # Extract sample name
@@ -653,18 +680,18 @@ spatial_de = function(non_sp_mods=NULL, meta_dict=NULL, verbose=1L){
     gene_tmp = non_sp_mods[[i]][['gene']]
 
     # Print information of test
-    if(verbose == 2L){
+    if(verb == 2L){
       if(grepl('_c[0-9]+_other$', i)){
         stdout_print = i %>%
           stringr::str_extract(., 'c[0-9]+_other$') %>%
           stringr::str_replace(., '_other$', '')
-        stdout_print = meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == stdout_print ]
+        stdout_print = annot_dict[['orig_annot']][ annot_dict[['coded_annot']] == stdout_print ]
       } else{
         stdout_print = i %>%
           stringr::str_extract(., paste0('c[0-9]+_c[0-9]+$')) %>%
           stringr::str_split(., '_') %>% unlist() %>% unique()
-        stdout_print = c(meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == stdout_print[1] ],
-                         meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == stdout_print[2] ])
+        stdout_print = c(annot_dict[['orig_annot']][ annot_dict[['coded_annot']] == stdout_print[1] ],
+                         annot_dict[['orig_annot']][ annot_dict[['coded_annot']] == stdout_print[2] ])
         stdout_print = paste0(stdout_print[1], ' vs. ', stdout_print[2])
       }
       system(sprintf('echo "%s"', crayon::green(paste0('\t\tSample: ', sample_tmp, '; ', gene_tmp, ', ', stdout_print))))
@@ -698,12 +725,13 @@ spatial_de = function(non_sp_mods=NULL, meta_dict=NULL, verbose=1L){
 # create_stdiff_combo
 # @return data frame with combinations
 #
-prepare_stdiff_combo = function(to_expand=NULL, pairwise=NULL){
+prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, annot_dict=NULL, pairwise=NULL){
   combo_df = tibble::tibble()
   for(sample_name in unique(to_expand[['samplename']])){
     # Extract annotations for a given sample
     annots_tmp = to_expand %>% dplyr::filter(samplename == sample_name) %>%
       dplyr::select('meta') %>% unlist() %>% unique()
+    annots_tmp = annots_tmp[annots_tmp %in% unlist(annot_dict[['coded_annot']][ annot_dict[['orig_annot']] %in% clusters ]) ]
     if(pairwise){
       # Get unique combinations of each two annotation, without repeating (e.g., c1 vs c2 and c2 vs c1)
       # Get combinations for each cluster
