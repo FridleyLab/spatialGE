@@ -200,7 +200,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                   lm_pval=numeric(),
                                   spearman_r=numeric(),
                                   spearman_r_pval=numeric(),
-                                  pval_warning=character())
+                                  pval_comment=character())
 
         # CORRELATIONS DISTANCE TO REFERENCE CLUSTER
         genes_sample = colnames(vargenes_expr %>% dplyr::select(-c('ypos', 'xpos', 'dist2ref')))
@@ -210,7 +210,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                       lm_pval=numeric(),
                                       spearman_r=numeric(),
                                       spearman_r_pval=numeric(),
-                                      pval_warning=character())
+                                      pval_comment=character())
 
           df_gene = vargenes_expr %>% dplyr::select(dist2ref, !!!gene)
 
@@ -248,6 +248,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
             if(robust){ # Robust linear models?
               df_gene_range = df_gene
               if(nrow(df_gene_range) > 1){
+                pval_warn = NA_character_
                 # Run robust linear model and get summary
                 lm_tmp = MASS::rlm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']], maxit=100)
                 if(lm_tmp[['converged']] & lm_tmp[['coefficients']][2] != 0){ # Check the model converged and an effect was estimated
@@ -257,7 +258,6 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                 estimate_p=lm_test_tmp[['p.value']])
                   # Calculate Spearman correlation
                   cor_res = tryCatch({cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')}, warning=function(w){return(w)})
-                  pval_warn = NA_character_
                   if(any(class(cor_res) == 'simpleWarning')){ # Let known user if p-value could not be exactly calculated
                     if(grepl('standard deviation is zero', cor_res$message)){
                       pval_warn = 'zero_st_deviation'
@@ -266,6 +266,8 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                     #}
                     cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman', exact=F)
                   }
+                } else{
+                  pval_warn = 'rob_regr_no_convergence'
                 }
               }
             } else{ # Regular linear models without outlier removal
@@ -298,7 +300,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                       lm_pval=lm_res[['estimate_p']],
                                       spearman_r=as.vector(cor_res[['estimate']]),
                                       spearman_r_pval=cor_res[['p.value']],
-                                      pval_warning=pval_warn)
+                                      pval_comment=pval_warn)
 
           rm(list=grep("lm_|_res|_test|cor_|df_gene|exact_p", ls(), value=T)) # Clean environment
 
