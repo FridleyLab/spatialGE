@@ -37,7 +37,7 @@
 #' @importFrom magrittr %>%
 #' @importFrom methods as is new
 #'
-transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=3000, sct_min_cells=5){
+transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL){
 
   # Detect transformation method
   # if(method == 'voom'){
@@ -47,11 +47,11 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
   # } else
     if(method == 'log'){
     # log-normalize counts and obtain spots/cells with zero counts
-    tr_results = log_transf(x, scale_f=scale_f)
+    tr_results = log_transf(x, scale_f=scale_f, cores=cores)
     x@misc[['transform']] = 'log'
   } else if(method == 'sct'){
     # Apply SCTransform counts and obtain spots/cells with zero counts
-    tr_results = sct_transf(x, sct_n_regr_genes=sct_n_regr_genes, sct_min_cells=sct_min_cells)
+    tr_results = sct_transf(x, sct_n_regr_genes=sct_n_regr_genes, sct_min_cells=sct_min_cells, cores=cores)
     x@misc[['transform']] = 'sct'
   }
 
@@ -106,14 +106,21 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
 #' @importFrom methods as is new
 #
 #
-log_transf = function(x=NULL, scale_f=NULL){
+log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
   # Test if an STList has been input.
   if(is.null(x) | !is(x, "STlist")){
     stop("The input must be a STlist.")
   }
 
   # Detect usable cores
-  cores = count_cores(length(x@counts))
+  if(is.null(cores)){
+    cores = count_cores(length(x@counts))
+  } else{
+    cores = as.integer(cores)
+    if(is.na(cores)){
+      stop('Could not recognize number of cores requested')
+    }
+  }
 
   # Perform log-transformation on parallel if possible.
   log_counts = parallel::mclapply(seq_along(x@counts), function(i){
@@ -169,14 +176,21 @@ log_transf = function(x=NULL, scale_f=NULL){
 #' @importFrom methods as is new
 #
 #
-sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5){
+sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL){
   # Test if an STlist has been input.
   if(is.null(x) | !is(x, "STlist")){
     stop("The input must be a STlist.")
   }
 
   # Detect usable cores
-  cores = count_cores(length(x@counts))
+  if(is.null(cores)){
+    cores = count_cores(length(x@counts))
+  } else{
+    cores = as.integer(cores)
+    if(is.na(cores)){
+      stop('Could not recognize number of cores requested')
+    }
+  }
 
   # Perform log-transformation on parallel if possible.
   sct_counts = parallel::mclapply(seq_along(x@counts), function(i){

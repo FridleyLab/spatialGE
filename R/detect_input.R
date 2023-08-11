@@ -95,7 +95,7 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
 
         if(dir.exists(samples_file_path_test[2])){
           # Check that dirctory contains an element with name matching 'filtered_feature_bc'.
-          visium_check = list.files(samples_file_path_test[2], pattern='filtered_feature_bc', include.dirs=T, full.names=T)
+          visium_check = list.files(samples_file_path_test[2], pattern='[raw|filtered]_feature_bc', include.dirs=T, full.names=T)
           if(!(rlang::is_empty(visium_check))){
             h5_test = grep('\\.h5$', visium_check, value=T)
             if(!(rlang::is_empty(h5_test))){
@@ -221,7 +221,7 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
   if(!is.null(rnacounts) && is.null(spotcoords) && !is.null(samples)){
     if(dir.exists(rnacounts[1])){
       # Check that dirctory contains an element with name matching 'filtered_feature_bc'.
-      visium_check = list.files(rnacounts[1], pattern='filtered_feature_bc', include.dirs=T, full.names=T)
+      visium_check = list.files(rnacounts[1], pattern='[raw|filtered]_feature_bc', include.dirs=T, full.names=T)
       if(!(rlang::is_empty(visium_check))){
         h5_test = grep('\\.h5$', visium_check, value=T)
         if(!(rlang::is_empty(h5_test))){

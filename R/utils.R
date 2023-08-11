@@ -161,7 +161,8 @@ create_listw = function(x=NULL){
 #
 create_listw_from_knn = function(x=NULL, ks=NULL){
   # Define cores available
-  cores = count_cores(length(x@spatial_meta))
+  #cores = count_cores(length(x@spatial_meta))
+  cores = 1
 
   # Create distance matrix based on the coordinates of each sampled location.
   listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
@@ -179,9 +180,16 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
 #' @param x an STlist
 #' @param ks
 #
-create_listw_from_dist = function(x=NULL){
+create_listw_from_dist = function(x=NULL, cores=NULL){
   # Define cores available
-  cores = count_cores(length(x@spatial_meta))
+  if(is.null(cores)){
+    cores = count_cores(length(x@spatial_meta))
+  } else{
+    cores = as.integer(cores)
+    if(is.na(cores)){
+      stop('Could not recognize number of cores requested')
+    }
+  }
 
   # Create distance matrix based on the coordinates of each sampled location.
   listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){

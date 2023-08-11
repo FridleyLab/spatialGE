@@ -13,7 +13,7 @@
 #' @param method The spatial statistic(s) to estimate. It can be set to 'moran',
 #' 'geary' or both. Default is 'moran'
 #' @param overwrite logical indicating if previous statistics should be overwritten.
-#' Default to FALSE (do not overwrite)
+#' Default to TRUE (overwrite)
 #' @return an STlist containing spatial statistics
 #'
 #' @examples
@@ -30,7 +30,7 @@
 #'
 #' @export
 #'
-SThet_3 = function(x=NULL, genes=NULL, samples=NULL, method='moran', overwrite=F){
+old_SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', overwrite=T){
   # Select sample names if NULL or if number entered
   if (is.null(samples)){
     samples = names(x@tr_counts)
@@ -65,12 +65,17 @@ SThet_3 = function(x=NULL, genes=NULL, samples=NULL, method='moran', overwrite=F
     }
   }
 
+  # Check whether or not a list of weights have been created
+  if(overwrite | is.null(x@misc[['sthet']][['listws']])){
+    x@misc[['sthet']][['listws']] = create_listw(x)
+  }
+
   # Perform calculations
   if('moran' %in% method){
-    x = gene_moran_i_knn(x=x, combo=combo_tmp, overwrite=overwrite)
+    x = gene_moran_i(x=x, combo=combo_tmp, overwrite=overwrite)
   }
   if('geary' %in% method){
-    x = gene_geary_c_knn(x=x, combo=combo_tmp, overwrite=overwrite)
+    x = gene_geary_c(x=x, combo=combo_tmp, overwrite=overwrite)
   }
 
   return(x)
@@ -88,14 +93,9 @@ SThet_3 = function(x=NULL, genes=NULL, samples=NULL, method='moran', overwrite=F
 # @return x a STlist including the calculated Moran's I
 #
 #
-gene_moran_i_knn <- function(x=NULL, combo=NULL, overwrite=overwrite) {
+gene_moran_i <- function(x=NULL, combo=NULL, overwrite=T) {
 
   genes = as.vector(unique(combo[[2]]))
-
-  # Check whether or not a list of weights have been created
-  if(is.null(x@misc[['sthet']][['listws']])){
-    x@misc[['sthet']][['listws']] = create_listw_from_knn(x, ks=6)
-  }
 
   # Define cores available
   cores = count_cores(nrow(combo))
@@ -103,12 +103,6 @@ gene_moran_i_knn <- function(x=NULL, combo=NULL, overwrite=overwrite) {
   stat_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
     i = as.vector(unlist(combo[i_combo, 1]))
     j = as.vector(unlist(combo[i_combo, 2]))
-
-    # Create distance matrix based on the coordinates of each sampled location.
-    # subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
-    # subj_dists[subj_dists == 0] = 0.0001
-    # subj_dists_inv = 1/subj_dists
-    # diag(subj_dists_inv) = 0
 
     # Extract expression data for a given gene.
     gene_expr = x@tr_counts[[i]][j, ]
@@ -123,7 +117,10 @@ gene_moran_i_knn <- function(x=NULL, combo=NULL, overwrite=overwrite) {
   # Store kriging results in STList.
   for(i in 1:nrow(combo)){
     combo_name = unlist(strsplit(names(stat_list)[i], split = '&&'))
-    x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i'] = as.vector(stat_list[[i]]$estimate[1])
+    if(overwrite | is.na(as.vector(x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i']))){
+      x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i'] = as.vector(stat_list[[i]]$estimate[1])
+      #print(as.vector(stat_list[[i]]$estimate[1]))
+    }
   }
 
   return(x)
@@ -138,14 +135,10 @@ gene_moran_i_knn <- function(x=NULL, combo=NULL, overwrite=overwrite) {
 # @param combo a table with combinations of samples and genes to calculate statistics
 # @return x a STlist including the calculated Geary's I
 #
-gene_geary_c_knn <- function(x=NULL, combo=NULL, overwrite=overwrite) {
+#
+gene_geary_c <- function(x=NULL, combo=NULL, overwrite=T) {
 
   genes = as.vector(unique(combo[[2]]))
-
-  # Check whether or not a list of weights have been created
-  if(is.null(x@misc[['sthet']][['listws']])){
-    x@misc[['sthet']][['listws']] = create_listw_from_knn(x, ks=1)
-  }
 
   # Define cores available
   cores = count_cores(nrow(combo))
@@ -153,12 +146,6 @@ gene_geary_c_knn <- function(x=NULL, combo=NULL, overwrite=overwrite) {
   stat_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){
     i = as.vector(unlist(combo[i_combo, 1]))
     j = as.vector(unlist(combo[i_combo, 2]))
-
-    # Create distance matrix based on the coordinates of each sampled location.
-    # subj_dists = as.matrix(dist(x@coords[[i]][2:3]))
-    # subj_dists[subj_dists == 0] = 0.0001
-    # subj_dists_inv = 1/subj_dists
-    # diag(subj_dists_inv) = 0
 
     # Extract expression data for a given gene.
     gene_expr = x@tr_counts[[i]][j, ]
@@ -173,7 +160,10 @@ gene_geary_c_knn <- function(x=NULL, combo=NULL, overwrite=overwrite) {
   # Store results in STList.
   for(i in 1:nrow(combo)){
     combo_name = unlist(strsplit(names(stat_list)[i], split = '&&'))
-    x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'geary_c'] = as.vector(stat_list[[i]]$estimate[1])
+    if(overwrite | is.na(as.vector(x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'geary_c']))){
+      x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'geary_c'] = as.vector(stat_list[[i]]$estimate[1])
+      #print(as.vector(stat_list[[i]]$estimate[1]))
+    }
   }
 
   return(x)

@@ -102,7 +102,8 @@
 #' @importFrom magrittr %>%
 #'
 STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
-                  gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_y_col=NULL, gmx_x_col=NULL, gmx_meta_cols=NULL){
+                  gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_y_col=NULL, gmx_x_col=NULL, gmx_meta_cols=NULL,
+                  cores=NULL){
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
 
@@ -146,7 +147,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     # Check if input is Visium or count/coord matrices
     if(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex')){
       cat(crayon::green(paste("Found Visium data.\n")))
-      pre_lists = read_visium_outs(filepaths, input_check=input_check)
+      pre_lists = read_visium_outs(filepaths, input_check=input_check, cores=cores)
       img_obj = pre_lists[['images']]
       image_scale = pre_lists[['json_scale']]
       platform = 'visium'
@@ -167,7 +168,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       # Check if input is Visium or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
         cat(crayon::green(paste("Found Visium data.\n")))
-        pre_lists = read_visium_outs(filepaths, input_check)
+        pre_lists = read_visium_outs(filepaths, input_check, cores=cores)
         img_obj = pre_lists[['images']]
         image_scale = pre_lists[['json_scale']]
         platform = 'visium'
@@ -186,7 +187,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       # Check if input is Visium or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
         cat(crayon::green(paste("Found Visium data.\n")))
-        pre_lists = read_visium_outs(filepaths, input_check)
+        pre_lists = read_visium_outs(filepaths, input_check, cores=cores)
         img_obj = pre_lists[['images']]
         image_scale = pre_lists[['json_scale']]
         platform = 'visium'
@@ -248,8 +249,11 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
   }
 
   # Make sure sample IDs are character
+  # If no sample/clinical metadata is available, create table with sample IDs
   if(nrow(samples_df) > 0){
     samples_df[[1]] = as.character(samples_df[[1]])
+  } else{
+    samples_df = tibble::tibble(sample_name=names(procLists[['counts']]))
   }
   # Creates STlist object from processed data
   STlist_obj = new("STlist",
@@ -258,12 +262,12 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
                    gene_meta=list(),
                    sample_meta=samples_df,
                    tr_counts=list(),
-                   gene_het=list(),
+                   #gene_het=list(),
                    gene_krige=list(),
                    cell_deconv=list(),
-                   misc=list(sp_images=img_obj,
+                   misc=list(platform=platform,
+                             sp_images=img_obj,
                              image_scaling=image_scale,
-                             platform=platform,
                              sthet=list())
   )
   cat(crayon::green$bold(paste("Completed STlist!\n")))
@@ -406,7 +410,14 @@ read_matrices_fps = function(filepaths, input_check){
   }
 
   # Define number of available cores to use.
-  cores = count_cores(length(filepaths[['count_found']]))
+  if(is.null(cores)){
+    cores = count_cores(length(filepaths[['count_found']]))
+  } else{
+    cores = as.integer(cores)
+    if(is.na(cores)){
+      stop('Could not recognize number of cores requested')
+    }
+  }
 
   # Use parallelization to read count data if possible.
   counts_df_list = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
@@ -450,7 +461,7 @@ read_matrices_fps = function(filepaths, input_check){
 # @param input_check The result of detect_input
 # @return return_lists a list with two lists within (one with counts, one with coordinates)
 #
-read_visium_outs = function(filepaths, input_check){
+read_visium_outs = function(filepaths, input_check, cores=NULL){
   # Find necessary files from visium input
   missingSamples = 0
   fp_list = list()
@@ -485,9 +496,9 @@ read_visium_outs = function(filepaths, input_check){
 
     if(mtx_type == 'mex'){
       # NOTE: For MEX, assume files are inside a directory named 'filtered_feature_bc_matrix'
-      vfeatures = grep('filtered_feature_bc_matrix\\/features.tsv.gz',  temp_fps, value=T)
-      vbarcodes = grep('filtered_feature_bc_matrix\\/barcodes.tsv.gz', temp_fps, value=T)
-      vcounts = grep('filtered_feature_bc_matrix\\/matrix.mtx.gz', temp_fps, value=T)
+      vfeatures = grep('[raw|filtered]_feature_bc_matrix\\/features.tsv.gz',  temp_fps, value=T)
+      vbarcodes = grep('[raw|filtered]_feature_bc_matrix\\/barcodes.tsv.gz', temp_fps, value=T)
+      vcounts = grep('[raw|filtered]_feature_bc_matrix\\/matrix.mtx.gz', temp_fps, value=T)
       # Test that all files have been found.
       needed_mex_test = c(!grepl('gz', vfeatures), !grepl('gz', vbarcodes), !grepl('gz', vcounts), !grepl('csv', vcoords))
       if(any(needed_mex_test)){
@@ -509,7 +520,7 @@ read_visium_outs = function(filepaths, input_check){
 
       rm(vfeatures, vbarcodes, vcounts) # Clean environment
     } else if(mtx_type == 'h5'){
-      h5counts = grep('filtered_feature_bc_matrix.h5', temp_fps, value=T)
+      h5counts = grep('[raw|filtered]_feature_bc_matrix.h5', temp_fps, value=T)
       # Test that all files have been found.
       needed_h5_test = c(!grepl('\\.h5$', h5counts), !grepl('csv', vcoords))
       if(any(needed_h5_test)){
@@ -537,7 +548,14 @@ read_visium_outs = function(filepaths, input_check){
   cat(crayon::green$bold(paste("Found", length(filepaths$sampleids)-missingSamples, "Visium samples\n")))
 
   # Define number of available cores to use.
-  cores = count_cores(length(filepaths[['count_found']]))
+  if(is.null(cores)){
+    cores = count_cores(length(filepaths[['count_found']]))
+  } else{
+    cores = as.integer(cores)
+    if(is.na(cores)){
+      stop('Could not recognize number of cores requested')
+    }
+  }
 
   # Use parallelization to read count data if possible.
   output_temp = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
