@@ -206,7 +206,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
   #cat(crayon::green(paste("Requested", length(pre_lists[['counts']]), "samples\n")))
 
   # Process count and coordinate lists before placing within STlist
-  cat(crayon::yellow(paste("\tChecking concordance between gene expressiona and coordinate data...\n")))
+  cat(crayon::yellow(paste("\tMatching gene expression and coordinate data...\n")))
   procLists = process_lists(pre_lists[['counts']], pre_lists[['coords']])
 
   # Process metadata if provided or make an empty tibble

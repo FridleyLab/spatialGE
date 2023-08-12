@@ -35,7 +35,7 @@
 #'
 #' @export
 #'
-SThet_notest = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overwrite=T, cores=NULL){
+SThet_invdist_test = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overwrite=T, cores=NULL){
   # Select sample names if NULL or if number entered
   if (is.null(samples)){
     samples = names(x@tr_counts)
@@ -92,10 +92,10 @@ SThet_notest = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL
 
   # Perform calculations
   if('moran' %in% method){
-    x = gene_moran_i_notest(x=x, combo=combo, overwrite=overwrite, cores=cores)
+    x = gene_moran_i_dist(x=x, combo=combo, overwrite=overwrite, cores=cores)
   }
   if('geary' %in% method){
-    x = gene_geary_c_notest(x=x, combo=combo, overwrite=overwrite, cores=cores)
+    x = gene_geary_c_dist(x=x, combo=combo, overwrite=overwrite, cores=cores)
   }
 
   return(x)
@@ -113,7 +113,7 @@ SThet_notest = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL
 # @return x a STlist including the calculated Moran's I
 #
 #
-gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
+gene_moran_i_dist = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   # Define cores available ### PARALLEL
   if(is.null(cores)){
     cores = count_cores(length(x@spatial_meta))
@@ -141,10 +141,7 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
       gene_expr = x@tr_counts[[i]][j, ]
 
       # Estimate statistic.
-      stat_est = spdep::moran(x=gene_expr,
-                              listw=x@misc[['sthet']][['listws']][[i]],
-                              n=length(x@misc[['sthet']][['listws']][[i]]$neighbours),
-                              S0=spdep::Szero(x@misc[['sthet']][['listws']][[i]]))
+      stat_est = spdep::moran.test(x=gene_expr, listw=x@misc[['sthet']][['listws']][[i]])
 
       #stat_list[[i_combo]] = stat_est
       stat_list_tmp[[j]] = stat_est
@@ -166,8 +163,7 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
       combo_name = c(i, j)
       if(overwrite | is.na(as.vector(x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i']))){
         # x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i'] = as.vector(stat_list[[i]]$estimate[1])
-        #x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i'] = as.vector(stat_list[[i]][[j]][['estimate']][1])
-        x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i'] = as.vector(stat_list[[i]][[j]][['I']])
+        x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i'] = as.vector(stat_list[[i]][[j]][['estimate']][1])
         #print(as.vector(stat_list[[i]]$estimate[1]))
       }
     }
@@ -185,7 +181,7 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
 # @return x a STlist including the calculated Geary's I
 #
 #
-gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
+gene_geary_c_dist = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   # Define cores available ### PARALLEL
   if(is.null(cores)){
     cores = count_cores(length(x@spatial_meta))
@@ -213,11 +209,7 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
       gene_expr = x@tr_counts[[i]][j, ]
 
       # Estimate statistic.
-      stat_est = spdep::geary(x=gene_expr,
-                              listw=x@misc[['sthet']][['listws']][[i]],
-                              n=length(x@misc[['sthet']][['listws']][[i]]$neighbours),
-                              n1=length(x@misc[['sthet']][['listws']][[i]]$neighbours)-1,
-                              S0=spdep::Szero(x@misc[['sthet']][['listws']][[i]]))
+      stat_est = spdep::geary.test(x=gene_expr, listw=x@misc[['sthet']][['listws']][[i]])
 
       #stat_list[[i_combo]] = stat_est
       stat_list_tmp[[j]] = stat_est
@@ -239,8 +231,7 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
       combo_name = c(i, j)
       if(overwrite | is.na(as.vector(x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'geary_c']))){
         # x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'moran_i'] = as.vector(stat_list[[i]]$estimate[1])
-        #x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'geary_c'] = as.vector(stat_list[[i]][[j]][['estimate']][1])
-        x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'geary_c'] = as.vector(stat_list[[i]][[j]][['C']])
+        x@gene_meta[[combo_name[1]]][x@gene_meta[[combo_name[1]]][['gene']] == combo_name[2], 'geary_c'] = as.vector(stat_list[[i]][[j]][['estimate']][1])
         #print(as.vector(stat_list[[i]]$estimate[1]))
       }
     }
