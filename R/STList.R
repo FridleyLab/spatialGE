@@ -146,13 +146,13 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     filepaths = process_sample_names_from_file(samples=samples, input_check=input_check)
     # Check if input is Visium or count/coord matrices
     if(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex')){
-      cat(crayon::green(paste("Found Visium data.\n")))
+      cat(crayon::green(paste("Found Visium data\n")))
       pre_lists = read_visium_outs(filepaths, input_check=input_check, cores=cores)
       img_obj = pre_lists[['images']]
       image_scale = pre_lists[['json_scale']]
       platform = 'visium'
     } else{
-      cat(crayon::green(paste("Found matrix data.\n")))
+      cat(crayon::green(paste("Found matrix data\n")))
       pre_lists = read_matrices_fps(filepaths, input_check)
     }
   }
@@ -167,13 +167,13 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       filepaths = process_sample_names(rnacounts, spotcoords, sample_names, input_check)
       # Check if input is Visium or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
-        cat(crayon::green(paste("Found Visium data.\n")))
+        cat(crayon::green(paste("Found Visium data\n")))
         pre_lists = read_visium_outs(filepaths, input_check, cores=cores)
         img_obj = pre_lists[['images']]
         image_scale = pre_lists[['json_scale']]
         platform = 'visium'
       } else{
-        cat(crayon::green(paste("Found matrix data.\n")))
+        cat(crayon::green(paste("Found matrix data\n")))
         pre_lists = read_matrices_fps(filepaths, input_check)
       }
     }
@@ -186,13 +186,13 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       filepaths = process_sample_names(rnacounts, spotcoords, as.character(samples), input_check)
       # Check if input is Visium or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
-        cat(crayon::green(paste("Found Visium data.\n")))
+        cat(crayon::green(paste("Found Visium data\n")))
         pre_lists = read_visium_outs(filepaths, input_check, cores=cores)
         img_obj = pre_lists[['images']]
         image_scale = pre_lists[['json_scale']]
         platform = 'visium'
       } else{
-        cat(crayon::green(paste("Found matrix data.\n")))
+        cat(crayon::green(paste("Found matrix data\n")))
         pre_lists = read_matrices_fps(filepaths, input_check)
       }
     }
@@ -203,10 +203,10 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     stop('No input provided. Please refer to documentation.')
   }
 
-  cat(crayon::green(paste("Requested", length(pre_lists[['counts']]), "samples\n")))
+  #cat(crayon::green(paste("Requested", length(pre_lists[['counts']]), "samples\n")))
 
   # Process count and coordinate lists before placing within STlist
-  cat(crayon::yellow(paste("Cleaning count and coordinate data gene names.\n")))
+  cat(crayon::yellow(paste("\tChecking concordance between gene expressiona and coordinate data...\n")))
   procLists = process_lists(pre_lists[['counts']], pre_lists[['coords']])
 
   # Process metadata if provided or make an empty tibble
@@ -574,10 +574,10 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
       visium_processed = import_visium_h5(counts_fp=fp_list[[i]][['counts']],
                                           coords_fp=fp_list[[i]][['coords']])
     }
-    system(sprintf('echo "%s"', crayon::green(paste0("\tFinished Processing Sample ", i, "...."))))
+    system(sprintf('echo "%s"', crayon::green(paste0("\tFinished data read Sample ", i))))
     return(visium_processed)
   }, mc.cores=cores, mc.preschedule=F)
-  cat(crayon::green$bold(paste("\tCompleted!\n")))
+  cat(crayon::green$bold(paste("\tData read completed\n")))
 
   # Organize the paralellized output into corresponding lists.
   return_lists = list()
