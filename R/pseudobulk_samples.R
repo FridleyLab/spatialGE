@@ -159,15 +159,16 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
   # Associate colors with categories.
   names(cat_cols) <- levels(as.factor(pca_tbl[[plot_meta]]))
   # Define shapes of points according to clinical variable.
-  cat_shapes <- (15:25)[1:n_cats]
-  names(cat_shapes) <- levels(as.factor(pca_tbl[[plot_meta]]))
+  #cat_shapes <- (15:25)[1:n_cats]
+  #names(cat_shapes) <- levels(as.factor(pca_tbl[[plot_meta]]))
 
   pcx = grep(paste0('^PC', pcx, '$'), colnames(pca_tbl), value=T)
   pcy = grep(paste0('^PC', pcy, '$'), colnames(pca_tbl), value=T)
 
   # Make plot
   pca_p = ggplot(pca_tbl) +
-    geom_point(aes(x=.data[[pcx]], y=.data[[pcy]], shape=.data[[plot_meta]], color=.data[[plot_meta]]), size=ptsize) +
+    #geom_point(aes(x=.data[[pcx]], y=.data[[pcy]], shape=.data[[plot_meta]], color=.data[[plot_meta]]), size=ptsize) +
+    geom_point(aes(x=.data[[pcx]], y=.data[[pcy]], color=.data[[plot_meta]]), size=ptsize) +
     ggrepel::geom_text_repel(aes(x=.data[[pcx]], y=.data[[pcy]], label=pca_labs)) +
     xlab(paste0(pcx, ' (', round(x@misc[['pbulk_pca_var']][pcx], 3) * 100, '%)')) +
     ylab(paste0(pcy, ' (', round(x@misc[['pbulk_pca_var']][pcy], 3) * 100, '%)'))
@@ -178,7 +179,7 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
 
   pca_p = pca_p +
     scale_color_manual(values=cat_cols) +
-    scale_shape_manual(values=cat_shapes) +
+    #scale_shape_manual(values=cat_shapes) +
     ggtitle('PCA of "pseudobulk" samples') +
     coord_fixed() +
     theme_bw()

@@ -51,14 +51,12 @@ compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL, co
 
   # Extract clinical data from specified variable. If none specified, use the
   # array IDs from the first column of clinical data.
-#  if(!is.null(samplemeta)){
-    meta_df = x@sample_meta %>%
-      dplyr::select(1, !!!samplemeta, !!!color_by) %>%
+  meta_df = x@sample_meta %>%
+    dplyr::select(1, !!!samplemeta, !!!color_by)
+  if(!is.numeric(meta_df[[color_by]])){ # To avoid treating numbers as categories
+    meta_df = meta_df %>%
       dplyr::mutate(!!color_by := as.factor(.[[!!color_by]]))
-#  }else{
-  #   meta_df = tibble::tibble(sample_name=names(x@tr_counts))
-  # }
-
+  }
   meta_df[['moran']] = NA
   meta_df[['geary']] = NA
 
@@ -97,6 +95,8 @@ spatial_stat_plot_gene = function(meta_df=NULL, samplemeta=NULL, color_by=NULL, 
   if(is.null(samplemeta)){
     samplemeta = names(meta_df)[1]
   }
+
+
   # Get number of categories from selected
   n_cats = nlevels(as.factor(meta_df[[color_by]]))
   # Create color palette
@@ -112,12 +112,25 @@ spatial_stat_plot_gene = function(meta_df=NULL, samplemeta=NULL, color_by=NULL, 
       #ggrepel::geom_text_repel(aes(x=moran, y=.data[[samplemeta]], label=.data[[color_by]])) +
       ggtitle(paste0('Moran\'s I and ', samplemeta)) +
       xlab('Moran\'s I') +
-      ylab(samplemeta) +
-      scale_color_manual(values=cat_cols, name=color_by) +
+      ylab(samplemeta)  +
+      facet_wrap(~gene)
+
+    if(is.numeric(meta_df[[color_by]])){
+      res_plots[['moran']] = res_plots[['moran']] +
+        scale_color_gradientn(colors=as.vector(cat_cols), # SHOULD PRBABLY CHANGE COLOR_PARSE FUNCTION TO OUPUT MIN/MID/MAX COLORS WHEN CONTINUOUS
+                              guide=guide_legend(label.theme=element_text(angle=0),
+                                                 override.aes=list(size=2)))
+    } else{
+      res_plots[['moran']] = res_plots[['moran']] +
+        scale_color_manual(values=cat_cols,
+                           guide=guide_legend(label.theme=element_text(angle=0),
+                                              override.aes=list(size=2)))
+    }
+
+    res_plots[['moran']] = res_plots[['moran']] +
       theme_light() +
       theme(#legend.title=element_blank(),
-            axis.text.x=element_text(angle=45, vjust=1, hjust=1)) +
-      facet_wrap(~gene)
+        axis.text.x=element_text(angle=45, vjust=1, hjust=1))
   }
 
   if(any(!is.na(meta_df[['geary']]))){
@@ -126,12 +139,25 @@ spatial_stat_plot_gene = function(meta_df=NULL, samplemeta=NULL, color_by=NULL, 
       #ggrepel::geom_text_repel(aes(x=moran, y=.data[[samplemeta]], label=.data[[color_by]])) +
       ggtitle(paste0('Geary\'s C and ', samplemeta)) +
       xlab('Geary\'s C') +
-      ylab(samplemeta) +
-      scale_color_manual(values=cat_cols, name=color_by) +
+      ylab(samplemeta)  +
+      facet_wrap(~gene)
+
+    if(is.numeric(meta_df[[color_by]])){
+      res_plots[['geary']] = res_plots[['geary']] +
+        scale_color_gradientn(colors=as.vector(cat_cols), # SHOULD PRBABLY CHANGE COLOR_PARSE FUNCTION TO OUPUT MIN/MID/MAX COLORS WHEN CONTINUOUS
+                              guide=guide_legend(label.theme=element_text(angle=0),
+                                                 override.aes=list(size=2)))
+    } else{
+      res_plots[['geary']] = res_plots[['geary']] +
+        scale_color_manual(values=cat_cols,
+                           guide=guide_legend(label.theme=element_text(angle=0),
+                                              override.aes=list(size=2)))
+    }
+
+    res_plots[['geary']] = res_plots[['geary']] +
       theme_light() +
       theme(#legend.title=element_blank(),
-            axis.text.x=element_text(angle=45, vjust=1, hjust=1)) +
-      facet_wrap(~gene)
+        axis.text.x=element_text(angle=45, vjust=1, hjust=1))
   }
 
   # Print plot.

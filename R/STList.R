@@ -499,6 +499,14 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
       vfeatures = grep('[raw|filtered]_feature_bc_matrix\\/features.tsv.gz',  temp_fps, value=T)
       vbarcodes = grep('[raw|filtered]_feature_bc_matrix\\/barcodes.tsv.gz', temp_fps, value=T)
       vcounts = grep('[raw|filtered]_feature_bc_matrix\\/matrix.mtx.gz', temp_fps, value=T)
+
+      # In case there are both raw and filtered data within output directory, choose filtered
+      if(length(vfeatures) > 1){
+        vfeatures = grep("filtered_feature_bc_matrix", vfeatures, value=T)
+        vbarcodes = grep("filtered_feature_bc_matrix", vbarcodes, value=T)
+        vcounts = grep("filtered_feature_bc_matrix", vcounts, value=T)
+      }
+
       # Test that all files have been found.
       needed_mex_test = c(!grepl('gz', vfeatures), !grepl('gz', vbarcodes), !grepl('gz', vcounts), !grepl('csv', vcoords))
       if(any(needed_mex_test)){
@@ -521,6 +529,12 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
       rm(vfeatures, vbarcodes, vcounts) # Clean environment
     } else if(mtx_type == 'h5'){
       h5counts = grep('[raw|filtered]_feature_bc_matrix.h5', temp_fps, value=T)
+
+      # In case there are both raw and filtered data within output directory, choose filtered
+      if(length(h5counts) > 1){
+        h5counts = grep("filtered_feature_bc_matrix", h5counts, value=T)
+      }
+
       # Test that all files have been found.
       needed_h5_test = c(!grepl('\\.h5$', h5counts), !grepl('csv', vcoords))
       if(any(needed_h5_test)){
