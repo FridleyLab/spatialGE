@@ -12,7 +12,6 @@
 #' @param samples a vector indicating the spatial samples to plot. If vector of numbers,
 #' it follows the order of `names(x@counts)`. If NULL, the function plots all samples
 #' @param color_pal a color scheme from `khroma` or `RColorBrewer`.
-#' @param image logical, whether to print the image stored for the spatial arrays
 #' @param visium whether or not to reverse axes for Visium slides
 #' @return a list of plots
 #'
@@ -34,10 +33,7 @@
 #' @importFrom magrittr %>%
 #
 #
-STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, color_pal='BuRd', image=F, visium=T){
-
-  # Option to use plotly disabled (not supporting geomPolypath)
-  inter=F
+STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, color_pal='BuRd'){
 
   top_n = as.integer(top_n)
 
@@ -77,16 +73,16 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
   # Store maximum and minimum expression value for plot color scaling
   maxvalue <- c()
   minvalue <- c()
-  for (i in samples) {
-    for (gene in genes) {
+  for(i in samples) {
+    for(gene in genes) {
       # Test if kriging exists for a gene and subject.
       if (rlang::has_name(x@gene_krige, gene)){
-        #        if(length(x@gene_krige[[gene]]) >= i){
+        if(x@gene_krige[[gene]][[i]][['success_or_not']] != 'error'){
         # Find maximum expression value for each spatial array.
-        values <- x@gene_krige[[gene]][[i]][['z']]
+        values <- x@gene_krige[[gene]][[i]][['krige_out']][['z']]
         maxvalue <- append(maxvalue, max(values, na.rm=T))
         minvalue <- append(minvalue, min(values, na.rm=T))
-        #        }
+      }
       }
     }
   }
@@ -100,21 +96,17 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
   # Loop through each of the subjects.
   for (i in samples) {
     # Loop though genes to plot.
-    for (gene in genes) {
+    for (gene in genes){
 
-      #      if(length(x@gene_krige[[gene]]) >= i){
-      if(is.null(x@gene_krige[[gene]][[i]])){
-        cat(paste0(gene, " kriging for subject ", i, " is not present in STList\n"))
+      if(is.null(x@gene_krige[[gene]][[i]][['krige_out']])){
+        cat(paste0("Kriging for subject ", gene, " in sample ", i, " is not present in STlist\n"))
         next
       }
 
-      # Find prediction grid.
-      #predict_grid = x@misc[['gene_krige_grid']][[i]]
-
       # Create data frame with coordinates and kriging values.
-      krige_vals = x@gene_krige[[gene]][[i]][['z']]
-      colnames(krige_vals) = paste0('id_', x@gene_krige[[gene]][[i]][['y']])
-      rownames(krige_vals) = paste0('id_', x@gene_krige[[gene]][[i]][['x']])
+      krige_vals = x@gene_krige[[gene]][[i]][['krige_out']][['z']]
+      colnames(krige_vals) = paste0('id_', x@gene_krige[[gene]][[i]][['krige_out']][['y']])
+      rownames(krige_vals) = paste0('id_', x@gene_krige[[gene]][[i]][['krige_out']][['x']])
       suppressWarnings({krige_vals = reshape::melt.array(krige_vals)})
 
       # Looks like reshape::melt.array pass columns from matrix to first column, and
@@ -125,7 +117,7 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
         dplyr::mutate(x_pos=gsub('id_', '', x_pos) %>% as.numeric())
 
       # Get coordinates of bounding box enclosing the predicted grid.
-      bbox<-rbind(
+      bbox = rbind(
         c(min(krige_vals$x_pos)-1, min(krige_vals$y_pos)-1),
         c(min(krige_vals$x_pos)-1, max(krige_vals$y_pos)+1),
         c(max(krige_vals$x_pos)+1, max(krige_vals$y_pos)+1),
@@ -139,7 +131,7 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
       bbox_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(bbox)), "id")))
 
       # Create Spatial Polygon with the inner tissue border (concave hull)
-      mask_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(x@misc[['krige_border']][[i]][, c('V1', 'V2')])), "id")))
+      mask_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(x@misc[['gene_krige']][['krige_border']][[i]][, c('V1', 'V2')])), "id")))
 
       # Substract the concave hull from the bounding box, yielding a SpatialPolygon object.
       bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
@@ -147,17 +139,17 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
       # Construct title.
       titlekrige <- paste0(gene, " (interpolation)\nsample: ", i)
 
+      visium = F
+      # Define if visium
+      if(krige_stlist@misc[['platform']] == visium){
+        visium=T
+      }
+
       kp <- krige_p(data_f=krige_vals, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
                     title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue, visium=visium)
 
       # Append plot to list.
       kp_list[[paste0(gene, "_", i)]] <- kp
-    }
-
-    if(image && !is.null(x@misc[['sp_images']][[i]])){
-      img_obj = grid::rasterGrob(x@misc[['sp_images']][[i]])
-      kp_list[[paste0('image', i)]] = ggplot() +
-        annotation_custom(img_obj)
     }
   }
   return(kp_list)
