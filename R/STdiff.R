@@ -154,7 +154,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   if(grepl('stclust_', annot[1])){
     spw_print = stringr::str_extract(annot[1], '(?<=spw)0\\.?[0-9]*')
     if(grepl('_dspl', annot[1])){
-      cut_print = stringr::str_extract(annot[1], '(?<=_dspl)[\\.0-9]*|(?<=_dspl)False|(?<=_dspl)True') %>% paste0('dtc deepSplit=', ., ')...\n')
+      cut_print = stringr::str_extract(annot[1], '(?<=_dspl)[\\.0-9FalseTrue]*') %>% paste0('dtc deepSplit=', ., ')...\n')
     } else{
       cut_print = stringr::str_extract(annot[1], '(?<=_k)[0-9]') %>% paste0('k=', ., ')...\n')
     }
@@ -781,7 +781,7 @@ prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, pairwise=NULL){
                                   combo_meta %>%
                                     tibble::add_column(samplename=sample_name, .before=1))
     } else{
-      cat(crayon::yellow(paste0('\t\t\tSkipping sample ', sample_name, '. Less than two clusters to compare.\n')))
+      cat(crayon::yellow(paste0('\t\tSkipping sample ', sample_name, '. Less than two clusters to compare.\n')))
     }
   }
   combo_df = as.data.frame(combo_df) %>%
