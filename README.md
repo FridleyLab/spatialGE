@@ -10,7 +10,7 @@ autocorrelation statistics (**SThet**).
 The methods and utility of spatialGE are described in this journal article (https://doi.org/10.1093/bioinformatics/btac145)
 
 <p align="center">
-<img src="figures/spatialGE_workflow_v2.png" height="550" width="550" >
+<img src="figures/spatialGE_workflow_v3.png" height="550" width="550" >
 </p>
 
 ## Installation

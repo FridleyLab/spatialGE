@@ -63,8 +63,10 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   sp_topgenes = as.double(sp_topgenes)
 
   # Check that at least two clusters have been specified if pairwise
-  if(pairwise & length(clusters) < 2){
-    stop('If pairwise tests requested, at least two clusters are required.')
+  if(pairwise & !is.null(clusters)){
+    if(length(clusters) < 2){
+      stop('If pairwise tests requested, at least two clusters are required.')
+    }
   }
 
   verbose = as.integer(verbose)
@@ -152,7 +154,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   if(grepl('stclust_', annot[1])){
     spw_print = stringr::str_extract(annot[1], '(?<=spw)0\\.?[0-9]*')
     if(grepl('_dspl', annot[1])){
-      cut_print = stringr::str_extract(annot[1], '(?<=_dspl)[0-9]') %>% paste0('dtc deepSplit=', ., ')...\n')
+      cut_print = stringr::str_extract(annot[1], '(?<=_dspl)[\\.0-9]*|(?<=_dspl)False|(?<=_dspl)True') %>% paste0('dtc deepSplit=', ., ')...\n')
     } else{
       cut_print = stringr::str_extract(annot[1], '(?<=_k)[0-9]') %>% paste0('k=', ., ')...\n')
     }
@@ -207,7 +209,8 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   rm(spotrow) # Clean env
 
   # Create a table with unique combinations of genes and annotations to test using parallelization
-  combo_df = prepare_stdiff_combo(to_expand=gene_and_meta, clusters=clusters, annot_dict=meta_dict, pairwise=pairwise)
+  #combo_df = prepare_stdiff_combo(to_expand=gene_and_meta, clusters=clusters, annot_dict=meta_dict, pairwise=pairwise)
+  combo_df = prepare_stdiff_combo(to_expand=gene_and_meta, clusters=clusters, pairwise=pairwise)
   rm(gene_and_meta) # Clean env
 
   ######## ######## ######## BEGIN NON-SPATIAL TESTS ######## ######## ########
@@ -725,49 +728,61 @@ spatial_de = function(non_sp_mods=NULL, annot_dict=NULL, verb=NULL){
 # create_stdiff_combo
 # @return data frame with combinations
 #
-prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, annot_dict=NULL, pairwise=NULL){
+#prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, annot_dict=NULL, pairwise=NULL){
+prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, pairwise=NULL){
   combo_df = tibble::tibble()
   for(sample_name in unique(to_expand[['samplename']])){
     # Extract annotations for a given sample
-    annots_tmp = to_expand %>% dplyr::filter(samplename == sample_name) %>%
-      dplyr::select('meta') %>% unlist() %>% unique()
-    annots_tmp = annots_tmp[annots_tmp %in% unlist(annot_dict[['coded_annot']][ annot_dict[['orig_annot']] %in% clusters ]) ]
-    if(pairwise){
-      # Get unique combinations of each two annotation, without repeating (e.g., c1 vs c2 and c2 vs c1)
-      # Get combinations for each cluster
-      combo_meta = tibble::tibble()
-      annots_tmp2 = annots_tmp
-      for(cl_tmp in annots_tmp){
-        combo_meta = dplyr::bind_rows(combo_meta,
-                                      expand.grid(cl_tmp,
-                                                  grep(cl_tmp, annots_tmp2, value=T, invert=T),
-                                                  stringsAsFactors=F))
-        annots_tmp2 = grep(cl_tmp, annots_tmp2, value=T, invert=T)
-      }
-      names(combo_meta) = c('meta1', 'meta2')
-      rm(cl_tmp, annots_tmp2) #Clean env
+    to_expand_subset = to_expand %>% dplyr::filter(samplename == sample_name) #%>%
+    #  dplyr::select('meta') %>% unlist() %>% unique()
 
-      # Add genes to each combination
-      combo_meta_gene = tibble::tibble()
-      for(comb in 1:nrow(combo_meta)){
-        combo_meta_gene = dplyr::bind_rows(combo_meta_gene,
-                                           tibble::tibble(combo_meta[comb, 1],
-                                                          combo_meta[comb, 2],
-                                                          gene=to_expand %>% dplyr::filter(samplename == sample_name) %>%
-                                                            dplyr::select(gene) %>% unlist() %>% unique()))
-      }
-      combo_meta = combo_meta_gene
-      rm(combo_meta_gene, comb) # Clean env
+    # Define clusters to test if NULL, or subset to those requested by user
+    if(is.null(clusters)){
+      annots_tmp = to_expand_subset %>% dplyr::select('meta') %>% unlist() %>% unique()
     } else{
-      combo_meta = expand.grid(meta1=annots_tmp, meta2='other',
-                               gene=to_expand %>% dplyr::filter(samplename == sample_name) %>%
-                                 dplyr::select(gene) %>% unlist() %>% unique(),
-                               stringsAsFactors=F)
+      annots_tmp = to_expand_subset %>% dplyr::filter(meta_orig %in% clusters) %>% dplyr::select('meta') %>% unlist() %>% unique()
     }
-    rm(annots_tmp) # Clean env
-    combo_df = dplyr::bind_rows(combo_df,
-                                combo_meta %>%
-                                  tibble::add_column(samplename=sample_name, .before=1))
+    #annots_tmp = annots_tmp[annots_tmp %in% unlist(annot_dict[['coded_annot']][ annot_dict[['orig_annot']] %in% clusters_tmp ]) ]
+    if(length(annots_tmp) >= 2){
+      if(pairwise){
+        # Get unique combinations of each two annotation, without repeating (e.g., c1 vs c2 and c2 vs c1)
+        # Get combinations for each cluster
+        combo_meta = tibble::tibble()
+        annots_tmp2 = annots_tmp
+        for(cl_tmp in annots_tmp){
+          combo_meta = dplyr::bind_rows(combo_meta,
+                                        expand.grid(cl_tmp,
+                                                    grep(cl_tmp, annots_tmp2, value=T, invert=T),
+                                                    stringsAsFactors=F))
+          annots_tmp2 = grep(cl_tmp, annots_tmp2, value=T, invert=T)
+        }
+        names(combo_meta) = c('meta1', 'meta2')
+        rm(cl_tmp, annots_tmp2) #Clean env
+
+        # Add genes to each combination
+        combo_meta_gene = tibble::tibble()
+        for(comb in 1:nrow(combo_meta)){
+          combo_meta_gene = dplyr::bind_rows(combo_meta_gene,
+                                             tibble::tibble(combo_meta[comb, 1],
+                                                            combo_meta[comb, 2],
+                                                            gene=to_expand %>% dplyr::filter(samplename == sample_name) %>%
+                                                              dplyr::select(gene) %>% unlist() %>% unique()))
+        }
+        combo_meta = combo_meta_gene
+        rm(combo_meta_gene, comb) # Clean env
+      } else{
+        combo_meta = expand.grid(meta1=annots_tmp, meta2='other',
+                                 gene=to_expand %>% dplyr::filter(samplename == sample_name) %>%
+                                   dplyr::select(gene) %>% unlist() %>% unique(),
+                                 stringsAsFactors=F)
+      }
+      rm(to_expand_subset, annots_tmp) # Clean env
+      combo_df = dplyr::bind_rows(combo_df,
+                                  combo_meta %>%
+                                    tibble::add_column(samplename=sample_name, .before=1))
+    } else{
+      cat(crayon::yellow(paste0('\t\t\tSkipping sample ', sample_name, '. Less than two clusters to compare.\n')))
+    }
   }
   combo_df = as.data.frame(combo_df) %>%
     dplyr::arrange(samplename, meta1, meta2, gene)
