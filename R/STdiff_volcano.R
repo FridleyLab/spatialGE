@@ -93,12 +93,22 @@ STdiff_volcano = function(x=NULL, samples=NULL, clusters=NULL, pval_thr=0.05, co
         cat_cols = c('black', 'cornflowerblue', 'lightpink', 'blue', 'red')
         names(cat_cols) = c('Not DE', 'Down',  'Up', 'Down (spatial)', 'Up (spatial)')
       } else{
-        cat_cols = color_parse(color_pal)
+        if(length(color_pal) == 3){
+          cat_cols = color_pal
+          names(cat_cols) = c('Not DE', 'Down',  'Up')
+        } else if(length(color_pal) == 5){
+          cat_cols = color_pal
+          names(cat_cols) = c('Not DE', 'Down',  'Up', 'Down (spatial)', 'Up (spatial)')
+        } else{
+          cat(crayon::green(paste0('Custom color palettes must have three (non-spatial results) or five colors (spatial results). Setting to default palette.')))
+          cat_cols = c('black', 'cornflowerblue', 'lightpink', 'blue', 'red')
+          names(cat_cols) = c('Not DE', 'Down',  'Up', 'Down (spatial)', 'Up (spatial)')
+        }
       }
 
       plist[[pl_name]] = ggplot2::ggplot(df_plot, aes(x=avg_log2fc, y=-log10(plot_pval))) +
         ggplot2::geom_point(aes(color=signif)) +
-        ggrepel::geom_text_repel(aes(label=gene), size=3, verbose=F) +
+        ggrepel::geom_text_repel(aes(label=gene), size=3, verbose=F, force=0, max.iter=100, max.overlaps=1, nudge_x=0.2) +
         ggplot2::xlab('Average log fold-change') +
         ggplot2::ylab(paste0('-log10(nominal p-value)\n', testname)) +
         labs(color='FDR\nsignif.') +
