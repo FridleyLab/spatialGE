@@ -2,8 +2,9 @@
 
 export(STclust)
 export(STdiff)
-export(STdiff_old)
 export(STdiff_volcano)
+export(old_STdiff)
+export(STdiff_par2)
 export(STenrich)
 export(STgradient)
 export(SThet)

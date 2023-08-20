@@ -10,21 +10,21 @@
 #' runs non-spatial linear models on the genes to detect differentially expressed genes.
 #' Then spatial linear models with exponential covariance structure are fit on a
 #' subset of genes detected as differentially expressed by the non-linear models (`sp_topgenes`).
-#' If running on clusters detected via STclust, the user can specify the assignments
-#' using the same parameters (`ws`, `ks`, `deepSplit`). Otherwise, the assignments are
-#' specified by indicating the column name in `x@spatial_meta`. The function uses `spaMM::fitme` and
-#' is computationally expensive even on HPC environments. To run the STdiff using the
-#' non-spatial approach (faster), set `sp_topgenes=0`.
+#' If running on clusters detected via STclust, the user should specify the assignments
+#' using the same parameters (`w`, `k`, `deepSplit`). Otherwise, the assignments are
+#' specified by indicating one of the column names in `x@spatial_meta`. The function
+#' uses `spaMM::fitme` and is computationally expensive even on HPC environments.
+#' To run the STdiff using the non-spatial approach (faster), set `sp_topgenes=0`.
 #'
 #' @param x an STlist
 #' @param samples an integer indicating the spatial samples to be included in the DE tests.
 #' Numbers follow the order in `names(x@counts)`. Sample names are also allowed.
 #' If NULL, performs tests on all samples
 #' @param annot a column name in `x@spatial_meta` containing the groups/clusters to
-#' be tested
-#' @param ws the spatial weight used in STclust
-#' @param ks the k value used in STclust, or `dtc` (default) for dynamicTreeCut clusters
-#' @param deepSplit the deepSplit value if used in STclust
+#' be tested. Required if `k` and `w` are empty.
+#' @param w the spatial weight used in STclust. Required if `annot` is empty.
+#' @param k the k value used in STclust, or `dtc` for dynamicTreeCut clusters. Required if `annot` is empty.
+#' @param deepSplit the deepSplit value if used in STclust. Required if `k='dtc'`.
 #' @param topgenes an integer indicating the top variable genes to select from each sample
 #' based on variance (default=5000). If NULL, all genes are selected.
 #' @param pval_adj Method to adjust p-values. Defaults to `FDR`. Other options as
@@ -51,16 +51,22 @@
 #' @importFrom magrittr %>%
 #
 #
-STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit=NULL,
+STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NULL,
                   topgenes=5000, pval_thr=0.05, pval_adj='fdr', test_type='mm', sp_topgenes=0.2,
                   clusters=NULL, pairwise=F, verbose=1L, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
   # Convert user inputs to expected inputs
-  topgenes = as.integer(topgenes)
+  topgenes = as.integer(ceiling(topgenes))
   pval_thr = as.double(pval_thr)
   sp_topgenes = as.double(sp_topgenes)
+
+  # Set verbosity level
+  verbose = as.integer(verbose)
+  if(!is.integer(verbose) | !(verbose %in% c(0L, 1L, 2L))){
+    verbose = 1L
+  }
 
   # Check that at least two clusters have been specified if pairwise
   if(pairwise & !is.null(clusters)){
@@ -69,69 +75,73 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
     }
   }
 
-  verbose = as.integer(verbose)
-  if(!is.integer(verbose) | !(verbose %in% c(0L, 1L, 2L))){
-    verbose = 1L
-  }
-
   # Stop function if topgenes and sp_topgenes are not valid
   if((round(topgenes, 0) <= 0) | (sp_topgenes < 0 | sp_topgenes > 1)){
     stop('topgenes or sp_topgenes contain invalid values.')
   }
 
-  # Define samples
+  # Define samples using names (convert indexes to names if necessary)
   if(is.null(samples)){
     samples = names(x@spatial_meta)
   } else{
     if(is.numeric(samples)){
-      samples = names(x@spatial_meta)[samples]
+      samples = as.vector(na.omit(names(x@spatial_meta)[samples]))
+    } else{
+      samples = samples[samples %in% names(x@spatial_meta)]
     }
-    if(length(grep(paste0(samples, collapse='|'), names(x@spatial_meta))) == 0){
-      stop('The requested samples are not present in the STlist spatial metadata.')
+    # Verify that sample names exist
+    if(length(samples) == 0 | !any(samples %in% names(x@spatial_meta))){
+      stop('None of the requested samples are present in the STlist.')
     }
   }
 
   # Define column to test
   if(is.null(annot)){
-    annot = grep('^stclust_spw', colnames(x@spatial_meta[[1]]), value=T)
-    if(!is.null(ws)){
-      if(any(ws == 0)){ # To avoid zero ('0') matching other weights
-        ws_tmp = ws[ws != 0]
-        annot_tmp = grep('stclust_spw0_|stclust_spw0$', annot, value=T)
-        if(length(ws_tmp) > 0){ # In case there are other ws in addition to '0'
-          annot = c(annot_tmp,
-                    grep(paste0('stclust_spw', ws_tmp, collapse='|'), annot, value=T))
-        } else{
-          annot = annot_tmp
-        }
-        rm(ws_tmp, annot_tmp)
-      } else{
-        annot = grep(paste0('stclust_spw', ws, collapse='|'), annot, value=T)
+    # If annot=NULL, must specify w and k
+    if(!is.null(w) & !is.null(k)){
+      if(length(w) != 1 | length(k) != 1){
+        stop('Please specify a single value for w and a single value for k.')
       }
-    }
-
-    if(ks[1] != 'dtc'){
-      annot = grep(paste0('_k', ks,'$', collapse='|'), annot, value=T)
-    } else if(ks[1] == 'dtc'){
-      if(!is.null(deepSplit)){
-        annot = grep(paste0('_dspl', deepSplit, '$', collapse='|'), annot, value=T)
+      # Construct column name from w and k
+      annot = paste0('stclust_spw', as.character(w))
+      if(k == 'dtc'){
+        if(is.null(deepSplit)){
+          stop('If k="dtc" annotation, then specify ')
+        } else if(is.logical(deepSplit)){
+          if(deepSplit){
+            dspl = paste0(annot, '_dsplTrue')
+          } else{
+            dspl = paste0(annot, '_dsplFalse')
+          }
+        } else{
+          annot = paste0(annot, '_dspl', deepSplit)
+        }
       } else{
-        annot = grep('_dspl', annot, value=T)
+        if(!is.numeric(k)){
+          stop('Specify a valid k value.')
+        }
+        annot = paste0(annot, '_k', as.character(k))
       }
     } else{
-      stop('Specify a k value to test, or use ks="dtc" (default).')
+      stop('If no specific annotation is specified, please specify both w and k (STclust parameters).')
+    }
+  } else{
+    if(length(annot) == 0){
+      stop('If w and k are not specified, one annotation column from @spatial_meta should be specified.')
+    } else if(length(annot) > 1){
+      stop('Only one annotation column from @spatial_meta can be tested at a time. ')
     }
   }
 
   # Check that the meta data column exists (if not in specific sample, remove sample)
   samples_tmp = samples
   for(i in samples){
-    if(length(grep(paste0('^', annot, '$', collapse='|'),  colnames(x@spatial_meta[[i]]))) == 0){
-      samples_tmp = samples_tmp[!(samples_tmp %in% i)]
-    } else if(length(grep(paste0('^', annot, '$', collapse='|'),  colnames(x@spatial_meta[[i]]))) > 1){
-      stop('Only one clustering solution or metadata column can be tested at a time.')
+    if(!(annot %in% colnames(x@spatial_meta[[i]]))){
+      samples_tmp = grep(i, samples_tmp, value=T, invert=T)
+      if(verbose > 0L){
+        cat(crayon::yellow(paste0('Skipping ', i, '. Annotation not available for this sample.\n')))
+      }
     }
-
     if(length(samples_tmp) == 0){
       stop('No samples left to test. Are the requested annotations/clusters present in at least one sample?')
     }
@@ -164,17 +174,17 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
     test_print = paste0('Testing metadata: ', annot[1], '...\n')
   }
 
+  # Print metadata to be tested
   if(verbose > 0L){
     cat(crayon::yellow(test_print))
   }
   rm(test_print) # Clean environment
 
-  # Extract sample annotations for each sample
+  # Extract spot/cell annotations for each sample
   metas = tibble::tibble()
   for(sample_name in samples){
-    meta_tmp = tibble::tibble(samplename=sample_name,
-                              meta_orig=as.character(unique(x@spatial_meta[[sample_name]][[annot]])))
-    metas = dplyr::bind_rows(metas, meta_tmp)
+    meta_tmp = as.character(unique(x@spatial_meta[[sample_name]][[annot]]))
+    metas = dplyr::bind_rows(metas, tibble::tibble(samplename=sample_name, orig_annot=meta_tmp))
     rm(meta_tmp) # Clean env
   }
 
@@ -182,15 +192,12 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   genes = tibble::tibble()
   for(sample_name in samples){
     # Get top variable genes
-    genes_tmp = x@gene_meta[[sample_name]] %>%
-      dplyr::arrange(desc(vst.variance.standardized))
+    genes_tmp = x@gene_meta[[sample_name]] %>% dplyr::arrange(desc(vst.variance.standardized))
     if(!is.null(topgenes)){
       genes_tmp = genes_tmp %>% dplyr::slice_head(n=topgenes)
     }
-    genes_tmp = genes_tmp %>%
-      dplyr::select(gene) %>% unlist() %>% as.vector()
+    genes_tmp = as.vector(genes_tmp[['gene']])
     genes = dplyr::bind_rows(genes, tibble::tibble(samplename=sample_name, gene=genes_tmp))
-
     rm(genes_tmp) # Clean env
   }
 
@@ -199,22 +206,20 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   rm(genes, metas) # Clean env
 
   # Create "dictionary" with coded annotations (to avoid potentially problematic characters)
-  meta_dict = tibble::tibble(orig_annot=unique(gene_and_meta[['meta_orig']]),
-                             coded_annot=paste0('c', 1:length(unique(gene_and_meta[['meta_orig']]))))
+  meta_dict = tibble::tibble(orig_annot=unique(gene_and_meta[['orig_annot']]),
+                             coded_annot=paste0('c', seq(1, length(unique(gene_and_meta[['orig_annot']])))))
 
-  # Recode annotations gene_and_meta
-  for(spotrow in 1:nrow(gene_and_meta)){
-    gene_and_meta[['meta']][spotrow] = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] == gene_and_meta[['meta_orig']][spotrow] ]
-  }
-  rm(spotrow) # Clean env
+  # Append recoded annotations in gene_and_meta
+  gene_and_meta = gene_and_meta %>% dplyr::left_join(., meta_dict, by='orig_annot') %>% dplyr::rename(meta=coded_annot)
 
   # Create a table with unique combinations of genes and annotations to test using parallelization
-  #combo_df = prepare_stdiff_combo(to_expand=gene_and_meta, clusters=clusters, annot_dict=meta_dict, pairwise=pairwise)
-  combo_df = prepare_stdiff_combo(to_expand=gene_and_meta, clusters=clusters, pairwise=pairwise)
+  combo_df = prepare_stdiff_combo(to_expand=gene_and_meta, user_clusters=clusters, pairwise=pairwise, verbose=verbose)
   rm(gene_and_meta) # Clean env
 
   ######## ######## ######## BEGIN NON-SPATIAL TESTS ######## ######## ########
   start_t = Sys.time()
+
+  # Check test type
   if(test_type == 'mm'){
     test_print = 'non-spatial mixed models'
   } else if(test_type == 't_test'){
@@ -222,112 +227,109 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
   } else if(test_type == 'wilcoxon'){
     test_print = "Wilcoxon's tests"
   } else{
-    stop('Test type needs to be one of "mm", "t_test", or "wilcoxon".')
+    stop('Test type is one of "mm", "t_test", or "wilcoxon".')
   }
+
+  # Print test to conduct
   if(verbose > 0L){
     cat(crayon::yellow(paste0('\tRunning ', test_print, '...\n')))
   }
 
   # Get annotations to run in parallel
-  clusters_tmp = unique(combo_df[['meta1']])
-  if(pairwise){
-    clusters_tmp = unique(append(clusters_tmp, unique(combo_df[['meta2']])))
-  }
+  # clusters_tmp = unique(combo_df[['meta1']])
+  # if(pairwise){
+  #   clusters_tmp = unique(append(clusters_tmp, unique(combo_df[['meta2']])))
+  # }
 
-  # If user specified certain clusters, then subset to those clusters only
+  # If user specified certain clusters, then subset combo_df to those clusters only
   if(!is.null(clusters)){
     coded_metas = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] %in% clusters ]
-    clusters_tmp = clusters_tmp[ clusters_tmp %in% coded_metas ]
+    combo_df = combo_df[ combo_df[['meta1']] %in% coded_metas, ]
+    if(pairwise){
+      combo_df = combo_df[ combo_df[['meta2']] %in% coded_metas, ]
+    }
     rm(coded_metas) # Clean env
-
     # Throw error if user-input clusters are present in data
-    if(length(clusters_tmp) < 1){
-     stop('The specified clusters are not present in the data.')
+    if(nrow(combo_df) < 1){
+      stop('All cluster x gene commparisons were removed. Is at least one of the specified clusters present in one of the samples?')
     }
   }
 
-  #Paralellize spaMM models
+  # Define number of cores for parallelization of tests
   if(is.null(cores)){
-    cores = count_cores(nrow(combo_df))
+    cores = count_cores(length(unique(combo_df[['samplename']])))
+  } else{
+    cores = ceiling(cores)
   }
-  #non_sp_models = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){
-  non_sp_models = parallel::mclapply(1:length(clusters_tmp), function(i){
-    # Subset combo_df to those of a given cluster
-    combo_clust = combo_df %>%
-      dplyr::filter(meta1 == clusters_tmp[i]) ### meta1 should contain all clusters, so no need to check meta2 if pairwise
 
-    # Loop through samples
+  # Paralellize non-spatial tests
+  non_sp_models = parallel::mclapply(1:length(unique(combo_df[['samplename']])), function(i){
+    # Get sample name
+    sample_name = unique(combo_df[['samplename']])[i]
+    # Subset combo_df to those of a given sample
+    combo_clust = combo_df[ combo_df[['samplename']] == sample_name, ]
+
+    # Create data frame with expression, coordinate, and cluster data
+    # Add group dummy column (in case of mixed models was requested)
+    expr_df = expandSparse(x@tr_counts[[sample_name]])
+    expr_df = expr_df[ rownames(expr_df) %in% unique(combo_clust[['gene']]), ]
+    expr_df = t(expr_df) %>%
+      as.data.frame() %>%
+      tibble::rownames_to_column(var='libname') %>%
+      dplyr::right_join(x@spatial_meta[[sample_name]] %>%
+                          tibble::add_column(group=1, .after='libname') %>%
+                          dplyr::select(c('libname', 'group', 'ypos', 'xpos'), orig_annot:=!!annot),. , by='libname') %>%
+      dplyr::left_join(., meta_dict, by='orig_annot') %>%
+      dplyr::rename(meta=coded_annot) %>%
+      tibble::column_to_rownames(var='libname') %>%
+      dplyr::relocate(meta, .before=1) %>%
+      dplyr::select(-c('orig_annot'))
+
+    # Loop through tests within sample
     res = list()
-    for(sample_name in unique(combo_clust[['samplename']])){
-      # Subset combinations per sample
-      combo_tmp = combo_clust %>% dplyr::filter(samplename == sample_name)
-
-      # Create data frame with expression, coordinate, and cluster data
-      # Add group dummy column and select relevant columns
-      expr_df = expandSparse(x@tr_counts[[sample_name]]) %>%
-        tibble::rownames_to_column(var='gene') %>%
-        dplyr::filter(gene %in% unique(combo_tmp[['gene']])) %>%
-        tibble::column_to_rownames(var='gene') %>%
-        t() %>%
-        as.data.frame() %>%
-        tibble::rownames_to_column(var='libname') %>%
-        dplyr::right_join(x@spatial_meta[[sample_name]] %>%
-                            tibble::add_column(group=1, .after='libname') %>%
-                            dplyr::select(c('libname', 'group', 'ypos', 'xpos'), meta_orig:=!!annot[1]),. , by='libname') %>%
-        tibble::column_to_rownames(var='libname')
-
-      # Recode annotations gene_and_meta
-      for(spotrow in 1:nrow(expr_df)){
-        expr_df[['meta']][spotrow] = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] == expr_df[['meta_orig']][spotrow] ]
-      }
-      rm(spotrow) # Clean env
-
-      # Remove original annotation and keep 'meta' as the coded annotations column
-      expr_df = expr_df %>% dplyr::select(-c('meta_orig')) %>% dplyr::relocate(meta, .before=1)
-
+    for(cluster_tmp in unique(combo_clust[['meta1']])){ # Loop through clusters, instead of rows to provide progress updates
+      # Subset tests to specific cluster
+      combo_clust_cl = combo_clust[ combo_clust[['meta1']] == cluster_tmp, ]
       # Run non-spatial models
       if(verbose >= 1L){
         if(pairwise){
-          stdout_print = combo_clust %>% dplyr::filter(samplename == sample_name & meta1 == clusters_tmp[i]) %>%
-            dplyr::select('meta2') %>% unlist() %>% unique()
-          stdout_print_tmp = c()
-          for(m2 in stdout_print){
-            stdout_print_tmp = append(stdout_print_tmp,
-                                      meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == m2 ])
-          }
-          stdout_print = stdout_print_tmp %>% paste0(., collapse=', ')
+          stdout_print = combo_clust_cl[ combo_clust_cl[['samplename']] == sample_name & combo_clust_cl[['meta1']] == cluster_tmp, ]
+          stdout_print = unique(stdout_print[['meta2']])
+          stdout_print = meta_dict[['orig_annot']][ meta_dict[['coded_annot']] %in% stdout_print ]
+          stdout_print = paste0(stdout_print, collapse=', ')
           system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
                                                            sample_name, ", ",
-                                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
+                                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == cluster_tmp ],
                                                            " vs. ", stdout_print,
-                                                           " (", nrow(combo_tmp), " tests)..."))))
-          rm(stdout_print, stdout_print_tmp)
+                                                           " (", nrow(combo_clust_cl), " tests)"))))
+          rm(stdout_print)
         } else {
           system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
                                                            sample_name, ", ",
-                                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
-                                                           " (", nrow(combo_tmp), " tests)..."))))
+                                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == cluster_tmp ],
+                                                           " (", nrow(combo_clust_cl), " tests)"))))
         }
       }
       if(test_type == 'mm'){
-        res_tmp = non_spatial_de(expr_data=expr_df, combo=combo_tmp, pairwise=pairwise)
+        res_tmp = non_spatial_de(expr_data=expr_df, combo=combo_clust_cl, pairwise=pairwise)
       } else if(test_type == 't_test' | test_type == 'wilcoxon'){
-        res_tmp = stdiff_mean_test(expr_data=expr_df, combo=combo_tmp, pairwise=pairwise, test_type=test_type)
+        res_tmp = stdiff_mean_test(expr_data=expr_df, combo=combo_clust_cl, pairwise=pairwise, test_type=test_type)
       }
       res = append(res, res_tmp)
 
-      rm(res_tmp, expr_df, combo_tmp) # Clean env
+      rm(res_tmp, combo_clust_cl) # Clean env
     }
-
     return(res)
   }, mc.cores=cores)
+
   # Sometimes the mixed models option produces a warning
   # <simpleWarning in .check_y(family, y, BinomialDen): var(response) = 0, which may cause errors.>
-  if(any(names(non_sp_models) == 'warning')){ #
-    non_sp_models = non_sp_models[['value']]
-  }
-  names(non_sp_models) = clusters_tmp
-  rm(clusters_tmp) # Clean env
+  # if(any(names(non_sp_models) == 'warning')){
+  #   non_sp_models = non_sp_models[['value']]
+  # }
+
+  # Put sample names to results of parallelezation
+  names(non_sp_models) = unique(combo_df[['samplename']])
 
   # Summarize DE analyses
   result_de = tibble::tibble()
@@ -336,24 +338,30 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
       sample_tmp = non_sp_models[[i]][[mod]][['samplename']]
       gene_tmp = non_sp_models[[i]][[mod]][['gene']]
       avglfc_tmp = non_sp_models[[i]][[mod]][['avglfc']]
+      cluster_1_tmp = as.vector(unlist(meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == non_sp_models[[i]][[mod]][['meta1']] ]))
+
       # Compile results in a row
       df_tmp = tibble::tibble(sample=sample_tmp,
                               gene=gene_tmp,
                               avg_log2fc=avglfc_tmp,
-                              cluster_1=meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == i ])
+                              cluster_1=cluster_1_tmp)
+
       if(pairwise){
-        if(test_type == 'mm'){
-          meta2_tmp = unique(non_sp_models[[i]][[mod]][['nonspmod']][['data']][['meta']]) %>% grep(i, ., value=T, invert=T)
-        } else if(test_type == 't_test' | test_type == 'wilcoxon'){
-          meta2_tmp = non_sp_models[[i]][[mod]][['meta2']]
-        }
-        df_tmp[['cluster_2']] = meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == meta2_tmp ]
-        rm(meta2_tmp) # Clean env
+        #if(test_type == 'mm'){
+        # cluster_2_tmp = unique(non_sp_models[[i]][[mod]][['nonspmod']][['data']][['meta']]) %>% grep(i, ., value=T, invert=T)
+        #cluster_2_tmp = non_sp_models[[i]][[mod]][['meta2']]
+        #} else if(test_type == 't_test' | test_type == 'wilcoxon'){
+        cluster_2_tmp = non_sp_models[[i]][[mod]][['meta2']]
+        #}
+        cluster_2_tmp = as.vector(unlist(meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == cluster_2_tmp ]))
+        df_tmp[['cluster_2']] = cluster_2_tmp
+        rm(cluster_2_tmp) # Clean env
       }
 
       if(test_type == 'mm'){
-        df_tmp[['mm_p_val']] = spaMM::summary.HLfit(non_sp_models[[i]][[mod]][['nonspmod']],
-                                                    details=c(p_value="Wald"), verbose=F)[['beta_table']][2, 4]
+        # df_tmp[['mm_p_val']] = spaMM::summary.HLfit(non_sp_models[[i]][[mod]][['nonspmod']],
+        #                                             details=c(p_value="Wald"), verbose=F)[['beta_table']][2, 4]
+        df_tmp[['mm_p_val']] = non_sp_models[[i]][[mod]][['nonspmod']]
       } else if(test_type == 't_test'){
         df_tmp[['ttest_p_val']] = non_sp_models[[i]][[mod]][['mean_test']][['p.value']]
       } else if(test_type == 'wilcoxon'){
@@ -363,9 +371,10 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
       # Add results to list of data frames
       result_de = dplyr::bind_rows(result_de, df_tmp)
 
-      rm(sample_tmp, gene_tmp, avglfc_tmp, df_tmp) # Clean env
+      rm(sample_tmp, gene_tmp, avglfc_tmp, cluster_1_tmp, df_tmp) # Clean env
     }
   }
+
   # Separate data frame into samples
   non_sp_de_tmp = list()
   for(i in unique(result_de[['sample']])){
@@ -393,7 +402,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
     cat(crayon::green(paste0('\tCompleted ', test_print, ' (', round(end_t, 2), ' min).\n')))
   }
 
-  ######## ######## ######## BEGIN SPATIAL TESTS ######## ######## ########
+  ######## ######## ######## BEGIN SPATIAL TESTS ######## ######## ########     ##### MADE BIG CHANGES TO NON-SPATIAL... NEED TO CHECK SPATIAL TESTS
   if(test_type == 'mm' & sp_topgenes > 0){
     start_t = Sys.time()
     if(verbose > 0L){
@@ -453,7 +462,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, ws=NULL, ks='dtc', deepSplit
         clusters_tmp = unique(models_keep[['cluster_1']])
 
         sp_models[[sample_name]] = parallel::mclapply(1:length(clusters_tmp), function(i){ ####### MCLAPPLY INSTEAD OF PBMCLAPPLY (PBMCLAPPY MAY HAVE ISSUES WITH TRYCATCH)
-        #sp_models[[sample_name]] = bettermc::mclapply(1:length(clusters_tmp), function(i){  ####### TRY BETTERMC INSTEAD OF PARALLEL
+          #sp_models[[sample_name]] = bettermc::mclapply(1:length(clusters_tmp), function(i){  ####### TRY BETTERMC INSTEAD OF PARALLEL
           #sp_models[[sample_name]] = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){ ####### TEST LOOP INSTEAD MCLAPPLY
           #for(i in 1:length(clusters_tmp)){  ####### TEST LOOP INSTEAD MCLAPPLY
           # Non-spatial models to update
@@ -652,14 +661,39 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
     avglogfold_tmp = (avgexpr_cl1 - avgexpr_cl2)
 
     # Create non-spatial model
-    res_mod = spaMM::fitme(formula=as.formula('exprval~meta'), data=expr_tmp, method="REML")
+    #res_mod = spaMM::fitme(formula=as.formula('exprval~meta'), data=expr_tmp, method="REML")
+    # res_mod = tryCatch({
+    #   mod = spaMM::fitme(formula=as.formula('exprval~meta'), data=expr_tmp, method="REML")
+    # },
+    # warning=function(w, mod){return(list(warning=w, result=mod))},
+    # #error=function(e){return(list(error=e))},
+    # finally=function(mod){return(list(result=mod))}
+    # )
+
+    error_message = c()
+    warning_message = c()
+    res_mod = withCallingHandlers(
+      tryCatch(spaMM::fitme(formula=as.formula('exprval~meta'), data=expr_tmp, method="REML"),
+               error=function(e){error_message <<- conditionMessage(e)}),
+      warning=function(w){warning_message <<- conditionMessage(w)
+      invokeRestart("muffleWarning")}
+    )
+
+    # if(any(unlist(lapply(res_mod, class)) == 'simpleWarning')){
+    #   wng = warning_message
+    # }
+
+    # Calculate p-value
+    res_mod = spaMM::summary.HLfit(res_mod, details=c(p_value="Wald"), verbose=F)[['beta_table']][2, 4]
 
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]] = list()
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['nonspmod']] = res_mod
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['samplename']] = sample_tmp
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['gene']] = gene_tmp
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['avglfc']] = avglogfold_tmp
-
+    models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['meta1']] = meta1_tmp
+    models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['meta2']] = meta2_tmp
+    models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['warning']] = warning_message
   }
   return(models_ls)
 }
@@ -725,11 +759,11 @@ spatial_de = function(non_sp_mods=NULL, annot_dict=NULL, verb=NULL){
 
 
 ##
-# create_stdiff_combo
+# prepare_stdiff_combo
 # @return data frame with combinations
 #
 #prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, annot_dict=NULL, pairwise=NULL){
-prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, pairwise=NULL){
+prepare_stdiff_combo = function(to_expand=NULL, user_clusters=NULL, pairwise=NULL, verbose=NULL){
   combo_df = tibble::tibble()
   for(sample_name in unique(to_expand[['samplename']])){
     # Extract annotations for a given sample
@@ -737,10 +771,10 @@ prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, pairwise=NULL){
     #  dplyr::select('meta') %>% unlist() %>% unique()
 
     # Define clusters to test if NULL, or subset to those requested by user
-    if(is.null(clusters)){
+    if(is.null(user_clusters)){
       annots_tmp = to_expand_subset %>% dplyr::select('meta') %>% unlist() %>% unique()
     } else{
-      annots_tmp = to_expand_subset %>% dplyr::filter(meta_orig %in% clusters) %>% dplyr::select('meta') %>% unlist() %>% unique()
+      annots_tmp = to_expand_subset %>% dplyr::filter(orig_annot %in% user_clusters) %>% dplyr::select('meta') %>% unlist() %>% unique()
     }
     #annots_tmp = annots_tmp[annots_tmp %in% unlist(annot_dict[['coded_annot']][ annot_dict[['orig_annot']] %in% clusters_tmp ]) ]
     if(length(annots_tmp) >= 2){
@@ -781,7 +815,9 @@ prepare_stdiff_combo = function(to_expand=NULL, clusters=NULL, pairwise=NULL){
                                   combo_meta %>%
                                     tibble::add_column(samplename=sample_name, .before=1))
     } else{
-      cat(crayon::yellow(paste0('\t\tSkipping sample ', sample_name, '. Less than two clusters to compare.\n')))
+      if(verbose >= 1L){
+        cat(crayon::yellow(paste0('\t\tSkipping sample ', sample_name, '. Less than two clusters to compare.\n')))
+      }
     }
   }
   combo_df = as.data.frame(combo_df) %>%
