@@ -40,6 +40,8 @@
 #' @importFrom magrittr %>%
 #'
 gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid=10000, cores=NULL){
+  # Record time
+  zero_t = Sys.time()
 
   suppressPackageStartupMessages(require('fields'))
 
@@ -231,6 +233,13 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
     for(j in names(kriging_list[[i]])){
       x@gene_krige[[j]][[i]] = kriging_list[[i]][[j]]
     }
+  }
+
+  # Print time
+  verbose = 1L
+  end_t = difftime(Sys.time(), zero_t, units='min')
+  if(verbose > 0L){
+    cat(crayon::green(paste0('Gene interpolation completed in ', round(end_t, 2), ' min.\n')))
   }
 
   return(x)

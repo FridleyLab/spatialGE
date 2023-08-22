@@ -33,6 +33,9 @@
 #
 #
 STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
+  # Record time
+  zero_t = Sys.time()
+
   cat(crayon::yellow("Running STenrich...\n"))
 
   reps = as.integer(reps)
@@ -138,7 +141,14 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
     pval_df = pval_df[order(pval_df[['adj_p_value']]), ]
     result_dfs[[i]] = pval_df
   }
-  cat(crayon::green("STenrich completed."))
+
+  # Print time
+  verbose = 1L
+  end_t = difftime(Sys.time(), zero_t, units='min')
+  if(verbose > 0L){
+    cat(crayon::green(paste0('STenrich completed in ', round(end_t, 2), ' min.\n')))
+  }
+
   return(result_dfs)
 }
 

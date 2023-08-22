@@ -26,6 +26,9 @@
 #
 STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
                       out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, cores=NULL){
+  # Record time
+  zero_t = Sys.time()
+
   # Make sure the reference cluster is character
   ref = as.character(ref)
 
@@ -338,6 +341,13 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   }
   if(length(sample_rm) > 0){
     results_ls = results_ls[ !(names(results_ls) %in% sample_rm) ]
+  }
+
+  # Print time
+  verbose = 1L
+  end_t = difftime(Sys.time(), zero_t, units='min')
+  if(verbose > 0L){
+    cat(crayon::green(paste0('STgradient completed in ', round(end_t, 2), ' min.\n')))
   }
 
   return(results_ls)
