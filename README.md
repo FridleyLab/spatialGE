@@ -31,11 +31,18 @@ The `spatialGE` repository is available at GitHub and can be installed via `devt
 devtools::install_github("fridleylab/spatialGE")
 ```
 
-For a tutorial on how to use `spatialGE`, please go to:
+## How to use spatialGE
+
+For tutorials on how to use `spatialGE`, please go to:
 https://fridleylab.github.io/spatialGE/
 
 The code for `spatialGE` can be found here:
 https://github.com/FridleyLab/spatialGE
+
+## spatialGE-web
+
+An point-and-click web application that allows usage of spatialGE methods without the need of
+coding/scripting is under development. Stay tuned!
 
 ## How to cite
 
