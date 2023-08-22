@@ -40,6 +40,7 @@ https://github.com/FridleyLab/spatialGE
 ## How to cite
 
 When using spatialGE, please cite the following publication:
+
 Ospina, O. E., Wilson C. M., Soupir, A. C., Berglund, A. Smalley, I., Tsai, K. Y., Fridley, B. L. 2022. 
 spatialGE: quantification and visualization of the tumor microenvironment heterogeneity using spatial 
 transcriptomics. Bioinformatics, 38:2645-2647. https://doi.org/10.1093/bioinformatics/btac145
