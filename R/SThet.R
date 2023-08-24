@@ -19,6 +19,9 @@
 #' that estimates are not as accurate as when using the default distance-based method.
 #' @param overwrite logical indicating if previous statistics should be overwritten.
 #' Default to FALSE (do not overwrite)
+#' @param cores integer indicating the number of cores to use during parallelization.
+#' If NULL, the function uses half of the available cores at a maximum. The parallelization
+#' uses `parallel::mclapply` and works only in Unix systems.
 #' @return an STlist containing spatial statistics
 #'
 #' @examples
@@ -36,6 +39,13 @@
 #' @export
 #'
 SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overwrite=T, cores=NULL){
+  # Record time
+  zero_t = Sys.time()
+  verbose = 1L
+  if(verbose > 0L){
+    cat(crayon::green(paste0('SThet started.\n')))
+  }
+
   # Select sample names if NULL or if number entered
   if (is.null(samples)){
     samples = names(x@tr_counts)
@@ -77,7 +87,9 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
 
   # Check whether or not a list of weights have been created
   if(overwrite | is.null(x@misc[['sthet']][['listws']])){
-    cat(crayon::yellow(paste("Calculating spatial weights...\n"))) ## Mostly added to make sure calculation is happening only when needed.
+    if(verbose > 0L){
+      cat(crayon::yellow(paste("\tCalculating spatial weights...\n"))) ## Mostly added to make sure calculation is happening only when needed.
+    }
     if(!is.null(k)){
       k = as.integer(k)
       if(!is.na(k) & k > 0){
@@ -96,6 +108,12 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
   }
   if('geary' %in% method){
     x = gene_geary_c_notest(x=x, combo=combo, overwrite=overwrite, cores=cores)
+  }
+
+  # Print time
+  end_t = difftime(Sys.time(), zero_t, units='min')
+  if(verbose > 0L){
+    cat(crayon::green(paste0('SThet completed in ', round(end_t, 2), ' min.\n')))
   }
 
   return(x)

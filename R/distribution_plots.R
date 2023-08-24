@@ -20,7 +20,6 @@
 #' density plots respectively)
 #' @param ptsize the size of points in the plots
 #' @param ptalpha the transparency of points (violin/box plot) or curves (density plots)
-#' @param ptjitter the dispersion of points in the plots
 #'
 #' @export
 #'

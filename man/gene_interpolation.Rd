@@ -9,7 +9,8 @@ gene_interpolation(
   genes = "top",
   top_n = 10,
   samples = NULL,
-  ngrid = 10000
+  ngrid = 10000,
+  cores = NULL
 )
 }
 \arguments{
@@ -28,6 +29,10 @@ If NULL (Default), all samples are interpolated.}
 \item{ngrid}{an integer indicating the number of point to predict. Default is 10000,
 resulting in a grid of 100 x 100 points. Larger numbers provide more resolution,
 but computing time is longer.}
+
+\item{cores}{integer indicating the number of cores to use during parallelization.
+If NULL, the function uses half of the available cores at a maximum. The parallelization
+uses \code{parallel::mclapply} and works only in Unix systems.}
 }
 \value{
 x a STlist including spatial interpolations.

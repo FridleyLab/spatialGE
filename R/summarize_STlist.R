@@ -2,8 +2,8 @@
 #' @title summarize_STlist: Generates a data frame with summary statistics
 #' @description Produces a data frame with counts per gene and counts per ROI/spot/cell
 #' @details
-#' The function creates a table with counts per gene and per ROI/spot/cell for
-#' the samples stored in the STlist
+#' The function creates a table with counts per gene and counts per region of interest (ROI),
+#' spot, or cell in the samples stored in the STlist
 #'
 #' @param x an STlist
 #' @return a data frame
@@ -40,6 +40,8 @@ summarize_STlist = function(x=NULL){
 
     # Make a row with stats
     df_row_tmp = tibble::tibble(sample_name=i,
+                                spotscells=ncol(x@counts[[i]]),
+                                genes=nrow(x@counts[[i]]),
                                 min_counts_per_spotcell=min_counts_spot,
                                 mean_counts_per_spotcell=mean_counts_spot,
                                 max_counts_per_spotcell=max_counts_spot,

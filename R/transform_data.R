@@ -20,6 +20,9 @@
 #' based on this number
 #' @param sct_min_cells The minimum number of spots/cells to be used in the regression
 #' model fit by `sctransform::vst`
+#' @param cores integer indicating the number of cores to use during parallelization.
+#' If NULL, the function uses half of the available cores at a maximum. The parallelization
+#' uses `parallel::mclapply` and works only in Unix systems.
 #' @return x an updated STlist with transformed counts.
 #'
 #' @examples

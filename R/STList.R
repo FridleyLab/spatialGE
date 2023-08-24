@@ -83,6 +83,9 @@
 #' X positions (for GeoMx input)
 #' @param gmx_meta_cols a vector with column names in the metadata table containing
 #' clinical data (for GeoMx input)
+#' @param cores integer indicating the number of cores to use during parallelization.
+#' If NULL, the function uses half of the available cores at a maximum. The parallelization
+#' uses `parallel::mclapply` and works only in Unix systems.
 #' @return x an STlist object containing the counts and coordinates, and optionally
 #' the sample metadata, which can be used for downstream analysis with `spatialGE`
 #'
@@ -153,7 +156,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       platform = 'visium'
     } else{
       cat(crayon::green(paste("Found matrix data\n")))
-      pre_lists = read_matrices_fps(filepaths, input_check)
+      pre_lists = read_matrices_fps(filepaths, input_check, cores=cores)
     }
   }
 
@@ -174,7 +177,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
         platform = 'visium'
       } else{
         cat(crayon::green(paste("Found matrix data\n")))
-        pre_lists = read_matrices_fps(filepaths, input_check)
+        pre_lists = read_matrices_fps(filepaths, input_check, cores=cores)
       }
     }
   }
@@ -193,7 +196,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
         platform = 'visium'
       } else{
         cat(crayon::green(paste("Found matrix data\n")))
-        pre_lists = read_matrices_fps(filepaths, input_check)
+        pre_lists = read_matrices_fps(filepaths, input_check, cores=cores)
       }
     }
   }
@@ -206,7 +209,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
   #cat(crayon::green(paste("Requested", length(pre_lists[['counts']]), "samples\n")))
 
   # Process count and coordinate lists before placing within STlist
-  cat(crayon::yellow(paste("\tMatching gene expression and coordinate data...\n")))
+  cat(crayon::yellow(paste("Matching gene expression and coordinate data...\n")))
   procLists = process_lists(pre_lists[['counts']], pre_lists[['coords']])
 
   # Process metadata if provided or make an empty tibble
@@ -379,7 +382,7 @@ read_seurat = function(rnacounts){
 # @param input_check The result of detect_input
 # @return return_lists a list with two lists within (one with counts, one with coordinates)
 #
-read_matrices_fps = function(filepaths, input_check){
+read_matrices_fps = function(filepaths, input_check, cores=NULL){
   # Get delimiter of RNA counts and coordinates.
   # NOTE: This only test the first matrix.
   # NOTE2: This is being commented out because presumably, the detect_input function

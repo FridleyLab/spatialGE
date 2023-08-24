@@ -121,6 +121,8 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
 #' variable specified in `plot_meta`
 #' @param plot_meta a string indicating the name of the variable in the sample
 #' metadata to color points in the PCA plot
+#' @param pcx integer indicating the principal component to plot in the x axis
+#' @param pcy integer indicating the principal component to plot in the y axis
 #' @param ptsize the size of the points in the PCA plot. Passed to the `size`
 #' aesthetic from `ggplot2`
 #' @return a ggplot object

@@ -8,8 +8,8 @@ STdiff(
   x = NULL,
   samples = NULL,
   annot = NULL,
-  ws = NULL,
-  ks = "dtc",
+  w = NULL,
+  k = NULL,
   deepSplit = NULL,
   topgenes = 5000,
   pval_thr = 0.05,
@@ -30,13 +30,13 @@ Numbers follow the order in \code{names(x@counts)}. Sample names are also allowe
 If NULL, performs tests on all samples}
 
 \item{annot}{a column name in \code{x@spatial_meta} containing the groups/clusters to
-be tested}
+be tested. Required if \code{k} and \code{w} are empty.}
 
-\item{ws}{the spatial weight used in STclust}
+\item{w}{the spatial weight used in STclust. Required if \code{annot} is empty.}
 
-\item{ks}{the k value used in STclust, or \code{dtc} (default) for dynamicTreeCut clusters}
+\item{k}{the k value used in STclust, or \code{dtc} for dynamicTreeCut clusters. Required if \code{annot} is empty.}
 
-\item{deepSplit}{the deepSplit value if used in STclust}
+\item{deepSplit}{the deepSplit value if used in STclust. Required if \code{k='dtc'}.}
 
 \item{topgenes}{an integer indicating the top variable genes to select from each sample
 based on variance (default=5000). If NULL, all genes are selected.}
@@ -80,9 +80,9 @@ spots/cells with respect to the rest of spots/cells in the sample. The method fi
 runs non-spatial linear models on the genes to detect differentially expressed genes.
 Then spatial linear models with exponential covariance structure are fit on a
 subset of genes detected as differentially expressed by the non-linear models (\code{sp_topgenes}).
-If running on clusters detected via STclust, the user can specify the assignments
-using the same parameters (\code{ws}, \code{ks}, \code{deepSplit}). Otherwise, the assignments are
-specified by indicating the column name in \code{x@spatial_meta}. The function uses \code{spaMM::fitme} and
-is computationally expensive even on HPC environments. To run the STdiff using the
-non-spatial approach (faster), set \code{sp_topgenes=0}.
+If running on clusters detected via STclust, the user should specify the assignments
+using the same parameters (\code{w}, \code{k}, \code{deepSplit}). Otherwise, the assignments are
+specified by indicating one of the column names in \code{x@spatial_meta}. The function
+uses \code{spaMM::fitme} and is computationally expensive even on HPC environments.
+To run the STdiff using the non-spatial approach (faster), set \code{sp_topgenes=0}.
 }

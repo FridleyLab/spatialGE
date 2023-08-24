@@ -23,3 +23,16 @@ only to those genes for which spatial statistics (Moran's I or Geary's C, see \c
 have been calculated. The output is a data frame with data from all samples in the
 STlist
 }
+\examples{
+# Using included melanoma example (Thrane et al.)
+library('spatialGE')
+data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+count_files <- grep("counts", data_files, value=T)
+coord_files <- grep("mapping", data_files, value=T)
+clin_file <- grep("thrane_clinical", data_files, value=T)
+melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+melanoma <- transform_data(melanoma, method='log')
+melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
+get_gene_meta(melanoma, sthet_only=T)
+
+}

@@ -9,9 +9,7 @@ STplot_interpolation(
   genes = NULL,
   top_n = 10,
   samples = NULL,
-  color_pal = "BuRd",
-  image = F,
-  visium = T
+  color_pal = "BuRd"
 )
 }
 \arguments{
@@ -26,10 +24,6 @@ genes with highest standard deviation from each spatial sample are plotted.}
 it follows the order of \code{names(x@counts)}. If NULL, the function plots all samples}
 
 \item{color_pal}{a color scheme from \code{khroma} or \code{RColorBrewer}.}
-
-\item{image}{logical, whether to print the image stored for the spatial arrays}
-
-\item{visium}{whether or not to reverse axes for Visium slides}
 }
 \value{
 a list of plots

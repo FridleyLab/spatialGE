@@ -1,5 +1,5 @@
 ---
-title: "Basic functionality of spatialGE"
+title: "spatialGE: Basic functionality"
 date: '`r format(Sys.Date())`'
 output: rmarkdown::html_vignette
 bibliography: vignette_references.bib
@@ -13,15 +13,15 @@ vignette: >
 knitr::opts_chunk$set(
   collapse=TRUE,
   comment="#>",
-  fig.width=10, fig.height=7
+  fig.width=8, fig.height=5
 )
 ```
 
-The package ***`spatialGE`*** provides a collection of tools for the visualization of gene expression from spatially-resolved transcriptomic experiments. The data input methods have been designed so that any data can be analyzed as long as it contains gene expression counts per ROI/spot/cell and the spatial coordinates of those ROIs/spots/cells. Specialized data input options are available to allow interoperability with workflows such as [*Space Ranger*](https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger).
+The package ***`spatialGE`*** provides a collection of tools for the visualization of gene expression from spatially-resolved transcriptomic experiments. The data input methods have been designed so that any data can be analyzed as long as it contains gene expression counts per region of interest (ROI), spot, or cell, and the spatial coordinates of those ROIs/spots/cells. Specialized data input options are available to allow interoperability with workflows such as [*Space Ranger*](https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger).
 
 ## Installation
 
-The `spatialGE` repository is available at GitHub and can be installed via `devtools`. To install `devtools`, in case it is not already installed in your R, please run the following code:
+The `spatialGE` repository is available at GitHub and can be installed via `devtools`. To install `devtools` (in case it is not already installed in your R), please run the following code:
 
 ```{r install_devtools}
 if("devtools" %in% rownames(installed.packages()) == FALSE){
@@ -31,8 +31,9 @@ if("devtools" %in% rownames(installed.packages()) == FALSE){
 
 After making sure `devtools` is installed, proceed to install `spatialGE`:
 
-```{r install_spatialGE, eval=F}
-devtools::install_github("fridleylab/spatialGE")
+```{r install_spatialGE, eval=T}
+devtools::load_all('../')
+#devtools::install_github("fridleylab/spatialGE")
 ```
 
 To use `spatialGE`, load the package.
@@ -43,7 +44,7 @@ library('spatialGE')
 
 ## Spatially-resolved expression of triple negative breast cancer tumor biopsies
 
-To show the utility of some of the functions in `spatialGE`, we use the spatial transcriptomics data set generated with the platform Visium by @bassiouni_2023. This data set includes triple negative breast cancer biopsies from 22 patients, with two tissue slices per patient. The Visium platform allows gene expression quantitation in approximately 5000 capture areas (i.e., "spots") separated each other by 100μM. The spots are 55μM in diameter, which corresponds to 1-10 cells according to the manufacturer [@visium_faq].
+To show the utility of some of the functions in `spatialGE`, we use the spatial transcriptomics data set generated with the platform Visium by @bassiouni_2023. This data set includes triple negative breast cancer biopsies from 22 patients, with two tissue slices per patient. The Visium platform allows gene expression quantitation in approximately 5000 capture areas (i.e., "spots") separated each other by 100μM. The spots are 55μM in diameter, which corresponds to 1-10 cells [according to the manufacturer](https://kb.10xgenomics.com/hc/en-us/articles/360035487952-How-many-cells-are-captured-in-a-single-spot-).
 
 Data for all the tissue slices are available at the Gene Expression Omnibus (GEO). For the purpose of this tutorial, we will use eight samples from four patients. The GEO repositories can be accessed using the following links:
 
@@ -134,7 +135,7 @@ pseudobulk_pca_plot(tnbc, plot_meta='patient_id')
 Users can also generate a heatmap from pseudobulk counts by calling the `pseudobulk_heatmap` function, which also requires prior use of the `pseudobulk_samples` function. The number of variable genes to show can be controlled via the `hm_display_genes` argument.
 
 ```{r heatmap_chunk, fig.align='center'}
-pseudobulk_heatmap(tnbc, plot_meta='patient_id', hm_display_genes=30)
+hm_p = pseudobulk_heatmap(tnbc, plot_meta='patient_id', hm_display_genes=30)
 ```
 
 ## Transformation of spatially-resolved transcriptomics data
@@ -145,7 +146,7 @@ Many transformation methods are available for RNAseq count data. In `spatialGE`,
 tnbc <- transform_data(tnbc, method='log')
 ```
 
-Users also can apply variance-stabilizing transformation (SCT) @hafemeister_2019, which is another method increasingly used in single-cell and spatial transcriptomics studies. See [here](https://fridleylab.github.io/spatialGE/reference/transform_data.html) for details.
+Users also can apply variance-stabilizing transformation (SCT; @hafemeister_2019), which is another method increasingly used in single-cell and spatial transcriptomics studies. See [here](https://fridleylab.github.io/spatialGE/reference/transform_data.html) for details.
 
 ## Visualization of gene expression from spatially-resolved transcriptomics data
 
@@ -221,10 +222,6 @@ We can see that from `w=0` and `w=0.05`, we can only detect two tissue niches. A
 To explore the relationship between a clinical (sample-level) variable of interest and the level of gene expression spatial uniformity within a sample, we can use the `SThet()` function:
 
 ```{r sthet_chunk}
-tnbc <- SThet_3(tnbc, 
-              genes=c('NDRG1', 'IGKC'),
-              method='moran')
-
 tnbc <- SThet(tnbc, 
               genes=c('NDRG1', 'IGKC'),
               method='moran')
@@ -237,7 +234,8 @@ p = compare_SThet(tnbc,
                   samplemeta='overall_survival_days', 
                   color_by='patient_id',
                   gene=c('NDRG1', 'IGKC'), 
-                  color_pal='discreterainbow')
+                  color_pal='muted',
+                  ptsize=3)
 
 p
 ```
@@ -248,10 +246,12 @@ See the table below for a simplistic interpretation of the spatial autocorrelati
 
 ```{r sphet_table, echo=F}
 library('magrittr') # Use of pipe operator
-sphet_info <- tibble::tibble("Low"=c('Dispersion', 'Clustering'),
-"Statistic"=c('Moran’s I', 'Geary’s C'),
-"High"=c('Clustering', 'Dispersion')
-)
+sphet_info <- tibble::tibble(
+  "Statistic"=c('Moran’s I', 'Geary’s C'),
+  "Clustered expression"=c('Closer to 1', 'Closer to 0'),
+  "No expression pattern"=c('Closer to 0', 'Closer to 1'),
+  "Uniform expression"=c('Closer to -1', 'Closer to 2')
+  )
 
 kableExtra::kbl(sphet_info, align='c', centering=T) %>%
   kableExtra::kable_styling(position="center", full_width=F)
@@ -262,6 +262,11 @@ The computed statistics are stored in the STlist for additional analysis/plottin
 ```{r stats_slot}
 get_gene_meta(tnbc, sthet_only=T)
 ```
+
+## References
+
+<div id="refs"></div>
+
 
 <details>
 

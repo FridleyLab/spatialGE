@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_image.R
 \name{plot_image}
 \alias{plot_image}
-\title{plot_image}
+\title{plot_image: Generate a ggplot object of the tissue image}
 \usage{
 plot_image(x = NULL, samples = NULL)
 }
@@ -17,8 +17,10 @@ If NULL, the function plots all samples}
 a list of plots
 }
 \description{
-plot_image
+Creates ggplot objects of the tissue images when available within the STlist
 }
 \details{
-
+If the STlist contains tissue images in the \verb{@misc} slot, the \code{plot_image} function
+can be used to generate ggplot objects. These ggplot objects can be plotted next to
+quilt plots (\code{STplot} function) for comparative analysis.
 }

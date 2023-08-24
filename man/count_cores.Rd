@@ -9,10 +9,10 @@ total available cores. Will default to 1 core if not Unix}
 count_cores(n)
 }
 \arguments{
-\item{n, }{an integer representing the number of units to process}
+\item{n}{an integer representing the number of units to process}
 }
 \value{
-cores, the number of cores to use
+the number of cores to use
 }
 \description{
 Get the number of cores to use in parallel as a function of the number of

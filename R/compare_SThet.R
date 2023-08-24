@@ -12,8 +12,14 @@
 #' @param samplemeta a string indicating the name of the variable in the clinical
 #' data frame. If NULL, uses sample names
 #' @param genes the name(s) of the gene(s) to plot.
+#' @param color_by the variable in `x@spatial_meta` used to color points in the plot.
+#' If NULL, each sample is assigned a different color
+#' @param categorical logical indicating whether or not to treat `color_by` as a
+#' categorical variable. Default is TRUE
 #' @param color_pal a string of a color palette from khroma or RColorBrewer, or a
 #' vector with colors with enough elements to plot categories.
+#' @param ptsize a number specifying the size of the points. Passed to the `size`
+#' aesthetic.
 #' @return a list of plots
 #'
 #' @export
@@ -23,20 +29,13 @@
 #' @importFrom methods as is new
 #
 #
-compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL, color_pal="muted") {
-  # Spatial plots with cell scores might get removed from package
-  cell = NULL
-
+compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL, categorical=T, color_pal="muted", ptsize=1) {
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STlist')){
     stop("The input must be a STList.")
   }
 
-  if(!is.null(genes) && !is.null(cell)){
-    stop('At the moment, only one gene OR one cell type at a time is enabled.')
-  }
-
-  if(is.null(genes) && is.null(cell)){
+  if(is.null(genes)){
     stop('Please, enter one gene or more to generate plot.')
   }
 
@@ -53,7 +52,7 @@ compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL, co
   # array IDs from the first column of clinical data.
   meta_df = x@sample_meta %>%
     dplyr::select(1, !!!samplemeta, !!!color_by)
-  if(!is.numeric(meta_df[[color_by]])){ # To avoid treating numbers as categories
+  if(categorical){ # To avoid treating numbers as categories
     meta_df = meta_df %>%
       dplyr::mutate(!!color_by := as.factor(.[[!!color_by]]))
   }
@@ -79,7 +78,7 @@ compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL, co
 
   rm(meta_df) # Clean env
 
-  res_p = spatial_stat_plot_gene(meta_df=metadf_ls, samplemeta=samplemeta, color_by=color_by, color_pal=color_pal)
+  res_p = spatial_stat_plot_gene(meta_df=metadf_ls, samplemeta=samplemeta, color_by=color_by, color_pal=color_pal, ptsize=ptsize)
 
   return(res_p)
 }
@@ -91,7 +90,7 @@ compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL, co
 # @param meta_df a data frame with samples and spatial stats to plot
 # @param color_pal the name of a color palette
 #
-spatial_stat_plot_gene = function(meta_df=NULL, samplemeta=NULL, color_by=NULL, color_pal=NULL){
+spatial_stat_plot_gene = function(meta_df=NULL, samplemeta=NULL, color_by=NULL, color_pal=NULL, ptsize=1){
   if(is.null(samplemeta)){
     samplemeta = names(meta_df)[1]
   }
@@ -108,7 +107,7 @@ spatial_stat_plot_gene = function(meta_df=NULL, samplemeta=NULL, color_by=NULL, 
 
   if(any(!is.na(meta_df[['moran']]))){
     res_plots[['moran']] = ggplot(meta_df) +
-      geom_point(aes(x=moran, y=.data[[samplemeta]], color=.data[[color_by]])) +
+      geom_point(aes(x=moran, y=.data[[samplemeta]], color=.data[[color_by]]), size=ptsize) +
       #ggrepel::geom_text_repel(aes(x=moran, y=.data[[samplemeta]], label=.data[[color_by]])) +
       ggtitle(paste0('Moran\'s I and ', samplemeta)) +
       xlab('Moran\'s I') +
@@ -135,7 +134,7 @@ spatial_stat_plot_gene = function(meta_df=NULL, samplemeta=NULL, color_by=NULL, 
 
   if(any(!is.na(meta_df[['geary']]))){
     res_plots[['geary']] = ggplot(meta_df) +
-      geom_point(aes(x=geary, y=.data[[samplemeta]], color=.data[[color_by]])) +
+      geom_point(aes(x=geary, y=.data[[samplemeta]], color=.data[[color_by]]), size=ptsize) +
       #ggrepel::geom_text_repel(aes(x=moran, y=.data[[samplemeta]], label=.data[[color_by]])) +
       ggtitle(paste0('Geary\'s C and ', samplemeta)) +
       xlab('Geary\'s C') +

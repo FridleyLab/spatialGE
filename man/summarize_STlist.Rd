@@ -16,8 +16,8 @@ a data frame
 Produces a data frame with counts per gene and counts per ROI/spot/cell
 }
 \details{
-The function creates a table with counts per gene and per ROI/spot/cell for
-the samples stored in the STlist
+The function creates a table with counts per gene and counts per region of interest (ROI),
+spot, or cell in the samples stored in the STlist
 }
 \examples{
 # Using included melanoma example (Thrane et al.)

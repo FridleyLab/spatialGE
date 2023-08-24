@@ -155,9 +155,9 @@ create_listw = function(x=NULL){
 
 
 ##
-#' @title create_listw_from_knn
-#' @param x an STlist
-#' @param ks
+# @title create_listw_from_knn
+# @param x an STlist
+# @param ks
 #
 create_listw_from_knn = function(x=NULL, ks=NULL){
   # Define cores available
@@ -176,9 +176,9 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
 
 
 ##
-#' @title create_listw_from_dist
-#' @param x an STlist
-#' @param ks
+# @title create_listw_from_dist
+# @param x an STlist
+# @param ks
 #
 create_listw_from_dist = function(x=NULL, cores=NULL){
   # Define cores available

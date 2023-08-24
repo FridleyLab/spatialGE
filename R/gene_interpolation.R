@@ -19,6 +19,9 @@
 #' @param ngrid an integer indicating the number of point to predict. Default is 10000,
 #' resulting in a grid of 100 x 100 points. Larger numbers provide more resolution,
 #' but computing time is longer.
+#' @param cores integer indicating the number of cores to use during parallelization.
+#' If NULL, the function uses half of the available cores at a maximum. The parallelization
+#' uses `parallel::mclapply` and works only in Unix systems.
 #' @return x a STlist including spatial interpolations.
 #'
 #' @examples
@@ -42,6 +45,10 @@
 gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid=10000, cores=NULL){
   # Record time
   zero_t = Sys.time()
+  verbose = 1L
+  if(verbose > 0L){
+    cat(crayon::green(paste0('Gene interpolation started.\n')))
+  }
 
   suppressPackageStartupMessages(require('fields'))
 
@@ -236,7 +243,6 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
   }
 
   # Print time
-  verbose = 1L
   end_t = difftime(Sys.time(), zero_t, units='min')
   if(verbose > 0L){
     cat(crayon::green(paste0('Gene interpolation completed in ', round(end_t, 2), ' min.\n')))

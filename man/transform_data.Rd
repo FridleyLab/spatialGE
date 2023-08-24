@@ -9,7 +9,8 @@ transform_data(
   method = "log",
   scale_f = 10000,
   sct_n_regr_genes = 3000,
-  sct_min_cells = 5
+  sct_min_cells = 5,
+  cores = NULL
 )
 }
 \arguments{
@@ -26,6 +27,10 @@ based on this number}
 
 \item{sct_min_cells}{The minimum number of spots/cells to be used in the regression
 model fit by \code{sctransform::vst}}
+
+\item{cores}{integer indicating the number of cores to use during parallelization.
+If NULL, the function uses half of the available cores at a maximum. The parallelization
+uses \code{parallel::mclapply} and works only in Unix systems.}
 }
 \value{
 x an updated STlist with transformed counts.

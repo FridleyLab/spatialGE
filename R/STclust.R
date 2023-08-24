@@ -45,6 +45,13 @@
 #
 #
 STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D', ks='dtc', topgenes=2000, deepSplit=F){
+  # Record time
+  zero_t = Sys.time()
+  verbose = 1L
+  if(verbose > 0L){
+    cat(crayon::green(paste0('STclust started.\n')))
+  }
+
   # Clustering method to use. Set because other methods will be supported in future versions
   clmethod = 'hclust'
 
@@ -172,6 +179,12 @@ STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D', 
         stop('Currently, only spatially-informed hierarchical clustering is supported.')
       }
     }
+  }
+
+  # Print time
+  end_t = difftime(Sys.time(), zero_t, units='min')
+  if(verbose > 0L){
+    cat(crayon::green(paste0('STclust completed in ', round(end_t, 2), ' min.\n')))
   }
 
   return(x)

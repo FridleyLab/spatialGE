@@ -106,12 +106,12 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
       annot = paste0('stclust_spw', as.character(w))
       if(k == 'dtc'){
         if(is.null(deepSplit)){
-          stop('If k="dtc" annotation, then specify ')
+          stop('If k=\"dtc\", then specify deepSplit.')
         } else if(is.logical(deepSplit)){
           if(deepSplit){
-            dspl = paste0(annot, '_dsplTrue')
+            annot = paste0(annot, '_dsplTrue')
           } else{
-            dspl = paste0(annot, '_dsplFalse')
+            annot = paste0(annot, '_dsplFalse')
           }
         } else{
           annot = paste0(annot, '_dspl', deepSplit)
@@ -461,6 +461,21 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
         }
         clusters_tmp = unique(models_keep[['cluster_1']])
 
+        # Create data frame with expression, coordinate, and cluster data
+        # Add group dummy column (in case of mixed models was requested)
+        expr_df = expandSparse(x@tr_counts[[sample_name]])
+        expr_df = t(expr_df) %>%
+          as.data.frame() %>%
+          tibble::rownames_to_column(var='libname') %>%
+          dplyr::right_join(x@spatial_meta[[sample_name]] %>%
+                              tibble::add_column(group=1, .after='libname') %>%
+                              dplyr::select(c('libname', 'group', 'ypos', 'xpos'), orig_annot:=!!annot),. , by='libname') %>%
+          dplyr::left_join(., meta_dict, by='orig_annot') %>%
+          dplyr::rename(meta=coded_annot) %>%
+          tibble::column_to_rownames(var='libname') %>%
+          dplyr::relocate(meta, .before=1) %>%
+          dplyr::select(-c('orig_annot'))
+
         sp_models[[sample_name]] = parallel::mclapply(1:length(clusters_tmp), function(i){ ####### MCLAPPLY INSTEAD OF PBMCLAPPLY (PBMCLAPPY MAY HAVE ISSUES WITH TRYCATCH)
           #sp_models[[sample_name]] = bettermc::mclapply(1:length(clusters_tmp), function(i){  ####### TRY BETTERMC INSTEAD OF PARALLEL
           #sp_models[[sample_name]] = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){ ####### TEST LOOP INSTEAD MCLAPPLY
@@ -470,7 +485,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
             dplyr::filter(cluster_1 == clusters_tmp[i]) %>%
             dplyr::select('genexcluster') %>%
             unlist() %>% as.vector()
-          non_sp_models_tmp = non_sp_models[[clusters_tmp[i]]][models_keep_tmp]
+          non_sp_models_tmp = non_sp_models[[sample_name]][ models_keep_tmp ]
 
           if(verbose == 1L){
             if(pairwise){
@@ -498,7 +513,8 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
           }
 
           # Run models
-          sp_mods = spatial_de(non_sp_mods=non_sp_models_tmp, annot_dict=meta_dict, verb=verbose)
+          sp_mods = spatial_de(expr_dat=expr_df, non_sp_mods=non_sp_models_tmp, annot_dict=meta_dict, verb=verbose)
+
           return(sp_mods) ####### TEST LOOP INSTEAD MCLAPPLY
         }, mc.cores=cores) ####### TEST LOOP INSTEAD MCLAPPLY
         #sp_models[[sample_name]] = sp_mods  ####### TEST LOOP INSTEAD MCLAPPLY
@@ -708,13 +724,16 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
 # cores is to use is detected automatically.
 # @return a list of spatial models
 #
-spatial_de = function(non_sp_mods=NULL, annot_dict=NULL, verb=NULL){
+spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NULL){
   res_ls = list()
   for(i in names(non_sp_mods)){
     # Extract sample name
     sample_tmp = non_sp_mods[[i]][['samplename']]
     # Extract gene name
     gene_tmp = non_sp_mods[[i]][['gene']]
+    # Extract clusters
+    meta1_tmp = non_sp_mods[[i]][['meta1']]
+    meta2_tmp = non_sp_mods[[i]][['meta2']]
 
     # Print information of test
     if(verb == 2L){
@@ -734,10 +753,18 @@ spatial_de = function(non_sp_mods=NULL, annot_dict=NULL, verb=NULL){
       system(sprintf('echo "%s"', crayon::green(paste0('\t\tSample: ', sample_tmp, '; ', gene_tmp, ', ', stdout_print))))
     }
 
+    expr_subset = expr_dat[, c("meta" , "group", "ypos", "xpos", gene_tmp)] %>%
+      dplyr::rename(exprval := !!gene_tmp)
+    if(meta2_tmp == 'other'){
+      expr_subset[['meta']][ expr_subset[['meta']] != meta1_tmp ] = 'other'
+    } else{
+      expr_subset = expr_subset[ expr_subset[['meta']] %in% c(meta1_tmp, meta2_tmp), ]
+    }
+
     exp_out = tryCatch({
       #R.utils::withTimeout({
       spaMM::fitme(formula=as.formula(paste0("exprval~meta+Matern(1|xpos+ypos)")),
-                   data=non_sp_mods[[i]][['nonspmod']][['data']],
+                   data=expr_subset,
                    fixed=list(nu=0.5), method="REML",
                    control.HLfit=list(algebra="decorr"))
       #}, timeout=5)

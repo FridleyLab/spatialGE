@@ -12,7 +12,6 @@
 #' @param samples a vector indicating the spatial samples to plot. If vector of numbers,
 #' it follows the order of `names(x@counts)`. If NULL, the function plots all samples
 #' @param color_pal a color scheme from `khroma` or `RColorBrewer`.
-#' @param visium whether or not to reverse axes for Visium slides
 #' @return a list of plots
 #'
 #' @examples
@@ -141,7 +140,7 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
 
       visium = F
       # Define if visium
-      if(krige_stlist@misc[['platform']] == visium){
+      if(x@misc[['platform']] == 'visium'){
         visium=T
       }
 

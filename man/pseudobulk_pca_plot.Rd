@@ -24,6 +24,10 @@ variable specified in \code{plot_meta}}
 \item{plot_meta}{a string indicating the name of the variable in the sample
 metadata to color points in the PCA plot}
 
+\item{pcx}{integer indicating the principal component to plot in the x axis}
+
+\item{pcy}{integer indicating the principal component to plot in the y axis}
+
 \item{ptsize}{the size of the points in the PCA plot. Passed to the \code{size}
 aesthetic from \code{ggplot2}}
 }

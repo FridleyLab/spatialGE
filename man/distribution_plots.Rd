@@ -38,8 +38,6 @@ density plots respectively)}
 \item{ptsize}{the size of points in the plots}
 
 \item{ptalpha}{the transparency of points (violin/box plot) or curves (density plots)}
-
-\item{ptjitter}{the dispersion of points in the plots}
 }
 \description{
 Generates violin plots, boxplots, or density plots of continuous

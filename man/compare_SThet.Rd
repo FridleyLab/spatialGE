@@ -9,7 +9,9 @@ compare_SThet(
   samplemeta = NULL,
   genes = NULL,
   color_by = NULL,
-  color_pal = "muted"
+  categorical = T,
+  color_pal = "muted",
+  ptsize = 1
 )
 }
 \arguments{
@@ -20,8 +22,17 @@ data frame. If NULL, uses sample names}
 
 \item{genes}{the name(s) of the gene(s) to plot.}
 
+\item{color_by}{the variable in \code{x@spatial_meta} used to color points in the plot.
+If NULL, each sample is assigned a different color}
+
+\item{categorical}{logical indicating whether or not to treat \code{color_by} as a
+categorical variable. Default is TRUE}
+
 \item{color_pal}{a string of a color palette from khroma or RColorBrewer, or a
 vector with colors with enough elements to plot categories.}
+
+\item{ptsize}{a number specifying the size of the points. Passed to the \code{size}
+aesthetic.}
 }
 \value{
 a list of plots
