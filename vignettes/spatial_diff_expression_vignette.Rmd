@@ -240,8 +240,9 @@ print(deg[['ST_mel1_rep1']])
 
 The columns `p_val` and `adj_p_val` are respectively the nominal and adjusted p-values resulting from the differential expression tests using the _non-spatial_ models. The `exp_p_val` and `exp_adj_p_val` are the p-values resulting from the _spatial_ models.
 
-We can look at the -log10(p-values) to compare each spatial model to the non-spatial
-model:
+### Comparing results from the _non-spatial_ and _spatial_ models
+
+We can look at the -log10(p-values) to compare each spatial model to the non-spatial model:
 
 ```{r compare_pval, warning=F}
 # First load ggrepel to add gene names to plot
@@ -268,12 +269,23 @@ p1 = ggplot(log_pval, aes(x=log_p_val, y=log_exp_p_val)) +
 p1
 ```
 
-When comparing the -log10(p-values) from the _non-spatial_ and _spatial_ models, it is possible to see that the p-values from the _non-spatial_ model tended to provide smaller, more significant p-values (i.e., larger -log10(p-values), below the 1:1 dotted red line). 
+When comparing the -log10(p-values) from the _non-spatial_ and _spatial_ models, it is possible to see that the p-values from the _non-spatial_ model tended to provide smaller, more significant p-values (i.e., larger -log10(p-values), below the 1:1 dotted red line). Some genes such as _DCN_, _MYL9_, _IGF2_ are shown as differentially expressed by the _non-spatial_ models, however, are not differentially expressed in the _spatial_ models (p-values under the -log10(0.05) indicated with horizontal and vertical dashed lines). This pattern is suggestive of type I error inflation. 
 
+Testing spatial models with `STdiff` is both computationally- and time-intensive. The analysis in this tutorial took approximately 18 minutes in a OS machine with a 6-cores Intel Core i7 and 16GB memory. Should the user decide to disable spatial testing, the user only needs to set `sp_topgenes=0`. When running _spatial_ tests with more genes, and samples assayed with more densely sampled technologies (e.g., Visium, CosMx-SMI), the user should consider running `STdiff` in a High-Performance Computing environment (HPC, or "cluster"), setting the number of cores to use via the `cores` parameter.
 
-This pattern is suggestive of type I error inflation. Since only the top 1000 most variable genes were included in the test, all genes were differentially expressed, but if the user increases the number of tested genes, genes that the _non-spatial_ model detects as differentialy expressed, the _spatial_ model would detect as non-differentially expressed. 
+### Visualizng `STdiff` results
 
-Testing spatial models with `STdiff` is both computationally- and time-intensive. The analysis in this tutotial took approximately 18 minutes in a OS machine with a 6-cores Intel Core i7 and 16GB memory. Should the user decide to disable spatial testing, the user only needs to set `sp_topgenes=0`.
+The `spatialGE` package has a built-in function (`STdiff_volcano`) to generate volcano plots. The function takes `STdiff` outputs and generates a volcano plot for each sample and cluster (or cluster pair if pairwise testing was requested).
+
+```{r volc_plots1}
+vp = STdiff_volcano(deg)
+```
+
+Now, the `ggpubr` package can be used to arrange all plots:
+
+```{r volc_plots2}
+ggpubr::ggarrange(plotlist=vp, ncol=3, common.legend=T)
+```
 
 
 ## References
@@ -285,7 +297,7 @@ Testing spatial models with `STdiff` is both computationally- and time-intensive
 
 <summary>**Session Info**</summary>
 
-```{r}
+```{r session_info}
 sessionInfo()
 ```
 

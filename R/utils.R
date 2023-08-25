@@ -100,15 +100,12 @@ load_images = function(x=NULL, images=NULL){
   }
 
   if(is.null(images)){
-    stop("Please, provide a directory with images.")
+    stop("Please, provide a vector with images file paths.")
   }
-
-  # Get file names of images
-  imageFps = list.files(images, full.names=T)
 
   # Process each image.
   for(i in names(x@counts)){
-    fp = grep(i, imageFps, value=T)
+    fp = grep(i, images, value=T)
     if(length(fp) == 0){
       cat(paste0("Image for sample ", i, " was not found."))
       next
