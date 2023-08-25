@@ -88,7 +88,7 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 #' @param images a string indicating a folder to load images from
 #' @return an STlist with images
 #'
-# @export
+#' @export
 #'
 #' @importFrom methods as is new
 #

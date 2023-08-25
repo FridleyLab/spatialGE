@@ -1,5 +1,0 @@
-"0","```r
-melanomaSTList@voom_counts = melanomaSTList@log_counts
-melanomaSTList@gene_stdev[['mel1_2']] = tibble::tibble(gene=melanomaSTList@log_counts[[1]][[1]]) %>%
-  tibble::add_column(gene_stdevs=apply(melanomaSTList@log_counts[[1]][, -1], 1, sd))
-```"

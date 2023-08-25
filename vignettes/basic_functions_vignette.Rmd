@@ -270,17 +270,28 @@ library('sc.SpatialSIM')
 ```
 
 ```{r tissue_sim, warning=F}
-wdw = spatstat.geom::owin(xrange=c(0, 5), yrange=c(0, 5))
+wdw = owin(xrange=c(0, 5), yrange=c(0, 5))
 sim_visium = CreateSimulationObject(sims=1, cell_types=1, window=wdw)
 sim_visium = GenerateSpatialPattern(sim_visium, gridded=T)
+set.seed(12345)
 sim_visium = GenerateTissue(sim_visium, 
                             k=1, 
-                            xmin=0.01, xmax=0.05,
-                            ymin=0.01, ymax=0.05,
-                            density_heatmap=T, step_size=0.1, cores=1)
+                            xmin=2, xmax=3,
+                            ymin=2, ymax=3,
+                            density_heatmap=T, step_size=0.1)
 
-#plot(sim_visium)
-#PlotSimulation(sim_visium, which=1, ncol=2, nrow=2)
+sim_visium = GenerateCellPositivity(sim_visium, k=1,
+                                    xmin=2, xmax=3,
+                                    ymin=2, ymax=3,
+                                    #sdmin=3, sdmax=5,
+                                    density_heatmap=T, step_size=0.1, probs=c(0, 1),
+                                    correlation = -1)
+
+#plot(sim_visium, what="Patterns", ncol=1, nrow=1, which=1)
+#PlotSimulation(sim_visium, which=1, what="tissue heatmap")
+
+ggplot(sim_visium@Cells[[1]]@`Density Grids`[[1]], aes(x=x, y=y)) + geom_point(aes(color=prob))
+
 ```
 
 
