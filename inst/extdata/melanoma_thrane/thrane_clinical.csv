@@ -1,0 +1,9 @@
+sampleID,patient,slice,gender,BRAF_status,NRAS_status,CDKN2A_status,survival,survival_months,RIN
+ST_mel1_rep1,1,A,Male,mut,wt,hd,10_plus_years,120,6.2
+ST_mel1_rep2,1,B,Male,mut,wt,hd,10_plus_years,120,6.2
+ST_mel2_rep1,2,A,Female,wt,wt,hd,401_days,13.4,7.1
+ST_mel2_rep2,2,B,Female,wt,wt,hd,401_days,13.4,7.1
+ST_mel3_rep1,3,A,Male,mut,wt,wt,208_days,6.9,7.4
+ST_mel3_rep2,3,B,Male,mut,wt,wt,208_days,6.9,7.4
+ST_mel4_rep1,4,A,Male,mut,wt,wt,305_days,10.2,6.9
+ST_mel4_rep2,4,B,Male,mut,wt,wt,305_days,10.2,6.9

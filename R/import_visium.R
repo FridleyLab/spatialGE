@@ -1,99 +1,83 @@
 ##
-# @title importVisium: Reads Visium outputs and produce an STList.
-# @description Reads files in the output folder of a Visium run, and returns an
-# STList for downstream analysis with spatialGE.
+# @title importVisium: Reads Visium outputs in MEX format
+# @description Reads Market Exchange (MEX) format files in the output directory of a
+# Visium run, and returns data for creation of a STList.
 # @details
-# The function takes as an argument the path to an 'outs'  folder of a Visium run.
-# It reads the data and converts it into an STList, which can be used in downstrean
-# analysis with spatialGE.
+# The function takes as an argument the paths to the features, barcodes, and matrix
+# outputs of a Visium run, as well as the spot coordinates in the `spatial` directory.
+# Then, reads the files and returns a list with sparse count matrix (genes x spots) and
+# a dataframe with spot coordinates. Zero-count genes across spots are removed.
 #
 # @param features_fp File path to the features.tsv.gz file.
 # @param barcodes_fp File path to the barcodes.tsv.gz file.
 # @param counts_fp File path to the matrix.mtx.gz file.
 # @param coords_fp File path to the tissue_positions_list.csv file.
-# @param filterMT, logical, whether or not to filter mtDNA genes. Filters out gene names
-# beginning with 'MT-'. Defaults to TRUE.
-# @param savefiles, logical, whether or not to save the counts and coordinate files.
-# The files are saved as 'visium_counts.txt' and visium_coords.txt'. Defaults to TRUE.
-# @param stlist, logical, whether or not return an STList.
-# @return x, an STList with the Visium counts and coordinates.
+# @return x A list with two objects: Visium counts in `dgCMatrix` sparse format and
+# a data frames with spot coordinates.
 #
 #
-import_Visium <- function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL, filterMT=F, savefiles=F, stlist=F){
-  #read in feature data
+import_visium = function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL){
+  # Read in feature data
   features_df = data.table::fread(features_fp, header = F, check.names =F) %>%
     dplyr::rename("emsb" = 1,
                   "gene" = 2,
                   "dtype" = 3) %>%
+    dplyr::select(-dtype) %>%
     dplyr::mutate(feat_n = as.character(seq(nrow(.)))) %>%
     dplyr::relocate(feat_n, .before = 1)
-  #read in barcode data
+
+  # Read in barcode data
   barcodes_df = data.table::fread(barcodes_fp, header = F, check.names = F) %>%
     dplyr::mutate(spot_n = as.character(seq(nrow(.)))) %>%
     dplyr::relocate(spot_n, .before = 1) %>%
     dplyr::rename("barcode" = 2)
-  #read in coordinate data
+
+  # Read in coordinate data
   coords_df = data.table::fread(coords_fp, header=F, check.names=F) %>%
     dplyr::rename('barcode' = 1, 'intissue' = 2, 'array_row' = 3,
-                  'array_col' = 4, 'pxlcol' = 5, 'pxlrow' = 6) %>%
-    dplyr::mutate(spotname = paste0("y", array_row, "x", array_col))
-  #read in count data
+                  'array_col' = 4, 'imagerow' = 5, 'imagecol' = 6) %>%
+    #dplyr::mutate(spotname = paste0("y", array_row, "x", array_col)) %>%
+    dplyr::filter(intissue == 1) %>%
+    dplyr::select(barcode, imagecol,imagerow)
+
+  # Read in count data
   counts_df = data.table::fread(counts_fp, header=F, check.names = F, sep=" ", skip = 3) %>%
     dplyr::rename("feat_n" = 1, "spot_n" = 2, "counts" = 3)
-  #merge files together
+
+  # Merge files together
   counts_all_df = dplyr::inner_join(coords_df, barcodes_df, by='barcode')
   counts_all_df <- dplyr::inner_join(counts_all_df %>% dplyr::mutate(spot_n = as.integer(spot_n)), counts_df, by='spot_n')
   counts_all_df <- dplyr::inner_join(counts_all_df, features_df %>% dplyr::mutate(feat_n = as.integer(feat_n)), by='feat_n')
   counts_all_df = counts_all_df %>%
     dplyr::mutate(spot_n = ifelse(is.na(spot_n), "otherBCs", spot_n),
-                  spotname = ifelse(is.na(spotname), "otherBCs", spotname),
+                  #spotname = ifelse(is.na(spotname), "otherBCs", spotname),
                   emsb = ifelse(is.na(emsb), "noGene_", emsb),
                   counts = ifelse(is.na(counts), 0, counts)) %>%
     data.table::as.data.table()
 
-  rawcounts_df = data.table::dcast.data.table(counts_all_df, emsb + gene ~ spotname, value.var = "counts", fill = 0) %>%
+  rawcounts_df = data.table::dcast.data.table(counts_all_df, emsb + gene ~ barcode, value.var = "counts", fill = 0) %>%
     dplyr::filter(emsb != "noGene_") %>%
-    dplyr::select(-contains("otherBCs")) %>%
+    dplyr::select(-contains("otherBCs"), -emsb) %>%
+    dplyr::mutate(gene=make.unique(gene)) %>%
     data.frame(check.names = F)
 
-  # if(filterMT){
-  #   #rawcounts_df <- rawcounts_df[-c(keep_idx), ]
-  #   rawcounts_df <- rawcounts_df[!grepl("^MT-", rawcounts_df$gene), ]
-  # }
-
-  spotcoords_df <- counts_all_df[, c('spotname', 'array_row', 'array_col')] %>%
+  spotcoords_df <- counts_all_df[, c('barcode', 'imagerow', 'imagecol', 'spot_n')] %>%
     dplyr::distinct(.keep_all = T) %>%
-    dplyr::filter(spotname != "otherBCs") %>%
+    dplyr::filter(spot_n != "otherBCs") %>%
+    dplyr::select(-spot_n) %>%
     data.frame(check.names = F)
 
-  zeroSpots = colnames(rawcounts_df[, -c(1, 2)])[colSums(rawcounts_df[, -c(1, 2)]) == 0]
-  rawcounts_df = rawcounts_df[, !(colnames(rawcounts_df) %in% zeroSpots)]
-  spotcoords_df = spotcoords_df[(spotcoords_df$spotname %in% colnames(rawcounts_df[, -c(1, 2)])), ]
+  #zeroSpots = colnames(rawcounts_df)[colSums(rawcounts_df) == 0]
+  #rawcounts_df = rawcounts_df[, !(colnames(rawcounts_df) %in% zeroSpots)]
 
-  # if(savefiles){
-  #   write.table(rawcounts_df, file='./visium_counts.txt', sep="\t", row.names=F, quote=F)
-  #   write.table(spotcoords_df, file='./visium_coords.txt', sep="\t", row.names=F, quote=F)
-  # }
+  # Remove zero-count genes
+  rawcounts_df = rawcounts_df[rowSums(rawcounts_df[, -1]) > 0, ] %>%
+    makeSparse(.)
+  # Match column names (barcodes) between counts and coordinates
+  spotcoords_df = spotcoords_df[(spotcoords_df$barcode %in% colnames(rawcounts_df)), ] %>%
+    tibble::as_tibble()
 
-  # tmp_ctsdf <- tempfile(fileext = ".txt", pattern='spatialGEctsdf_')
-  # tmp_cdsdf <- tempfile(fileext = ".txt", pattern='spatialGEcdsdf_')
-  # write.table(rawcounts_df, file=tmp_ctsdf, sep="\t", row.names=F, quote=F)
-  # write.table(spotcoords_df, file=tmp_cdsdf, sep="\t", row.names=F, quote=F)
-  #
-  # tmp_ctsfp <- tempfile(fileext = ".txt", pattern='spatialGEctsfp_')
-  # tmp_cdsfp <- tempfile(fileext = ".txt", pattern='spatialGEcdsfp_')
-  # write(tmp_ctsdf, file=tmp_ctsfp)
-  # write(tmp_cdsdf, file=tmp_cdsfp)
-
-  # if(stlist){
-  #   #TEMPORARY: To avoid pushing to Github and install over and over...
-  #   source('~/OneDrive - Moffitt Cancer Center/SPATIAL_TRANSCRIPTOMICS/code/spatialGEdev/R/STList.R')
-  #   #x <- STList(countfiles = tmp_ctsfp, coordfiles = tmp_cdsfp)
-  #   #return(x)
-  # } else{
-    visium_list = list(rawcounts=rawcounts_df, coords=spotcoords_df)
-    return(visium_list)
-#  }
-
+  visium_list = list(rawcounts=rawcounts_df, coords=spotcoords_df)
+  return(visium_list)
 }
 

@@ -2,12 +2,12 @@
 % Please edit documentation in R/STclust.R
 \name{STclust}
 \alias{STclust}
-\title{STclust: Detect clusters on ST arrays}
+\title{STclust: Detect clusters of spots/cells}
 \usage{
 STclust(
   x = NULL,
-  weights = 0.025,
-  dist = "euclidean",
+  ws = 0.025,
+  dist_metric = "euclidean",
   linkage = "ward.D",
   ks = "dtc",
   topgenes = 2000,
@@ -15,47 +15,51 @@ STclust(
 )
 }
 \arguments{
-\item{x}{an STList with normalized expression data.}
+\item{x}{an STlist with normalized expression data}
 
-\item{weights}{a double (0-1) indicating the weight to be applied to spatial distances.
-Defaults to w=0.025.}
+\item{ws}{a double (0-1) indicating the weight to be applied to spatial distances.
+Defaults to 0.025}
 
-\item{dist, }{the distrance measurement to be used. Defaults to 'euclidean'. Other
-options as provided by \code{wordspace::dist.matrix}.}
+\item{dist_metric}{the distance metric to be used. Defaults to 'euclidean'. Other
+options are the same as in \code{wordspace::dist.matrix}}
 
 \item{linkage}{the linkage method applied to hierarchical clustering. Passed to
-\code{hclust} and defaults to 'ward.D'.}
+\code{hclust} and defaults to 'ward.D'}
 
 \item{ks}{the range of k values to assess. Defaults to \code{dtc}, meaning \code{cutreeDynamic}
-is applied.}
+is applied}
 
 \item{topgenes}{the number of genes with highest spot-to-spot expression variation. The
 variance is calculated via \code{Seurat::FindVariableFeatures}.}
 
-\item{deepSplit, }{a logical or integer (1-4), to be passed to \code{cutreeDynamic} and
-control cluster resolution.}
+\item{deepSplit}{a logical or integer (1-4), to be passed to \code{cutreeDynamic} and
+control cluster resolution}
 }
 \value{
-x, the STList with cluster assignments.
+an STlist with cluster assignments
 }
 \description{
-Perform unsupervised spatially-informed clustering on the spots of an
-spatial array.
+Perform unsupervised spatially-informed clustering on the spots/cells of a
+ST sample
 }
 \details{
-The function takes an STList and calculates euclidean distances between spots based on the x,y
-spatial locations and expression of the top variable genes (\code{Seurat::FindVariableFeatures}).
-Weighted averages between the two distances are calculated to perform hierarchical clustering. The
-user can define how much weight the spatial distance should have (values
-between 0.05 to 0.25 work reasonably well). The method aims to detect compartments
-within a tissue.
+The function takes an STlist and calculates euclidean distances between cells or spots
+based on the x,y spatial locations, and the expression of the top variable genes
+(\code{Seurat::FindVariableFeatures}). The resulting distances are weighted by
+applying 1-\code{ws} to the gene expression distances and \code{ws} to the spatial distances.
+Hierarchical clustering is performed on the sum of the weighted distance matrices.
+The \code{STclust} method allows for identification of tissue niches/domains that are
+spatially cohesive.
 }
 \examples{
-# In this example, melanoma is an STList.
-# Using Dynamic Tree Cuts:
-# melanoma <- STclust(melanoma, ks='dtc', weights=0.1)
-
-# Using a range of ks:
-# melanoma <- STclust(melanoma, ks=c(2:6), weights=0.1)
+# Using included melanoma example (Thrane et al.)
+library('spatialGE')
+data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+count_files <- grep("counts", data_files, value=T)
+coord_files <- grep("mapping", data_files, value=T)
+clin_file <- grep("thrane_clinical", data_files, value=T)
+melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+melanoma <- transform_data(melanoma, method='log')
+melanoma <- STclust(melanoma, ws=c(0, 0.025), samples=c('ST_mel1_rep2', 'ST_mel2_rep1'))
 
 }

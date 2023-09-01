@@ -1,6 +1,6 @@
 Package: spatialGE
 Title: Visualization and Analysis of Spatial Heterogeneity in Spatially-Resolved Gene Expression
-Version: 1.0.0.0000
+Version: 1.1.0
 Authors@R: c(
     person(given = "Oscar",
            family = "Ospina",
@@ -15,59 +15,55 @@ Authors@R: c(
     person(given = "Alex",
            family = "Soupir",
            role = c("aut"),
-           email = "Alex.Soupir@moffitt.org"),
-    person(given = "Christopher",
-           family = "Wilson",
-           role = c("ctb"),
-           email = "Christopher.Wilson@moffitt.org")
+           email = "Alex.Soupir@moffitt.org")
            )
 Description: Visualization and analysis of spatially resolved transcriptomics data. The functions in spatialGE allow for the study of gene expression in tissue sections via spatial interpolation, RNA-Seq data deconvolution, and autocorrelation statistics, as well as correlation with clinical/phenotype data.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 Imports:
 	concaveman,
+	ComplexHeatmap,
 	crayon,
 	data.table,
 	dynamicTreeCut,
 	dplyr,
-	EBImage,
-	edgeR,
-	estimate,
-	geoR,
+	fields,
 	ggplot2,
 	ggpolypath,
-	ggpubr,
 	ggrepel,
 	janitor,
+	jsonlite,
 	khroma (>= 1.6.0),
-	limma,
 	magrittr,
 	Matrix,
-	mclust,
 	methods,
 	parallel,
-	plotly,
+	pbmcapply,
 	png,
 	raster,
 	RColorBrewer,
+	reshape,
 	reticulate,
 	readr,
 	readxl,
-	rjson,
 	rlang,
 	scales,
+	sctransform,
 	Seurat,
+	sfsmisc,
 	sp,
+	spaMM,
 	spdep,
 	stringr,
+	terra,
 	tibble,
 	tidyr,
 	wordspace,
-	xCell
 Suggests: 
+	ggpubr,
 	kableExtra,
     knitr,
     progress,
@@ -76,4 +72,6 @@ Suggests:
     R.utils,
     SeuratData,
     tidyverse
-VignetteBuilder: knitr, rmarkdown
+VignetteBuilder: 
+	knitr, 
+	rmarkdown

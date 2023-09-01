@@ -1,3 +1,0 @@
-"0","```r
-spatialge_vargenes = head(melanomaSTList@gene_stdev[[1]]$gene[order(melanomaSTList@gene_stdev[[1]]$gene_stdevs, decreasing=T)], n=3000)
-```"

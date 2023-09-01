@@ -2,20 +2,20 @@
 % Please edit documentation in R/utils.R
 \name{load_images}
 \alias{load_images}
-\title{load_images: Place tissue images within STList}
+\title{load_images: Place tissue images within STlist}
 \usage{
 load_images(x = NULL, images = NULL)
 }
 \arguments{
-\item{x}{an STList with transformed RNA counts.}
+\item{x}{an STlist}
 
 \item{images}{a string indicating a folder to load images from}
 }
 \value{
-an STList with images
+an STlist with images
 }
 \description{
-Loads the images from tissues to the appropriate STList slot.
+Loads the images from tissues to the appropriate STlist slot.
 }
 \details{
 This function looks for \code{.PNG} files within a folder matching the sample names

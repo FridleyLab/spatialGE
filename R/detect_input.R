@@ -1,23 +1,22 @@
 ##
-#' @title detect_input: Determine what is being provided to STList
-#' @description Detects the type of input being provided to the fucntion STList.
-#' @details
-#' This function detects what input is being provided to the STList() function. It
-#' also detects the delimiter of the file when relevant. NOTE that the function does
-#' minimum checking on the contents of file, limited mostly to detect if file is csv or tsv,
-#' or if Visium files are available. Checks are performed on the first element only,
-#' and thus other elements could not comply with the format.
-#'
-#' @param rnacounts, the file/directory with counts provided to STList.
-#' @param spotcoords, the file with coordinates  provided to STList.
-#' @param samples, the metadata or sample names provided to STList.
-#' @return inputtype, a list containing file types of input arguments.
-#'
+# @title detect_input: Determine what is being provided to STList
+# @description Detects the type of input being provided to the fucntion STList.
+# @details
+# This function detects what input is being provided to the STList() function. It
+# also detects the delimiter of the file when relevant. NOTE that the function does
+# minimum checking on the contents of file, limited mostly to detect csv or tsv,
+# Visium files, or Seurat objects. Checks are performed on the first element only,
+# and thus other elements could not comply with the format.
+#
+# @param rnacounts the file/directory with counts provided to STList.
+# @param spotcoords the file with coordinates  provided to STList.
+# @param samples the metadata or sample names provided to STList.
+# @return inputtype a list containing file types of input arguments.
+#
 #' @importFrom magrittr %>%
 #
 #
 detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
-  #require('magrittr')
   # Define output/return variable.
   # If variable remains NULL, then no valid input was given by the user.
   inputtype = list()
@@ -36,33 +35,35 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
 
   # CASE DCC FILES FROM GEOMX
   if(!is.null(rnacounts) && !is.null(samples)){
-    if(dir.exists(rnacounts[1])){
-      dcc_files = list.files(rnacounts, full.names=T, pattern='.dcc$', recursive=T)
-      if(!is.null(dcc_files)){
-        if(length(dcc_files) != 0){
-          test_dcc = readLines(dcc_files[1]) %>% grep('<Code_Summary>', .)
-          if(length(test_dcc) != 0){
-            inputtype$rna = 'geomx_dcc'
+    if(is.character(rnacounts)){
+      if(dir.exists(rnacounts[1])){
+        dcc_files = list.files(rnacounts, full.names=T, pattern='.dcc$', recursive=T)
+        if(!is.null(dcc_files)){
+          if(length(dcc_files) != 0){
+            test_dcc = readLines(dcc_files[1]) %>% grep('<Code_Summary>', .)
+            if(length(test_dcc) != 0){
+              inputtype$rna = 'geomx_dcc'
 
-            # Read metadata file and get coordinate information
-            if(grepl('.xls', samples)){
-              inputtype$samples = c('samplesfile_geomx', 'xls')
-            } else{
-              samples_file = readLines(samples, n=2)
-              is_tab_samples = grepl("\t", samples_file[2])
-              is_comma_samples = grepl(",", samples_file[2])
-              # Determine delimiter of file.
-              if(is_tab_samples){
-                del = '\t'
-              } else if(is_comma_samples){
-                del = ','
+              # Read metadata file and get coordinate information
+              if(grepl('.xls', samples)){
+                inputtype$samples = c('samplesfile_geomx', 'xls')
               } else{
-                stop('Samples file is not comma, tab-delimited, or .xls file')
+                samples_file = readLines(samples, n=2)
+                is_tab_samples = grepl("\t", samples_file[2])
+                is_comma_samples = grepl(",", samples_file[2])
+                # Determine delimiter of file.
+                if(is_tab_samples){
+                  del = '\t'
+                } else if(is_comma_samples){
+                  del = ','
+                } else{
+                  stop('Samples file is not comma, tab-delimited, or .xls file')
+                }
+                inputtype$samples = c('samplesfile_geomx', del)
               }
-              inputtype$samples = c('samplesfile_geomx', del)
             }
+            return(inputtype)
           }
-          return(inputtype)
         }
       }
     }
@@ -90,7 +91,25 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
       if(file.exists(samples_file_path_test[2]) && file.exists(samples_file_path_test[3])){
         inputtype$samples = c('samplesfile_matrices', del)
       } else if(dir.exists(samples_file_path_test[2]) && !dir.exists(samples_file_path_test[3])){
-        inputtype$samples = c('samplesfile_visium', del)
+
+        if(dir.exists(samples_file_path_test[2])){
+          # Check that dirctory contains an element with name matching 'filtered_feature_bc'.
+          visium_check = list.files(samples_file_path_test[2], pattern='[raw|filtered]_feature_bc', include.dirs=T, full.names=T)
+          if(!(rlang::is_empty(visium_check))){
+            h5_test = grep('\\.h5$', visium_check, value=T)
+            if(!(rlang::is_empty(h5_test))){
+              if(hdf5r::is_hdf5(h5_test)){
+                inputtype$samples = c('samplesfile_visium_h5', del)
+              } else{
+                warning('The .h5 file does not seem to be in HDF5 format')
+              }
+            } else{
+              inputtype$samples = c('samplesfile_visium_mex', del)
+            }
+          }
+        } else{
+          stop('If intended input is a Visium output, could not find directory path.')
+        }
       } else(
         stop('Samples file does not contain file paths or format is not compatible.')
       )
@@ -131,7 +150,7 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
     }
   }
 
-  # CASE: FILE PATH(S) TO COUNT AND COORDINATE MATRICES, AND SAMPLE NAMES (FILE OR VECTOR).
+  # CASE: FILE PATH(S) TO COUNT AND COORDINATE MATRICES, AND SAMPLE NAMES (FILE OR VECTOR). COSMX-SMI INCLUDED
   # Test that there is an input for both `rnacounts` and `spotcoords`.
   if(!is.null(rnacounts) && !is.null(spotcoords) && !is.null(samples)){
     # Test that the first (or only) element of input vector exist, and input is not list or a directory.
@@ -183,8 +202,15 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
           } else{
             stop('Coordinates file is not comma or tab-delimited')
           }
-          inputtype$rna = c('rnapath', del)
-          inputtype$coords = c('coordpath', del)
+
+          # Check if COSMX-SMI was input
+          if(grepl('fov', rna_file[1]) & grepl('cell_ID|cell_id', rna_file[1])){
+            inputtype$rna = c('cosmx', del)
+            inputtype$coords = c('cosmx', del)
+          } else{
+            inputtype$rna = c('rnapath', del)
+            inputtype$coords = c('coordpath', del)
+          }
         }
       }
 
@@ -201,16 +227,26 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
   if(!is.null(rnacounts) && is.null(spotcoords) && !is.null(samples)){
     if(dir.exists(rnacounts[1])){
       # Check that dirctory contains an element with name matching 'filtered_feature_bc'.
-      visium_check = list.files(rnacounts[1], pattern='filtered_feature_bc', recursive=T, include.dirs=T)
+      visium_check = list.files(rnacounts[1], pattern='[raw|filtered]_feature_bc', include.dirs=T, full.names=T)
       if(!(rlang::is_empty(visium_check))){
-        inputtype$rna = 'visium_out'
+        h5_test = grep('\\.h5$', visium_check, value=T)
+        if(!(rlang::is_empty(h5_test))){
+          if(hdf5r::is_hdf5(h5_test)){
+            inputtype$rna = 'visium_out_h5'
+          } else{
+            warning('The .h5 file does not seem to be in HDF5 format')
+          }
+        } else{
+          inputtype$rna = 'visium_out_mex'
+        }
       }
     } else{
       stop('If intended input is a Visium output, could not find directory path.')
     }
 
     # Determine what was entered as `samples`.
-    if(length(samples) == 1 && file.exists(samples)){
+#    if(length(samples) == 1 && file.exists(samples)){
+    if(length(samples) == 1 && file.exists(samples) && !dir.exists(samples)){ # Suggested by Mr. Manjarres
       # Read samples file and see which delimiter has.
       samples_file = readLines(samples, n=2)
       is_tab_samples = grepl("\t", samples_file[2])
