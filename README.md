@@ -1,4 +1,4 @@
-# spatialGE <img src="spatialGE_hex.png" align="right" height="100" width="100" />
+# spatialGE
 
 An R package for the visualization and analysis of spatially-resolved transcriptomics data,
 such as those generated with 10X Visium. The **spatialGE** package features a data object 
