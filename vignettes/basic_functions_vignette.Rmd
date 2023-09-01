@@ -1,11 +1,8 @@
 ---
-title: "spatialGE: Basic functionality"
+title: "Basic functionality"
 date: '`r format(Sys.Date())`'
 output: rmarkdown::html_vignette
 bibliography: vignette_references.bib
-resource_files:
-  - vignettes/dir_structure.png
-  - vignettes/metadata_file.png
 vignette: >
   %\VignetteIndexEntry{spatialge_tutorial_main}
   %\VignetteEngine{knitr::rmarkdown}

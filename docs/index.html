@@ -48,7 +48,8 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="articles/basic_functions_vignette.html">spatialGE: Basic functionality</a>
+    <a class="dropdown-item" href="articles/basic_functions_vignette.html">Basic functionality</a>
+    <a class="dropdown-item" href="articles/spatial_differential_expression.html">Spatially-informed differential gene expression</a>
     <a class="dropdown-item" href="articles/troubleshooting.html">Troubleshooting</a>
   </div>
 </li>
@@ -72,10 +73,17 @@
 <img src="logo.png" class="logo" alt=""><h1 id="spatialge">spatialGE<a class="anchor" aria-label="anchor" href="#spatialge"></a>
 </h1>
 </div>
-<p>An R package for the visualization and analysis of spatially-resolved transcriptomics data, such as those generated with 10X Visium. The <strong>spatialGE</strong> package features a data object (STlist: Spatial Transctiptomics List) to store data and results from multiple tissue sections, as well as associated analytical methods for: - Visualization: <code>STplot</code>, <code>gene_interpolation</code>, <code>STplot_interpolation</code> to explore gene expression in spatial context. - Spatial autocorrelation: <code>SThet</code>, <code>compare_SThet</code> to assess the level of spatial uniformity in gene expression by calculating Moran’s I and/or Geary’s C and qualitatively explore correlations with sample-level metadata (i.e., tissue type, therapy, disease status). - Tissue domain/niche detection: <code>STclust</code> to perform spatially-informed hierarchical clustering for prediction of tissue domains in samples. - Gene set spatial enrichment: <code>STenrich</code> to detect gene sets with indications of spatial patterns (i.e., non-spatially uniform gene set expression). - Gene expression spatial gradients: <code>STgradient</code> to detect genes with evidence of variation in expression with respect to a tissue domain.</p>
+<p>An R package for the visualization and analysis of spatially-resolved transcriptomics data, such as those generated with 10X Visium. The <strong>spatialGE</strong> package features a data object (STlist: Spatial Transctiptomics List) to store data and results from multiple tissue sections, as well as associated analytical methods for:</p>
+<ul>
+<li>Visualization: <code>STplot</code>, <code>gene_interpolation</code>, <code>STplot_interpolation</code> to explore gene expression in spatial context.</li>
+<li>Spatial autocorrelation: <code>SThet</code>, <code>compare_SThet</code> to assess the level of spatial uniformity in gene expression by calculating Moran’s I and/or Geary’s C and qualitatively explore correlations with sample-level metadata (i.e., tissue type, therapy, disease status).</li>
+<li>Tissue domain/niche detection: <code>STclust</code> to perform spatially-informed hierarchical clustering for prediction of tissue domains in samples.</li>
+<li>Gene set spatial enrichment: <code>STenrich</code> to detect gene sets with indications of spatial patterns (i.e., non-spatially uniform gene set expression).</li>
+<li>Gene expression spatial gradients: <code>STgradient</code> to detect genes with evidence of variation in expression with respect to a tissue domain.</li>
+</ul>
 <p>The methods in the initial spatialGE release, technical details, and their utility are presented in this publication: <a href="https://doi.org/10.1093/bioinformatics/btac145" class="external-link uri">https://doi.org/10.1093/bioinformatics/btac145</a>. For details on the recently developed methods <code>STenrich</code> and <code>STgradient</code>, please refer to the spatialGE documentation.</p>
 <p align="center">
-<img src="../spatialGE_workflow_v3.png" height="629" width="550"></p>
+<img src="spatialGE_workflow_v3.png" height="629" width="550"></p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
