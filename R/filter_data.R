@@ -84,13 +84,13 @@ filter_data = function(x=NULL,
 
     # Remove samples
     if(all(sample_id %in% names(x@counts))){
-      x@counts = x@counts[!grepl(paste0(sample_id, collapse="|"), names(x@counts))]
-      x@spatial_meta = x@spatial_meta[!grepl(paste0(sample_id, collapse="|"), names(x@spatial_meta))]
+      x@counts = x@counts[names(x@counts)[!(names(x@counts) %in% sample_id)]]
+      x@spatial_meta = x@spatial_meta[names(x@spatial_meta)[!(names(x@spatial_meta) %in% sample_id)]]
       if(!rlang::is_empty(x@tr_counts)){
-        x@tr_counts = x@tr_counts[!grepl(paste0(sample_id, collapse="|"), names(x@tr_counts))]
+        x@tr_counts = x@tr_counts[names(x@tr_counts)[!(names(x@tr_counts) %in% sample_id)]]
       }
       if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta = x@gene_meta[!grepl(paste0(sample_id, collapse="|"), names(x@gene_meta))]
+        x@gene_meta = x@gene_meta[names(x@gene_meta)[!(names(x@gene_meta) %in% sample_id)]]
       }
       if(nrow(x@sample_meta) != 0){
         x@sample_meta = x@sample_meta[!(x@sample_meta[[1]] %in% sample_id), ]

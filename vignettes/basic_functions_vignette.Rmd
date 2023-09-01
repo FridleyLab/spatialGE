@@ -1,5 +1,5 @@
 ---
-title: "Basic functionality"
+title: "Basic functionality: Visualization, domain detection, and spatial heterogeneity"
 date: '`r format(Sys.Date())`'
 output: rmarkdown::html_vignette
 bibliography: vignette_references.bib
@@ -279,8 +279,11 @@ sphet_info <- tibble::tibble(
   "Uniform expression"=c('Closer to -1', 'Closer to 2')
   )
 
-kableExtra::kbl(sphet_info, align='c', centering=T) %>%
+kbl_t = kableExtra::kbl(sphet_info, align='c', centering=T) %>%
   kableExtra::kable_styling(position="center", full_width=F)
+kableExtra::add_footnote(kbl_t, 
+                         c("Note: The boundaries indicated for each statistic are reached when the number of spots/cells is very large."),
+                         notation="none")
 ```
 
 To better understand how the Moran's I and Geary's C statistics quantify spatial heterogeneity, tissue can be simulated using the `sc.SpatialSIM` and `spatstat` packages. Also `tidyverse` and `janitor` for some data manipulation.
@@ -303,7 +306,7 @@ sim_visium <- CreateSimulationObject(sims=1, cell_types=1, window=wdw)
 
 Next, the `sc.SpatialSIM` is used to generate the spatial point process (positions of the spots) within the observation window. Then, assignments of spots to tissue domains are simulated and visualized:
 
-```{r tissue_sim_2, warning=F, fig.height=4, fig.width=4}
+```{r tissue_sim_2, warning=F, fig.height=4, fig.width=6}
 # Generate point process
 # Then, simulate tissue compartments
 set.seed(12345)
