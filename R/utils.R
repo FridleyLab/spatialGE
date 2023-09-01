@@ -2,13 +2,13 @@
 # Utility and helper functions
 
 ##
-#' Get the number of cores to use in parallel as a function of the number of
-#' data to process. It will not yield a higher number of cores than half of the
-#' total available cores. Will default to 1 core if not Unix
-#' @param n an integer representing the number of units to process
-#' @return the number of cores to use
-#'
-#' @importFrom methods as is new
+# Get the number of cores to use in parallel as a function of the number of
+# data to process. It will not yield a higher number of cores than half of the
+# total available cores. Will default to 1 core if not Unix
+# @param n an integer representing the number of units to process
+# @return the number of cores to use
+#
+# @importFrom methods as is new
 #
 #
 count_cores = function(n){
@@ -27,19 +27,19 @@ count_cores = function(n){
 
 
 ##
-#' @title color_parse: Creates a color palette
-#' @description Uses Khroma or RColorBrewer to return the colors of a palette name.
-#' @details
-#' This function takes a character string and uses either khroma or RColoBrewer to
-#' create a color palette. The function first looks in khroma, then RColoBrewer. In
-#' other words, khroma colors have priority.
-#'
-#' @param color_pal A name of a Khroma or RColorBrewer. Alternatively, a vector with
-#' colors of lenght equal or larger than number of categories.
-#' @param n_cats The number of colors to produce. If NULL, assumes 5 colors.
-#' @return cat_cols A color palette
-#'
-#' @importFrom methods as is new
+# @title color_parse: Creates a color palette
+# @description Uses Khroma or RColorBrewer to return the colors of a palette name.
+# @details
+# This function takes a character string and uses either khroma or RColoBrewer to
+# create a color palette. The function first looks in khroma, then RColoBrewer. In
+# other words, khroma colors have priority.
+#
+# @param color_pal A name of a Khroma or RColorBrewer. Alternatively, a vector with
+# colors of lenght equal or larger than number of categories.
+# @param n_cats The number of colors to produce. If NULL, assumes 5 colors.
+# @return cat_cols A color palette
+#
+# @importFrom methods as is new
 #
 #
 color_parse = function(color_pal=NULL, n_cats=NULL){

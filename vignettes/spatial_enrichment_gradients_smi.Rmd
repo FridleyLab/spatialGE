@@ -17,11 +17,15 @@ knitr::opts_chunk$set(
 )
 ```
 
-After analysis of
+The package ***`spatialGE`*** can be used to detect spatial patterns in gene expression at the gene and gene set level. Data from multiple spatial transcriptomics platforms can be analyzed, as long as gene expression counts per spot or cell are associated with spatial coordinates of those spots/cells. The ***`spatialGE`*** package is compatible with outputs from the Visium workflow or the CosMx-SMI spatial single-cell platform.
 
-The package ***`spatialGE`*** provides a collection of tools for the visualization of gene expression from spatially-resolved transcriptomic experiments. The data input methods have been designed so that any data can be analyzed as long as it contains gene expression counts per region of interest (ROI), spot, or cell, and the spatial coordinates of those ROIs/spots/cells. Specialized data input options are available to allow interoperability with workflows such as [*Space Ranger*](https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger).
+In this tutorial, the functions `STenrich` and `STgradient` will be used to test for spatial gene set enrichment and genes with gradients expression on a [CosMx-SMI data set](https://nanostring.com/products/cosmx-spatial-molecular-imager/nsclc-ffpe-dataset/) from Non-Small Cell Lung Cancer (NSCLC).
 
-## Installation
+
+
+<details>
+
+<summary>**How is `spatialGE` installed? **</summary>
 
 The `spatialGE` repository is available at GitHub and can be installed via `devtools`. To install `devtools` (in case it is not already installed in your R), please run the following code:
 
@@ -34,236 +38,167 @@ if("devtools" %in% rownames(installed.packages()) == FALSE){
 After making sure `devtools` is installed, proceed to install `spatialGE`:
 
 ```{r install_spatialGE, eval=T}
-devtools::load_all('../')
-#devtools::install_github("fridleylab/spatialGE")
+# devtools::install_github("fridleylab/spatialGE")
 ```
 
-To use `spatialGE`, load the package.
+</details>
+
+
+
+## Spatial gene set enrichment and expression gradients in non-small cell lung cancer (NSCLC)
+
+The CosMx-SMI platform generates single-cell level gene expression with associated x and y locations of the cells where measurements were taken. In specific for this data set, counts were generated for 960 genes for about 800K cells. The data was generated from eight tissue slices, however, in this tutorial only two slides will be analyzed.
+
+To start, data can be downloaded by accessing the links below. Please, note that each sample is about 1.5G. It is also likely that registration in the website is necessary in order to download the data set.
+
+-   [Lung 5-1](https://nanostring.com/resources/smi-ffpe-dataset-lung5-rep1-data/)
+-   [Lung 6](https://nanostring.com/resources/smi-ffpe-dataset-lung6-data/)
+
+Create a folder in your computer's Desktop and name it "lung_cancer_smi". Place the downloaded files within the folder created in the Desktop. The downloaded files are compressed. Please decompress the files by double clicking on each file. The decompression might take a few seconds, and then, two directories should be generated. The structure of the files is shown below:
+
+
+<p align="center">
+<img src="../vignettes/smi_dir_structure.png" height="250" width="550"/>
+</p>
+
+
+The key files are shown enclosed in orange (Lung 5-1) and green (Lung 6) boxes. The "_exprMat_file.csv" file of each sample contains the gene counts. The "_metadata_file.csv" contains the cell x, y coordinates for each sample. 
+
+Now, that the data is ready, load the `spatialGE` package:
 
 ```{r load_spatialGE, include=F, message=F}
 library('spatialGE')
 ```
 
-## Spatially-resolved expression of triple negative breast cancer tumor biopsies
 
-To show the utility of some of the functions in `spatialGE`, we use the spatial transcriptomics data set generated with the platform Visium by @bassiouni_2023. This data set includes triple negative breast cancer biopsies from 22 patients, with two tissue slices per patient. The Visium platform allows gene expression quantitation in approximately 5000 capture areas (i.e., "spots") separated each other by 100μM. The spots are 55μM in diameter, which corresponds to 1-10 cells [according to the manufacturer](https://kb.10xgenomics.com/hc/en-us/articles/360035487952-How-many-cells-are-captured-in-a-single-spot-).
-
-Data for all the tissue slices are available at the Gene Expression Omnibus (GEO). For the purpose of this tutorial, we will use eight samples from four patients. The GEO repositories can be accessed using the following links:
-
--   [sample_117d](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6433599)
--   [sample_117e](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6433600)
--   [sample_120d](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6433611)
--   [sample_120e](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6433612)
--   [sample_092a](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6433585)
--   [sample_092b](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6433586)
--   [sample_094c](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6433593)
--   [sample_094d](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM6433594)
-
-Within each link, locate the `filtered_feature_bc_matrix.h5` and `tissue_positions_list.csv.gz` files and download them. Create a folder in your Desktop with the name `tnbc_visium`. Within that folder, create eight folders, each with the sample names previously shown (i.e., `sample_117d`, `sample_117e`, `sample_120d`, ...). Next, place within each folder the corresponding `filtered_feature_bc_matrix.h5` file. Finally, create within each folder, another folder named `spatial` and place the corresponding `tissue_positions_list.csv.gz` file within that `spatial` folder. This file structure, corresponds roughly to the file structure in outputs generated by Space Ranger, the software provided by 10X Genomics to process Visium data.
-
-<img src="../vignettes/dir_structure.png" height="550" width="550"/>
 
 ## Creating an STList (Spatial Transcriptomics List)
 
-In `spatialGE`, raw and processed data are stored in an ***STlist*** (S4 class object). The STlist can be created with the function `STlist`, which can take data using different formats (see [here](https://fridleylab.github.io/spatialGE/reference/STlist.html) for more info or type `?STlist` in the R console). In this tutorial we will provide the file paths to the folders created in the previous step.
+The starting point of a `spatialGE` analysis is the creation of an ***STlist***  (S4 class object), which stores raw and processed data. The STlist is created with the function `STlist`, which can take data in multiple formats (see [here](https://fridleylab.github.io/spatialGE/reference/STlist.html) for more info or type `?STlist` in the R console). In this tutorial we will provide the paths to the `exprMat` and `metadata` files for each of the two slides.
 
-Additionally, we will input meta data associated with each sample. The meta data is provided in the form of a comma-delimited file. We have extracted some of the clinical meta data for the eight samples from the original publication and saved it as part of the `spatialGE` package. The user is encouraged to look at the structure of this file by downloading it from the [GitHub repository](https://github.com/FridleyLab/spatialGE/tree/main/inst/extdata/tnbc_bassiouni/bassiouni_clinical.csv). The most important aspect when constructing this file is that the sample names are in the first column, and they match the names of the folders containing the data:
-
-<img src="../vignettes/metadata_file.png" height="250" width="550"/>
-
-Once the folders with samples have been created, we can use R to generate the file paths to be passed to the `STlist` function. Assuming that the user created the folder in the computer's Desktop:
-
-```{r data_fpaths}
-visium_folders <- list.dirs('~/Desktop/tnbc_visium/', full.names=T, recursive=F)
-```
-
-The meta data can be accessed directly from the `spatialGE` package installed in the computer like so:
-
-```{r data_fpaths2}
-data_files <- system.file("extdata/tnbc_bassiouni", package="spatialGE")
-clin_file <- list.files(data_files, full.names=T, recursive=F, pattern='clinical')
-```
-
-We can load the files into an STlist using this command:
+To load the files into an STlist, please use these commands:
 
 ```{r create_stlist, warning=F}
-tnbc <- STlist(rnacounts=visium_folders, samples=clin_file)
+exprmats <- c('~/Desktop/lung_cancer_smi/Lung5_Rep1/Lung5_Rep1-Flat_files_and_images/Lung5_Rep1_exprMat_file.csv',
+             '~/Desktop/lung_cancer_smi/Lung6/Lung6-Flat_files_and_images/Lung6_exprMat_file.csv')
+metas <- c('~/Desktop/lung_cancer_smi/Lung5_Rep1/Lung5_Rep1-Flat_files_and_images/Lung5_Rep1_metadata_file.csv',
+             '~/Desktop/lung_cancer_smi/Lung6/Lung6-Flat_files_and_images/Lung6_metadata_file.csv')
+
+lung <- STlist(rnacounts=exprmats, spotcoords=metas, samples=c('Lung5_Rep1', 'Lung6'))
 ```
-
-The `tnbc` object is an STlist that contains the count data, spot coordinates, and clinical meta data.
-
-```{r call_stlist}
-tnbc
-```
-
-As observed, by calling the `tnbc` object, information on the number of spots and genes per sample is displayed. For count statistics, the `summarize_STlist` function can be used:
+To obtain count statistics, the `summarize_STlist` function can be used:
 
 ```{r count_stats}
-summarize_STlist(tnbc)
+summarize_STlist(lung)
 ```
 
-The minimum number of counts per spot is 42, which seems low. We can look at the distribution of counts and genes per spot using the `distribution_plots` function:
+Some cells have zero counts. We can look at the distribution of counts per cell for the first five and last five FOVs using the `distribution_plots` function:
 
 ```{r count_dstr}
-cp = distribution_plots(tnbc, plot_type='violin', plot_meta='total_counts')
+cp <- distribution_plots(lung, plot_type='violin', plot_meta='total_counts', samples=c(1:5, 56:60))
 cp[['total_counts']]
 ```
 
-Now, let us remove spots with low counts by keeping only those spots with at least 5000 counts. We will also restrict the data set to spots expressing at least 1000 genes. We also will remove a few spots that have abnormally large number of counts, as in sample_094c. These criteria are not a rule, and samples in each study have to be carefully examined. For example, this criteria may be not enough to reduce the differences in counts, especially for sample_120d and samples_120e.
-
-We run this filter with the `filter_data` function:
+Cells with zero counts, can be removed using the `filter_data` function. The function can also be used to remove all counts from specific genes. This option is useful in this case, as CosMx-SMI panels include negative probe genes. While the negative probes can be used in normalization of counts, in this tutorial those genes will be removed. Negative probes in CosMx-SMI begin with the token "NegPrb":
 
 ```{r filter_chunk}
-tnbc = filter_data(tnbc, spot_minreads=5000, spot_mingenes=1000, spot_maxreads=150000)
+lung <- filter_data(lung, spot_minreads=20, rm_genes_expr='^NegPrb')
 
-cp2 = distribution_plots(tnbc, plot_type='violin', plot_meta='total_counts')
+cp2 <- distribution_plots(lung, plot_type='violin', plot_meta='total_counts', samples=c(1:5, 56:60))
 cp2[['total_counts']]
-```
-
-## Exploring variation between spatial arrays
-
-The functions `pseudobulk_samples` and `pseudobulk_pca_plot` are the initial steps to obtain a quick snapshot of the variation in gene expression among samples. The function `pseudobulk_samples` creates (pseudo) "bulk" RNAseq data sets by combining all counts from each sample. Then, it log transforms the "pseudo bulk" RNAseq counts and runs a Principal Component Analysis (PCA). Note that the spatial coordinate information is not considered here, which is intended only as an exploratory analysis analysis. The `max_var_genes` argument is used to specify the maximum number of genes used for computation of PCA. The genes are selected based on their standard deviation across samples.
-
-```{r pseudobulk, include=F}
-tnbc = pseudobulk_samples(tnbc, max_var_genes=5000)
-```
-
-In this case, we apply the function to look for agreement between samples from the same patient: It is expected that tissue slices from the same patient are more similar among them than tissue slices from other patients. The `pseudobulk_pca` allows to map a sample-level variable to the points in the PCA by including the name of the column from the sample metadata (`patient_id` in this example).
-
-```{r pca_chunk, fig.align='center'}
-pseudobulk_pca_plot(tnbc, plot_meta='patient_id')
-```
-
-Users can also generate a heatmap from pseudobulk counts by calling the `pseudobulk_heatmap` function, which also requires prior use of the `pseudobulk_samples` function. The number of variable genes to show can be controlled via the `hm_display_genes` argument.
-
-```{r heatmap_chunk, fig.align='center'}
-hm_p = pseudobulk_heatmap(tnbc, plot_meta='patient_id', hm_display_genes=30)
 ```
 
 ## Transformation of spatially-resolved transcriptomics data
 
-Many transformation methods are available for RNAseq count data. In `spatialGE`, the function `transform_data` applies log-transformation to the counts, after library size normalization performed on each sample separately. Similar to [Seurat](https://satijalab.org/seurat/reference/normalizedata), it applies a scaling factor (`scale_f=10000` by default).
+The function `transform_data` allows data transformation using one of two possible options. The first options applies log-transformation to the counts, after library size normalization performed on each sample separately. The second option applies variance-stabilizing transformation (SCT; @hafemeister_2019), which is a method increasingly used in single-cell and spatial transcriptomics studies. To applye SCT transformation, use the following command:
 
-```{r norm_chunk}
-tnbc <- transform_data(tnbc, method='log')
+```{r norm_chunk, message=F}
+lung <- transform_data(lung, method='sct')
 ```
 
-Users also can apply variance-stabilizing transformation (SCT; @hafemeister_2019), which is another method increasingly used in single-cell and spatial transcriptomics studies. See [here](https://fridleylab.github.io/spatialGE/reference/transform_data.html) for details.
+## Detecting gene sets with spatial aggregation patterns
 
-## Visualization of gene expression from spatially-resolved transcriptomics data
+An important part of gene expression analysis is the use of gene sets to make inferences about the functional significance of changes in expression. Normally, this is achieved by conducting a Gene Set Enrichment Analysis (GSEA). While GSEA can be completed in a similar fashion to scRNA-seq, it is possible with the `STenrich` function to test for gene sets that show spatial non-uniform enrichment. In other words, `STenrich` tests whether expression of a gene set is concentrated in one or few areas of the tissue.
 
-After data transformation, expression of specific genes can be visualized using "quilt" plots. The function `STplot` shows the transformed expression of one or several genes. We have adopted the color palettes from the packages `khroma` and `RColorBrewer`. The name of a color palette can be passed using the argument `color_pal`. The default behavior of the function produces plots for all samples within the STlist, but we can pass specific samples to be plotted using the argument `samples`.
+The algorithm in `STenrich` is depicted in the following diagram:
 
-Let's produce a quilt plot for the genes *NDRG1* and *IGKC* (hypoxia and B-cell markers, respectively), for sample number 1 of patient 14 (`samples=sample_094c`).
 
-```{r genequilt_chunk}
-quilts1 <- STplot(tnbc, 
-                  genes=c('NDRG1', 'IGKC'), 
-                  samples='sample_094c', 
-                  color_pal='BuRd', 
-                  ptsize=0.8)
+
+<p align="center">
+<img src="../vignettes/diagram_stenrich.png" height="250" width="550"/>
+</p>
+
+
+
+The `STenrich` function is a modification of the method proposed by @hunter2021spatiall. The steps in this modified version are as follows: First, Euclidean distances are calculated among all spots/cells. Then, the gene expression of the sample is subset to the genes within the gene set being tested. If too few genes are left after subset (`min_genes`), then the gene set is omitted for that sample. The average expression and standard deviation of those genes is calculated for each spot/cell. Next, spots/cells with gene set expression above the average gene set expression across all spots/cells are identified. The threshold to define these high gene set expression spots is defined by the average gene set expression plus a number `min_sds` of standard deviations. The sum of the Euclidean distances between the high expression spots/cells is calculated.
+
+The next step involves a permutation process, in which a null distribution is generated in order to test if the (sum of) distances among high expression spots are smaller than expected. To that end, a random sample of spots/cells (regardless of expression) is selected. The random sample has the same size as the number of high expression spots/cells. Then, the sum of distances among the randomly sampled spots/cells is calculated. The random selection is repeated as many times as requested (`reps``). Finally, a p-value is calculated by noting how many times the sum of random distances was higher than the sum of distances among high expression spots/cells. If the sum of random distances was most of the times higher than the sum of distances among high expression spots/cells, then the null hypothesis of no spatial aggregation is rejected (i.e., spots/cells with high gene set expression are more aggregated than expected by chance).
+
+A few important notes about the algorithm to consider:
+- Notice that the metric of enrichment is currently the average expression of the genes in a set within each ROI/spot/cell. Better metrics of gene set enrichment are available and will be soon available to use instead of average.
+- Special attention should be paid to the reference genome used to annotate gene counts. The annotation of transcripts precedes any analysis in spatialGE. Nevertheless, if transcripts are annotated with a mouse genome (or other species), the user should use the appropriate gene set database, as gene names will likely not match to a gene set database with human gene names. Furthermore, but not less important, there might be problems with gene homology.
+- The more permutations are requested, the longer the execution, but p-value estimates are more accurate.
+- By increasing the number of standard deviations, fewer spots/cells are selected as “high expression” (stringent analysis), however, it becomes more challenging to detect gene sets that show evidence of spatial aggregation. Values between 1 to 2 standard deviations are likely suitable for most studies.
+- By adjusting the minimum number of spots (`min_spots`), the user has some rough control over the size of the structures to be studied. For example, small immune infiltrates could be detected with smaller number of minimum spots. Conversely, if tissue domain-level differences are sought, then a larger Minimum number of spots should be set.
+- Take note of the random seed number used for the test (Seed number parameter), in case you need to generate the same results later. Nevertheless, running the analysis several times with different seed numbers is advisable to check for consistency.
+
+The first step to run `STenrich` is to obtain a list of gene sets. Here, the `msigdbr` package will be used to obtain HALLMARK gene sets:
+
+```{r genesets, message=F}
+# Load msigdbr
+library('msigdbr')
+
+# Get HALLMARK gene sets
+gene_sets = msigdbr(species='Homo sapiens')
+gene_sets = gene_sets[gene_sets[['gs_cat']] == "H", ]
+# Convert gene set dataframe to list
+# The result is a named list. The names of the list are the names of each gene set
+# The contents of each list element are the gene names within each gene set
+gene_sets = split(x=gene_sets[['gene_symbol']], f=gene_sets[['gs_name']])
 ```
 
-Because `spatialGE` functions output lists of ggplot objects, we can plot the results side-by-side using functions such as `ggarrange()`:
+Please keep in mind that it is assumed that HUGO gene names are used. For CosMx-SMI and Visium, normally *HUGO names* are provided. If spatial transcriptomics data from a non-human species is used, the appropriate database should be used. Otherwise, `spatialGE` will not be able to identify genes within the gene set.
 
-```{r genequilt_chunk2, fig.align='center'}
-ggpubr::ggarrange(plotlist=quilts1, nrow=1, ncol=2, legend='bottom')
+The `STenrich` function can now be used. For this analysis, 1000 replicates (`reps=1000`) will be used to generate the null distribution. In addition, for a gene set to be considered as highly expressed in cell, it should be expressed at least over the average expression plus 1.5 standard deviations (`num_sds=1.5`). Gene sets with less than five genes in the sample (`min_genes=5`) and gene sets with less than 10 highly expressed cells (`min_units=10`) will not be tested. Notice a seed was set (`seed=12345`), which critical for replication of the results in the future. 
+
+```{r stenrich}
+stenrich_df = STenrich(lung, gene_sets=gene_sets, 
+                       reps=1000, 
+                       num_sds=1.5, 
+                       min_genes=5,
+                       min_units=10, 
+                       seed=12345) 
 ```
 
-We can see that gene expression patterns of both genes are non-overlapping: *IGKC* is expressed in the upper right portion of the tissue, whereas *NDRG1* is expressed in the right bottom portion (although relatively lower compared to *IGKC* as indicated by the white-colored spots). The location of gene expression of those two genes may be indicative of an immune-infiltrated area and a tumor area. With the help of spatial interpolation, visualization of these regions can be easier as will be showed next.
+The result of the function is a list of data frames, with one data frame per samples (FOV in this case). For example, this is the data frame for the first FOV in the STlist:
 
-### Spatial interpolation of gene expression
-
-We can predict a smooth gene expression surface for each sample. In `spatialGE`, this prediction is achieved by using a spatial interpolation method very popular in spatial statistics. The method known as 'kriging' allows the estimation of gene expression values in the un-sampled areas between spots, or cells/spots that were filtered during data quality control. Estimating a transcriptomic surface via kriging assumes that gene expression of two given points is correlated to the spatial distance between them.
-
-The function `gene_interpolation` performs kriging of gene expression via the `fields` package. We specify that kriging will be performed for two of the spatial samples (`samples=c('sample_094c', 'sample_117e')`):
-
-```{r genekrige_chunk}
-tnbc <- gene_interpolation(tnbc, 
-                           genes=c('NDRG1', 'IGKC'),
-                           samples=c('sample_094c', 'sample_117e'))
+```{r stenrich_df}
+head(stenrich_df$Lung5_Rep1_fov_1)
 ```
 
-Generating gene expression surfaces can be time consuming. The finer resolution to which the surface is to be predicted (`ngrid` argument), the longer the time it takes. The execution time also depends on the number of spots/cells. The surfaces can be visualized using the `STplot_interpolation()` function:
+Each row represents a test for the null hypothesis of no spatial aggregation in the expression of the set in the "gene_set" column. The column "size_test" is the number of genes of a gene set that were present in the FOV. The larger this number the better, as it indicates a better representation of the gene set in the sample. The "adj_p_value" is the multiple test adjusted p-value, which is the value used to decide if a gene set shows significant indications of a spatial pattern (adj_p_value < 0.05).
 
-```{r plotkrige_chunk1, fig.align='center'}
-kriges1 <- STplot_interpolation(tnbc,
-                                genes=c('NDRG1', 'IGKC'),
-                                samples='sample_094c')
-ggpubr::ggarrange(plotlist=kriges1, nrow=1, ncol=2, common.legend=T, legend='bottom')
+With a few lines of code, a visual summary can be generated that presents the gene sets with adj_p_value < 0.05 across FOVs for each tissue slide:
+
+```{r include=F, message=F}
+library('tidyverse')
+
+res = bind_rows(stenrich_df) %>%
+  mutate(prop_gene_set=size_test/size_gene_set) %>%
+  filter(prop_gene_set >= 0.3 & adj_p_value < 0.05) %>%
+  mutate(slide=str_extract(sample_name, "Lung5_Rep1|Lung6")) %>%
+  select(slide, gene_set) %>%
+  mutate(gene_set=str_replace(gene_set, 'HALLMARK_', ''))
+
+ggplot(res) + 
+  geom_bar(aes(x=gene_set)) +
+  xlab(NULL) +
+  theme(axis.text.x=element_text(angle=70, vjust=1, hjust=1)) +
+  facet_wrap(~slide)
 ```
 
-By looking at the transcriptomic surfaces of the two genes, it is easier to detect where "pockets" of high and low expression are located within the tissue. It is now more evident that expression of *NDRG1* is higher in the lower right region of the tumor slice, as well in a smaller area to the left (potentially another hypoxic region).
 
-## Unsupervised spatially-informed clustering (*STclust*)
 
-Detecting tissue compartments or niches is an important part of the study of the tissue architecture. We can do this by applying ***`STclust`***, a spatially-informed clustering method implemented in `spatialGE`. The `STclust` method uses weighted average matrices to capture the transcriptomic differences among the cells/spots. As a first step in `STclust`, top variable genes are identified via Seurat's `FindVariableFeatures`, and transcriptomic scaled distances are calculated using only those genes. Next, scaled euclidean distances are computed from the spatial coordinates of the spots/cells. The user defines a weight (`ws`) from 0 to 1, to apply to the physical distances. The higher the weight, the less biologically meaningful the clustering solution is, given that the clusters would only reflect the physical distances between the spots/cells and less information on the transcriptomic profiles will be used. After many tests, we have found that weights between 0.025 - 0.25 are enough to capture the tissue heterogeneity. By default, `STclust` uses dynamic tree cuts [@langfelder_2008] to define the number of clusters. But users can also test a series of k values (`ks`). For a more detailed description of the method, please refer to the paper describing `spatialGE` and `STclust` [@ospina_2022].
-
-We'll try several weights to see it's effect on the cluster assignments:
-
-```{r clustespots_chunk, warning=F, message=F}
-tnbc <- STclust(tnbc, 
-                ks='dtc', 
-                ws=c(0, 0.025, 0.05, 0.2))
-```
-
-Results of clustering can be plotted via the `STplot` function:
-
-```{r plotclustspots_chunk, fig.align='center'}
-cluster_p <- STplot(tnbc, 
-                    samples='sample_094c', 
-                    ws=c(0, 0.025, 0.05, 0.2),
-                    color_pal='highcontrast')
-ggpubr::ggarrange(plotlist=cluster_p, nrow=2, ncol=2, legend='right')
-```
-
-We can see that from `w=0` and `w=0.05`, we can only detect two tissue niches. At `w=0.025`, we gain higher resolution as one of the clusters is split and a third ('yellow') cluster appears, potentially indicating that an different transcriptional profile is present there. At `w=0.2`, the clusters seem too compact, indicating that the weight of spatial information is probably too high. We have used here the dynamic tree cuts (`dtc`) to automatically select the number of clusters, resulting in very coarse resolution tissue niches, however, users can define their own range of k to be evaluated, allowing further detection of tissue compartments.
-
-## Association between spatial heterogeneity and sample-level variables
-
-To explore the relationship between a clinical (sample-level) variable of interest and the level of gene expression spatial uniformity within a sample, we can use the `SThet()` function:
-
-```{r sthet_chunk}
-tnbc <- SThet(tnbc, 
-              genes=c('NDRG1', 'IGKC'),
-              method='moran')
-```
-
-The `SThet` function calculates the Moran's I statsitic (or Geary's C) to measure the level of spatial heterogeneity in the expression of the genes ( *NDRG1*, *IGKC*). The estimates can be compared across samples using the function `compare_SThet()`
-
-```{r clinplot_chunk, fig.align='center'}
-p = compare_SThet(tnbc, 
-                  samplemeta='overall_survival_days', 
-                  color_by='patient_id',
-                  gene=c('NDRG1', 'IGKC'), 
-                  color_pal='muted',
-                  ptsize=3)
-
-p
-```
-
-The calculation of spatial statistics with `SThet` and and multi-sample comparison with `compare_SThet` provides and easy way to identify samples and genes exhibiting spatial patterns. The previous figure shows that expression of *NDRG1* is more spatially uniform (lower Moran's I) across the tissues in samples from patients 2 and 8 compared to patents 9 and 14. The samples with higher spatial uniformity in the expression of *NDRG1* also tended to have higher overall survival. Trends are less clear for *IGKC*, however, it looks like samples where expression of *IGKC* was spatially aggregated in "pockets" (higher Moran's I) tended to have lower survival (but note that patient 9 does not follow this trend). As studies using spatial transcriptomics become larger, more samples will provide more insightful patterns into the association of gene expression spatial distribution and non-spatial traits associated with the tissues.
-
-See the table below for a simplistic interpretation of the spatial autocorrelation statistics calculated in `spatialGE`:
-
-```{r sphet_table, echo=F}
-library('magrittr') # Use of pipe operator
-sphet_info <- tibble::tibble(
-  "Statistic"=c('Moran’s I', 'Geary’s C'),
-  "Clustered expression"=c('Closer to 1', 'Closer to 0'),
-  "No expression pattern"=c('Closer to 0', 'Closer to 1'),
-  "Uniform expression"=c('Closer to -1', 'Closer to 2')
-  )
-
-kableExtra::kbl(sphet_info, align='c', centering=T) %>%
-  kableExtra::kable_styling(position="center", full_width=F)
-```
-
-The computed statistics are stored in the STlist for additional analysis/plotting that the user may want to complete. The statistics value can be accessed as a data frame using the `get_gene_meta` function:
-
-```{r stats_slot}
-get_gene_meta(tnbc, sthet_only=T)
-```
 
 ## References
 

@@ -17,7 +17,6 @@
 #
 #
 detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
-  #require('magrittr')
   # Define output/return variable.
   # If variable remains NULL, then no valid input was given by the user.
   inputtype = list()
@@ -151,7 +150,7 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
     }
   }
 
-  # CASE: FILE PATH(S) TO COUNT AND COORDINATE MATRICES, AND SAMPLE NAMES (FILE OR VECTOR).
+  # CASE: FILE PATH(S) TO COUNT AND COORDINATE MATRICES, AND SAMPLE NAMES (FILE OR VECTOR). COSMX-SMI INCLUDED
   # Test that there is an input for both `rnacounts` and `spotcoords`.
   if(!is.null(rnacounts) && !is.null(spotcoords) && !is.null(samples)){
     # Test that the first (or only) element of input vector exist, and input is not list or a directory.
@@ -203,8 +202,15 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
           } else{
             stop('Coordinates file is not comma or tab-delimited')
           }
-          inputtype$rna = c('rnapath', del)
-          inputtype$coords = c('coordpath', del)
+
+          # Check if COSMX-SMI was input
+          if(grepl('fov', rna_file[1]) & grepl('cell_ID|cell_id', rna_file[1])){
+            inputtype$rna = c('cosmx', del)
+            inputtype$coords = c('cosmx', del)
+          } else{
+            inputtype$rna = c('rnapath', del)
+            inputtype$coords = c('coordpath', del)
+          }
         }
       }
 

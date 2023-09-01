@@ -34,7 +34,8 @@ The `spatialGE` package does not have built-in methods to generate variogram plo
 The `STlist` function takes data in several formats. The reader is encouraged to see the `STlist` reference (see [here](https://fridleylab.github.io/spatialGE/reference/STList.html) to learn about the different options to read ST data in `spatialGE`. In this guide, we provide the `STlist` function with comma-delimited files containing gene expression counts per spot and comma-delimited containing the spatial coordinates per spot. The example files in this tutorial can be downloaded from the [GitHub repository](https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata). They can also be accessed directly from R like so:
 
 ```{r data_fpaths1}
-data_files <- system.file("extdata/melanoma_thrane", package="spatialGE")
+#data_files <- system.file("extdata/melanoma_thrane", package="spatialGE")
+data_files = '../inst/extdata/melanoma_thrane/'
 count_files <- list.files(data_files, full.names=T, pattern='counts')
 coord_files <- list.files(data_files, full.names=T, pattern='mapping')
 ```
@@ -48,7 +49,6 @@ clin_file <- list.files(data_files, full.names=T, pattern='clinical')
 Load the `spatialGE` package:
 
 ```{r load_spatialge, message=F, warning=F}
-devtools::load_all('../')
 library('spatialGE')
 ```
 
@@ -132,9 +132,10 @@ abline(v=12, col='goldenrod1', lwd=3, lty=2)
 We can see that variance is higher at longer distances. Note, that this relationship is disrupted at longer spot-to-spot distances (> 15 in this case). This disruption occurs because as spot-to-spot distances increase, some spots may belong to distant tissue niches that hold similarity. Regardless, the positive relationship between _COL1A1_ expression variance and distance is clear a short to medium distances, first increasing and then forming a plateau. Since a relationship exists between _COL1A1_ expression variance and distance, spatial covariance models defined by the _nugget_, _sill_, and _range_ parameters can be fitted to account for spatial dependency.
 
 
+
 <details>
 
-<summary>**How is the information in variogram used by `STdiff` **</summary>
+<summary>**How is the information in variogram used by `STdiff` ?**</summary>
 
 To account for spatial dependency, the `STdiff` calculates three parameters from the variogram that are necessary to describe the relationship between gene expression variance and distance between spots or cells. The three parameters are known as _nugget_, _sill_, and _range_).
 
@@ -172,12 +173,12 @@ abline(v=12, col='goldenrod1', lwd=3, lty=2)
 lines(exp_model, col=alpha('red', 0.7), lwd=3)
 lines(sph_model, col=alpha('blue', 0.7), lwd=3)
 lines(gau_model, col=alpha('orange', 0.7), lwd=3)
-#clip(x1=-1, x2=1, y1=-1, y2=2)
 ```
 
 In the case of _COL1A1_ for sample 'ST_mel1_rep1', all models (exponential, spherical, and gaussian) fit well the variogram. Due to computational constraints, the `geoR` package is not used in `spatialGE` to estimate the covariance structures. Rather, the `spaMM` package has been used and only the exponential covariance structure has been implemented. While this choice is not optimal for all genes, accounting for the spatial dependency even if the model fit is not optimal, is likely better than not accounting for the spatial dependency at all.
 
 </details>
+
 
 
 ## Differential gene expression analysis with `STdiff`
@@ -283,14 +284,14 @@ vp = STdiff_volcano(deg)
 
 Now, the `ggpubr` package can be used to arrange all plots:
 
-```{r volc_plots2}
+```{r volc_plots2, warning=F, fig.width=7.5, fig.height=4, fig.align='center'}
 ggpubr::ggarrange(plotlist=vp, ncol=3, common.legend=T)
 ```
-
 
 ## References
 
 <div id="refs"></div>
+
 
 
 <details>

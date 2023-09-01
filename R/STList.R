@@ -14,6 +14,9 @@
 #' represented in MEX files or a h5 file. The directory should also contain a `spatial`
 #' sub-directory, with the spatial coordinates (`tissue_positions_list.csv`), and
 #' optionally the high resolution tissue image and scaling factor file `scalefactors_json.json`.
+#' \item CosMx-SMI outputs. Two files are required to process SMI outputs: The `exprMat` and
+#' `metadata` files. Both files must contain the "fov" and "cell_ID" columns. In addition,
+#' the `metadata` files must contain the "CenterX_local_px" and "CenterY_local_px" columns.
 #' }
 #' Optionally, the user can input a path to a file containing a table of sample-level
 #' metadata (e.g., clinical outcomes, tissue type, age). This sample metadata file
@@ -38,17 +41,26 @@
 #' contains the coordinates (`tissue_positions_list.csv`), and optionally the high
 #' resolution PNG image and accompanying scaling factors (`scalefactors_json.json`).
 #' Requires `samples`
+#' \item The `exprMat` file for each slide of a CosMx-SMI output. The file must contain
+#' the "fov" and "cell_ID" columns. The `STlist` function will separate data from each
+#' FOV, since analysis in spatialGE is conducted at the FOV level. Requires `samples` and
+#' `spotcoords`
 #' \item A named list of data frames with raw gene counts (one data frame per spatial
 #' sample). Requires `spotcoords`
-#' \item File path to `.dcc` files from GeoMx output. Requires `samples`
+# \item File path to `.dcc` files from GeoMx output. Requires `samples`
 #' }
 #' @param spotcoords the cell/spot coordinates. Not required if inputs are Visium
-#' space ranger outputs or GeoMx DCC files
+#' space ranger outputs
+# or GeoMx DCC files
 #' \itemize{
 #' \item File paths to comma- or tab-delimited files containing cell/spot coordinates, one
 #' for each spatial sample. The files must contain three columns: cell/spot IDs, Y positions, and
 #' X positions. The cell/spot IDs must match the column names for each cells/spots (columns) in
 #' the gene count files
+#' \item The `metadata` file for each slide of a CosMx-SMI output. The file must contain
+#' the "fov", "cell_ID", "CenterX_local_px", and "CenterY_local_px" columns. The `STlist`
+#' function will separate data from each FOV, since analysis in spatialGE is conducted at
+#' the FOV level. Requires `samples` and `rnacounts`
 #' \item A named list of data frames with cell/spot coordinates. The list names must
 #' match list names of the gene counts list
 #' }
@@ -67,22 +79,22 @@
 #' empty). If Visium directories are provided, only the second column with paths to
 #' `spaceranger count` directories are expected. Subsequent columns can contain
 #' variables associated with each spatial sample
-#' Note: For GeoMx, the metadata file contains one row per ROI. This information is
-#' automatically summarized to one row per tissue slice. This metadata file usually
-#' also contains the X and Y positions, which can be identified via `gmx_y_col` and
-#' `gmx_x_col` arguments
+# Note: For GeoMx, the metadata file contains one row per ROI. This information is
+# automatically summarized to one row per tissue slice. This metadata file usually
+# also contains the X and Y positions, which can be identified via `gmx_y_col` and
+# `gmx_x_col` arguments
 #' }
-#' @param gmx_pkc the file path to the `.pkc` probe set file (for GeoMx input)
-#' @param gmx_slide_col the name of the column in the metadata table containing
-#' the slide names (for GeoMx input)
-#' @param gmx_roi_col the name of the column in the metadata table containing the
-#' ROI IDs, matching IDs in the DCC files (for GeoMx input)
-#' @param gmx_y_col the name of the column in the metadata table containing the
-#' Y positions (for GeoMx input)
-#' @param gmx_x_col the name of the column in the metadata table containing the
-#' X positions (for GeoMx input)
-#' @param gmx_meta_cols a vector with column names in the metadata table containing
-#' clinical data (for GeoMx input)
+# @param gmx_pkc the file path to the `.pkc` probe set file (for GeoMx input)
+# @param gmx_slide_col the name of the column in the metadata table containing
+# the slide names (for GeoMx input)
+# @param gmx_roi_col the name of the column in the metadata table containing the
+# ROI IDs, matching IDs in the DCC files (for GeoMx input)
+# @param gmx_y_col the name of the column in the metadata table containing the
+# Y positions (for GeoMx input)
+# @param gmx_x_col the name of the column in the metadata table containing the
+# X positions (for GeoMx input)
+# @param gmx_meta_cols a vector with column names in the metadata table containing
+# clinical data (for GeoMx input)
 #' @param cores integer indicating the number of cores to use during parallelization.
 #' If NULL, the function uses half of the available cores at a maximum. The parallelization
 #' uses `parallel::mclapply` and works only in Unix systems.
@@ -105,10 +117,26 @@
 #' @importFrom magrittr %>%
 #'
 STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
-                  gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_y_col=NULL, gmx_x_col=NULL, gmx_meta_cols=NULL,
+#                   gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_y_col=NULL, gmx_x_col=NULL, gmx_meta_cols=NULL, ### DISABLED UNTIL SUPPORT FOR GEOMX-DCC IS SORTED OUT
                   cores=NULL){
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
+
+  # Define number of available cores to use.
+  if(is.null(cores)){
+    if(!is.null(rnacounts)){
+      cores = count_cores(length(rnacounts))
+    } else{ # In case samplefile including filepaths is provided
+      cores_tmp = length(readLines(samples))
+      cores = count_cores(cores_tmp)
+      rm(cores_tmp) # Clean env
+    }
+  } else{
+    cores = as.integer(cores)
+    if(is.na(cores)){
+      stop('Could not recognize number of cores requested')
+    }
+  }
 
   # Output error if input_check is empty (likely input format not recognized).
   if(rlang::is_empty(input_check)){
@@ -168,13 +196,19 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
       sample_names = as.character(sample_names[[1]])
       # Get list of filepaths
       filepaths = process_sample_names(rnacounts, spotcoords, sample_names, input_check)
-      # Check if input is Visium or count/coord matrices
+
+      # Check if input is Visium, CosMx, or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
         cat(crayon::green(paste("Found Visium data\n")))
         pre_lists = read_visium_outs(filepaths, input_check, cores=cores)
         img_obj = pre_lists[['images']]
         image_scale = pre_lists[['json_scale']]
         platform = 'visium'
+      } else if(input_check$rna[1] == 'cosmx'){
+        cat(crayon::green(paste("Found CosMx-SMI data\n")))
+        pre_lists = read_cosmx_input(filepaths, input_check, cores=cores)
+        img_obj = pre_lists[['images']]
+        platform = 'cosmx'
       } else{
         cat(crayon::green(paste("Found matrix data\n")))
         pre_lists = read_matrices_fps(filepaths, input_check, cores=cores)
@@ -187,13 +221,19 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     if(input_check$rna[1] != 'list_dfs'){
       # Get list of filepaths
       filepaths = process_sample_names(rnacounts, spotcoords, as.character(samples), input_check)
-      # Check if input is Visium or count/coord matrices
+
+      # Check if input is Visium, CosMx, or count/coord matrices
       if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
         cat(crayon::green(paste("Found Visium data\n")))
         pre_lists = read_visium_outs(filepaths, input_check, cores=cores)
         img_obj = pre_lists[['images']]
         image_scale = pre_lists[['json_scale']]
         platform = 'visium'
+      } else if(input_check$rna[1] %in% c('cosmx')){
+        cat(crayon::green(paste("Found CosMx-SMI data\n")))
+        pre_lists = read_cosmx_input(filepaths, input_check, cores=cores)
+        img_obj = pre_lists[['images']]
+        platform = 'cosmx'
       } else{
         cat(crayon::green(paste("Found matrix data\n")))
         pre_lists = read_matrices_fps(filepaths, input_check, cores=cores)
@@ -206,21 +246,21 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     stop('No input provided. Please refer to documentation.')
   }
 
-  #cat(crayon::green(paste("Requested", length(pre_lists[['counts']]), "samples\n")))
-
   # Process count and coordinate lists before placing within STlist
   cat(crayon::yellow(paste("Matching gene expression and coordinate data...\n")))
-  procLists = process_lists(pre_lists[['counts']], pre_lists[['coords']])
+  procLists = process_lists(counts_df_list=pre_lists[['counts']], coords_df_list=pre_lists[['coords']])
 
   # Process metadata if provided or make an empty tibble
   samples_df = tibble::tibble()
   if(input_check$samples[1] == 'samplesfile' || input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex') || input_check$samples[1] == 'samplesfile_matrices'){
-    samples_df = process_meta(samples, input_check, procLists[['counts']])
+    samples_df = process_meta(samples=samples, input_check=input_check, counts_df_list=procLists[['counts']])
   }else if(input_check$samples[1] == 'samplesfile_geomx'){
     samples_df = process_meta_geomx(samples, input_check, procLists[['counts']], gmx_slide_col, gmx_meta_cols)
   }else{
-    samples_df = tibble::tibble()
+    samples_df = tibble::tibble(sample_name=names(procLists[['counts']]))
   }
+  # Make sure sample IDs are character
+  samples_df[[1]] = as.character(samples_df[[1]])
 
   if(!is.null(input_check$rna[1])){
     if(!(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex'))){
@@ -251,13 +291,6 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
     platform = 'generic'
   }
 
-  # Make sure sample IDs are character
-  # If no sample/clinical metadata is available, create table with sample IDs
-  if(nrow(samples_df) > 0){
-    samples_df[[1]] = as.character(samples_df[[1]])
-  } else{
-    samples_df = tibble::tibble(sample_name=names(procLists[['counts']]))
-  }
   # Creates STlist object from processed data
   STlist_obj = new("STlist",
                    counts=procLists[['counts']],
@@ -628,6 +661,73 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
   return(return_lists)
 }
 
+
+##
+# read_cosmx_input: Takes a list with CosMx-SMI output file paths and sample names and
+# returns a list with count and coordinates data frames per sample
+# @param filepaths a list with file paths to CosMx-SMI outputs and sample IDs
+# @param input_check The result of detect_input
+# @return return_lists a list with two lists within (one with counts, one with coordinates)
+#
+read_cosmx_input = function(filepaths, input_check, cores=NULL){
+  # Verify that the files contain the necessary columns: fov, cell_ID, CenterX_local_px, and CenterY_local_px
+  missingSamples = 0
+  fp_list = list()
+  for(i in 1:length(filepaths[['count_found']])){
+    # Does RNA count file have the required columns?
+    firstline = readLines(filepaths[['count_found']][[i]], n=1)
+    rna_cols = (grepl('fov', firstline) & grepl('cell_ID', firstline))
+    rm(firstline)
+
+    # Does coordinate file have the required columns?
+    firstline = readLines(filepaths[['coord_found']][[i]], n=1)
+    coord_cols = (grepl('fov', firstline) & grepl('cell_ID', firstline) & grepl('CenterX_local_px', firstline) & grepl('CenterY_local_px', firstline))
+    rm(firstline)
+
+    # If columns are not present in files, count as missing
+    fp_list[[i]] = list()
+    if(!rna_cols | !coord_cols){
+      missingSamples  = missingSamples + 1
+    } else{
+      fp_list[[i]][['counts']] = filepaths[['count_found']][[i]]
+      fp_list[[i]][['coords']] = filepaths[['coord_found']][[i]]
+      fp_list[[i]][['runname']] = filepaths[['sampleids']][[i]]
+    }
+  }
+
+  cat(crayon::green$bold(paste("Found", length(filepaths$sampleids)-missingSamples, "CosMx-SMI samples\n")))
+
+  # Use parallelization to read count data if possible.
+  output_temp = parallel::mclapply(seq_along(1:length(fp_list)), function(i){
+    if(length(fp_list[[i]][['counts']]) == 0){
+      return(list())
+    }
+    system(sprintf('echo "%s"', crayon::yellow(paste0("\tProcessing sample ", i, "...."))))
+
+    # Process CosMx outputs.
+    cosmx_processed = import_smi(counts_fp=fp_list[[i]][['counts']],
+                                 coords_fp=fp_list[[i]][['coords']],
+                                 slidename=fp_list[[i]][['runname']])
+
+    system(sprintf('echo "%s"', crayon::green(paste0("\tFinished data read sample ", i))))
+    return(cosmx_processed)
+  }, mc.cores=cores, mc.preschedule=F)
+  cat(crayon::green$bold(paste("\tData read completed\n")))
+
+  # Organize the paralellized output into corresponding lists.
+  return_lists = list()
+  return_lists[['counts']] = list()
+  return_lists[['coords']] = list()
+  for(i in 1:length(output_temp)){
+    return_lists[['counts']] = append(return_lists[['counts']], output_temp[[i]][['rawcounts']])
+    return_lists[['coords']] = append(return_lists[['coords']], output_temp[[i]][['coords']])
+  }
+
+  rm(fp_list) # Clean environment
+  return(return_lists)
+}
+
+
 ##
 # process_lists: Takes two named lists of counts and coordinates and process gene and
 # spot names before placing them within an STlist
@@ -643,8 +743,7 @@ process_lists = function(counts_df_list, coords_df_list){
     name_i = names(counts_df_list)[i]
 
     # One of the test data sets has column names begin with a number. To avoid this to
-    # become a problem for data sets with the same issue, will add an 'x', similar to
-    # what R would do
+    # become a problem for data sets with the same issue, will add an 'x', similar to what R would do
     if(any(grepl("^[0-9]", colnames(counts_df_list[[name_i]])))){
       colnames(counts_df_list[[name_i]])[-1] = paste0('x', colnames(counts_df_list[[name_i]][, -1]))
       # Make the same addition in coordinate data to match column names in count data
@@ -653,23 +752,24 @@ process_lists = function(counts_df_list, coords_df_list){
 
     # Test that spot names are the same in both count and coordinate data frames.
     if(length(setdiff(colnames(counts_df_list[[name_i]])[-1], unlist(coords_df_list[[name_i]][, 1]))) != 0){
-      stop(paste0('The spots in the count  data (columns) and coordinate data (rows) do not match in spatial array (\"', name_i, '\").'))
+      stop(paste0('The ROI, spots, or cells in the count data (columns) and coordinate data (rows) do not match in spatial array (\"', name_i, '\").'))
     }
 
     array_col = names(coords_df_list[[name_i]])[3]
     # Sort coordinate data according to third column in the coordinate data frame.
-    coords_df_list[[name_i]] = coords_df_list[[name_i]] %>%
-      dplyr::arrange(!!array_col)
+    coords_df_list[[name_i]] = coords_df_list[[name_i]] %>% dplyr::arrange(!!array_col)
 
     # Order column names in count data frame according to sorted coordinate data.
     if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
-      counts_df_list[[name_i]] = counts_df_list[[name_i]][, unlist(coords_df_list[[name_i]][, 1])]
+      counts_df_list[[name_i]] = counts_df_list[[name_i]][, as.vector(unlist(coords_df_list[[name_i]][, 1]))]
     } else{
       counts_df_list[[name_i]] = counts_df_list[[name_i]][, c(colnames(counts_df_list[[name_i]])[1], coords_df_list[[name_i]][[1]])]
     }
 
-    # Put column names to coordinate data.
-    colnames(coords_df_list[[name_i]]) = c('libname', 'ypos', 'xpos')
+    # Put column names to coordinate data (if not already there)
+    if(sum(grepl('libname|ypos|xpos', colnames(coords_df_list[[name_i]]))) != 3){
+      colnames(coords_df_list[[name_i]]) = c('libname', 'ypos', 'xpos')
+    }
 
     # Get total gene counts and genes with no-zero counts
     if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
@@ -829,12 +929,31 @@ process_sample_names_from_file = function(rnacounts, spotcoords, samples, input_
 #
 process_meta = function(samples, input_check, counts_df_list){
   # Get delimiter of file from input_check
-  del = input_check$samples[2]
+  del = input_check[['samples']][2]
   # Read file.
   samples_df = readr::read_delim(samples, delim=del, col_types=readr::cols(), progress=F, show_col_types=F)
+  # Remove leading spaces in columan names if any
+  colnames(samples_df) = gsub('^ ', '', colnames(samples_df))
+
   # Get sorted list names and fetch corresponding rows from the samplefile.
   sorted_names = sort(names(counts_df_list))
-  samples_df = samples_df[samples_df[[1]] %in% sorted_names, ]
+
+  # Check if all sample names in metadata table are present
+  # If CosMx, expand metadata to FOV level
+  if(!is.null(input_check[['rna']])){
+    if(input_check[['rna']][[1]] == 'cosmx'){
+      samples_df_fov = tibble::tibble(fovid=sorted_names)
+      samples_df_fov[[colnames(samples_df)[[1]]]] = stringr::str_extract(sorted_names, paste0('^', samples_df[[1]], collapse='|'))
+      samples_df = samples_df %>% dplyr::left_join(samples_df_fov, ., by=colnames(samples_df)[[1]])
+      colnames(samples_df)[c(1,2)] = c('sample_name', 'slide_name')
+      rm(samples_df_fov) # Clean env
+    } else{
+      samples_df = samples_df[samples_df[[1]] %in% sorted_names, ]
+    }
+  } else{
+    samples_df = samples_df[samples_df[[1]] %in% sorted_names, ]
+  }
+
   # Remove file paths from sample file if existent
   if(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex')){
     samples_df = samples_df[, -2]

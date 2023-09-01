@@ -43,11 +43,15 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
   min_units = as.integer(min_units)
   min_genes = as.integer(min_genes)
 
-  set.seed(seed)
+  # Define number of cores to use
+  if(is.null(cores)){
+    cores = count_cores(length(names(gene_sets)))
+  }
+
   # Loop through samples in STlist
-  result_dfs = list()
-  for(i in names(x@tr_counts)){
-    cat(crayon::yellow(paste0('\tSample: ', i, '...\n')))
+  result_dfs = parallel::mclapply(1:length(x@tr_counts), function(par_i){
+    i = names(x@tr_counts)[par_i]
+    system(sprintf('echo "%s"', crayon::yellow(paste0("\tSample: ", i, "..."))))
     # Extract spots to be used in analysis
     # This selection implemented proactively as analysis might later be applied to tissue niches within samples
     tissue_spots = x@spatial_meta[[i]][['libname']]
@@ -65,13 +69,9 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
     distances_spots = as.matrix(stats::dist(coords_df[, c('xpos', 'ypos')], method='euclidean'))
     rm(coords_df) # Clean env
 
-    # Define number of cores to use
-    if(is.null(cores)){
-      cores = count_cores(length(names(gene_sets)))
-    }
-
     # Perform tests in parallel
-    pval_ls = parallel::mclapply(seq(names(gene_sets)), function(pw){
+    pval_df = tibble::tibble()
+    for(pw in 1:length(gene_sets)){
       pw_genes = gene_sets[[pw]]
       pw_genes = pw_genes[pw_genes %in% rownames(exp)] # Filter genes that aren't in the expression matrix.
 
@@ -99,6 +99,7 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
           rm(distances_high_spots) # Clean env
 
           # Compute random distance permutations
+          set.seed(seed)
           sum_rand_distances = c()
           for(rep in 1:reps){
             rand_idx = sample(x=colnames(distances_spots), size=length(high_spots_bc))
@@ -129,18 +130,19 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
                                 size_gene_set=length(gene_sets[[pw]]),
                                 p_value=p_val)
 
-      return(pval_tmp)
-    }, mc.cores=cores) # Close mclappy
-
-    # Compile results in a single data frame
-    pval_df = dplyr::bind_rows(pval_ls) %>%
-      tibble::add_column(sample_name=i, .before=1)
+      # Compile results in a single data frame
+      pval_df = dplyr::bind_rows(pval_df,
+                                 pval_tmp %>%
+                                   tibble::add_column(sample_name=i, .before=1))
+    }
 
     # Adjust p-values
     pval_df[['adj_p_value']] = p.adjust(pval_df[['p_value']], method=pval_adj_method)
     pval_df = pval_df[order(pval_df[['adj_p_value']]), ]
-    result_dfs[[i]] = pval_df
-  }
+
+    return(pval_df)
+  }, mc.cores=cores)
+  names(result_dfs) = names(x@tr_counts)
 
   # Print time
   verbose = 1L

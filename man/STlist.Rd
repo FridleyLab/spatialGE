@@ -4,18 +4,7 @@
 \alias{STlist}
 \title{STlist: Creation of STlist objects for spatial transcriptomics analysis}
 \usage{
-STlist(
-  rnacounts = NULL,
-  spotcoords = NULL,
-  samples = NULL,
-  gmx_pkc = NULL,
-  gmx_slide_col = NULL,
-  gmx_roi_col = NULL,
-  gmx_y_col = NULL,
-  gmx_x_col = NULL,
-  gmx_meta_cols = NULL,
-  cores = NULL
-)
+STlist(rnacounts = NULL, spotcoords = NULL, samples = NULL, cores = NULL)
 }
 \arguments{
 \item{rnacounts}{the count data which can be provided in one of these formats:
@@ -33,18 +22,25 @@ called \code{filtered_feature_bc_matrix} should contain contain the \code{barcod
 contains the coordinates (\code{tissue_positions_list.csv}), and optionally the high
 resolution PNG image and accompanying scaling factors (\code{scalefactors_json.json}).
 Requires \code{samples}
+\item The \code{exprMat} file for each slide of a CosMx-SMI output. The file must contain
+the "fov" and "cell_ID" columns. The \code{STlist} function will separate data from each
+FOV, since analysis in spatialGE is conducted at the FOV level. Requires \code{samples} and
+\code{spotcoords}
 \item A named list of data frames with raw gene counts (one data frame per spatial
 sample). Requires \code{spotcoords}
-\item File path to \code{.dcc} files from GeoMx output. Requires \code{samples}
 }}
 
 \item{spotcoords}{the cell/spot coordinates. Not required if inputs are Visium
-space ranger outputs or GeoMx DCC files
+space ranger outputs
 \itemize{
 \item File paths to comma- or tab-delimited files containing cell/spot coordinates, one
 for each spatial sample. The files must contain three columns: cell/spot IDs, Y positions, and
 X positions. The cell/spot IDs must match the column names for each cells/spots (columns) in
 the gene count files
+\item The \code{metadata} file for each slide of a CosMx-SMI output. The file must contain
+the "fov", "cell_ID", "CenterX_local_px", and "CenterY_local_px" columns. The \code{STlist}
+function will separate data from each FOV, since analysis in spatialGE is conducted at
+the FOV level. Requires \code{samples} and \code{rnacounts}
 \item A named list of data frames with cell/spot coordinates. The list names must
 match list names of the gene counts list
 }}
@@ -64,28 +60,7 @@ third columns respectively (while leaving the \code{rnacounts} and \code{spotcoo
 empty). If Visium directories are provided, only the second column with paths to
 \verb{spaceranger count} directories are expected. Subsequent columns can contain
 variables associated with each spatial sample
-Note: For GeoMx, the metadata file contains one row per ROI. This information is
-automatically summarized to one row per tissue slice. This metadata file usually
-also contains the X and Y positions, which can be identified via \code{gmx_y_col} and
-\code{gmx_x_col} arguments
 }}
-
-\item{gmx_pkc}{the file path to the \code{.pkc} probe set file (for GeoMx input)}
-
-\item{gmx_slide_col}{the name of the column in the metadata table containing
-the slide names (for GeoMx input)}
-
-\item{gmx_roi_col}{the name of the column in the metadata table containing the
-ROI IDs, matching IDs in the DCC files (for GeoMx input)}
-
-\item{gmx_y_col}{the name of the column in the metadata table containing the
-Y positions (for GeoMx input)}
-
-\item{gmx_x_col}{the name of the column in the metadata table containing the
-X positions (for GeoMx input)}
-
-\item{gmx_meta_cols}{a vector with column names in the metadata table containing
-clinical data (for GeoMx input)}
 
 \item{cores}{integer indicating the number of cores to use during parallelization.
 If NULL, the function uses half of the available cores at a maximum. The parallelization
@@ -111,6 +86,9 @@ the file structure resulting from \verb{spaceranger count}, with either a count 
 represented in MEX files or a h5 file. The directory should also contain a \code{spatial}
 sub-directory, with the spatial coordinates (\code{tissue_positions_list.csv}), and
 optionally the high resolution tissue image and scaling factor file \code{scalefactors_json.json}.
+\item CosMx-SMI outputs. Two files are required to process SMI outputs: The \code{exprMat} and
+\code{metadata} files. Both files must contain the "fov" and "cell_ID" columns. In addition,
+the \code{metadata} files must contain the "CenterX_local_px" and "CenterY_local_px" columns.
 }
 Optionally, the user can input a path to a file containing a table of sample-level
 metadata (e.g., clinical outcomes, tissue type, age). This sample metadata file

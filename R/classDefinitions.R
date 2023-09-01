@@ -51,8 +51,16 @@ setMethod("show", signature="STlist",
           function(object){
             cat("Spatial Transcriptomics List (STlist).\n")
             cat(length(object@counts), "spatial array(s):\n")
-            for(i in names(object@counts)){
-              cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+            counter = 1
+            while(counter < 11){
+              #for(i in names(object@counts)){
+              i = names(object@counts)[counter]
+                cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+                counter = counter + 1
+              #}
+            }
+            if(length(names(object@counts)) > 10){
+              cat(paste0('\tPlus ', (length(names(object@counts))-10), ' additional spatial array(s)\n'))
             }
             cat('\n')
             if(!rlang::is_empty(object@sample_meta)){
@@ -76,8 +84,16 @@ setMethod("summary", signature="STlist",
           function(object){
             cat("Spatial Transcriptomics List (STlist).\n")
             cat(length(object@counts), "spatial array(s):\n")
-            for(i in names(object@counts)){
-              cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+            counter = 1
+            while(counter < 11){
+              #for(i in names(object@counts)){
+              i = names(object@counts)[counter]
+                cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+                counter = counter + 1
+              #}
+            }
+            if(length(names(object@counts)) > 10){
+              cat(paste0('\tPlus ', (length(names(object@counts))-10), ' additional spatial array(s)\n'))
             }
             cat('\n')
             if(!rlang::is_empty(object@sample_meta)){
