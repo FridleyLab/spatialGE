@@ -1,0 +1,35 @@
+---
+title: "Troubleshooting"
+date: '`r format(Sys.Date())`'
+output: rmarkdown::html_vignette
+bibliography: vignette_references.bib
+vignette: >
+  %\VignetteIndexEntry{spatialge_tutorial_stdiff}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r vig_settings, include=F}
+knitr::opts_chunk$set(
+  collapse=TRUE,
+  comment="#>",
+  fig.width=10, fig.height=7
+)
+```
+
+
+
+<details>
+
+<summary>*When using readRDS to load an STList, I get ‘Error: vector memory exhausted’. What can I do? ?**</summary>
+
+This error results from R’s default memoery limits. Provided your computer has enough memory to hold an STList in memory, this error message can be overridden by typing in a Terminal (Mac OS):
+
+```
+echo 'R_MAX_VSIZE=100Gb' >> ~/.Renviron
+```
+
+Then, close and re-open R and try to load the STList again.
+
+</details>
+
