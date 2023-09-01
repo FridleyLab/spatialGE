@@ -37,7 +37,7 @@ After making sure `devtools` is installed, proceed to install `spatialGE`:
 
 To use `spatialGE`, load the package.
 
-```{r load_spatialGE, include=F, message=F}
+```{r load_spatialGE, message=F}
 library('spatialGE')
 ```
 
@@ -74,6 +74,7 @@ Additionally, we will input meta data associated with each sample. The meta data
 <img src="../vignettes/metadata_file.png" height="250" width="550"/>
 </p>
 
+
 Once the folders with samples have been created, we can use R to generate the file paths to be passed to the `STlist` function. Assuming that the user created the folder in the computer's Desktop:
 
 ```{r data_fpaths}
@@ -108,7 +109,7 @@ summarize_STlist(tnbc)
 The minimum number of counts per spot is 42, which seems low. We can look at the distribution of counts and genes per spot using the `distribution_plots` function:
 
 ```{r count_dstr}
-cp = distribution_plots(tnbc, plot_type='violin', plot_meta='total_counts')
+cp <- distribution_plots(tnbc, plot_type='violin', plot_meta='total_counts')
 cp[['total_counts']]
 ```
 
@@ -117,9 +118,9 @@ Now, let us remove spots with low counts by keeping only those spots with at lea
 We run this filter with the `filter_data` function:
 
 ```{r filter_chunk}
-tnbc = filter_data(tnbc, spot_minreads=5000, spot_mingenes=1000, spot_maxreads=150000)
+tnbc <- filter_data(tnbc, spot_minreads=5000, spot_mingenes=1000, spot_maxreads=150000)
 
-cp2 = distribution_plots(tnbc, plot_type='violin', plot_meta='total_counts')
+cp2 <- distribution_plots(tnbc, plot_type='violin', plot_meta='total_counts')
 cp2[['total_counts']]
 ```
 
@@ -127,8 +128,8 @@ cp2[['total_counts']]
 
 The functions `pseudobulk_samples` and `pseudobulk_pca_plot` are the initial steps to obtain a quick snapshot of the variation in gene expression among samples. The function `pseudobulk_samples` creates (pseudo) "bulk" RNAseq data sets by combining all counts from each sample. Then, it log transforms the "pseudo bulk" RNAseq counts and runs a Principal Component Analysis (PCA). Note that the spatial coordinate information is not considered here, which is intended only as an exploratory analysis analysis. The `max_var_genes` argument is used to specify the maximum number of genes used for computation of PCA. The genes are selected based on their standard deviation across samples.
 
-```{r pseudobulk, include=F}
-tnbc = pseudobulk_samples(tnbc, max_var_genes=5000)
+```{r pseudobulk}
+tnbc <- pseudobulk_samples(tnbc, max_var_genes=5000)
 ```
 
 In this case, we apply the function to look for agreement between samples from the same patient: It is expected that tissue slices from the same patient are more similar among them than tissue slices from other patients. The `pseudobulk_pca` allows to map a sample-level variable to the points in the PCA by including the name of the column from the sample metadata (`patient_id` in this example).
@@ -140,7 +141,7 @@ pseudobulk_pca_plot(tnbc, plot_meta='patient_id')
 Users can also generate a heatmap from pseudobulk counts by calling the `pseudobulk_heatmap` function, which also requires prior use of the `pseudobulk_samples` function. The number of variable genes to show can be controlled via the `hm_display_genes` argument.
 
 ```{r heatmap_chunk, fig.align='center'}
-hm_p = pseudobulk_heatmap(tnbc, plot_meta='patient_id', hm_display_genes=30)
+hm_p <- pseudobulk_heatmap(tnbc, plot_meta='patient_id', hm_display_genes=30)
 ```
 
 ## Transformation of spatially-resolved transcriptomics data
@@ -235,12 +236,12 @@ tnbc <- SThet(tnbc,
 The `SThet` function calculates the Moran's I statsitic (or Geary's C) to measure the level of spatial heterogeneity in the expression of the genes ( *NDRG1*, *IGKC*). The estimates can be compared across samples using the function `compare_SThet()`
 
 ```{r clinplot_chunk, fig.align='center'}
-p = compare_SThet(tnbc, 
-                  samplemeta='overall_survival_days', 
-                  color_by='patient_id',
-                  gene=c('NDRG1', 'IGKC'), 
-                  color_pal='muted',
-                  ptsize=3)
+p <- compare_SThet(tnbc, 
+                   samplemeta='overall_survival_days', 
+                   color_by='patient_id',
+                   gene=c('NDRG1', 'IGKC'), 
+                   color_pal='muted',
+                   ptsize=3)
 
 p
 ```
@@ -288,17 +289,17 @@ The `sc.SpatialSIM` package uses spatial point processes to simulate the locatio
 The first step is to create a `spatstat` observation window:
 
 ```{r tissue_sim_1, warning=F, message=F}
-wdw = owin(xrange=c(0, 3), yrange=c(0, 3))
-sim_visium = CreateSimulationObject(sims=1, cell_types=1, window=wdw)
+wdw <- owin(xrange=c(0, 3), yrange=c(0, 3))
+sim_visium <- CreateSimulationObject(sims=1, cell_types=1, window=wdw)
 ```
 
 Next, the `sc.SpatialSIM` is used to generate the spatial point process (positions of the spots) within the observation window. Then, assignments of spots to tissue domains are simulated and visualized:
 
-```{r tissue_sim_2, warning=F}
+```{r tissue_sim_2, warning=F, fig.height=4, fig.width=4}
 # Generate point process
 # Then, simulate tissue compartments
 set.seed(12345)
-sim_visium = GenerateSpatialPattern(sim_visium, gridded=T, overwrite=T) %>% 
+sim_visium <- GenerateSpatialPattern(sim_visium, gridded=T, overwrite=T) %>% 
   GenerateTissue(k=1, xmin=1, xmax=2, ymin=1, ymax=2, sdmin=1, sdmax=2, overwrite=T)
 
 PlotSimulation(sim_visium, which=1, what="tissue points") + 
@@ -314,7 +315,7 @@ Now, the simulated tissue domain assignments are extracted from the `SpatSimObj`
 ```{r tissue_sim_3, warning=F}
 # Extract tissue assignments from the `SpatSimObj` object
 # Simulate expression of 'gene_1'
-sim_visium_df = sim_visium@`Spatial Files`[[1]] %>%
+sim_visium_df <- sim_visium@`Spatial Files`[[1]] %>%
   clean_names() %>% 
   mutate(gene_1=case_when(tissue_assignment == 'Tissue 1' ~ 1, TRUE ~ 0.1))
 
@@ -330,30 +331,30 @@ for(i in 1:nrow(sim_visium_df)){
 # Generate expression of "gene_3"
 # Set seed for resproducibility
 set.seed(12345)
-sim_visium_df[['gene_3']] = sample(sim_visium_df[['gene_2']])
+sim_visium_df[['gene_3']] <- sample(sim_visium_df[['gene_2']])
 ```
 
 To visualize the simulated expression and run `SThet`, an STlist is created:
 
-```{r tissue_sim_4, warning=F}
+```{r tissue_sim_4, warning=F, fig.height=4}
 # Extract simulated expression data
-sim_expr = sim_visium_df %>% 
+sim_expr <- sim_visium_df %>% 
   add_column(libname=paste0('spot', seq(1:nrow(.)))) %>%
   select(c('libname', 'gene_1', 'gene_2', 'gene_3')) %>%
   column_to_rownames('libname') %>% t() %>% 
   as.data.frame() %>% rownames_to_column('genename')
 
 # Extract simulated spot locations
-sim_xy = sim_visium_df %>% 
+sim_xy <- sim_visium_df %>% 
   add_column(libname=paste0('spot', seq(1:nrow(.)))) %>%
   select(c('libname', 'y', 'x'))
 
 # The `STlist` function can take a list of data frames
-simulated = STlist(rnacounts=list(sim_visium=sim_expr), 
+simulated <- STlist(rnacounts=list(sim_visium=sim_expr), 
                    spotcoords=list(sim_visium=sim_xy))
 
 # Plot expression
-ps = STplot(simulated, genes=c('gene_1', 'gene_2', 'gene_3'), data_type='raw', color_pal='sunset', ptsize=1)
+ps <- STplot(simulated, genes=c('gene_1', 'gene_2', 'gene_3'), data_type='raw', color_pal='sunset', ptsize=1)
 ggpubr::ggarrange(plotlist=ps, ncol=3)
 ```
 
@@ -361,10 +362,10 @@ As expected, simulated expression of "gene_1" is aggregated (i.e., clustered, re
 
 ```{r tissue_sim_5, warning=F, message=F}
 # The `SThet` function requires normalized data
-simulated = transform_data(simulated)
+simulated <- transform_data(simulated)
 
 # Run `SThet`
-simulated = SThet(simulated, genes=c('gene_1', 'gene_2', 'gene_3'), method=c('moran', 'geary'))
+simulated <- SThet(simulated, genes=c('gene_1', 'gene_2', 'gene_3'), method=c('moran', 'geary'))
 
 # Extract results
 get_gene_meta(simulated, sthet_only=T)

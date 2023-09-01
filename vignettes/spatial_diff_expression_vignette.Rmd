@@ -35,7 +35,7 @@ The `STlist` function takes data in several formats. The reader is encouraged to
 
 ```{r data_fpaths1}
 #data_files <- system.file("extdata/melanoma_thrane", package="spatialGE")
-data_files = '../inst/extdata/melanoma_thrane/'
+data_files <- '../inst/extdata/melanoma_thrane/'
 count_files <- list.files(data_files, full.names=T, pattern='counts')
 coord_files <- list.files(data_files, full.names=T, pattern='mapping')
 ```
@@ -86,11 +86,11 @@ Then, data frame is created with both gene _COL1A1_ gene expression and spatial 
 
 ```{r variogram_chunk}
 # Sample and gene to be used in example
-samplename = 'ST_mel1_rep1'
-gene = 'COL1A1'
+samplename <- 'ST_mel1_rep1'
+gene <- 'COL1A1'
 
 # Prepare data with coordinate and expression data
-df_vgm = melanoma@spatial_meta[[samplename]] %>%
+df_vgm <- melanoma@spatial_meta[[samplename]] %>%
   select(libname, xpos, ypos) %>%
   left_join(., tibble(libname=colnames(melanoma@tr_counts[[samplename]]),
                       geneexpr=as.vector(melanoma@tr_counts[[samplename]][gene, ])), by='libname') %>%
@@ -107,10 +107,10 @@ In a variogram, each point describes the variance in gene expression (semiovaria
 
 ```{r vgm_chunk, echo=F, message=F}
 # Create geodata object
-geodata_obj = geoR::as.geodata(df_vgm, coords.col=c('xpos', 'ypos'), data.col='geneexpr')
+geodata_obj <- geoR::as.geodata(df_vgm, coords.col=c('xpos', 'ypos'), data.col='geneexpr')
 
 # Calculate variogram
-vgm = geoR::variog(geodata_obj, uvec=100, trend='cte')
+vgm <- geoR::variog(geodata_obj, uvec=100, trend='cte')
 ```
 
 Now, the variogram can be plotted:
@@ -145,17 +145,17 @@ Using the variogram calculated previously, the different covariance structures c
 
 ```{r vgm_model_plot, message=F, fig.asp=1, fig.width=5, fig.align='center'}
 # Exponential covariance structure:
-exp_model = geoR::variofit(vgm, fix.nugget=F, cov.model='exponential',
-                           ini.cov.pars=c(0.2, 11), nugget=0.7, # Sill, range, and nugget specified here
-                           max.dist=15) # Maximum distance to which model will be fitted
+exp_model <- geoR::variofit(vgm, fix.nugget=F, cov.model='exponential',
+                            ini.cov.pars=c(0.2, 11), nugget=0.7, # Sill, range, and nugget specified here
+                            max.dist=15) # Maximum distance to which model will be fitted
 
-sph_model = geoR::variofit(vgm, fix.nugget=F, cov.model='spherical',
-                           ini.cov.pars=c(0.2, 11), nugget=0.7, 
-                           max.dist=15)
+sph_model <- geoR::variofit(vgm, fix.nugget=F, cov.model='spherical',
+                            ini.cov.pars=c(0.2, 11), nugget=0.7, 
+                            max.dist=15)
 
-gau_model = geoR::variofit(vgm, fix.nugget=F, cov.model='gaussian',
-                           ini.cov.pars=c(0.2, 11), nugget=0.7, 
-                           max.dist=15)
+gau_model <- geoR::variofit(vgm, fix.nugget=F, cov.model='gaussian',
+                            ini.cov.pars=c(0.2, 11), nugget=0.7, 
+                            max.dist=15)
 
 plot(vgm, pch=16, cex=0.5, ylab='Semiovariance', xlab='Distance',
      main=paste0('Variogram of ', gene, ' expression with\nfitted covariance structures'))
@@ -226,11 +226,11 @@ print(cluster_p[[1]])
 With the domains identified, the `STdiff` function can be used. The following command tests for differentially expressed genes on the 1000 genes with the highest variation (as defined by `Seurat`'s function `FindVariableFeatures`).
 
 ```{r stdiff_chunk}
-deg = STdiff(melanoma, 
-             samples='ST_mel1_rep1', 
-             w=0.025, k='dtc', deepSplit=F, 
-             topgenes=1000,
-             sp_topgenes=0.2) # Test the 20% of the top differtially expressed genes (based on adjusted p-value)
+deg <- STdiff(melanoma, 
+              samples='ST_mel1_rep1', 
+              w=0.025, k='dtc', deepSplit=F, 
+              topgenes=1000,
+              sp_topgenes=0.2) # Test the 20% of the top differtially expressed genes (based on adjusted p-value)
 ```
 
 The output of `STdiff` is a list, where each element is a data frame containing the test results for each sample:
@@ -250,13 +250,13 @@ We can look at the -log10(p-values) to compare each spatial model to the non-spa
 library('ggrepel')
 
 # Calculate -log10 p-values
-log_pval = deg[['ST_mel1_rep1']] %>%
+log_pval <- deg[['ST_mel1_rep1']] %>%
   select(gene, cluster_1, mm_p_val, exp_p_val) %>%
   mutate(log_p_val= -log10(mm_p_val+1e-100)) %>% # Add a constant to avoid -log10(0)
   mutate(log_exp_p_val= -log10(exp_p_val+1e-100))
 
 # Create plot
-p1 = ggplot(log_pval, aes(x=log_p_val, y=log_exp_p_val)) +
+p1 <- ggplot(log_pval, aes(x=log_p_val, y=log_exp_p_val)) +
   geom_abline(intercept=0, slope=1, linetype="dashed") + # Diagonal line... All p-values over this line if equal
   geom_hline(yintercept=-log10(0.05), linetype="dashed", color='gray50') + # Line p-value <0.05
   geom_vline(xintercept=-log10(0.05), linetype="dashed", color='gray50') + # Line p-value <0.05
@@ -279,7 +279,7 @@ Testing spatial models with `STdiff` is both computationally- and time-intensive
 The `spatialGE` package has a built-in function (`STdiff_volcano`) to generate volcano plots. The function takes `STdiff` outputs and generates a volcano plot for each sample and cluster (or cluster pair if pairwise testing was requested).
 
 ```{r volc_plots1}
-vp = STdiff_volcano(deg)
+vp <- STdiff_volcano(deg)
 ```
 
 Now, the `ggpubr` package can be used to arrange all plots:
