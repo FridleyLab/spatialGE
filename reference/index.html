@@ -24,8 +24,9 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/basic_functions_vignette.html">Basic functions to study spatial heterogeneity</a>
-    <a class="dropdown-item" href="../articles/spatial_diff_expression_vignette.html">Differential gene expression accounting for spatial dependency (melanoma data set from Thrane et al. 2018)</a>
+    <a class="dropdown-item" href="../articles/basic_functions_vignette.html">spatialGE: Basic functionality</a>
+    <a class="dropdown-item" href="../articles/spatial_diff_expression_vignette.html">Spatially-informed differential gene expression</a>
+    <a class="dropdown-item" href="../articles/spatial_enrichment_gradients_smi.html">Detecting gene set spatial patterns expression gradients in CosMx-SMI</a>
   </div>
 </li>
 <li class="nav-item">
@@ -57,41 +58,64 @@
 
       <dl><dt>
           
-          <code><a href="STList-class.html">STList-class</a></code> 
-        </dt>
-        <dd>Definition of an STList object class.</dd>
-      </dl><dl><dt>
-          
-          <code><a href="STList.html">STList()</a></code> 
-        </dt>
-        <dd>STList: Creation of STList objects</dd>
-      </dl><dl><dt>
-          
           <code><a href="STclust.html">STclust()</a></code> 
         </dt>
-        <dd>STclust: Detect clusters on ST arrays</dd>
+        <dd>STclust: Detect clusters of spots/cells</dd>
       </dl><dl><dt>
           
-          <code><a href="bulk_pca.html">bulk_pca()</a></code> 
+          <code><a href="STdiff.html">STdiff()</a></code> 
         </dt>
-        <dd>bulk_pca: Performs PCA on "bulk" spatial array</dd>
+        <dd>STdiff: Differential gene expression analysis for spatial transcriptomics data</dd>
       </dl><dl><dt>
           
-          <code><a href="cluster_purity.html">cluster_purity()</a></code> 
+          <code><a href="STdiff_volcano.html">STdiff_volcano()</a></code> 
         </dt>
-        <dd>cluster_purity</dd>
+        <dd>STdiff_volcano: Generates volcano plots from STdiff results</dd>
       </dl><dl><dt>
           
-          <code><a href="color_parse.html">color_parse()</a></code> 
+          <code><a href="STenrich.html">STenrich()</a></code> 
         </dt>
-        <dd>color_parse: Creates a color palette</dd>
+        <dd>STenrich</dd>
       </dl><dl><dt>
           
-          <code><a href="count_cores.html">count_cores()</a></code> 
+          <code><a href="STgradient.html">STgradient()</a></code> 
         </dt>
-        <dd>Get the number of cores to use in parallel as a function of the number of
-data to process. It will not yield a higher number of cores than half of the
-total available cores. Will default to 1 core if not Unix</dd>
+        <dd>STgradient: Tests of gene expression spatial gradients</dd>
+      </dl><dl><dt>
+          
+          <code><a href="SThet.html">SThet()</a></code> 
+        </dt>
+        <dd>SThet: Computes global spatial autocorrelation statistics on gene expression</dd>
+      </dl><dl><dt>
+          
+          <code><a href="SThet_invdist_test.html">SThet_invdist_test()</a></code> 
+        </dt>
+        <dd>SThet: Computes global spatial autocorrelation statistics on gene expression</dd>
+      </dl><dl><dt>
+          
+          <code><a href="STlist-class.html">STlist-class</a></code> 
+        </dt>
+        <dd>Definition of an STlist object class.</dd>
+      </dl><dl><dt>
+          
+          <code><a href="STlist.html">STlist()</a></code> 
+        </dt>
+        <dd>STlist: Creation of STlist objects for spatial transcriptomics analysis</dd>
+      </dl><dl><dt>
+          
+          <code><a href="STplot.html">STplot()</a></code> 
+        </dt>
+        <dd>STplot: Plots of gene expression, cluster memberships, and metadata in spatial context</dd>
+      </dl><dl><dt>
+          
+          <code><a href="STplot_interpolation.html">STplot_interpolation()</a></code> 
+        </dt>
+        <dd>STplot_interpolation: Visualize gene expression surfaces</dd>
+      </dl><dl><dt>
+          
+          <code><a href="compare_SThet.html">compare_SThet()</a></code> 
+        </dt>
+        <dd>compare_SThet: Compares spatial autocorrelation statistics across samples</dd>
       </dl><dl><dt>
           
           <code><a href="create_listw.html">create_listw()</a></code> 
@@ -99,174 +123,84 @@ total available cores. Will default to 1 core if not Unix</dd>
         <dd>create_listw</dd>
       </dl><dl><dt>
           
-          <code><a href="deconv_krige.html">deconv_krige()</a></code> 
-        </dt>
-        <dd>deconv_krige: Spatial interpolation of gene expression deconvolution scores</dd>
-      </dl><dl><dt>
-          
-          <code><a href="detect_input.html">detect_input()</a></code> 
-        </dt>
-        <dd>detect_input: Determine what is being provided to STList</dd>
-      </dl><dl><dt>
-          
-          <code><a href="dim-STList-method.html">dim(<i>&lt;STList&gt;</i>)</a></code> 
+          <code><a href="dim-STlist-method.html">dim(<i>&lt;STlist&gt;</i>)</a></code> 
         </dt>
         <dd>dim: Prints the dimensions of count arrays within an STList object.</dd>
       </dl><dl><dt>
           
+          <code><a href="distribution_plots.html">distribution_plots()</a></code> 
+        </dt>
+        <dd>per_unit_counts: Generates distribution plots of spot/cell meta data or gene expression</dd>
+      </dl><dl><dt>
+          
           <code><a href="filter_data.html">filter_data()</a></code> 
         </dt>
-        <dd>filter_data: Removes spots, genes, or samples</dd>
+        <dd>filter_data: Filters cells/spots, genes, or samples</dd>
       </dl><dl><dt>
           
-          <code><a href="gene_geary_C.html">gene_geary_C()</a></code> 
+          <code><a href="gene_interpolation.html">gene_interpolation()</a></code> 
         </dt>
-        <dd>gene_geary_C</dd>
+        <dd>gene_interpolation: Spatial interpolation of gene expression</dd>
       </dl><dl><dt>
           
-          <code><a href="gene_getis_Gi.html">gene_getis_Gi()</a></code> 
+          <code><a href="get_gene_meta.html">get_gene_meta()</a></code> 
         </dt>
-        <dd>gene_getis_Gi</dd>
-      </dl><dl><dt>
-          
-          <code><a href="gene_krige.html">gene_krige()</a></code> 
-        </dt>
-        <dd>gene_krige: Spatial interpolation of gene expression</dd>
-      </dl><dl><dt>
-          
-          <code><a href="gene_moran_I.html">gene_moran_I()</a></code> 
-        </dt>
-        <dd>gene_moran_I</dd>
-      </dl><dl><dt>
-          
-          <code><a href="get_gene_stats.html">get_gene_stats()</a></code> 
-        </dt>
-        <dd>get_gene_stats</dd>
-      </dl><dl><dt>
-          
-          <code><a href="krige_p.html">krige_p()</a></code> 
-        </dt>
-        <dd>krige_p</dd>
-      </dl><dl><dt>
-          
-          <code><a href="krige_p_purity.html">krige_p_purity()</a></code> 
-        </dt>
-        <dd>krige_p_purity</dd>
-      </dl><dl><dt>
-          
-          <code><a href="krige_p_pvals.html">krige_p_pvals()</a></code> 
-        </dt>
-        <dd>krige_p_pvals</dd>
+        <dd>get_gene_meta: Extract gene-level metadata and statistics</dd>
       </dl><dl><dt>
           
           <code><a href="load_images.html">load_images()</a></code> 
         </dt>
-        <dd>load_images: Place tissue images within STList</dd>
+        <dd>load_images: Place tissue images within STlist</dd>
       </dl><dl><dt>
           
-          <code><a href="log_transf.html">log_transf()</a></code> 
+          <code><a href="old_SThet.html">old_SThet()</a></code> 
         </dt>
-        <dd>log_transf: Log-transformation of spatial arrays</dd>
+        <dd>SThet: Computes global spatial autocorrelation statistics on gene expression</dd>
       </dl><dl><dt>
           
-          <code><a href="plot_QC_quilt.html">plot_QC_quilt()</a></code> 
+          <code><a href="plot_counts.html">plot_counts()</a></code> 
         </dt>
-        <dd>plot_QC_quilt: Plot UMI counts at each spot from an spatial array</dd>
+        <dd>plot_counts: Generates plots for the distribution of counts</dd>
       </dl><dl><dt>
           
-          <code><a href="plot_QC_stats.html">plot_QC_stats()</a></code> 
+          <code><a href="plot_image.html">plot_image()</a></code> 
         </dt>
-        <dd>plot_QCstats: Plots distribution of counts, gene number, or percents per sample</dd>
+        <dd>plot_image: Generate a ggplot object of the tissue image</dd>
       </dl><dl><dt>
           
-          <code><a href="plot_STclusters.html">plot_STclusters()</a></code> 
+          <code><a href="pseudobulk_heatmap.html">pseudobulk_heatmap()</a></code> 
         </dt>
-        <dd>plot_STclusters: Plot cluster memberships of ST spots</dd>
+        <dd>pseudobulk_heatmap: Heatmap of pseudobulk samples</dd>
       </dl><dl><dt>
           
-          <code><a href="plot_deconv_krige.html">plot_deconv_krige()</a></code> 
+          <code><a href="pseudobulk_pca_plot.html">pseudobulk_pca_plot()</a></code> 
         </dt>
-        <dd>plot_deconv_krige: Visualize spatial interpolation of deconvolution scores</dd>
+        <dd>pseudobulk_pca_plot: Plot PCA of pseudobulk samples</dd>
       </dl><dl><dt>
           
-          <code><a href="plot_deconv_quilt.html">plot_deconv_quilt()</a></code> 
+          <code><a href="pseudobulk_samples.html">pseudobulk_samples()</a></code> 
         </dt>
-        <dd>plot_deconv_quilt: Deconvolution scores at each spot</dd>
+        <dd>pseudobulk_samples: Aggregates counts into "pseudo bulk" samples</dd>
       </dl><dl><dt>
           
-          <code><a href="plot_gene_krige.html">plot_gene_krige()</a></code> 
-        </dt>
-        <dd>plot_gene_krige: Visualize transcriptomic surfaces</dd>
-      </dl><dl><dt>
-          
-          <code><a href="plot_gene_quilt.html">plot_gene_quilt()</a></code> 
-        </dt>
-        <dd>plot_gene_quilt: Gene expression at each spot from an spatial array</dd>
-      </dl><dl><dt>
-          
-          <code><a href="quilt_p.html">quilt_p()</a></code> 
-        </dt>
-        <dd>quilt_p</dd>
-      </dl><dl><dt>
-          
-          <code><a href="quilt_p_purity.html">quilt_p_purity()</a></code> 
-        </dt>
-        <dd>quilt_p_purity</dd>
-      </dl><dl><dt>
-          
-          <code><a href="quilt_p_purity_bw.html">quilt_p_purity_bw()</a></code> 
-        </dt>
-        <dd>quilt_p_purity_bw</dd>
-      </dl><dl><dt>
-          
-          <code><a href="show-STList-method.html">show(<i>&lt;STList&gt;</i>)</a></code> 
+          <code><a href="show-STlist-method.html">show(<i>&lt;STlist&gt;</i>)</a></code> 
         </dt>
         <dd>show: Prints overview of STList oject.</dd>
       </dl><dl><dt>
           
-          <code><a href="spatialDeconv.html">spatialDeconv()</a></code> 
+          <code><a href="summarize_STlist.html">summarize_STlist()</a></code> 
         </dt>
-        <dd>spatialDeconv: Deconvolution of ST data</dd>
+        <dd>summarize_STlist: Generates a data frame with summary statistics</dd>
       </dl><dl><dt>
           
-          <code><a href="spatialTransform.html">spatialTransform()</a></code> 
-        </dt>
-        <dd>spatialTransform: Data transformation of spatial transcriptomics data</dd>
-      </dl><dl><dt>
-          
-          <code><a href="spatial_purity.html">spatial_purity()</a></code> 
-        </dt>
-        <dd>spatial_purity</dd>
-      </dl><dl><dt>
-          
-          <code><a href="spatial_stat_plot.html">spatial_stat_plot()</a></code> 
-        </dt>
-        <dd>spatial_stat_plot: Plots association of samples variable and spatial statistics</dd>
-      </dl><dl><dt>
-          
-          <code><a href="spatial_stat_plot_gene.html">spatial_stat_plot_gene()</a></code> 
-        </dt>
-        <dd>spatial_stat_plot_gene</dd>
-      </dl><dl><dt>
-          
-          <code><a href="spatial_xcell.html">spatial_xcell()</a></code> 
-        </dt>
-        <dd>spatial_xcell</dd>
-      </dl><dl><dt>
-          
-          <code><a href="summary-STList-method.html">summary(<i>&lt;STList&gt;</i>)</a></code> 
+          <code><a href="summary-STlist-method.html">summary(<i>&lt;STlist&gt;</i>)</a></code> 
         </dt>
         <dd>summary: Prints overview of STList oject.</dd>
       </dl><dl><dt>
           
-          <code><a href="voom_norm.html">voom_norm()</a></code> 
+          <code><a href="transform_data.html">transform_data()</a></code> 
         </dt>
-        <dd>voom_norm: voom transformation of ST arrays</dd>
-      </dl><dl><dt>
-          
-          <code><a href="xcell_names.html">xcell_names()</a></code> 
-        </dt>
-        <dd>xcell_names: Prints xCell cell type names</dd>
+        <dd>transform_data: Transformation of spatial transcriptomics data</dd>
       </dl></div>
   </main></div>
 
