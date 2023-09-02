@@ -277,7 +277,7 @@ ti <- plot_image(lung_subset)
 
 The domains can be plotted with the `STplot` function too.
 
-```{r plot_domains, fig.width=10}
+```{r plot_domains, fig.width=12}
 dom_p <- STplot(lung_subset, ks='dtc', ws=0.02, deepSplit=F,
                 color_pal='discreterainbow')
 
