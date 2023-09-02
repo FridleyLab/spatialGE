@@ -18,7 +18,7 @@ an STlist with images
 Loads the images from tissues to the appropriate STlist slot.
 }
 \details{
-This function looks for \code{.PNG} files within a folder matching the sample names
-in an existing STList. Then, loads the images to the STList which can be used
-for plotting along with quilt plots.
+This function looks for \code{.PNG} or \code{.JPG} files within a folder matching the
+sample names in an existing STlist. Then, loads the images to the STlist which
+can be used for plotting along with other spatialGE plots.
 }
