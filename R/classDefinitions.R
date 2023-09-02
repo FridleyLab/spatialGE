@@ -46,6 +46,7 @@ setMethod("show", signature="STlist",
           function(object){
             cat("Spatial Transcriptomics List (STlist).\n")
             cat(length(object@counts), "spatial array(s):\n")
+<<<<<<< HEAD
             if(length(names(object@counts)) >= 11){
               counter = 1
               while(counter < 11){
@@ -57,6 +58,15 @@ setMethod("show", signature="STlist",
               for(i in names(object@counts)){
                 cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
               }
+=======
+            counter = 1
+            while(counter < 11){
+              #for(i in names(object@counts)){
+              i = names(object@counts)[counter]
+                cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+                counter = counter + 1
+              #}
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
             }
             if(length(names(object@counts)) > 10){
               cat(paste0('\tPlus ', (length(names(object@counts))-10), ' additional spatial array(s)\n'))
@@ -83,6 +93,7 @@ setMethod("summary", signature="STlist",
           function(object){
             cat("Spatial Transcriptomics List (STlist).\n")
             cat(length(object@counts), "spatial array(s):\n")
+<<<<<<< HEAD
             if(length(names(object@counts)) >= 11){
               counter = 1
               while(counter < 11){
@@ -94,6 +105,15 @@ setMethod("summary", signature="STlist",
               for(i in names(object@counts)){
                 cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
               }
+=======
+            counter = 1
+            while(counter < 11){
+              #for(i in names(object@counts)){
+              i = names(object@counts)[counter]
+                cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+                counter = counter + 1
+              #}
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
             }
             if(length(names(object@counts)) > 10){
               cat(paste0('\tPlus ', (length(names(object@counts))-10), ' additional spatial array(s)\n'))

@@ -49,7 +49,11 @@ data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=
 count_files <- grep("counts", data_files, value=T)
 coord_files <- grep("mapping", data_files, value=T)
 clin_file <- grep("thrane_clinical", data_files, value=T)
+<<<<<<< HEAD
 melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+=======
+melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 melanoma <- pseudobulk_samples(melanoma)
 pseudobulk_pca_plot(melanoma, plot_meta='patient')
 

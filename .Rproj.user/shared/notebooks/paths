@@ -7,7 +7,10 @@
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/R/STgradient.R="0AF25D0E"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/R/STlist.R="6A7E1996"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/R/classDefinitions.R="BEAB4D51"
+<<<<<<< HEAD
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/R/classdefinitions.R="BF2AC03C"
+=======
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/R/filter_data.R="DCFCD786"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/R/import_smi.R="85784651"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/R/import_visium.R="C4DC6965"
@@ -21,10 +24,15 @@
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/man/STgradient.Rd="14F39895"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/man/STlist.Rd="E6A7042D"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/vignettes/basic_functions_vignette.Rmd="189913D8"
+<<<<<<< HEAD
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/vignettes/spatial_differential_expression.Rmd="4D5BAAF2"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/vignettes/spatial_enrichment_gradients_smi.Rmd="58BADDCD"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/vignettes/troubleshooting.Rmd="29FDA333"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialge_packetize.R="6AA5B6B4"
 /Users/4472525/Dropbox (Moffitt Cancer Center)/krige_test.R="5CA3A728"
+=======
+/Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialGE/vignettes/spatial_diff_expression_vignette.Rmd="E341E777"
+/Users/4472525/Dropbox (Moffitt Cancer Center)/SPATIAL_TRANSCRIPTOMICS/spatialge_packetize.R="6AA5B6B4"
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 /Users/4472525/Dropbox (Moffitt Cancer Center)/test_input_smi.R="AA680EBC"
 /Users/4472525/Library/CloudStorage/OneDrive-MoffittCancerCenter/u01_spatialge_web_shared/code/R/documentation_figures_code/visualization_figures_documentation.qmd="5597FBB7"

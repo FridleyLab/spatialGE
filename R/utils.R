@@ -101,15 +101,22 @@ load_images = function(x=NULL, images=NULL){
 
   if(is.null(images)){
     stop("Please, provide a vector with images file paths.")
+<<<<<<< HEAD
   } else{
     if(length(images) == 1 & dir.exists(images)){ # In case a directory was provided
       images = list.files(images, full.names=T)
     }
+=======
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
   }
 
   # Process each image.
   for(i in names(x@counts)){
+<<<<<<< HEAD
     fp = grep(paste0(i, '\\.'), images, value=T)
+=======
+    fp = grep(i, images, value=T)
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
     if(length(fp) == 0){
       cat(paste0("Image for sample ", i, " was not found.\n"))
       next
@@ -138,8 +145,13 @@ load_images = function(x=NULL, images=NULL){
 
 
 ##
+<<<<<<< HEAD
 # @title create_listw
 # @param x an STlist
+=======
+#' @title create_listw
+#' @param x an STlist
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 #
 create_listw = function(x=NULL){
   # Define cores available
@@ -155,6 +167,8 @@ create_listw = function(x=NULL){
     return(subj_dists_inv)
   }, mc.cores=cores, mc.preschedule=F)
   names(listw_list) = names(x@spatial_meta)
+<<<<<<< HEAD
+=======
   return(listw_list)
 }
 
@@ -176,11 +190,36 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
     return(subj_listw)
   }, mc.cores=cores, mc.preschedule=F)
   names(listw_list) = names(x@spatial_meta)
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
   return(listw_list)
 }
 
 
 ##
+<<<<<<< HEAD
+# @title create_listw_from_knn
+# @param x an STlist
+# @param ks
+#
+create_listw_from_knn = function(x=NULL, ks=NULL){
+  # Define cores available
+  #cores = count_cores(length(x@spatial_meta))
+  cores = 1
+
+  # Create distance matrix based on the coordinates of each sampled location.
+  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
+    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
+    subj_listw = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k=ks, longlat=F)), style='B')
+    return(subj_listw)
+  }, mc.cores=cores, mc.preschedule=F)
+  names(listw_list) = names(x@spatial_meta)
+  return(listw_list)
+}
+
+
+##
+=======
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 # @title create_listw_from_dist
 # @param x an STlist
 # @param ks
@@ -249,7 +288,11 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
 #' count_files <- grep("counts", data_files, value=T)
 #' coord_files <- grep("mapping", data_files, value=T)
 #' clin_file <- grep("thrane_clinical", data_files, value=T)
+<<<<<<< HEAD
 #' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+=======
+#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 #' melanoma <- transform_data(melanoma, method='log')
 #' melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
 #' get_gene_meta(melanoma, sthet_only=T)

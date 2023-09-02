@@ -1,5 +1,9 @@
 ---
+<<<<<<< HEAD
 title: "Detection of gene set spatial patterns and expression gradients in CosMx-SMI"
+=======
+title: "Detecting gene set spatial patterns expression gradients in CosMx-SMI"
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 date: '`r format(Sys.Date())`'
 output: rmarkdown::html_vignette
 bibliography: vignette_references.bib
@@ -62,7 +66,11 @@ Create a folder in your computer's Desktop and name it "lung_cancer_smi". Place 
 </p>
 
 
+<<<<<<< HEAD
 The key files are shown enclosed in orange (Lung 5-1) and green (Lung 6) boxes. The "_exprMat_file.csv" file of each sample contains the gene counts. The "_metadata_file.csv" contains the cell x, y coordinates for each sample. Optionally, the "CellComposite" folder contains images that can be imported into the STlist (details later in this tutorial).
+=======
+The key files are shown enclosed in orange (Lung 5-1) and green (Lung 6) boxes. The "_exprMat_file.csv" file of each sample contains the gene counts. The "_metadata_file.csv" contains the cell x, y coordinates for each sample. 
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 
 Now, that the data is ready, load the `spatialGE` package:
 
@@ -87,8 +95,12 @@ lung <- STlist(rnacounts=exprmats, spotcoords=metas, samples=c('Lung5_Rep1', 'Lu
 To obtain count statistics, the `summarize_STlist` function can be used:
 
 ```{r count_stats}
+<<<<<<< HEAD
 summ_df = summarize_STlist(lung)
 summ_df
+=======
+summarize_STlist(lung)
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 ```
 
 Some cells have zero counts. We can look at the distribution of counts per cell for the first five and last five FOVs using the `distribution_plots` function:
@@ -179,12 +191,17 @@ Each row represents a test for the null hypothesis of no spatial aggregation in 
 With a few lines of code, a visual summary can be generated that presents the gene sets with adj_p_value < 0.05 across FOVs for each tissue slide:
 
 ```{r message=F}
+<<<<<<< HEAD
 # Load tidyverse for data frame manipulation
 library('tidyverse')
 
 # Combine all samples in a single data frame
 # Subset to gene sets showing significant evidence of spatial pattern (adj_p_value < 0.05) and
 # proportion higher or equal than 0.3 of genes from a gene set present in sample 
+=======
+library('tidyverse')
+
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 res <- bind_rows(stenrich_df) %>%
   mutate(prop_gene_set=size_test/size_gene_set) %>%
   filter(prop_gene_set >= 0.3 & adj_p_value < 0.05) %>%
@@ -192,8 +209,11 @@ res <- bind_rows(stenrich_df) %>%
   select(slide, gene_set) %>%
   mutate(gene_set=str_replace(gene_set, 'HALLMARK_', ''))
 
+<<<<<<< HEAD
 # Generate barplot showing the number of FOVs with siginificant evidence of spatial
 # patterns for each tissue slide
+=======
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 ggplot(res) + 
   geom_bar(aes(x=gene_set)) +
   xlab(NULL) +
@@ -201,6 +221,7 @@ ggplot(res) +
   facet_wrap(~slide)
 ```
 
+<<<<<<< HEAD
 The "NOTCH signaling" pathway showed spatial patterns less frequently in the slide "Lung5_Rep1" compared to "Lung6". With the function `STplot`, the average gene set expression for this pathway can be plotted. First, FOVs with and without NOTCH signaling spatial patterns will be identified from "Lung5_Rep1" and "Lung6" respectively.
 
 ```{r notch_sig1}
@@ -383,13 +404,20 @@ bind_rows(stg) %>%
 ```
 
 Although the correlations in genes from this pathway are not as large as and those for __KRT6A__ and __HLA-B__ (i.e., lower absolute Spearman's coefficient), it can be seen that the genes __NOTCH1__ and __NOTCH3__ show evidence of expression gradients in FOVs 'Lung6_fov_4' and 'Lung6_fov_6'.
+=======
+
+
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 
 ## References
 
 <div id="refs"></div>
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 <details>
 
 <summary>**Session Info**</summary>
