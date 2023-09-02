@@ -1,10 +1,6 @@
 Package: spatialGE
 Title: Visualization and Analysis of Spatial Heterogeneity in Spatially-Resolved Gene Expression
-<<<<<<< HEAD
 Version: 1.2.0
-=======
-Version: 1.1.0
->>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 Authors@R: c(
     person(given = "Oscar",
            family = "Ospina",

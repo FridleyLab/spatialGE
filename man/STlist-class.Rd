@@ -12,25 +12,15 @@ Definition of an STlist object class.
 \describe{
 \item{\code{counts}}{per spot RNA counts}
 
-\item{\code{coords}}{per spot x,y coordinates}
+\item{\code{spatial_meta}}{per spot x,y coordinates}
 
-\item{\code{clinical}}{dataframe with metadata per sample}
+\item{\code{gene_meta}}{per gene statistics (e.g., average expression, variance, Moran's I)}
+
+\item{\code{sample_meta}}{dataframe with metadata per sample}
 
 \item{\code{tr_counts}}{transfromed per spot counts}
 
-\item{\code{gene_var}}{gene variances and standardized variances}
-
-\item{\code{gene_het}}{spatial heterogeneity statistics per gene}
-
 \item{\code{gene_krige}}{results from kriging on gene expression}
-
-\item{\code{cell_deconv}}{results of ESTIMATE and cell type deconvolution}
-
-\item{\code{cell_krige}}{results from kriging on cell type deconvolution scores}
-
-\item{\code{st_clusters}}{cluster assignments from STclust}
-
-\item{\code{pheno_plots}}{per gene plots of spatial heterogeneity statistics vs metadata variables}
 
 \item{\code{misc}}{Parameters and images from ST data}
 }}

@@ -44,11 +44,7 @@
 #' count_files <- grep("counts", data_files, value=T)
 #' coord_files <- grep("mapping", data_files, value=T)
 #' clin_file <- grep("thrane_clinical", data_files, value=T)
-<<<<<<< HEAD
 #' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
-=======
-#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
->>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 #' melanoma <- filter_data(melanoma, spot_minreads=2000)
 #'
 #' @export
@@ -88,7 +84,6 @@ filter_data = function(x=NULL,
 
     # Remove samples
     if(all(sample_id %in% names(x@counts))){
-<<<<<<< HEAD
       x@counts = x@counts[names(x@counts)[!(names(x@counts) %in% sample_id)]]
       x@spatial_meta = x@spatial_meta[names(x@spatial_meta)[!(names(x@spatial_meta) %in% sample_id)]]
       if(!rlang::is_empty(x@tr_counts)){
@@ -96,15 +91,6 @@ filter_data = function(x=NULL,
       }
       if(!rlang::is_empty(x@gene_meta)){
         x@gene_meta = x@gene_meta[names(x@gene_meta)[!(names(x@gene_meta) %in% sample_id)]]
-=======
-      x@counts = x@counts[!grepl(paste0(sample_id, collapse="|"), names(x@counts))]
-      x@spatial_meta = x@spatial_meta[!grepl(paste0(sample_id, collapse="|"), names(x@spatial_meta))]
-      if(!rlang::is_empty(x@tr_counts)){
-        x@tr_counts = x@tr_counts[!grepl(paste0(sample_id, collapse="|"), names(x@tr_counts))]
-      }
-      if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta = x@gene_meta[!grepl(paste0(sample_id, collapse="|"), names(x@gene_meta))]
->>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
       }
       if(nrow(x@sample_meta) != 0){
         x@sample_meta = x@sample_meta[!(x@sample_meta[[1]] %in% sample_id), ]

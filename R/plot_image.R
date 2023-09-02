@@ -12,13 +12,7 @@
 #' If NULL, the function plots all samples
 #' @return a list of plots
 #'
-<<<<<<< HEAD
 #' @import ggplot2
-=======
-# @importFrom methods as is new
-#' @import ggplot2
-# @importFrom magrittr %>%
->>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 #
 #' @export
 #

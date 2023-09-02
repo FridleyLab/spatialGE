@@ -4,10 +4,7 @@ An R package for the visualization and analysis of spatially-resolved transcript
 such as those generated with 10X Visium. The **spatialGE** package features a data object 
 (STlist: Spatial Transctiptomics List) to store data and results from multiple tissue sections, 
 as well as associated analytical methods for:
-<<<<<<< HEAD
 
-=======
->>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 - Visualization: `STplot`, `gene_interpolation`, `STplot_interpolation` to explore gene 
 expression in spatial context.
 - Spatial autocorrelation: `SThet`, `compare_SThet` to assess the level of spatial uniformity in 
@@ -25,11 +22,7 @@ this publication: https://doi.org/10.1093/bioinformatics/btac145. For details on
 developed methods `STenrich` and `STgradient`, please refer to the spatialGE documentation.
 
 <p align="center">
-<<<<<<< HEAD
 <img src="spatialGE_workflow_v3.png" height="629" width="550" >
-=======
-<img src="figures/spatialGE_workflow_v3.png" height="629" width="550" >
->>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 </p>
 
 ## Installation
