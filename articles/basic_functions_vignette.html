@@ -4,20 +4,20 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<meta name="description" content="spatialGE">
-<title>Basic functionality • spatialGE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Basic functionality: Visualization, domain detection, and spatial heterogeneity • spatialGE</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
 <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="apple-touch-icon" type="image/png" sizes="120x120" href="../apple-touch-icon-120x120.png">
 <link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
 <link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.1.0/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.1.0/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
+<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
+<script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
-<!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Basic functionality">
+<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
+<script src="../pkgdown.js"></script><meta property="og:title" content="Basic functionality: Visualization, domain detection, and spatial heterogeneity">
 <meta property="og:description" content="spatialGE">
 <meta property="og:image" content="/logo.png">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
@@ -25,60 +25,77 @@
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]-->
 </head>
-<body>
-    <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
+<body data-spy="scroll" data-target="#toc">
     
 
-    <nav class="navbar fixed-top navbar-light navbar-expand-lg bg-light"><div class="container">
-    
-    <a class="navbar-brand me-2" href="../index.html">spatialGE</a>
+    <div class="container template-article">
+      <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="../index.html">spatialGE</a>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0</span>
+      </span>
+    </div>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
-
-    
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto">
-<li class="nav-item">
-  <a class="nav-link" href="../reference/index.html">Reference</a>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+<li>
+  <a href="../reference/index.html">Reference</a>
 </li>
-<li class="active nav-item dropdown">
-  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
-  <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/basic_functions_vignette.html">Basic functionality</a>
-    <a class="dropdown-item" href="../articles/spatial_differential_expression.html">Spatially-informed differential gene expression</a>
-    <a class="dropdown-item" href="../articles/troubleshooting.html">Troubleshooting</a>
-  </div>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+<li>
+      <a href="../articles/basic_functions_vignette.html">Basic functionality: Visualization, domain detection, and spatial heterogeneity</a>
+    </li>
+    <li>
+      <a href="../articles/spatial_differential_expression.html">Spatially-informed differential gene expression</a>
+    </li>
+    <li>
+      <a href="../articles/spatial_enrichment_gradients_smi.html">Detection of gene set spatial patterns and expression gradients in CosMx-SMI</a>
+    </li>
+    <li>
+      <a href="../articles/troubleshooting.html">Troubleshooting</a>
+    </li>
+  </ul>
 </li>
-<li class="nav-item">
-  <a class="nav-link" href="../news/index.html">Changelog</a>
+<li>
+  <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
-<form class="form-inline my-2 my-lg-0" role="search">
-        <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off">
-</form>
-
-      <ul class="navbar-nav"></ul>
+<ul class="nav navbar-nav navbar-right"></ul>
 </div>
-
-    
+<!--/.nav-collapse -->
   </div>
-</nav><div class="container template-article">
+<!--/.container -->
+</div>
+<!--/.navbar -->
 
+      
 
-
-<script src="basic_functions_vignette_files/kePrint-0.0.1/kePrint.js"></script><link href="basic_functions_vignette_files/lightable-0.0.1/lightable.css" rel="stylesheet">
+      </header><script src="basic_functions_vignette_files/kePrint-0.0.1/kePrint.js"></script><link href="basic_functions_vignette_files/lightable-0.0.1/lightable.css" rel="stylesheet">
 <div class="row">
-  <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Basic functionality</h1>
+  <div class="col-md-9 contents">
+    <div class="page-header toc-ignore">
+      <h1 data-toc-skip>Basic functionality: Visualization, domain
+detection, and spatial heterogeneity</h1>
             
-            <h4 data-toc-skip class="date">2023-09-01</h4>
+            <h4 data-toc-skip class="date">2023-09-02</h4>
       
       
-      <div class="d-none name"><code>basic_functions_vignette.Rmd</code></div>
+      <div class="hidden name"><code>basic_functions_vignette.Rmd</code></div>
+
     </div>
 
     
@@ -216,8 +233,6 @@ data, spot coordinates, and clinical meta data.</p>
 <span class="co">#&gt;  sample_092b (1376 ROIs|spots|cells x 23511 genes)</span>
 <span class="co">#&gt;  sample_094c (1542 ROIs|spots|cells x 24581 genes)</span>
 <span class="co">#&gt;  sample_094d (1391 ROIs|spots|cells x 24167 genes)</span>
-<span class="co">#&gt;  NA ( ROIs|spots|cells x  genes)</span>
-<span class="co">#&gt;  NA ( ROIs|spots|cells x  genes)</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; 3 variables in sample-level data:</span>
 <span class="co">#&gt;   patient_id, neoadjuvant, overall_survival_days</span></code></pre></div>
@@ -368,7 +383,7 @@ will be performed for two of the spatial samples
                            genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'NDRG1'</span>, <span class="st">'IGKC'</span><span class="op">)</span>,
                            samples<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'sample_094c'</span>, <span class="st">'sample_117e'</span><span class="op">)</span><span class="op">)</span>
 <span class="co">#&gt; <span style="color: #00BB00;">Gene interpolation started.</span></span>
-<span class="co"><span style="color: #00BB00;">#&gt; Gene interpolation completed in 1.64 min.</span></span>
+<span class="co"><span style="color: #00BB00;">#&gt; Gene interpolation completed in 1.59 min.</span></span>
 <span class="co"><span style="color: #00BB00;">#&gt; </span></span></code></pre></div>
 <p>Generating gene expression surfaces can be time consuming. The finer
 resolution to which the surface is to be predicted (<code>ngrid</code>
@@ -433,7 +448,7 @@ assignments:</p>
                 ks<span class="op">=</span><span class="st">'dtc'</span>, 
                 ws<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.025</span>, <span class="fl">0.05</span>, <span class="fl">0.2</span><span class="op">)</span><span class="op">)</span>
 <span class="co">#&gt; <span style="color: #00BB00;">STclust started.</span></span>
-<span class="co"><span style="color: #00BB00;">#&gt; STclust completed in 0.83 min.</span></span>
+<span class="co"><span style="color: #00BB00;">#&gt; STclust completed in 0.85 min.</span></span>
 <span class="co"><span style="color: #00BB00;">#&gt; </span></span></code></pre></div>
 <p>Results of clustering can be plotted via the <code>STplot</code>
 function:</p>
@@ -469,7 +484,7 @@ within a sample, we can use the <code><a href="../reference/SThet.html">SThet()<
               method<span class="op">=</span><span class="st">'moran'</span><span class="op">)</span>
 <span class="co">#&gt; <span style="color: #00BB00;">SThet started.</span></span>
 <span class="co"><span style="color: #00BB00;">#&gt; </span><span style="color: #BBBB00;">   Calculating spatial weights...</span></span>
-<span class="co"><span style="color: #BBBB00;">#&gt; </span><span style="color: #00BB00;">SThet completed in 0.23 min.</span></span>
+<span class="co"><span style="color: #BBBB00;">#&gt; </span><span style="color: #00BB00;">SThet completed in 0.21 min.</span></span>
 <span class="co"><span style="color: #00BB00;">#&gt; </span></span></code></pre></div>
 <p>The <code>SThet</code> function calculates the Moran’s I statsitic
 (or Geary’s C) to measure the level of spatial heterogeneity in the
@@ -578,6 +593,12 @@ Closer to 2
 </td>
 </tr>
 </tbody>
+<tfoot><tr>
+<td style="padding: 0; border:0;" colspan="100%">
+<sup></sup> Note: The boundaries indicated for each statistic are
+reached when the number of spots/cells is very large.
+</td>
+</tr></tfoot>
 </table>
 <p>To better understand how the Moran’s I and Geary’s C statistics
 quantify spatial heterogeneity, tissue can be simulated using the
@@ -614,7 +635,7 @@ visualized:</p>
 
 <span class="fu"><a href="https://rdrr.io/pkg/sc.SpatialSIM/man/PlotSimulation.html" class="external-link">PlotSimulation</a></span><span class="op">(</span><span class="va">sim_visium</span>, which<span class="op">=</span><span class="fl">1</span>, what<span class="op">=</span><span class="st">"tissue points"</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_shape_manual</a></span><span class="op">(</span>values<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">19</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="basic_functions_vignette_files/figure-html/tissue_sim_2-1.png" width="384"></p>
+<p><img src="basic_functions_vignette_files/figure-html/tissue_sim_2-1.png" width="576"></p>
 <p>Now, the simulated tissue domain assignments are extracted from the
 <code>SpatSimObj</code> object. Gene counts will be simulated in such a
 way that:</p>
@@ -772,7 +793,7 @@ transcriptomics</span>.”</span> <em>Bioinformatics</em> 38: 2645–47. <a href
 <span class="co">#&gt; [16] spatstat.geom_3.0-6      spatstat.data_3.0-0      magrittr_2.0.2          </span>
 <span class="co">#&gt; [19] ggpolypath_0.1.0         ggplot2_3.3.5            fields_14.1             </span>
 <span class="co">#&gt; [22] viridis_0.6.2            viridisLite_0.4.0        spam_2.9-1              </span>
-<span class="co">#&gt; [25] spatialGE_1.1.0         </span>
+<span class="co">#&gt; [25] spatialGE_1.2.0         </span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt; loaded via a namespace (and not attached):</span>
 <span class="co">#&gt;   [1] scattermore_0.7       SeuratObject_4.0.4    ragg_1.2.5           </span>
@@ -839,26 +860,33 @@ transcriptomics</span>.”</span> <em>Bioinformatics</em> 38: 2645–47. <a href
 <span class="co">#&gt; [184] gtable_0.3.0          Seurat_4.1.0</span></code></pre></div>
 </details>
 </div>
-  </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
-    </nav></aside>
+  </div>
+
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
+
+        <nav id="toc" data-toggle="toc"><h2 data-toc-skip>Contents</h2>
+    </nav>
+</div>
+
 </div>
 
 
 
-    <footer><div class="pkgdown-footer-left">
+      <footer><div class="copyright">
   <p></p>
 <p>Developed by Oscar Ospina, Brooke Fridley, Alex Soupir.</p>
 </div>
 
-<div class="pkgdown-footer-right">
+<div class="pkgdown">
   <p></p>
 <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
-    </footer>
+      </footer>
 </div>
 
   
+
 
   
 
