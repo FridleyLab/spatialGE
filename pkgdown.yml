@@ -3,8 +3,14 @@ pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
   basic_functions_vignette: basic_functions_vignette.html
+<<<<<<< HEAD
   spatial_differential_expression: spatial_differential_expression.html
   spatial_enrichment_gradients_smi: spatial_enrichment_gradients_smi.html
   troubleshooting: troubleshooting.html
 last_built: 2023-09-02T15:53Z
+=======
+  spatial_diff_expression_vignette: spatial_diff_expression_vignette.html
+  spatial_enrichment_gradients_smi: spatial_enrichment_gradients_smi.html
+last_built: 2023-09-01T03:16Z
+>>>>>>> 3db90f5bf04af3fb4f198dfb630dd1b87ad08ae2
 
