@@ -12,9 +12,7 @@
 #' If NULL, the function plots all samples
 #' @return a list of plots
 #'
-# @importFrom methods as is new
 #' @import ggplot2
-# @importFrom magrittr %>%
 #
 #' @export
 #

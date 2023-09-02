@@ -53,6 +53,8 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   # Get sample names in case no specific sample was selected
   if(is.null(samples)){
     samplenames = names(x@tr_counts)
+  } else{
+    samplenames = samples
   }
 
   # Remove samples for which the requested annotation is not present
@@ -78,7 +80,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
 
   # Define number of cores to use
   if(is.null(cores)){
-    cores = count_cores(length(names(gene_sets)))
+    cores = count_cores(length(samplenames))
   }
 
   results_ls = parallel::mclapply(seq(samplenames), function(i){
@@ -103,7 +105,11 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
     # NOTE: When dealing with other technologies like SMI, will need to be more flexible with
     # minimum distances as not an array of equally distant spots. In this case, allowed a "buffer"
     # of a quarter of the minimum distance
-    nbs = colSums(dists_ref_tmp >= min_sample * 0.75 & dists_ref_tmp <= min_sample * 1.25)
+    if(x@misc[['platform']] == 'cosmx'){
+      nbs = colSums(dists_ref_tmp >= min_sample * 0.25 & dists_ref_tmp <= min_sample * 3)
+    } else{
+      nbs = colSums(dists_ref_tmp >= min_sample * 0.75 & dists_ref_tmp <= min_sample * 1.25)
+    }
     if(sum(nbs >= min_nb) < 1){ # At least 1 cluster of spots to continue with analysis
       nbs_keep = c()
     } else{
@@ -216,7 +222,8 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
 
         # Calculate Spearman's correlations
         # Initialize data frame to store results
-        dist_cor = tibble::tibble(gene=character(),
+        dist_cor = tibble::tibble(sample_name=character(),
+                                  gene=character(),
                                   lm_coef=numeric(),
                                   lm_pval=numeric(),
                                   spearman_r=numeric(),
@@ -226,7 +233,8 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
         # CORRELATIONS DISTANCE TO REFERENCE CLUSTER
         genes_sample = colnames(vargenes_expr %>% dplyr::select(-c('ypos', 'xpos', 'dist2ref')))
         for(gene in genes_sample){
-          tibble_tmp = tibble::tibble(gene=character(),
+          tibble_tmp = tibble::tibble(sample_name=character(),
+                                      gene=character(),
                                       lm_coef=numeric(),
                                       lm_pval=numeric(),
                                       spearman_r=numeric(),
@@ -316,7 +324,8 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
           }
 
           # Create row with results
-          tibble_tmp = tibble::tibble(gene=gene,
+          tibble_tmp = tibble::tibble(sample_name=samplenames[i],
+                                      gene=gene,
                                       lm_coef=lm_res[['estimate']],
                                       lm_pval=lm_res[['estimate_p']],
                                       spearman_r=as.vector(cor_res[['estimate']]),
@@ -343,7 +352,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
         dplyr::arrange(spearman_r_pval_adj)
 
       # Rename columns
-      colnames(dist_cor) = c('gene', paste0(distsumm, '_', colnames(dist_cor[, -1])))
+      colnames(dist_cor) = c('sample_name', 'gene', paste0(distsumm, '_', colnames(dist_cor[, -c(1,2)])))
     }
 
     return(dist_cor)

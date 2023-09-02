@@ -274,6 +274,32 @@ When comparing the -log10(p-values) from the _non-spatial_ and _spatial_ models,
 
 Testing spatial models with `STdiff` is both computationally- and time-intensive. The analysis in this tutorial took approximately 18 minutes in a OS machine with a 6-cores Intel Core i7 and 16GB memory. Should the user decide to disable spatial testing, the user only needs to set `sp_topgenes=0`. When running _spatial_ tests with more genes, and samples assayed with more densely sampled technologies (e.g., Visium, CosMx-SMI), the user should consider running `STdiff` in a High-Performance Computing environment (HPC, or "cluster"), setting the number of cores to use via the `cores` parameter.
 
+
+
+<details>
+
+<summary>**Does `spatialGE` support other differential expression test types? **</summary>
+
+It has been shown above that accounting for spatial dependence between spots/cells is important to control inflation of type-I error (i.e., too many differentially expressed genes). Nonetheless, the `STdiff` function also implements differential expression analysis using tests commonly used in non-spatial single cell analysis. Specifically, the argument `test_type` can be set to "wilcoxon" or "t_test" to perform either Wilcoxon's Rank tests or T-tests respectively:
+
+```{r stdiff_wilcox}
+deg_wilcox <- STdiff(melanoma, 
+                     samples='ST_mel1_rep1', 
+                     w=0.025, k='dtc', deepSplit=F, 
+                     topgenes=1000,
+                     test_type='wilcoxon')
+```
+
+No spatial tests are executed when Wilcoxon's Rank tests or T-tests are requested.
+
+```{r stdiff_wilcox_res}
+print(deg_wilcox[['ST_mel1_rep1']])
+```
+
+</details>
+
+
+
 ### Visualizng `STdiff` results
 
 The `spatialGE` package has a built-in function (`STdiff_volcano`) to generate volcano plots. The function takes `STdiff` outputs and generates a volcano plot for each sample and cluster (or cluster pair if pairwise testing was requested).

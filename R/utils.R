@@ -80,9 +80,9 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 #' @title load_images: Place tissue images within STlist
 #' @description Loads the images from tissues to the appropriate STlist slot.
 #' @details
-#' This function looks for `.PNG` files within a folder matching the sample names
-#' in an existing STList. Then, loads the images to the STList which can be used
-#' for plotting along with quilt plots.
+#' This function looks for `.PNG` or `.JPG` files within a folder matching the
+#' sample names in an existing STlist. Then, loads the images to the STlist which
+#' can be used for plotting along with other spatialGE plots.
 #'
 #' @param x an STlist
 #' @param images a string indicating a folder to load images from
@@ -101,13 +101,17 @@ load_images = function(x=NULL, images=NULL){
 
   if(is.null(images)){
     stop("Please, provide a vector with images file paths.")
+  } else{
+    if(length(images) == 1 & dir.exists(images)){ # In case a directory was provided
+      images = list.files(images, full.names=T)
+    }
   }
 
   # Process each image.
   for(i in names(x@counts)){
-    fp = grep(i, images, value=T)
+    fp = grep(paste0(i, '\\.'), images, value=T)
     if(length(fp) == 0){
-      cat(paste0("Image for sample ", i, " was not found."))
+      cat(paste0("Image for sample ", i, " was not found.\n"))
       next
     }
 
@@ -116,7 +120,11 @@ load_images = function(x=NULL, images=NULL){
       cat(paste0("Multiple image files matched sample ", i, ". Using the first match (", fp[1], ")."))
     }
 
-    img_obj = png::readPNG(fp[1])
+    if(grepl('jpg$', fp[1])){ # CosMx uses jpeg files
+      img_obj = jpeg::readJPEG(fp[1])
+    } else{
+      img_obj = png::readPNG(fp[1])
+    }
 
     # Downsize image if too large
     if(any(dim(img_obj) > 1000)){
@@ -130,8 +138,8 @@ load_images = function(x=NULL, images=NULL){
 
 
 ##
-#' @title create_listw
-#' @param x an STlist
+# @title create_listw
+# @param x an STlist
 #
 create_listw = function(x=NULL){
   # Define cores available
@@ -241,7 +249,7 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
 #' count_files <- grep("counts", data_files, value=T)
 #' coord_files <- grep("mapping", data_files, value=T)
 #' clin_file <- grep("thrane_clinical", data_files, value=T)
-#' melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
 #' melanoma <- transform_data(melanoma, method='log')
 #' melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
 #' get_gene_meta(melanoma, sthet_only=T)

@@ -4,16 +4,11 @@
 #' Definition of an STlist object class.
 #'
 #' @slot counts per spot RNA counts
-#' @slot coords per spot x,y coordinates
-#' @slot clinical dataframe with metadata per sample
+#' @slot spatial_meta per spot x,y coordinates
+#' @slot gene_meta per gene statistics (e.g., average expression, variance, Moran's I)
+#' @slot sample_meta dataframe with metadata per sample
 #' @slot tr_counts transfromed per spot counts
-#' @slot gene_var gene variances and standardized variances
-#' @slot gene_het spatial heterogeneity statistics per gene
 #' @slot gene_krige results from kriging on gene expression
-#' @slot cell_deconv results of ESTIMATE and cell type deconvolution
-#' @slot cell_krige results from kriging on cell type deconvolution scores
-#' @slot st_clusters cluster assignments from STclust
-#' @slot pheno_plots per gene plots of spatial heterogeneity statistics vs metadata variables
 #' @slot misc Parameters and images from ST data
 #
 #
