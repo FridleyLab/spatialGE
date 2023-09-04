@@ -29,6 +29,7 @@ developed methods `STenrich` and `STgradient`, please refer to the spatialGE doc
 
 The `spatialGE` repository is available at GitHub and can be installed via `devtools`.
 ```
+options(timeout=9999999) # To avoid R closing connection with GitHub
 devtools::install_github("fridleylab/spatialGE")
 ```
 

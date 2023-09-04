@@ -24,7 +24,7 @@
 #' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
 #' melanoma <- transform_data(melanoma)
 #' melanoma <- gene_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
-#' kp = STplot_interpolation(melanoma, genes=c('MLANA', 'COL1A1'))
+#' kp = STplot_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
 #' ggpubr::ggarrange(plotlist=kp)
 #'
 #' @export
@@ -76,12 +76,14 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
     for(gene in genes) {
       # Test if kriging exists for a gene and subject.
       if (rlang::has_name(x@gene_krige, gene)){
-        if(x@gene_krige[[gene]][[i]][['success_or_not']] != 'error'){
-        # Find maximum expression value for each spatial array.
-        values <- x@gene_krige[[gene]][[i]][['krige_out']][['z']]
-        maxvalue <- append(maxvalue, max(values, na.rm=T))
-        minvalue <- append(minvalue, min(values, na.rm=T))
-      }
+        if(!is.null(x@gene_krige[[gene]][[i]][['success_or_not']])){
+          if(x@gene_krige[[gene]][[i]][['success_or_not']] != 'error'){
+            # Find maximum expression value for each spatial array.
+            values <- x@gene_krige[[gene]][[i]][['krige_out']][['z']]
+            maxvalue <- append(maxvalue, max(values, na.rm=T))
+            minvalue <- append(minvalue, min(values, na.rm=T))
+          }
+        }
       }
     }
   }

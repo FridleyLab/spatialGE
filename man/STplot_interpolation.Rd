@@ -45,7 +45,7 @@ clin_file <- grep("thrane_clinical", data_files, value=T)
 melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
 melanoma <- transform_data(melanoma)
 melanoma <- gene_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
-kp = STplot_interpolation(melanoma, genes=c('MLANA', 'COL1A1'))
+kp = STplot_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
 ggpubr::ggarrange(plotlist=kp)
 
 }
