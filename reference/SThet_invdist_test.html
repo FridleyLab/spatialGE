@@ -125,46 +125,6 @@ be accessed with the <code>get_gene_meta</code> function. For visual comparative
 the function <code>compare_SThet</code> can be used afterwards.</p>
     </div>
 
-    <div id="ref-examples">
-    <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span class="co"># Using included melanoma example (Thrane et al.)</span></span>
-<span class="r-in"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="st">'spatialGE'</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">data_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, package<span class="op">=</span><span class="st">"spatialGE"</span><span class="op">)</span>, recursive<span class="op">=</span><span class="cn">T</span>, full.names<span class="op">=</span><span class="cn">T</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">count_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"counts"</span>, <span class="va">data_files</span>, value<span class="op">=</span><span class="cn">T</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">coord_files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"mapping"</span>, <span class="va">data_files</span>, value<span class="op">=</span><span class="cn">T</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">clin_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"thrane_clinical"</span>, <span class="va">data_files</span>, value<span class="op">=</span><span class="cn">T</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="STlist.html">STlist</a></span><span class="op">(</span>rnacounts<span class="op">=</span><span class="va">count_files</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">]</span>, spotcoords<span class="op">=</span><span class="va">coord_files</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">]</span>, samples<span class="op">=</span><span class="va">clin_file</span><span class="op">)</span> <span class="co"># Only first two samples</span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Sample ST_mel2_rep1 was not found among the count/coordinate files.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Sample ST_mel2_rep2 was not found among the count/coordinate files.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Sample ST_mel3_rep1 was not found among the count/coordinate files.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Sample ST_mel3_rep2 was not found among the count/coordinate files.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Sample ST_mel4_rep1 was not found among the count/coordinate files.</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Sample ST_mel4_rep2 was not found among the count/coordinate files.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">Found matrix data</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">Matching gene expression and coordinate data...</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">Converting counts to sparse matrices</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00; font-weight: bold;">Completed STlist!</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-in"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="transform_data.html">transform_data</a></span><span class="op">(</span><span class="va">melanoma</span>, method<span class="op">=</span><span class="st">'log'</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="SThet.html">SThet</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'MLANA'</span>, <span class="st">'TP53'</span><span class="op">)</span>, method<span class="op">=</span><span class="st">'moran'</span><span class="op">)</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">SThet started.</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">	Calculating spatial weights...</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">SThet completed in 0.09 min.</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-in"><span class="fu"><a href="get_gene_meta.html">get_gene_meta</a></span><span class="op">(</span><span class="va">melanoma</span>, sthet_only<span class="op">=</span><span class="cn">T</span><span class="op">)</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 15</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   sample      patient slice gender BRAF_…¹ NRAS_…² CDKN2…³ survi…⁴ survi…⁵   RIN</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> ST_mel1_re…       1 A     Male   mut     wt      hd      10_plu…     120   6.2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> ST_mel1_re…       1 A     Male   mut     wt      hd      10_plu…     120   6.2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> ST_mel1_re…       1 B     Male   mut     wt      hd      10_plu…     120   6.2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> ST_mel1_re…       1 B     Male   mut     wt      hd      10_plu…     120   6.2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># … with 5 more variables: gene &lt;chr&gt;, gene_mean &lt;dbl&gt;, gene_stdevs &lt;dbl&gt;,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   moran_i &lt;dbl&gt;, geary_c &lt;lgl&gt;, and abbreviated variable names ¹​BRAF_status,</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">#   ²​NRAS_status, ³​CDKN2A_status, ⁴​survival, ⁵​survival_months</span></span>
-<span class="r-in"></span>
-</code></pre></div>
-    </div>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top"><h2 data-toc-skip>Contents</h2>
