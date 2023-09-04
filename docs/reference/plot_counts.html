@@ -154,10 +154,9 @@ spot/cell, the function <code>distribution_plots</code> should be used instead.<
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">Converting counts to sparse matrices</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00; font-weight: bold;">Completed STlist!</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-in"><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu">count_distribution</span><span class="op">(</span><span class="va">melanoma</span>, data_type<span class="op">=</span><span class="st">'raw'</span>, plot_type<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'violin'</span>, <span class="st">'box'</span><span class="op">)</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in count_distribution(melanoma, data_type = "raw", plot_type = c("violin",     "box")):</span> could not find function "count_distribution"</span>
+<span class="r-in"><span class="va">cp</span> <span class="op">&lt;-</span> <span class="fu">plot_counts</span><span class="op">(</span><span class="va">melanoma</span>, data_type<span class="op">=</span><span class="st">'raw'</span>, plot_type<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'violin'</span>, <span class="st">'box'</span><span class="op">)</span><span class="op">)</span></span>
 <span class="r-in"><span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html" class="external-link">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">cp</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in ggpubr::ggarrange(plotlist = cp):</span> object 'cp' not found</span>
+<span class="r-plt img"><img src="plot_counts-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"></span>
 </code></pre></div>
     </div>

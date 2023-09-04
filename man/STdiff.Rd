@@ -66,7 +66,8 @@ Other values are 1 and 2 indicating increasing level of verbosity. Default is
 cores to use is detected automatically}
 }
 \value{
-a data frame with results of differential gene expression analysis
+a list with one data frame per sample with results of differential gene
+expression analysis
 }
 \description{
 Tests for differentially expressed genes using linear models with or

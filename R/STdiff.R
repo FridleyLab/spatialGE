@@ -44,7 +44,8 @@
 #' `verbose=1`
 #' @param cores Number of cores to use in parallelization. If `NULL`, the number of
 #' cores to use is detected automatically
-#' @return a data frame with results of differential gene expression analysis
+#' @return a list with one data frame per sample with results of differential gene
+#' expression analysis
 #'
 #' @export
 #'

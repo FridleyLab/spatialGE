@@ -58,8 +58,9 @@ data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=
 count_files <- grep("counts", data_files, value=T)
 coord_files <- grep("mapping", data_files, value=T)
 clin_file <- grep("thrane_clinical", data_files, value=T)
-melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+melanoma <- STlist(rnacounts=count_files[c(1,3)], spotcoords=coord_files[c(1,3)], samples=clin_file)
 melanoma <- transform_data(melanoma, method='log')
-melanoma <- STclust(melanoma, ws=c(0, 0.025), samples=c('ST_mel1_rep2', 'ST_mel2_rep1'))
+melanoma <- STclust(melanoma, ws=c(0, 0.025))
+STplot(melanoma, ws=0.025, samples='ST_mel1_rep1', ptsize=1)
 
 }

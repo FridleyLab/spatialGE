@@ -21,17 +21,17 @@
 #' Default to FALSE (do not overwrite)
 #' @return an STlist containing spatial statistics
 #'
-#' @examples
-#' # Using included melanoma example (Thrane et al.)
-#' library('spatialGE')
-#' data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
-#' count_files <- grep("counts", data_files, value=T)
-#' coord_files <- grep("mapping", data_files, value=T)
-#' clin_file <- grep("thrane_clinical", data_files, value=T)
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
-#' melanoma <- transform_data(melanoma, method='log')
-#' melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
-#' get_gene_meta(melanoma, sthet_only=T)
+# @examples
+# # Using included melanoma example (Thrane et al.)
+# library('spatialGE')
+# data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
+# count_files <- grep("counts", data_files, value=T)
+# coord_files <- grep("mapping", data_files, value=T)
+# clin_file <- grep("thrane_clinical", data_files, value=T)
+# melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+# melanoma <- transform_data(melanoma, method='log')
+# melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
+# get_gene_meta(melanoma, sthet_only=T)
 #'
 #' @export
 #'

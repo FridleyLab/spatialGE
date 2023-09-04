@@ -32,7 +32,7 @@
 #' coord_files <- grep("mapping", data_files, value=T)
 #' clin_file <- grep("thrane_clinical", data_files, value=T)
 #' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
-#' cp <- count_distribution(melanoma, data_type='raw', plot_type=c('violin', 'box'))
+#' cp <- plot_counts(melanoma, data_type='raw', plot_type=c('violin', 'box'))
 #' ggpubr::ggarrange(plotlist=cp)
 #'
 #' @export

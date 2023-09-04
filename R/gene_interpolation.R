@@ -19,6 +19,9 @@
 #' @param ngrid an integer indicating the number of point to predict. Default is 10000,
 #' resulting in a grid of 100 x 100 points. Larger numbers provide more resolution,
 #' but computing time is longer.
+#' @param REML wheter to use restricted maximum likelihood to estimate spatial covariance
+#' parameters. Default is FALSE. Setting to TRUE might speed up interpolation, but some
+#' issue have been found.
 #' @param cores integer indicating the number of cores to use during parallelization.
 #' If NULL, the function uses half of the available cores at a maximum. The parallelization
 #' uses `parallel::mclapply` and works only in Unix systems.
@@ -42,7 +45,7 @@
 #' @import fields
 #' @importFrom magrittr %>%
 #'
-gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid=10000, cores=NULL){
+gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid=10000, REML=F, cores=NULL){
   # Record time
   zero_t = Sys.time()
   verbose = 1L
@@ -205,11 +208,10 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
       suppressMessages({
         cov_est = tryCatch({
           fields::spatialProcess(x=gene_geo_df[, c('ypos', 'xpos')], y=gene_geo_df[['gene_expr']],
-                                 cov.args=list(Covariance=covstr #,smoothness=smoothness
-                                 ), verbose=F, REML=T#, reltol=1e-3
-          )
+                                 #spatialProcess_mod(x=gene_geo_df[, c('ypos', 'xpos')], y=gene_geo_df[['gene_expr']],
+                                 cov.args=list(Covariance=covstr),
+                                 verbose=F, REML=REML)
         },
-        #warning=function(warn){return(warn)},
         error=function(err){return(err)}
         )
       })

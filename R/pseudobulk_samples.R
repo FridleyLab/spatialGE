@@ -19,7 +19,7 @@
 #' count_files <- grep("counts", data_files, value=T)
 #' coord_files <- grep("mapping", data_files, value=T)
 #' clin_file <- grep("thrane_clinical", data_files, value=T)
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,4)], spotcoords=coord_files[c(1,4)], samples=clin_file) # Only first two samples
 #' melanoma <- pseudobulk_samples(melanoma)
 #' pseudobulk_pca_plot(melanoma)
 #'
@@ -134,7 +134,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
 #' count_files <- grep("counts", data_files, value=T)
 #' coord_files <- grep("mapping", data_files, value=T)
 #' clin_file <- grep("thrane_clinical", data_files, value=T)
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,4)], spotcoords=coord_files[c(1,4)], samples=clin_file) # Only first two samples
 #' melanoma <- pseudobulk_samples(melanoma)
 #' pseudobulk_pca_plot(melanoma, plot_meta='patient')
 #'
@@ -217,7 +217,7 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
 #' count_files <- grep("counts", data_files, value=T)
 #' coord_files <- grep("mapping", data_files, value=T)
 #' clin_file <- grep("thrane_clinical", data_files, value=T)
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,4)], spotcoords=coord_files[c(1,4)], samples=clin_file) # Only first two samples
 #' melanoma <- pseudobulk_samples(melanoma)
 #' pseudobulk_heatmap(melanoma, plot_meta='BRAF_status', hm_display_genes=30)
 #'

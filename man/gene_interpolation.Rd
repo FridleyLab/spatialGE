@@ -10,6 +10,7 @@ gene_interpolation(
   top_n = 10,
   samples = NULL,
   ngrid = 10000,
+  REML = F,
   cores = NULL
 )
 }
@@ -29,6 +30,10 @@ If NULL (Default), all samples are interpolated.}
 \item{ngrid}{an integer indicating the number of point to predict. Default is 10000,
 resulting in a grid of 100 x 100 points. Larger numbers provide more resolution,
 but computing time is longer.}
+
+\item{REML}{wheter to use restricted maximum likelihood to estimate spatial covariance
+parameters. Default is FALSE. Setting to TRUE might speed up interpolation, but some
+issue have been found.}
 
 \item{cores}{integer indicating the number of cores to use during parallelization.
 If NULL, the function uses half of the available cores at a maximum. The parallelization
