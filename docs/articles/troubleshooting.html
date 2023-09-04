@@ -89,7 +89,7 @@
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Troubleshooting</h1>
             
-            <h4 data-toc-skip class="date">2023-09-02</h4>
+            <h4 data-toc-skip class="date">2023-09-04</h4>
       
       
       <div class="hidden name"><code>troubleshooting.Rmd</code></div>
@@ -98,13 +98,44 @@
 
     
     
-<details><summary><strong>When using readRDS to load an STList, I get ‘Error: vector
+<details><summary><strong>When installing <code>spatialGE</code>, I get
+<code>Error in utils::download.file(url, path, method = method, quiet = quiet</code>.
+How can I solve this error?</strong>
+</summary><p>This error might appear when installing <code>spatialGE</code>:</p>
+<pre><code>Downloading GitHub repo FridleyLab/spatialGE@oospina_dev
+Error in utils::download.file(url, path, method = method, quiet = quiet,  : 
+  download from 'https://api.github.com/repos/FridleyLab/spatialGE/tarball/oospina_dev' failed</code></pre>
+<p>A workaround is to set <code>options(timeout)</code> to a large
+number:</p>
+<pre><code><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>timeout<span class="op">=</span><span class="fl">9999999</span><span class="op">)</span> <span class="co"># To avoid R closing connection with GitHub</span>
+<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"fridleylab/spatialGE"</span><span class="op">)</span></code></pre>
+</details><details><summary><strong>The <code>gene_interpolation</code> function outputs an error:
+<code>Error in solve.default(qr.R(qr.VT))</code>. What can be done about
+it?</strong>
+</summary><p>When running the <code>gene_interpolation</code> function with
+<code>REML=TRUE</code>, you may get this error:</p>
+<pre><code>Error in solve.default(qr.R(qr.VT)) : 
+  Lapack routine dgesv: system is exactly singular: U[1,1] = 0
+Error in call to optim
+spatialProcess: Problems with optim in mKrigMLEJoint 
+returned object includes the likelihood evaluations up to the error</code></pre>
+<p>This error occurs during REML parameter estimation, and it means that
+the gene expression surface estimated might not be accurate.
+Nonetheless, if you run the <code>STplot_interpolation</code> on the
+STlist resulting from <code>gene_interpolation</code>, you will notice
+that gene expression surfaces have actually been generated for the other
+genes and samples despite the error being presented.</p>
+<p>If you still want to obtain gene expression surfaces for the other
+genes for which <code>gene_interpolation</code> could not produce a
+surface, you can try <code>REML=F</code>, which is a slower
+procedure.</p>
+</details><details><summary><strong>When using readRDS to load an STList, I get ‘Error: vector
 memory exhausted’. What can I do?</strong>
 </summary><p>This error results from R’s default memoery limits. Provided your
 computer has enough memory to hold an STList in memory, this error
 message can be overridden by typing in a Terminal (Mac OS):</p>
 <pre><code>echo 'R_MAX_VSIZE=100Gb' &gt;&gt; ~/.Renviron</code></pre>
-<p>Then, close and re-open R and try to load the STList again.</p>
+Then, close and re-open R and try to load the STList again.
 </details>
 </div>
 
