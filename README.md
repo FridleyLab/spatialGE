@@ -41,10 +41,11 @@ https://fridleylab.github.io/spatialGE/
 The code for `spatialGE` can be found here:
 https://github.com/FridleyLab/spatialGE
 
-## spatialGE-web
+## [spatialGE-Web](https://spatialge.moffitt.org)
 
-An point-and-click web application that allows usage of spatialGE methods without the need of
-coding/scripting is under development. Stay tuned!
+A point-and-click web application that allows using spatialGE without coding/scripting is 
+available at https://spatialge.moffitt.org . The web app currently supports Visium outputs and
+csv/tsv gene expression files paired with csv/tsv coordinate files.
 
 ## How to cite
 
