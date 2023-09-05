@@ -22,7 +22,7 @@ among spots/cells. It also supports non-spatial tests (Wilcoxon's and T-test).
 
 The methods in the initial spatialGE release, technical details, and their utility are presented in
 this publication: https://doi.org/10.1093/bioinformatics/btac145. For details on the recently
-developed methods `STenrich` and `STgradient`, please refer to the spatialGE documentation.
+developed methods `STenrich`, `STgradient`, and `STdiff` please refer to the spatialGE documentation.
 
 <p align="center">
 <img src="spatialGE_workflow_v3.png" height="686" width="600" >
