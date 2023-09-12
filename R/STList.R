@@ -642,8 +642,19 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
     return_lists[['json_scale']][[fp_list[[i]]$runname]] = NULL
     # Test if image file is present
     if(!rlang::is_empty(fp_list[[i]]$image)){
+      # Try reading image
       image_read = tryCatch({png::readPNG(fp_list[[i]]$image[1])},
-                            error=function(e){png::readPNG(fp_list[[i]]$image[2])})
+                            error=function(e){return(e)})
+      # Try reading image again using the second element if available
+      if(any(class(image_read) == 'simpleError') & length(fp_list[[i]][['image']]) > 1){
+        image_read = tryCatch({png::readPNG(fp_list[[i]]$image[2])},
+                              error=function(e){return(e)})
+      }
+      # If no image reading was possible, do not output image
+      if(any(class(image_read) == 'simpleError')){
+        image_read = NULL
+        warning('Tissue image could not be read. Is the image a PNG derived from Space Ranger?')
+      }
       return_lists[['images']][[fp_list[[i]]$runname]] = image_read
     }
     # Test if JSON scaling factor file is present
