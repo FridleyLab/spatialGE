@@ -781,6 +781,9 @@ process_lists = function(counts_df_list, coords_df_list){
     if(sum(grepl('libname|ypos|xpos', colnames(coords_df_list[[name_i]]))) != 3){
       colnames(coords_df_list[[name_i]]) = c('libname', 'ypos', 'xpos')
     }
+    # Force numeric to 2 and 3 column of coordinates table to ensure coordinates can be used
+    coords_df_list[[name_i]][[2]] = as.numeric(coords_df_list[[name_i]][[2]])
+    coords_df_list[[name_i]][[3]] = as.numeric(coords_df_list[[name_i]][[3]])
 
     # Get total gene counts and genes with no-zero counts
     if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
