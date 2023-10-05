@@ -54,9 +54,16 @@ import_visium_h5 = function(counts_fp=NULL, coords_fp=NULL){
     dplyr::select(barcode, imagerow, imagecol) %>%
     tibble::as_tibble()
 
-  # Error if number of spot coordinate do not match number of spots in counts
+  # Warning if number of spot coordinate do not match number of spots in counts
+  # Subset to spots with coordinate information (to possibly deal with raw_feature_bc_matrix.h5)
   if(nrow(spotcoords_df) != ncol(counts_mtx)){
-    stop('Number of spots do not match between count and coordinate data.')
+    warning('Number of spots do not match between count and coordinate data. Subsetting to spots with coordinates.')
+    counts_mtx = counts_mtx[ , colnames(counts_mtx) %in% spotcoords_df[['barcode']] ]
+
+    # Check that spots are available after subsetting
+    if(ncol(counts_mtx) == 0){
+      stop('Spots in expression data and coordinate data do not match.')
+    }
   }
 
   visium_list = list(rawcounts=counts_mtx, coords=spotcoords_df)

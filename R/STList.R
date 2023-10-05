@@ -579,7 +579,7 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
 
       fp_list[[i]]$counts = h5counts
 
-      if(rlang::is_empty(vcoords)) cat(crayon::red(paste("Coordinates for", filepaths$sampleids[i], "not able to be found...")))
+      if(rlang::is_empty(vcoords)) cat(crayon::red(paste("Coordinates for", filepaths$sampleids[i], "not able to be found...\n")))
       if(rlang::is_empty(h5counts) | rlang::is_empty(vcoords)){
         fp_list[[i]] = list()
         missingSamples  = missingSamples + 1
