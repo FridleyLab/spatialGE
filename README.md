@@ -61,7 +61,7 @@ transcriptomics. Bioinformatics, 38:2645-2647. https://doi.org/10.1093/bioinform
 
 <p align="center">
 	<a href='https://clustrmaps.com/site/1bwt8'>
-  		title='Visit tracker'><img src='//clustrmaps.com/map_v2.png?cl=a0d9e6&w=a&t=tt&d=MaZTayTGh9YYcDsI3LkJtKTJFTPygJFYO9LnIVaLr2Q&co=062f6e'/>
+  		<a title='Visit tracker'><img src='//clustrmaps.com/map_v2.png?cl=a0d9e6&w=a&t=tt&d=MaZTayTGh9YYcDsI3LkJtKTJFTPygJFYO9LnIVaLr2Q&co=062f6e'/>
 	</a>
 </p>
 
