@@ -134,9 +134,12 @@ genes and spatial samples</p>
 <span class="r-in"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="transform_data.html">transform_data</a></span><span class="op">(</span><span class="va">melanoma</span><span class="op">)</span></span>
 <span class="r-in"><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="gene_interpolation.html">gene_interpolation</a></span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'MLANA'</span>, <span class="st">'COL1A1'</span><span class="op">)</span>, samples<span class="op">=</span><span class="st">'ST_mel1_rep2'</span><span class="op">)</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">Gene interpolation started.</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">Gene interpolation completed in 0.04 min.</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">Gene interpolation completed in 0.06 min.</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span class="va">kp</span> <span class="op">=</span> <span class="fu">STplot_interpolation</span><span class="op">(</span><span class="va">melanoma</span>, genes<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'MLANA'</span>, <span class="st">'COL1A1'</span><span class="op">)</span>, samples<span class="op">=</span><span class="st">'ST_mel1_rep2'</span><span class="op">)</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required namespace: rgeos</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required package: ggpolypath</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Loading required package: ggplot2</span>
 <span class="r-in"><span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html" class="external-link">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">kp</span><span class="op">)</span></span>
 <span class="r-plt img"><img src="STplot_interpolation-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"></span>

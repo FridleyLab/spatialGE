@@ -115,7 +115,8 @@ each spatial sample. This file can also include files paths to gene counts and
 cell/spot coordinate files, bypassing the need to specify <code>rnacounts</code> and <code>spotcoords</code>.
 The following options are available for <code>samples</code>:</p><ul><li><p>A vector with sample names, which will be used to partially match gene
 counts and cell/spot coordinates file paths. A sample name must not match file
-paths for two different samples</p></li>
+paths for two different samples. For example, instead of using "tissue1" and
+"tissue12", use "tissue01" and "tissue12".</p></li>
 <li><p>A path to a file containing a table with metadata. This file is a comma- or
 tab-separated table with one sample per row and sample names/IDs in the first
 column. Paths to gene counts and coordinate files can be placed in the second and
@@ -159,7 +160,9 @@ the <code>metadata</code> files must contain the "CenterX_local_px" and "CenterY
 </ul><p>Optionally, the user can input a path to a file containing a table of sample-level
 metadata (e.g., clinical outcomes, tissue type, age). This sample metadata file
 should contain sample IDs in the first column partially matching the file names of
-the count/coordinate file paths or Visium directories.</p>
+the count/coordinate file paths or Visium directories. <em>Note:</em> The sample ID of a
+given sample cannot be a substring of the sample ID of another sample. For example,
+instead of using "tissue1" and "tissue12", use "tissue01" and "tissue12".</p>
 <p>The function uses parallelization if run in a unix system. Windows users
 will experience longer times depending on the number of samples.</p>
     </div>
