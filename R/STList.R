@@ -21,7 +21,9 @@
 #' Optionally, the user can input a path to a file containing a table of sample-level
 #' metadata (e.g., clinical outcomes, tissue type, age). This sample metadata file
 #' should contain sample IDs in the first column partially matching the file names of
-#' the count/coordinate file paths or Visium directories.
+#' the count/coordinate file paths or Visium directories. _Note:_ The sample ID of a
+#' given sample cannot be a substring of the sample ID of another sample. For example,
+#' instead of using "tissue1" and "tissue12", use "tissue01" and "tissue12".
 #'
 #' The function uses parallelization if run in a unix system. Windows users
 #' will experience longer times depending on the number of samples.
@@ -71,7 +73,8 @@
 #' \itemize{
 #' \item A vector with sample names, which will be used to partially match gene
 #' counts and cell/spot coordinates file paths. A sample name must not match file
-#' paths for two different samples
+#' paths for two different samples. For example, instead of using "tissue1" and
+#' "tissue12", use "tissue01" and "tissue12".
 #' \item A path to a file containing a table with metadata. This file is a comma- or
 #' tab-separated table with one sample per row and sample names/IDs in the first
 #' column. Paths to gene counts and coordinate files can be placed in the second and
@@ -853,9 +856,11 @@ process_sample_names = function(rnacounts, spotcoords, samples, input_check){
   if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
     for(i in samples){
       sample_i = grep(i, rnacounts, value=T)
-      if(length(sample_i) != 0){
+      if(length(sample_i) == 1){
         filepaths[['count_found']] = append(filepaths[['count_found']], sample_i)
         filepaths[['sampleids']] = append(filepaths[['sampleids']], i)
+      } else if(length(sample_i) > 1){
+        raise_err(err_code='error0001')
       } else{
         warning(paste0('Sample ', i, ' was not found among the Visium outputs.'))
       }

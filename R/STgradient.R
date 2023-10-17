@@ -151,7 +151,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
         }
         # Make NA the distances outside range
         dists_summ_tmp = dists_summ_tmp %>%
-          mutate(dist2ref=case_when(dist2ref <= dist2refupper ~ as.numeric(dist2ref)))
+          dplyr::mutate(dist2ref=case_when(dist2ref <= dist2refupper ~ as.numeric(dist2ref)))
 
         rm(dist2reflower, dist2refupper) # Clean environment
       }
