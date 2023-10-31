@@ -131,7 +131,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         title_leg = 'Clusters'
       } else{
         title_p = paste0('Sample: ', s)
-        title_leg = plot_meta
+        title_leg = metacol
       }
 
       # Create plot
