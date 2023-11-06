@@ -29,7 +29,7 @@
 #' @importFrom magrittr %>%
 #
 #
-plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL, plot_meta=NULL, color_pal=NULL, visium=T, ptsize=NULL){
+plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL, plot_meta=NULL, color_pal=NULL, visium=T, ptsize=NULL, txsize=NULL){
 
   # Define which samples to plot
   if(is.null(samples)){
@@ -89,6 +89,11 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
     # Define size of points
     if(is.null(ptsize)){
       ptsize = 0.5
+    }
+
+    # Define size of text
+    if(is.null(txsize)){
+      txsize = 12
     }
 
     for(metacol in plot_meta){
@@ -169,6 +174,8 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         p = p + ggplot2::coord_fixed(ratio=1)
       }
       #p = p + ggplot2::theme(legend.title=ggplot2::element_blank()) # MAY 09, 2023 PUT META DATA NAME ON LEGEND TITLE, NOT PLOT TITLE
+      p = p + ggplot2::theme(legend.title=element_text(size=txsize),
+                             plot.title=element_text(size=txsize+2))
 
       plot_list[[paste0(s, '_', metacol)]] = p
     }

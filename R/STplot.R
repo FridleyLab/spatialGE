@@ -26,6 +26,7 @@
 #' @param color_pal a string of a color palette from `khroma` or `RColorBrewer`, or a
 #' vector with enough color names or HEX values
 #' @param ptsize a number specifying the size of the points. Passed to the `size`
+#' @param txsize a number controlling the size of the text in the plot title and legend title. Passed to the `element_text`
 #' aesthetic.
 #' @return a list of plots
 #'
@@ -45,7 +46,7 @@
 #' @import ggplot2
 #' @importFrom magrittr %>%
 #'
-STplot = function(x, samples=NULL, genes=NULL, plot_meta=NULL, ks='dtc', ws=NULL, deepSplit=NULL, color_pal=NULL, data_type='tr', ptsize=NULL){
+STplot = function(x, samples=NULL, genes=NULL, plot_meta=NULL, ks='dtc', ws=NULL, deepSplit=NULL, color_pal=NULL, data_type='tr', ptsize=NULL, txsize=NULL){
 
   # Check if data set is Visium to flip y axis (may consider remove this in the future)
   visium = F
@@ -65,7 +66,7 @@ STplot = function(x, samples=NULL, genes=NULL, plot_meta=NULL, ks='dtc', ws=NULL
       plot_list = plot_spatial_expression(x=x, genes=genes, samples=samples, color_pal=color_pal, data_type=data_type, visium=visium, ptsize=ptsize)
     }
   } else{
-    plot_list = plot_spatial_meta(x=x, samples=samples, ks=ks, ws=ws, deepSplit=deepSplit, plot_meta=plot_meta, color_pal=color_pal, visium=visium, ptsize=ptsize)
+    plot_list = plot_spatial_meta(x=x, samples=samples, ks=ks, ws=ws, deepSplit=deepSplit, plot_meta=plot_meta, color_pal=color_pal, visium=visium, ptsize=ptsize, txsize=txsize)
   }
 
   return(plot_list)
