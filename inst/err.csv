@@ -1,1 +1,4 @@
 error0001,'STlist -> process_sample_names: A sample name matches more than one expression path.'
+error0002,'STlist -> process_lists: The ROI/spot/cell IDs in the count data (columns) and coordinate data (rows) do not match.'
+error0003,'STlist -> detect_input: The input lists are not named. Please input named lists.'
+error0004,'STlist -> detect_input: The samples argument requires a file path to clinical data or a vector with sample IDs. Data frames are not currently supported.'

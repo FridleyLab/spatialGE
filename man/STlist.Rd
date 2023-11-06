@@ -27,7 +27,8 @@ the "fov" and "cell_ID" columns. The \code{STlist} function will separate data f
 FOV, since analysis in spatialGE is conducted at the FOV level. Requires \code{samples} and
 \code{spotcoords}
 \item A named list of data frames with raw gene counts (one data frame per spatial
-sample). Requires \code{spotcoords}
+sample). Requires \code{spotcoords}. Argument \code{samples} only needed when a file path to
+sample metadata is the input.
 }}
 
 \item{spotcoords}{the cell/spot coordinates. Not required if inputs are Visium

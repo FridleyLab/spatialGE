@@ -48,7 +48,8 @@
 #' FOV, since analysis in spatialGE is conducted at the FOV level. Requires `samples` and
 #' `spotcoords`
 #' \item A named list of data frames with raw gene counts (one data frame per spatial
-#' sample). Requires `spotcoords`
+#' sample). Requires `spotcoords`. Argument `samples` only needed when a file path to
+#' sample metadata is the input.
 # \item File path to `.dcc` files from GeoMx output. Requires `samples`
 #' }
 #' @param spotcoords the cell/spot coordinates. Not required if inputs are Visium
@@ -766,7 +767,7 @@ process_lists = function(counts_df_list, coords_df_list){
 
     # Test that spot names are the same in both count and coordinate data frames.
     if(length(setdiff(colnames(counts_df_list[[name_i]])[-1], unlist(coords_df_list[[name_i]][, 1]))) != 0){
-      stop(paste0('The ROI, spots, or cells in the count data (columns) and coordinate data (rows) do not match in spatial array (\"', name_i, '\").'))
+      raise_err(err_code='error0002', samplename=name_i)
     }
 
     array_col = names(coords_df_list[[name_i]])[3]

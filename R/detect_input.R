@@ -141,12 +141,15 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
               stop('Samples file is not comma or tab-delimited')
             }
             inputtype$samples = c('samplesfile', del)
+          } else{
+            inputtype$samples = 'names_from_list_or_df'
           }
-        }
-        else{
+        } else{
           inputtype$samples = 'names_from_list_or_df'
         }
-      }
+      } else(
+        raise_err(err_code='error0003')
+      )
     }
   }
 
@@ -262,6 +265,8 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
       inputtype$samples = c('samplesfile', del)
     } else if(length(samples) == length(rnacounts)){
       inputtype$samples = 'sample_names'
+    } else if(is.data.frame(test_clin)){
+      raise_err(err_code='error0004')
     } else{
       stop('Number of sample names do not match number of Visium output folders.')
     }

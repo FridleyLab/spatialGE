@@ -90,10 +90,9 @@ the "fov" and "cell_ID" columns. The <code>STlist</code> function will separate 
 FOV, since analysis in spatialGE is conducted at the FOV level. Requires <code>samples</code> and
 <code>spotcoords</code></p></li>
 <li><p>A named list of data frames with raw gene counts (one data frame per spatial
-sample). Requires <code>spotcoords</code></p></li>
+sample). Requires <code>spotcoords</code>. Argument <code>samples</code> only needed when a file path to
+sample metadata is the input.</p></li>
 </ul></dd>
-
-
 <dt>spotcoords</dt>
 <dd><p>the cell/spot coordinates. Not required if inputs are Visium
 space ranger outputs</p><ul><li><p>File paths to comma- or tab-delimited files containing cell/spot coordinates, one
@@ -107,8 +106,6 @@ the FOV level. Requires <code>samples</code> and <code>rnacounts</code></p></li>
 <li><p>A named list of data frames with cell/spot coordinates. The list names must
 match list names of the gene counts list</p></li>
 </ul></dd>
-
-
 <dt>samples</dt>
 <dd><p>the sample names/IDs and (optionally) metadata associated with
 each spatial sample. This file can also include files paths to gene counts and
@@ -125,22 +122,15 @@ empty). If Visium directories are provided, only the second column with paths to
 <code>spaceranger count</code> directories are expected. Subsequent columns can contain
 variables associated with each spatial sample</p></li>
 </ul></dd>
-
-
 <dt>cores</dt>
 <dd><p>integer indicating the number of cores to use during parallelization.
 If NULL, the function uses half of the available cores at a maximum. The parallelization
 uses <code><a href="https://rdrr.io/r/parallel/mclapply.html" class="external-link">parallel::mclapply</a></code> and works only in Unix systems.</p></dd>
-
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    
-
-<p>x an STlist object containing the counts and coordinates, and optionally
+    <p>x an STlist object containing the counts and coordinates, and optionally
 the sample metadata, which can be used for downstream analysis with <code>spatialGE</code></p>
-
-
     </div>
     <div id="details">
     <h2>Details</h2>
@@ -209,7 +199,8 @@ will experience longer times depending on the number of samples.</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a>
+2.0.2.</p>
 </div>
 
       </footer></div>
