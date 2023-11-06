@@ -141,12 +141,15 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
               stop('Samples file is not comma or tab-delimited')
             }
             inputtype$samples = c('samplesfile', del)
+          } else{
+            inputtype$samples = 'names_from_list_or_df'
           }
-        }
-        else{
+        } else{
           inputtype$samples = 'names_from_list_or_df'
         }
-      }
+      } else(
+        raise_err(err_code='error0003')
+      )
     }
   }
 
