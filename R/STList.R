@@ -766,7 +766,7 @@ process_lists = function(counts_df_list, coords_df_list){
 
     # Test that spot names are the same in both count and coordinate data frames.
     if(length(setdiff(colnames(counts_df_list[[name_i]])[-1], unlist(coords_df_list[[name_i]][, 1]))) != 0){
-      raise_err(err_code='error0002', samplename=name_i)
+      stop(paste0('The ROI, spots, or cells in the count data (columns) and coordinate data (rows) do not match in spatial array (\"', name_i, '\").'))
     }
 
     array_col = names(coords_df_list[[name_i]])[3]
