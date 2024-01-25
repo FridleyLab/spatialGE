@@ -34,19 +34,16 @@ Imports:
 	ggplot2,
 	ggpolypath,
 	ggrepel,
-	janitor,
 	jsonlite,
 	khroma (>= 1.6.0),
 	magrittr,
 	Matrix,
 	methods,
 	parallel,
-	pbmcapply,
 	png,
 	raster,
 	RColorBrewer,
 	reshape,
-	reticulate,
 	readr,
 	readxl,
 	rlang,
@@ -58,20 +55,18 @@ Imports:
 	spaMM,
 	spdep,
 	stringr,
-	terra,
 	tibble,
 	tidyr,
-	wordspace,
-Suggests: 
+	wordspace
+Suggests:
+    geoR,
 	ggpubr,
+	janitor,
 	kableExtra,
     knitr,
     progress,
     rgeos,
     rmarkdown,
-    R.utils,
-    SeuratData,
-    tidyverse
+    R.utils
 VignetteBuilder: 
-	knitr, 
-	rmarkdown
+	knitr
