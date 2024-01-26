@@ -158,8 +158,9 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
   if(!is.null(rnacounts) && !is.null(spotcoords) && !is.null(samples)){
     # Test that the first (or only) element of input vector exist, and input is not list or a directory.
     if(!is.list(rnacounts[1]) || !is.list(spotcoords[1])){
-      # Determine what was entered as `samples`.
-      if(length(samples) == 1 && file.exists(samples)){
+      # Determine what was entered as `samples`
+      # i.e., string with path to clinical file or sample names vector, and NOT a directory with a name matching the name of the sample (when single sample entered)
+      if(length(samples) == 1 && file.exists(samples) && !dir.exists(samples)){
         # Read samples file and see which delimiter has.
         samples_file = readLines(samples, n=2)
         is_tab_samples = grepl("\t", samples_file[2])
