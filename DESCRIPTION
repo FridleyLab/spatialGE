@@ -58,6 +58,7 @@ Imports:
 	tibble,
 	tidyr,
 	wordspace
+LinkingTo: Rcpp (>= 0.11.0), RcppEigen
 Suggests:
     geoR,
 	ggpubr,
