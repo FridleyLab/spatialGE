@@ -83,7 +83,8 @@ STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D', 
       x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
     }
 
-    x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+    #x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+    x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]], verbose=F) %>%
       tibble::rownames_to_column(var='gene') %>%
       dplyr::select('gene', 'vst.variance.standardized') %>%
       dplyr::left_join(x@gene_meta[[i]], ., by='gene')

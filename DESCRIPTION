@@ -49,7 +49,7 @@ Imports:
 	rlang,
 	scales,
 	sctransform,
-	Seurat,
+	SeuratObject,
 	sfsmisc,
 	sp,
 	spaMM,
