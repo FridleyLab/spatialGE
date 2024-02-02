@@ -39,7 +39,7 @@ NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
   //Progress p(mat.outerSize(), display_progress);
   NumericVector allVars = no_init(mat.cols());
   for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
+    // p.increment();
     double colSum = 0;
     int nZero = mat.rows();
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
@@ -69,7 +69,7 @@ NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
   NumericVector allVars(mat.cols());
   //Progress p(mat.outerSize(), display_progress);
   for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
+    // p.increment();
     if (sd[k] == 0) continue;
     double colSum = 0;
     int nZero = mat.rows();
