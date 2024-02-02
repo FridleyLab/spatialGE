@@ -43,6 +43,7 @@ Imports:
 	png,
 	raster,
 	RColorBrewer,
+	Rcpp (>= 1.0.7),
 	reshape,
 	readr,
 	readxl,
@@ -58,7 +59,7 @@ Imports:
 	tibble,
 	tidyr,
 	wordspace
-LinkingTo: Rcpp (>= 0.11.0), RcppEigen
+LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 Suggests:
     geoR,
 	ggpubr,
