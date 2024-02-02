@@ -104,19 +104,3 @@ Seurat_FindVariableFeatures = function(object=NULL, verbose=F){
   return(hvf.info)
 }
 
-##
-# @title SparseRowVar2
-# @description Extracted from the Seurat package
-#
-#SparseRowVar2 = function(mat, mu, display_progress) {
-#  .Call('_Seurat_SparseRowVar2', PACKAGE='spatialGE', mat, mu, display_progress)
-#}
-
-##
-# @title SparseRowVarStd
-# @description Extracted from the Seurat package
-#
-#SparseRowVarStd = function(mat, mu, sd, vmax, display_progress) {
-#    .Call('_Seurat_SparseRowVarStd', PACKAGE='spatialGE', mat, mu, sd, vmax, display_progress)
-#}
-

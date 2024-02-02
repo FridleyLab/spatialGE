@@ -59,7 +59,9 @@ Imports:
 	tibble,
 	tidyr,
 	wordspace
-LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
+LinkingTo: 
+	Rcpp, 
+	RcppEigen
 Suggests:
     geoR,
 	ggpubr,
