@@ -21,15 +21,23 @@
 # @title SparseRowVar2
 # @description Extracted from the Seurat package
 #
-SparseRowVar2 = function(mat, mu, display_progress) {
-  .Call('_SeuratMod_SparseRowVar2', mat, mu, display_progress)
+SparseRowVar2 = function(mat, mu
+#, display_progress
+) {
+  .Call('_SeuratMod_SparseRowVar2', mat, mu
+  #, display_progress
+  )
 }
 
 ##
 # @title SparseRowVarStd
 # @description Extracted from the Seurat package
 #
-SparseRowVarStd = function(mat, mu, sd, vmax, display_progress) {
-  .Call('_SeuratMod_SparseRowVarStd', mat, mu, sd, vmax, display_progress)
+SparseRowVarStd = function(mat, mu, sd, vmax
+#, display_progress
+) {
+  .Call('_SeuratMod_SparseRowVarStd', mat, mu, sd, vmax
+  #, display_progress
+  )
 }
 

@@ -24,36 +24,50 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // SparseRowVar2
-NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, NumericVector mu, bool display_progress);
-RcppExport SEXP _SeuratMod_SparseRowVar2(SEXP matSEXP, SEXP muSEXP, SEXP display_progressSEXP) {
+NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, NumericVector mu
+//, bool display_progress
+);
+RcppExport SEXP _SeuratMod_SparseRowVar2(SEXP matSEXP, SEXP muSEXP 
+//, SEXP display_progressSEXP
+) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(SparseRowVar2(mat, mu, display_progress));
+    //Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowVar2(mat, mu 
+    //, display_progress
+    ));
     return rcpp_result_gen;
 END_RCPP
 }
 
 // SparseRowVarStd
-NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sd, double vmax, bool display_progress);
-RcppExport SEXP _SeuratMod_SparseRowVarStd(SEXP matSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP, SEXP display_progressSEXP) {
+NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sd, double vmax
+//, bool display_progress
+);
+RcppExport SEXP _SeuratMod_SparseRowVarStd(SEXP matSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP
+//, SEXP display_progressSEXP
+) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
     Rcpp::traits::input_parameter< NumericVector >::type sd(sdSEXP);
     Rcpp::traits::input_parameter< double >::type vmax(vmaxSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(SparseRowVarStd(mat, mu, sd, vmax, display_progress));
+    //Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowVarStd(mat, mu, sd, vmax
+    //, display_progress
+    ));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-	{"_SeuratMod_SparseRowVar2", (DL_FUNC) &_SeuratMod_SparseRowVar2, 3},
-	{"_SeuratMod_SparseRowVarStd", (DL_FUNC) &_SeuratMod_SparseRowVarStd, 5},
+	//{"_SeuratMod_SparseRowVar2", (DL_FUNC) &_SeuratMod_SparseRowVar2, 3},
+	//{"_SeuratMod_SparseRowVarStd", (DL_FUNC) &_SeuratMod_SparseRowVarStd, 5},
+	{"_SeuratMod_SparseRowVar2", (DL_FUNC) &_SeuratMod_SparseRowVar2, 2},
+	{"_SeuratMod_SparseRowVarStd", (DL_FUNC) &_SeuratMod_SparseRowVarStd, 4},
 	{NULL, NULL, 0}
 };
 

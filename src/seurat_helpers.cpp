@@ -30,12 +30,13 @@ using namespace Rcpp;
 // [[Rcpp::export(rng = false)]]
 NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
                             NumericVector mu,
-                            bool display_progress){
+                            //bool display_progress
+                            ){
   mat = mat.transpose();
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
-  }
-  Progress p(mat.outerSize(), display_progress);
+  //if(display_progress == true){
+  //  Rcpp::Rcerr << "Calculating gene variances" << std::endl;
+  //}
+  //Progress p(mat.outerSize(), display_progress);
   NumericVector allVars = no_init(mat.cols());
   for (int k=0; k<mat.outerSize(); ++k){
     p.increment();
@@ -59,13 +60,14 @@ NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
                               NumericVector mu,
                               NumericVector sd,
                               double vmax,
-                              bool display_progress){
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating feature variances of standardized and clipped values" << std::endl;
-  }
+                              //bool display_progress
+                              ){
+  //if(display_progress == true){
+  //  Rcpp::Rcerr << "Calculating feature variances of standardized and clipped values" << std::endl;
+  //}
   mat = mat.transpose();
   NumericVector allVars(mat.cols());
-  Progress p(mat.outerSize(), display_progress);
+  //Progress p(mat.outerSize(), display_progress);
   for (int k=0; k<mat.outerSize(); ++k){
     p.increment();
     if (sd[k] == 0) continue;
