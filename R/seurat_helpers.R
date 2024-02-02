@@ -1,5 +1,5 @@
 ##
-# Utility and helper functions from Seurat
+# UTILITY AND HELPER FUNCTIONS MODIFIED FROM THE SEURAT PACKAGE
 #
 # Copyright (c) 2021 Seurat authors
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this
@@ -17,19 +17,15 @@
 # DEALINGS IN THE SOFTWARE.
 
 ##
-# @title FindVariableFeatures
+# @title Seurat_FindVariableFeatures
 # @description Extracted from the Seurat package
 #
 
-Seurat_FindVariableFeatures = function(object=NULL, verbose=F){
+Seurat_FindVariableFeatures = function(object=NULL){
   # Fixed arguments
   selection.method="vst"
   loess.span=0.3
   clip.max='auto'
-  #mean.function=FastExpMean
-  #dispersion.function=FastLogVMR
-  #num.bin=20
-  #binning.method="equal_width"
 
   if (!inherits(x=object, 'Matrix')) {
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
@@ -45,7 +41,6 @@ Seurat_FindVariableFeatures = function(object=NULL, verbose=F){
     hvf.info$variance <- SparseRowVar2(
       mat = object,
       mu = hvf.info$mean
-      #, display_progress = verbose
     )
     hvf.info$variance.expected <- 0
     hvf.info$variance.standardized <- 0
@@ -62,45 +57,9 @@ Seurat_FindVariableFeatures = function(object=NULL, verbose=F){
       mu = hvf.info$mean,
       sd = sqrt(hvf.info$variance.expected),
       vmax = clip.max
-      #, display_progress = verbose
     )
     colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
   }
-  #  else {
-  #   if (!inherits(x = mean.function, what = 'function')) {
-  #     stop("'mean.function' must be a function")
-  #   }
-  #   if (!inherits(x = dispersion.function, what = 'function')) {
-  #     stop("'dispersion.function' must be a function")
-  #   }
-  #   feature.mean <- mean.function(object, verbose)
-  #   feature.dispersion <- dispersion.function(object, verbose)
-  #   names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
-  #   feature.dispersion[is.na(x = feature.dispersion)] <- 0
-  #   feature.mean[is.na(x = feature.mean)] <- 0
-  #   data.x.breaks <- switch(
-  #     EXPR = binning.method,
-  #     'equal_width' = num.bin,
-  #     'equal_frequency' = c(
-  #       -1,
-  #       quantile(
-  #         x = feature.mean[feature.mean > 0],
-  #         probs = seq.int(from = 0, to = 1, length.out = num.bin)
-  #       )
-  #     ),
-  #     stop("Unknown binning method: ", binning.method)
-  #   )
-  #   data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
-  #   names(x = data.x.bin) <- names(x = feature.mean)
-  #   mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
-  #   sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
-  #   feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
-  #     sd.y[as.numeric(x = data.x.bin)]
-  #   names(x = feature.dispersion.scaled) <- names(x = feature.mean)
-  #   hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
-  #   rownames(x = hvf.info) <- rownames(x = object)
-  #   colnames(x = hvf.info) <- paste0('mvp.', c('mean', 'dispersion', 'dispersion.scaled'))
-  # }
   return(hvf.info)
 }
 

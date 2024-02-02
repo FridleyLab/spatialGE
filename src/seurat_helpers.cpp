@@ -1,3 +1,5 @@
+// CODE TAKEN MODIFIED FROM THE SEURAT PACKAGE
+//
 // Copyright (c) 2021 Seurat authors
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this 
 // software and associated documentation files (the "Software"), to deal in the Software 
@@ -15,12 +17,6 @@
 
 
 #include <RcppEigen.h>
-//#include <progress.hpp>
-//#include <cmath>
-//#include <unordered_map>
-//#include <fstream>
-//#include <string>
-//#include <Rinternals.h>
 
 using namespace Rcpp;
 // [[Rcpp::depends(RcppEigen)]]
@@ -28,18 +24,10 @@ using namespace Rcpp;
 
 /* use this if you know the row means */
 // [[Rcpp::export(rng = false)]]
-NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
-                            NumericVector mu
-                            //,bool display_progress
-                            ){
+NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, NumericVector mu){
   mat = mat.transpose();
-  //if(display_progress == true){
-  //  Rcpp::Rcerr << "Calculating gene variances" << std::endl;
-  //}
-  //Progress p(mat.outerSize(), display_progress);
   NumericVector allVars = no_init(mat.cols());
   for (int k=0; k<mat.outerSize(); ++k){
-    // p.increment();
     double colSum = 0;
     int nZero = mat.rows();
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
@@ -56,20 +44,10 @@ NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
    clip values larger than vmax to vmax,
    then return variance for each row */
 // [[Rcpp::export(rng = false)]]
-NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
-                              NumericVector mu,
-                              NumericVector sd,
-                              double vmax
-                              //,bool display_progress
-                              ){
-  //if(display_progress == true){
-  //  Rcpp::Rcerr << "Calculating feature variances of standardized and clipped values" << std::endl;
-  //}
+NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sd, double vmax){
   mat = mat.transpose();
   NumericVector allVars(mat.cols());
-  //Progress p(mat.outerSize(), display_progress);
   for (int k=0; k<mat.outerSize(); ++k){
-    // p.increment();
     if (sd[k] == 0) continue;
     double colSum = 0;
     int nZero = mat.rows();
