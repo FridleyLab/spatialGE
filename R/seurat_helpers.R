@@ -44,8 +44,8 @@ Seurat_FindVariableFeatures = function(object=NULL, verbose=F){
     hvf.info <- data.frame(mean = rowMeans(x = object))
     hvf.info$variance <- SparseRowVar2(
       mat = object,
-      mu = hvf.info$mean,
-      #display_progress = verbose
+      mu = hvf.info$mean
+      #, display_progress = verbose
     )
     hvf.info$variance.expected <- 0
     hvf.info$variance.standardized <- 0
@@ -61,8 +61,8 @@ Seurat_FindVariableFeatures = function(object=NULL, verbose=F){
       mat = object,
       mu = hvf.info$mean,
       sd = sqrt(hvf.info$variance.expected),
-      vmax = clip.max,
-      #display_progress = verbose
+      vmax = clip.max
+      #, display_progress = verbose
     )
     colnames(x = hvf.info) <- paste0('vst.', colnames(x = hvf.info))
   }
