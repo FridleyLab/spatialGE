@@ -15,7 +15,7 @@
 
 
 #include <RcppEigen.h>
-#include <progress.hpp>
+//#include <progress.hpp>
 //#include <cmath>
 //#include <unordered_map>
 //#include <fstream>
