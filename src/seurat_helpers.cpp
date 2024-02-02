@@ -29,8 +29,8 @@ using namespace Rcpp;
 /* use this if you know the row means */
 // [[Rcpp::export(rng = false)]]
 NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
-                            NumericVector mu,
-                            //bool display_progress
+                            NumericVector mu
+                            //,bool display_progress
                             ){
   mat = mat.transpose();
   //if(display_progress == true){
@@ -59,8 +59,8 @@ NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
 NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
                               NumericVector mu,
                               NumericVector sd,
-                              double vmax,
-                              //bool display_progress
+                              double vmax
+                              //,bool display_progress
                               ){
   //if(display_progress == true){
   //  Rcpp::Rcerr << "Calculating feature variances of standardized and clipped values" << std::endl;
