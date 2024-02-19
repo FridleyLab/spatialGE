@@ -328,9 +328,14 @@ makeSparse = function(dataframe){
   #suppressMessages({library(Matrix)})
   if(!is.matrix(dataframe)){
     genecol = colnames(dataframe)[1]
-    numdat = dataframe %>%
-      tibble::column_to_rownames(genecol) %>%
-      as.matrix() %>% as(., "sparseMatrix")
+    # numdat = dataframe %>%
+    #   tibble::column_to_rownames(genecol) %>%
+    #   as.matrix() %>% as(., "sparseMatrix")
+    numdat = dataframe
+    rownames(numdat) = dataframe[[genecol]]
+    numdat = numdat[, -which(colnames(numdat) == genecol)]
+    numdat = as.matrix(numdat)
+    numdat = as(numdat, "sparseMatrix")
   } else {
     numdat = dataframe %>% as(., "sparseMatrix")
   }

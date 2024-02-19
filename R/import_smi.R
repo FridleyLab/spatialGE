@@ -17,7 +17,8 @@ import_smi = function(counts_fp=NULL, coords_fp=NULL, slidename=NULL){
     fov_ls[[paste0(slidename, '_fov_', fovid)]] = counts_read[counts_read[['fov']] == fovid, ] %>%
       dplyr::filter(cell_ID != 0) %>%
       dplyr::mutate(libname=paste0('fov_', fov, '_', 'cell_',cell_ID)) %>%
-      dplyr::select(-c('fov', 'cell_ID')) %>%
+      #dplyr::select(-c('fov', 'cell_ID', 'cell')) %>% # NANOSTRING BRAIN CORTEX DATA SET HAD BOTH 'cell_ID' and 'cell'
+      dplyr::select(!dplyr::matches('^fov$|^cell_ID$|^cell$')) %>% # NANOSTRING BRAIN CORTEX DATA SET HAD BOTH 'cell_ID' and 'cell'
       dplyr::relocate(libname, .before=1) %>%
       tibble::column_to_rownames('libname') %>%
       t() %>% as.data.frame() %>% tibble::rownames_to_column('gene_name')
