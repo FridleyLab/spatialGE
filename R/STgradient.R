@@ -171,7 +171,8 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       # Number of rows larger than 1, because cannot compute variable genes with a single non-reference spot
       # Variable genes in minimum distance range
       if(ncol(raw_cts) > 1){
-        vargenes = Seurat::FindVariableFeatures(raw_cts, verbose=F) %>%
+        #vargenes = Seurat::FindVariableFeatures(raw_cts, verbose=F) %>%
+        vargenes = Seurat_FindVariableFeatures(raw_cts) %>%
           tibble::rownames_to_column(var='gene') %>%
           dplyr::arrange(desc(vst.variance.standardized)) %>%
           dplyr::select(gene) %>%
