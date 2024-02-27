@@ -327,6 +327,10 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
 makeSparse = function(dataframe){
   #suppressMessages({library(Matrix)})
   if(!is.matrix(dataframe)){
+    # Force data frame if tibble (tibbles do not support rownames)
+    if(tibble::is_tibble(dataframe)){
+      dataframe = as.data.frame(dataframe)
+    }
     genecol = colnames(dataframe)[1]
     # numdat = dataframe %>%
     #   tibble::column_to_rownames(genecol) %>%
