@@ -325,7 +325,6 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
 # @return a sparsed data matrix
 #
 makeSparse = function(dataframe){
-  #suppressMessages({library(Matrix)})
   if(!is.matrix(dataframe)){
     # Force data frame if tibble (tibbles do not support rownames)
     if(tibble::is_tibble(dataframe)){
@@ -865,7 +864,7 @@ process_sample_names = function(rnacounts, spotcoords, samples, input_check){
   filepaths = list()
   if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
     for(i in samples){
-      sample_i = grep(i, rnacounts, value=T)
+      sample_i = grep(i, rnacounts, value=T, fixed=T)
       if(length(sample_i) == 1){
         filepaths[['count_found']] = append(filepaths[['count_found']], sample_i)
         filepaths[['sampleids']] = append(filepaths[['sampleids']], i)
@@ -877,8 +876,8 @@ process_sample_names = function(rnacounts, spotcoords, samples, input_check){
     }
   } else{
     for(i in samples){
-      sample_count = grep(i, rnacounts, value=T)
-      sample_coord = grep(i, spotcoords, value=T)
+      sample_count = grep(i, rnacounts, value=T, fixed=T)
+      sample_coord = grep(i, spotcoords, value=T, fixed=T)
       if(length(sample_count) != 0 & length(sample_coord) != 0){
         filepaths[['count_found']] = append(filepaths[['count_found']], sample_count)
         filepaths[['coord_found']] = append(filepaths[['coord_found']], sample_coord)
