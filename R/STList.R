@@ -759,6 +759,8 @@ read_cosmx_input = function(filepaths, input_check, cores=NULL){
 # @return return_lists a list with two lists within (one with counts, one with coordinates)
 #
 process_lists = function(counts_df_list, coords_df_list){
+  # Keep track of FOVs with zero counts
+  rm_fov = c()
   # Process the count and coordinate list.
   for(i in 1:length(names(counts_df_list))){
 
@@ -805,6 +807,18 @@ process_lists = function(counts_df_list, coords_df_list){
       coords_df_list[[name_i]][['total_counts']] = colSums(counts_df_list[[name_i]][, -1])
       coords_df_list[[name_i]][['total_genes']] = colSums(counts_df_list[[name_i]][, -1] != 0)
     }
+
+    # If no counts in the entire FOV, mark for removal
+    if(sum(coords_df_list[[name_i]][['total_counts']]) < 1){
+      rm_fov = append(rm_fov, name_i)
+      warning(paste0('No counts present in FOV ', name_i, '. Removong from data set.\n'))
+    }
+  }
+
+  # Remove FOVs without counts
+  if(length(rm_fov) > 0){
+    counts_df_list = counts_df_list[ !(names(counts_df_list) %in% rm_fov) ]
+    coords_df_list = coords_df_list[ !(names(coords_df_list) %in% rm_fov) ]
   }
 
   proc_return_lists = list()
