@@ -10,7 +10,7 @@
 #' runs non-spatial linear models on the genes to detect differentially expressed genes.
 #' Then spatial linear models with exponential covariance structure are fit on a
 #' subset of genes detected as differentially expressed by the non-linear models (`sp_topgenes`).
-#' If running on clusters detected via STclust, the user should specify the assignments
+#' If running on clusters detected via STclust, the user can specify the assignments
 #' using the same parameters (`w`, `k`, `deepSplit`). Otherwise, the assignments are
 #' specified by indicating one of the column names in `x@spatial_meta`. The function
 #' uses `spaMM::fitme` and is computationally expensive even on HPC environments.
@@ -154,7 +154,8 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   for(i in 1:length(x@tr_counts)){
     # Check that vst is not already calculated
     if(length(grep('vst.variance.standardized', colnames(x@gene_meta[[i]]))) == 0){
-      x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+      #x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
         tibble::rownames_to_column(var='gene') %>%
         dplyr::select('gene', 'vst.variance.standardized') %>%
         dplyr::left_join(x@gene_meta[[i]], ., by='gene')
