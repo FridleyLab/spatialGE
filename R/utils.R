@@ -56,8 +56,7 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
   # Test if input is a Khroma name or RColorBrewer.
   # If so, create palette.
   if(color_pal[1] %in% khroma_cols){
-    p_palette = khroma::colour(color_pal[1], force=T)
-    cat_cols = as.vector(p_palette(n_cats))
+    cat_cols = as.vector(khroma::colour(color_pal[1], force=T)(n_cats))
   }else if(color_pal[1] %in% rownames(RColorBrewer::brewer.pal.info)){
     cat_cols = colorRampPalette(RColorBrewer::brewer.pal(n_cats, color_pal[1]))(n_cats)
   }else{ # Test if user provided a vector of colors.

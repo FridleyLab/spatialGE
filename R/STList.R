@@ -811,7 +811,7 @@ process_lists = function(counts_df_list, coords_df_list){
     # If no counts in the entire FOV, mark for removal
     if(sum(coords_df_list[[name_i]][['total_counts']]) < 1){
       rm_fov = append(rm_fov, name_i)
-      warning(paste0('No counts present in FOV ', name_i, '. Removong from data set.\n'))
+      warning(paste0('No counts present in FOV ', name_i, '. Removing from data set.\n'))
     }
   }
 
