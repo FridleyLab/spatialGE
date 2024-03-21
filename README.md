@@ -1,3 +1,7 @@
+<p align="right">
+<img src="spatialGE_workflow_v3.png" height="100" width="100" >
+</p>
+
 # spatialGE
 
 An R package for the visualization and analysis of spatially-resolved transcriptomics data,
