@@ -1,7 +1,4 @@
-<p align="right">
-<img src="logo.png" height="100" width="100" >
-</p>
-
+<img style="float: right;" src="logo.png" height="100" width="100">
 # spatialGE
 
 An R package for the visualization and analysis of spatially-resolved transcriptomics data,
