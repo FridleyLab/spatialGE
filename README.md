@@ -1,5 +1,5 @@
 <p align="right">
-<img src="spatialGE_workflow_v3.png" height="100" width="100" >
+<img src="logo.png" height="100" width="100" >
 </p>
 
 # spatialGE
