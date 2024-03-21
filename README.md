@@ -1,4 +1,4 @@
-<img style="float: right;" src="logo.png" height="100" width="100" />
+<img align="right" src="logo.png" height="100" width="100" />
 
 # spatialGE
 
