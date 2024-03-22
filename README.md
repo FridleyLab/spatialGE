@@ -1,5 +1,7 @@
 # spatialGE
 
+<img align="left" src="logo.png" height="100" width="90" />
+
 An R package for the visualization and analysis of spatially-resolved transcriptomics data,
 such as those generated with 10X Visium. The **spatialGE** package features a data object 
 (STlist: Spatial Transctiptomics List) to store data and results from multiple tissue sections, 

@@ -167,6 +167,8 @@ filter_data = function(x=NULL,
     col_expr_reads = colSums(df_tmp[grepl(spot_pct_expr, rownames(df_tmp)), ])
     col_expr_percent = col_expr_reads/col_total_reads
     rm(col_expr_reads) # Clean env
+    # Force NaNs tp zero, which result from zero as denominator (i.e., zero counts in the cell)
+    col_expr_percent[is.na(col_expr_percent)] = 0
 
     # If no maximum counts set by user, then make it the max counts of each spot/cell
     if(is.null(spot_maxreads)){

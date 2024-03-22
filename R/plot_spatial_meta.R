@@ -81,6 +81,29 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
     stop('No metadata column or clustering parameters were specified. Or specified parameters do not exist in metadata.')
   }
 
+  # Set default color if NULL input
+  if(is.null(color_pal)){
+    color_pal = 'light'
+  }
+  # Define color palettes for each meta variable
+  master_col_pal = vector('list', length(plot_meta))
+  names(master_col_pal) = plot_meta
+  for(metacol in plot_meta){
+    cat_vec_tmp = c()
+    for(s in samples){
+      cat_vec_tmp = unique(c(cat_vec_tmp, unique(x@spatial_meta[[s]][[metacol]])))
+    }
+    color_pal_tmp = color_pal
+    if(is.numeric(x@spatial_meta[[s]][[metacol]])){
+      color_pal_tmp = 'sunset'
+    }
+    master_col_pal[[metacol]] = color_parse(color_pal_tmp, length(cat_vec_tmp))
+    names(master_col_pal[[metacol]]) = cat_vec_tmp
+
+    rm(cat_vec_tmp, color_pal_tmp) # Clean env
+  }
+
+  # Make list to store plots a
   plot_list = list()
   for(s in samples){
     # Extract metadata for specific sample
@@ -97,14 +120,6 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
     }
 
     for(metacol in plot_meta){
-      # Set default color if NULL input
-      if(is.null(color_pal)){
-        color_pal = 'light'
-        if(is.numeric(x@spatial_meta[[s]][[metacol]])){
-          color_pal = 'sunset'
-        }
-      }
-
       df_tmp2 = df_tmp %>%
         dplyr::select(libname, ypos, xpos, meta:=!!metacol)
 
@@ -115,10 +130,10 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
           dplyr::mutate(meta=as.factor(meta))
 
         # Create color palette.
-        meta_cols = color_parse(color_pal, n_cats=length(unique(df_tmp2[['meta']])))
-        names(meta_cols) = unique(df_tmp2[['meta']])
-        if(any(names(meta_cols) == 'No_Data')){
-          meta_cols[names(meta_cols) == 'No_Data'] = 'gray50'
+        # meta_cols = color_parse(color_pal, n_cats=length(unique(df_tmp2[['meta']])))
+        # names(meta_cols) = unique(df_tmp2[['meta']])
+        if(any(df_tmp2[['meta']] == 'No_Data') & any(!grepl('No_Data', names(master_col_pal[[metacol]])))){
+          master_col_pal[[metacol]] = append(master_col_pal[[metacol]], c(No_Data='gray50'))
         }
       }
 
@@ -144,7 +159,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         ggplot2::geom_point(ggplot2::aes(x=xpos, y=ypos, color=meta), size=ptsize)
       # Assign color palette to plot for categorical or numerical variable
       if(is.factor(df_tmp2[['meta']])){
-        p = p + ggplot2::scale_color_manual(values=c(meta_cols))
+        p = p + ggplot2::scale_color_manual(values=master_col_pal[[metacol]])
       } else{
         if(!is.null(color_pal)){
           # Get color palette and number of colors needed.
@@ -163,10 +178,9 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
 
       if(!is.numeric(df_tmp2[['meta']])){ # Test if it's not numeric and make legend spots/dots larger
         p = p +
-          ggplot2::guides(color=guide_legend(override.aes=list(size=ptsize+1)))
+          ggplot2::guides(color=ggplot2::guide_legend(override.aes=list(size=ptsize+1)))
       }
-      p = p +
-        labs(color=title_leg, title=title_p) + ggplot2::theme_void()
+      p = p + ggplot2::labs(color=title_leg, title=title_p) + ggplot2::theme_void()
 
       if(visium){
         p = p + ggplot2::scale_y_reverse() + ggplot2::coord_fixed(ratio=1)
@@ -174,8 +188,8 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
         p = p + ggplot2::coord_fixed(ratio=1)
       }
       #p = p + ggplot2::theme(legend.title=ggplot2::element_blank()) # MAY 09, 2023 PUT META DATA NAME ON LEGEND TITLE, NOT PLOT TITLE
-      p = p + ggplot2::theme(legend.title=element_text(size=txsize),
-                             plot.title=element_text(size=txsize+2))
+      p = p + ggplot2::theme(legend.title=ggplot2::element_text(size=txsize),
+                             plot.title=ggplot2::element_text(size=txsize+2))
 
       plot_list[[paste0(s, '_', metacol)]] = p
     }
