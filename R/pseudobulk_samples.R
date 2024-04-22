@@ -78,6 +78,10 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
   # Turn transformed counts to a transposed matrix.
   tr_df <- t(as.matrix(tr_df))
 
+  # Need at least two variable genes to create 2 PCs
+  if(max_var_genes < 2){
+    raise_err(err_code='error0005')
+  }
   # Check that number of genes specified by user is lower than genes available across all samples
   min_genes_pseudobulk = ncol(tr_df)
   if(max_var_genes > min_genes_pseudobulk){
@@ -168,23 +172,23 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
   pcy = grep(paste0('^PC', pcy, '$'), colnames(pca_tbl), value=T)
 
   # Make plot
-  pca_p = ggplot(pca_tbl) +
+  pca_p = ggplot2::ggplot(pca_tbl) +
     #geom_point(aes(x=.data[[pcx]], y=.data[[pcy]], shape=.data[[plot_meta]], color=.data[[plot_meta]]), size=ptsize) +
-    geom_point(aes(x=.data[[pcx]], y=.data[[pcy]], color=.data[[plot_meta]]), size=ptsize) +
-    ggrepel::geom_text_repel(aes(x=.data[[pcx]], y=.data[[pcy]], label=pca_labs)) +
-    xlab(paste0(pcx, ' (', round(x@misc[['pbulk_pca_var']][pcx], 3) * 100, '%)')) +
-    ylab(paste0(pcy, ' (', round(x@misc[['pbulk_pca_var']][pcy], 3) * 100, '%)'))
+    ggplot2::geom_point(ggplot2::aes(x=.data[[pcx]], y=.data[[pcy]], color=.data[[plot_meta]]), size=ptsize) +
+    ggrepel::geom_text_repel(ggplot2::aes(x=.data[[pcx]], y=.data[[pcy]], label=pca_labs)) +
+    ggplot2::xlab(paste0(pcx, ' (', round(x@misc[['pbulk_pca_var']][pcx], 3) * 100, '%)')) +
+    ggplot2::ylab(paste0(pcy, ' (', round(x@misc[['pbulk_pca_var']][pcy], 3) * 100, '%)'))
 
   if(plot_meta == 'pca_labs'){
-    pca_p = pca_p + labs(color='Sample')
+    pca_p = pca_p + ggplot2::labs(color='Sample')
   }
 
   pca_p = pca_p +
-    scale_color_manual(values=cat_cols) +
+    ggplot2::scale_color_manual(values=cat_cols) +
     #scale_shape_manual(values=cat_shapes) +
-    ggtitle('PCA of "pseudobulk" samples') +
-    coord_fixed() +
-    theme_bw()
+    ggplot2::ggtitle('PCA of "pseudobulk" samples') +
+    ggplot2::coord_fixed() +
+    ggplot2::theme_bw()
 
   return(pca_p)
 }
