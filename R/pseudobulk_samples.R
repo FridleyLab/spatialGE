@@ -45,6 +45,11 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
     stop('Refusing to make PCA and heatmap containing less than three samples!')
   }
 
+  # Need at least two variable genes to create 2 PCs
+  if(max_var_genes < 2){
+    raise_err(err_code='error0005')
+  }
+
   # Create data frame to store "bulk counts".
   bulkcounts_df <- tibble::tibble(gene=rownames(x@counts[[1]]))
 
@@ -78,10 +83,6 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
   # Turn transformed counts to a transposed matrix.
   tr_df <- t(as.matrix(tr_df))
 
-  # Need at least two variable genes to create 2 PCs
-  if(max_var_genes < 2){
-    raise_err(err_code='error0005')
-  }
   # Check that number of genes specified by user is lower than genes available across all samples
   min_genes_pseudobulk = ncol(tr_df)
   if(max_var_genes > min_genes_pseudobulk){
