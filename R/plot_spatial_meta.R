@@ -39,7 +39,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
       samples = names(x@spatial_meta)[samples]
     }
     if(length(grep(paste0(samples, collapse='|'), names(x@spatial_meta))) == 0){
-      stop('The requested samples are not present in the STList spatial metadata.')
+      stop('The requested samples are not present in the STlist spatial metadata.')
     }
   }
 
@@ -77,8 +77,14 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
   }
 
   # Check that the meta data column exists
-  if(length(grep(paste0('^', plot_meta, '$', collapse='|'),  colnames(x@spatial_meta[[1]]))) == 0){
-    stop('No metadata column or clustering parameters were specified. Or specified parameters do not exist in metadata.')
+  for(i in samples){
+    if(length(grep(paste0('^', plot_meta, '$', collapse='|'),  colnames(x@spatial_meta[[i]]))) == 0){
+      warning(paste0('No metadata column or clustering parameters could not be found in sample ', i,  '.'))
+      samples = grep(i, samples, value=T, invert=T)
+    }
+  }
+  if(length(samples) < 1){
+    raise_err(err_code='error0006')
   }
 
   # Set default color if NULL input
