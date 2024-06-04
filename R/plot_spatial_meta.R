@@ -153,7 +153,7 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
           title_dspl = stringr::str_extract(metacol, '[\\.0-9]+$|True$|False$')
           title_p = paste0("STclust (dtc; deepSplit=", title_dspl, ")\nSpatial weight=", title_w, '\nSample: ')
         } else{
-          title_p = paste0(title_p, ' - ') # Last resort in case column name couldnt be parsed
+          title_p = paste0(metacol, ' - ') # Last resort in case column name couldnt be parsed
         }
         title_p = paste0(title_p, s)
         title_leg = 'Clusters'
