@@ -192,28 +192,28 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
           is_comma_coord = grepl(",", coord_file[2])
           # Determine delimiter of first `rnacounts` file.
           if(is_tab_rna){
-            del = '\t'
+            del_rna = '\t'
           } else if(is_comma_rna){
-            del = ','
+            del_rna = ','
           } else{
             stop('RNA counts file is not comma or tab-delimited')
           }
           # Determine delimiter of first `spotcoords` file.
           if(is_tab_coord){
-            del = '\t'
+            del_coords = '\t'
           } else if(is_comma_coord){
-            del = ','
+            del_coords = ','
           } else{
             stop('Coordinates file is not comma or tab-delimited')
           }
 
           # Check if COSMX-SMI was input
           if(grepl('fov', rna_file[1]) & grepl('cell_ID|cell_id', rna_file[1])){
-            inputtype$rna = c('cosmx', del)
-            inputtype$coords = c('cosmx', del)
+            inputtype$rna = c('cosmx', del_rna)
+            inputtype$coords = c('cosmx', del_coords)
           } else{
-            inputtype$rna = c('rnapath', del)
-            inputtype$coords = c('coordpath', del)
+            inputtype$rna = c('rnapath', del_rna)
+            inputtype$coords = c('coordpath', del_coords)
           }
         }
       }

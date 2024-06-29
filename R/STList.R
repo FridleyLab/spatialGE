@@ -325,15 +325,15 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
 # @return a sparsed data matrix
 #
 makeSparse = function(dataframe){
-  if(!is.matrix(dataframe)){
+  if(any(class(dataframe) == 'dgCMatrix')){
+    numdat = dataframe
+  } else if(!is.matrix(dataframe)){
     # Force data frame if tibble (tibbles do not support rownames)
     if(tibble::is_tibble(dataframe)){
       dataframe = as.data.frame(dataframe)
     }
     genecol = colnames(dataframe)[1]
-    # numdat = dataframe %>%
-    #   tibble::column_to_rownames(genecol) %>%
-    #   as.matrix() %>% as(., "sparseMatrix")
+
     numdat = dataframe
     rownames(numdat) = dataframe[[genecol]]
     numdat = numdat[, -which(colnames(numdat) == genecol)]
@@ -457,20 +457,22 @@ read_matrices_fps = function(filepaths, input_check, cores=NULL){
     }
   }
 
-  # Define number of available cores to use.
-  if(is.null(cores)){
-    cores = count_cores(length(filepaths[['count_found']]))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
-  }
+  # # Define number of available cores to use.
+  # if(is.null(cores)){
+  #   cores = count_cores(length(filepaths[['count_found']]))
+  # } else{
+  #   cores = as.integer(cores)
+  #   if(is.na(cores)){
+  #     stop('Could not recognize number of cores requested')
+  #   }
+  # }
 
   # Use parallelization to read count data if possible.
   counts_df_list = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
     # Read filepaths.
-    counts_df = readr::read_delim(filepaths[['count_found']][i], delim=delrna, col_types=readr::cols(), progress=F)
+    #counts_df = readr::read_delim(filepaths[['count_found']][i], delim=delrna, col_types=readr::cols(), progress=F)
+    counts_df = data.table::fread(filepaths[['count_found']][i], sep=delrna)
+    counts_df = as.data.frame(counts_df)
     return(counts_df)
   }, mc.cores=cores, mc.preschedule=F)
   # Name list elements.
@@ -523,7 +525,7 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
     vjson = grep('spatial\\/', temp_fps, value=T) %>%
       grep('scalefactors_json.json$', ., value=T)
     vcoords = grep('spatial\\/', temp_fps, value=T) %>%
-      grep('tissue_positions_list.csv', ., value=T)
+      grep('tissue_positions_list.csv|tissue_positions.csv', ., value=T)
     # Filter out 'SPATIAL_RNA_COUNTER' folders (intermediate files from Space Ranger?).
     vcoords = vcoords[!grepl('SPATIAL_RNA_COUNTER', vcoords)]
 
@@ -784,12 +786,18 @@ process_lists = function(counts_df_list, coords_df_list){
     # Sort coordinate data according to third column in the coordinate data frame.
     coords_df_list[[name_i]] = coords_df_list[[name_i]] %>% dplyr::arrange(!!array_col)
 
-    # Order column names in count data frame according to sorted coordinate data.
-    if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
-      counts_df_list[[name_i]] = counts_df_list[[name_i]][, as.vector(unlist(coords_df_list[[name_i]][, 1]))]
-    } else{
-      counts_df_list[[name_i]] = counts_df_list[[name_i]][, c(colnames(counts_df_list[[name_i]])[1], coords_df_list[[name_i]][[1]])]
+    # Convert to sparse matrix if not one
+    if(!any(class(counts_df_list[[name_i]]) == 'dgCMatrix')){
+      counts_df_list[[name_i]] = as.data.frame(counts_df_list[[name_i]])
+      counts_df_list[[name_i]] = makeSparse(counts_df_list[[name_i]])
     }
+
+    # Order column names in count data frame according to sorted coordinate data.
+    if(!all(as.vector(coords_df_list[[name_i]][[1]]) %in% colnames(counts_df_list[[name_i]]))){
+      warning('Not all spots/cells in coordinates are present in count data. Removing spots/cells not in counts data') # WARNING IF COUNTS ARE SUBSET OF COORDINATES
+      coords_df_list[[name_i]] = coords_df_list[[name_i]][as.vector(coords_df_list[[name_i]][[1]]) %in% colnames(counts_df_list[[name_i]]), ]
+    }
+    counts_df_list[[name_i]] = counts_df_list[[name_i]][, as.vector(coords_df_list[[name_i]][[1]])]
 
     # Put column names to coordinate data (if not already there)
     if(sum(grepl('libname|ypos|xpos', colnames(coords_df_list[[name_i]]))) != 3){
@@ -800,13 +808,13 @@ process_lists = function(counts_df_list, coords_df_list){
     coords_df_list[[name_i]][[3]] = as.numeric(coords_df_list[[name_i]][[3]])
 
     # Get total gene counts and genes with no-zero counts
-    if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
+#    if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
       coords_df_list[[name_i]][['total_counts']] = colSums(as.matrix(counts_df_list[[name_i]]))
       coords_df_list[[name_i]][['total_genes']] = colSums(as.matrix(counts_df_list[[name_i]]) != 0)
-    } else{
-      coords_df_list[[name_i]][['total_counts']] = colSums(counts_df_list[[name_i]][, -1])
-      coords_df_list[[name_i]][['total_genes']] = colSums(counts_df_list[[name_i]][, -1] != 0)
-    }
+#    } else{
+#      coords_df_list[[name_i]][['total_counts']] = colSums(counts_df_list[[name_i]][, -1])
+#      coords_df_list[[name_i]][['total_genes']] = colSums(counts_df_list[[name_i]][, -1] != 0)
+#    }
 
     # If no counts in the entire FOV, mark for removal
     if(sum(coords_df_list[[name_i]][['total_counts']]) < 1){
