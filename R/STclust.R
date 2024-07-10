@@ -45,7 +45,7 @@
 #' @importFrom stats as.dist complete.cases cutree dist hclust prcomp sd
 #
 #
-STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2', ks='dtc', topgenes=2000, deepSplit=F){
+STclust_2 = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2', ks='dtc', topgenes=2000, deepSplit=F){
   # Record time
   zero_t = Sys.time()
   verbose = 1L
@@ -76,18 +76,24 @@ STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2',
     }
   }
 
+  # Check data has been normalized. Otherwise raise error
+  if(length(x@tr_counts) < 1){
+    raise_err(err_code='error0007')
+  }
+
   grp_list = list()
   for(i in 1:length(x@tr_counts)){
     # Find tops variable genes using Seurat approach. In the past, instead of Seurat, genes with the highest stdev were used
-    if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
-      x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
-    }
-
-    #x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
-    x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+    # First check if VST hasn't been calculated. If not, calculate
+    #if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
+    if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
+      #x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
+      #x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>% ###### TEST ONLY
+      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
       tibble::rownames_to_column(var='gene') %>%
-      dplyr::select('gene', 'vst.variance.standardized') %>%
-      dplyr::left_join(x@gene_meta[[i]], ., by='gene')
+        dplyr::select('gene', 'vst.variance.standardized') %>%
+        dplyr::left_join(x@gene_meta[[i]], ., by='gene')
+    }
 
     topgenenames = x@gene_meta[[i]] %>%
       dplyr::arrange(desc(vst.variance.standardized)) %>%
@@ -181,6 +187,8 @@ STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2',
         stop('Currently, only spatially-informed hierarchical clustering is supported.')
       }
     }
+
+    cat(crayon::green(paste0('\tClustering completed for ', names(x@tr_counts)[i], '...\n')))
   }
 
   # Print time

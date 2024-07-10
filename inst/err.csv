@@ -3,4 +3,5 @@ error0002,'STlist -> process_lists: The ROI/spot/cell IDs in the count data (col
 error0003,'STlist -> detect_input: The input lists are not named. Please input named lists.'
 error0004,'STlist -> detect_input: The samples argument requires a file path to clinical data or a vector with sample IDs. Data frames are not currently supported.'
 error0005,'pseudobulk_samples: At least two variable genes are necessary to calculate principal components.'
-error0006,STplot -> plot_spatial_meta: Could not found the requested spatial metadata in any sample.'
+error0006,STplot -> plot_spatial_meta: Could not find the requested spatial metadata in any sample.'
+error0007,STclust: Could not find normalized counts. Please use transform data before using STclust.'
