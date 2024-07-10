@@ -155,7 +155,7 @@ STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2',
             col_name = paste0('stclust_spw', ws[w], '_dspl', dspl)
 
             grp_df <- dynamicTreeCut::cutreeDynamic(hierclusters, method='hybrid', distM=weight_m, deepSplit=deepSplit, verbose=F)
-            grp_df <- tibble::tibble(libname=colnames(dAm), !!col_name:=as.factor(grp_df))
+            grp_df <- tibble::tibble(libname=colnames(dAm), !!col_name:=as.factor(as.vector(grp_df)))
 
             grp_df[[col_name]][grp_df[[col_name]] == 0] = NA
             if(any(colnames(x@spatial_meta[[i]]) == col_name)){
@@ -170,7 +170,7 @@ STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2',
             # Set list element names based on weight and k value
             col_name = paste0('stclust_spw', ws[w], '_k', k)
             singlek <- cutree(hierclusters, k=k)
-            singlek <- tibble::tibble(libname=colnames(dAm), !!col_name:=as.factor(singlek))
+            singlek <- tibble::tibble(libname=colnames(dAm), !!col_name:=as.factor(as.vector(singlek)))
 
             if(any(colnames(x@spatial_meta[[i]]) == col_name)){
               x@spatial_meta[[i]] = x@spatial_meta[[i]] %>%
