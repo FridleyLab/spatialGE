@@ -45,7 +45,7 @@
 #' @importFrom stats as.dist complete.cases cutree dist hclust prcomp sd
 #
 #
-STclust_2 = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2', ks='dtc', topgenes=2000, deepSplit=F){
+STclust = function(x=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2', ks='dtc', topgenes=2000, deepSplit=F){
   # Record time
   zero_t = Sys.time()
   verbose = 1L
