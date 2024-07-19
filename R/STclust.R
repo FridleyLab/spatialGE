@@ -71,8 +71,12 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
 
   # Check to ensure number of ks is acceptable
   if(is.numeric(ks)){
-    if(any(ks < 2)){
-      stop('Refusing to generate < 2 clusters.')
+    ks = as.integer(ks)
+    if(length(ks) == 1 & ks[1] < 2){
+      raise_err(err_code='error0016')
+    } else if(any(ks) < 2){
+      warning('Refusing to generate < 2 clusters. Skipping k=2.')
+      ks = ks[ks >= 2]
     }
   }
 
@@ -109,27 +113,7 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
   }
 
   # Identify variable genes (Seurat's VST)
-  vst_ls = parallel::mclapply(samples, function(i){
-    # Find tops variable genes using Seurat approach
-    # First check if VST hasn't been calculated. If not, calculate
-    if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
-      #vst_tmp = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>% ###### TEST ONLY
-      vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
-        tibble::rownames_to_column(var='gene') %>%
-        dplyr::select('gene', 'vst.variance.standardized') %>%
-        dplyr::left_join(x@gene_meta[[i]], ., by='gene')
-      return(vst_tmp)
-    } else{
-      return(NULL)
-    }
-  }, mc.cores=cores)
-  names(vst_ls) = samples
-
-  for(i in samples){
-    if(!is.null(vst_ls[[i]])){
-      x@gene_meta[[i]] = vst_ls[[i]]
-    }
-  }
+  x = calculate_vst(x=x, samples=samples, cores=cores)
 
   rm(vst_ls) # Clean env
 
