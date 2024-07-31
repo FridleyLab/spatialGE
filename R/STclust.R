@@ -74,8 +74,8 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
     ks = as.integer(ks)
     if(length(ks) == 1 & ks[1] < 2){
       raise_err(err_code='error0016')
-    } else if(any(ks) < 2){
-      warning('Refusing to generate < 2 clusters. Skipping k=2.')
+    } else if(any(ks < 2)){
+      warning('Refusing to generate < 2 clusters. Skipping any k < 2.')
       ks = ks[ks >= 2]
     }
   }
@@ -114,8 +114,6 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
 
   # Identify variable genes (Seurat's VST)
   x = calculate_vst(x=x, samples=samples, cores=cores)
-
-  rm(vst_ls) # Clean env
 
   # Subset variable genes
   trcounts_df = parallel::mclapply(samples, function(i){

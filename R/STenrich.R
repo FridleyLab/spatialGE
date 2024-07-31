@@ -11,6 +11,7 @@
 #' the method devised by Hunter et al. 2021 (zebrafish melanoma study)
 #'
 #' @param x an STlist with transformed gene expression
+#' @param samples a vector with sample names or indexes to run analysis
 #' @param gene_sets a named list of gene sets to test. The names of the list should
 #' identify the gene sets to be tested
 #' @param reps the number of random samples to be extracted. Default is 1000 replicates
@@ -32,7 +33,7 @@
 #' @importFrom magrittr %>%
 #
 #
-STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
+STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
@@ -43,14 +44,30 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
   min_units = as.integer(min_units)
   min_genes = as.integer(min_genes)
 
-  # Define number of cores to use
+  # Define samples using names (convert indexes to names if necessary)
+  if(is.null(samples)){
+    samples = names(x@spatial_meta)
+  } else{
+    if(is.numeric(samples)){
+      samples = as.vector(na.omit(names(x@spatial_meta)[samples]))
+    } else{
+      samples = samples[samples %in% names(x@spatial_meta)]
+    }
+    # Verify that sample names exist
+    if(length(samples) == 0 | !any(samples %in% names(x@spatial_meta))){
+      stop('None of the requested samples are present in the STlist.')
+    }
+  }
+
+  # Define number of cores for parallelization of tests
   if(is.null(cores)){
-    cores = count_cores(length(names(gene_sets)))
+    cores = count_cores(length(samples))
+  } else{
+    cores = ceiling(cores)
   }
 
   # Loop through samples in STlist
-  result_dfs = parallel::mclapply(1:length(x@tr_counts), function(par_i){
-    i = names(x@tr_counts)[par_i]
+  result_dfs = parallel::mclapply(samples, function(i){
     system(sprintf('echo "%s"', crayon::yellow(paste0("\tSample: ", i, "..."))))
     # Extract spots to be used in analysis
     # This selection implemented proactively as analysis might later be applied to tissue niches within samples
@@ -142,7 +159,7 @@ STenrich = function(x=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, 
 
     return(pval_df)
   }, mc.cores=cores)
-  names(result_dfs) = names(x@tr_counts)
+  names(result_dfs) = samples
 
   # Print time
   verbose = 1L

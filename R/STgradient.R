@@ -33,6 +33,10 @@
 #' have in order to be included in the analysis. This parameter seeks to reduce the
 #' effect of isolated `ref` spots on the correlation
 #' @param robust logical, wheter to use robus regression (`MASS` and `sfsmisc` packages)
+#' @param nb_dist_thr a numeric vector of length two indicating the tolerance interval to assign
+#' spots/cells to neighborhoods. The wider the range of the interval, the more likely
+#' distinct neighbors to be considered. If NULL, `c(0.75, 1.25)` and `c(0.25, 3)` is assigned
+#' for Visium and CosMx respectively.
 #' @param cores the number of cores used during parallelization. If NULL (default),
 #' the number of cores is defined automatically
 #' @return a list of data frames with the results of the test
@@ -42,8 +46,8 @@
 #' @importFrom magrittr %>%
 #
 #
-STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
-                      out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, cores=NULL){
+STgradient_2 = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
+                      out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, nb_dist_thr=NULL, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
@@ -83,6 +87,14 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
     cores = count_cores(length(samplenames))
   }
 
+  # Define neighborhood tolerance
+  if(is.null(nb_dist_thr) | !is.numeric(nb_dist_thr) | length(nb_dist_thr) != 2){
+    nb_dist_thr = c(0.75, 1.25)
+    if(x@misc[['platform']] != 'visium'){
+      nb_dist_thr = c(0.25, 3)
+    }
+  }
+
   results_ls = parallel::mclapply(seq(samplenames), function(i){
     # Calculate euclidean distances
     coords_tmp = x@spatial_meta[[samplenames[i]]] %>%
@@ -105,11 +117,11 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
     # NOTE: When dealing with other technologies like SMI, will need to be more flexible with
     # minimum distances as not an array of equally distant spots. In this case, allowed a "buffer"
     # of a quarter of the minimum distance
-    if(x@misc[['platform']] == 'cosmx'){
-      nbs = colSums(dists_ref_tmp >= min_sample * 0.25 & dists_ref_tmp <= min_sample * 3)
-    } else{
-      nbs = colSums(dists_ref_tmp >= min_sample * 0.75 & dists_ref_tmp <= min_sample * 1.25)
-    }
+    #if(x@misc[['platform']] == 'cosmx'){
+      nbs = colSums(dists_ref_tmp >= min_sample * nb_dist_thr[1] & dists_ref_tmp <= min_sample * nb_dist_thr[2])
+    #} else{
+    #  nbs = colSums(dists_ref_tmp >= min_sample * 0.75 & dists_ref_tmp <= min_sample * 1.25)
+    #}
     if(sum(nbs >= min_nb) < 1){ # At least 1 cluster of spots to continue with analysis
       nbs_keep = c()
     } else{
@@ -162,8 +174,8 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
     # Extract expression data (non-transformed counts to be passed to FindVariableFeatures)
     dist_cor = tibble::tibble() # Initialize result data frame in case no computations can be done (e.g., sample without non-ref spots/cells)
     if(nrow(dists_summ_tmp) > 1){
-      raw_cts = expandSparse(x@counts[[samplenames[i]]])
-
+      #raw_cts = expandSparse(x@counts[[samplenames[i]]])
+      raw_cts = x@counts[[samplenames[i]]]
       # Get spots that have at least 1 distance value
       # However, if only one spot, then sample will be removed from analysis as cannot detect variable genes from single spot
       raw_cts = raw_cts[, dists_summ_tmp[['barcode']][ !is.na(dists_summ_tmp[['dist2ref']]) ], drop=F]
@@ -172,8 +184,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       # Variable genes in minimum distance range
       if(ncol(raw_cts) > 1){
         #vargenes = Seurat::FindVariableFeatures(raw_cts, verbose=F) %>%
-        vargenes = Seurat_FindVariableFeatures(raw_cts) %>%
-          tibble::rownames_to_column(var='gene') %>%
+        vargenes = calculate_vst(x=raw_cts) %>%
           dplyr::arrange(desc(vst.variance.standardized)) %>%
           dplyr::select(gene) %>%
           unlist() %>%

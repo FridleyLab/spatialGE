@@ -311,36 +311,43 @@ raise_err = function(err_code=NULL, samplename=NULL){
 
 ##
 # @title calculate_vst: Calculate standardized variation (VST) using Seurat's implementation
-# @param x an STlist
-# @param samples the samples from `x` to calculate VST
+# @param x an STlist or a matrix with spots/cells in columns
+# @param samples the samples from `x` to calculate VST. Ignored if x is a matrix
 # @param cores integer indicating the number of cores in parallelization
 # @return an STlist with VST in @gene_meta
 #
 calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
 
-  # Identify variable genes (Seurat's VST)
-  vst_ls = parallel::mclapply(samples, function(i){
-    # Find tops variable genes using Seurat approach
-    # First check if VST hasn't been calculated. If not, calculate
-    if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
-      #vst_tmp = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>% ###### TEST ONLY
-      vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
-        tibble::rownames_to_column(var='gene') %>%
-        dplyr::select('gene', 'vst.variance.standardized') %>%
-        dplyr::left_join(x@gene_meta[[i]], ., by='gene')
-      return(vst_tmp)
-    } else{
-      return(NULL)
-    }
-  }, mc.cores=cores)
-  names(vst_ls) = samples
+  if(class(x) == 'STlist'){
+    # Identify variable genes (Seurat's VST)
+    vst_ls = parallel::mclapply(samples, function(i){
+      # Find tops variable genes using Seurat approach
+      # First check if VST hasn't been calculated. If not, calculate
+      if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
+        vst_tmp = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>% ###### TEST ONLY
+        #vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+          tibble::rownames_to_column(var='gene') %>%
+          dplyr::select('gene', 'vst.variance.standardized') %>%
+          dplyr::left_join(x@gene_meta[[i]], ., by='gene')
+        return(vst_tmp)
+      } else{
+        return(NULL)
+      }
+    }, mc.cores=cores)
+    names(vst_ls) = samples
 
-  for(i in samples){
-    if(!is.null(vst_ls[[i]])){
-      x@gene_meta[[i]] = vst_ls[[i]]
+    for(i in samples){
+      if(!is.null(vst_ls[[i]])){
+        x@gene_meta[[i]] = vst_ls[[i]]
+      }
     }
+    return(x)
+  } else{
+    vst_tmp = Seurat::FindVariableFeatures(x, verbose=F) %>% ###### TEST ONLY
+    #vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+      tibble::rownames_to_column(var='gene') %>%
+      dplyr::select('gene', 'vst.variance.standardized')
+    return(vst_tmp)
   }
-
-  return(x)
 }
 
