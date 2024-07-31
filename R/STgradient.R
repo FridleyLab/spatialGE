@@ -46,7 +46,7 @@
 #' @importFrom magrittr %>%
 #
 #
-STgradient_2 = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
+STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
                       out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, nb_dist_thr=NULL, cores=NULL){
   # Record time
   zero_t = Sys.time()
