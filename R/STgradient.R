@@ -14,7 +14,7 @@
 #' @param topgenes the number of high-variance genes to be tested. These genes are
 #' selected in descending order of variance as caclulated using Seurat's vst method
 #' @param annot the name of a column in `@spatial_meta` containing the tissue domain
-#' assigmemnts for each spot or cell. These assignents can be generated using the
+#' assignments for each spot or cell. These assignments can be generated using the
 #' `STclust` function
 #' @param ref one of the tissue domains in the column specified in `annot`,
 #' corresponding to the "reference" cluster or domain. Spearman's correlations will

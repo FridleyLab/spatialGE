@@ -54,7 +54,8 @@ STdiff_volcano = function(x=NULL, samples=NULL, clusters=NULL, pval_thr=0.05, co
         cl2 = as.vector(unlist(combo[cb, 'cluster_2']))
         pl_name = paste0(i, '_', cl1, '_vs_', cl2)
         pl_title = paste0('Sample: ', i, '\nCluster ', cl1, ' vs. ', cl2)
-        df_plot = df_tmp %>% dplyr::filter(cluster_1 == cl1 | cluster_2 == cl2)
+        #df_plot = df_tmp %>% dplyr::filter(cluster_1 == cl1 | cluster_2 == cl2)
+        df_plot = df_tmp %>% dplyr::filter( (cluster_1 == cl1 & cluster_2 == cl2) | (cluster_1 == cl2 & cluster_2 == cl1) )
       } else{
         df_plot = df_tmp %>% dplyr::filter(cluster_1 == cl1)
       }
