@@ -19,7 +19,7 @@ count_cores = function(n){
     if(avail_cores <= n){
       cores = avail_cores
     } else{
-      cores = n
+      cores = ifelse(n > 0, n, 1)
     }
   }
   return(cores)
