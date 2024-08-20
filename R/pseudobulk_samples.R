@@ -30,7 +30,7 @@
 #' @importFrom magrittr %>%
 #' @importFrom methods as is new
 #'
-pseudobulk_samples_2 = function(x=NULL, max_var_genes=5000, calc_umap=F){
+pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STlist')){
@@ -78,7 +78,7 @@ pseudobulk_samples_2 = function(x=NULL, max_var_genes=5000, calc_umap=F){
     tibble::column_to_rownames('gene')
 
   rm(bulkcounts_df, normcounts_df, libsizes) # Clean env
-  
+
   # Turn transformed counts to a transposed matrix.
   tr_df <- t(as.matrix(tr_df))
 
@@ -96,7 +96,7 @@ pseudobulk_samples_2 = function(x=NULL, max_var_genes=5000, calc_umap=F){
   tr_df = scale(tr_df)
 
   rm(vargenes) # Clean env
-  
+
   # Save scaled pseudobulk matrix to STlist for plotting
   x@misc[['scaled_pbulk_mtx']] = tr_df
 
@@ -105,7 +105,7 @@ pseudobulk_samples_2 = function(x=NULL, max_var_genes=5000, calc_umap=F){
   pca_expr = prcomp(tr_df, scale=F, center=F)
   pca_expl_var = pca_expr[['sdev']]^2 / sum(pca_expr[['sdev']]^2)
   names(pca_expl_var) = colnames(pca_expr[['x']])
-  
+
   x@misc[['pbulk_pca']] = as.data.frame(pca_expr[['x']])
   x@misc[['pbulk_pca_var']] = pca_expl_var
 
@@ -119,7 +119,7 @@ pseudobulk_samples_2 = function(x=NULL, max_var_genes=5000, calc_umap=F){
     colnames(umap_obj) = c('UMAP1', 'UMAP2')
     x@misc[['pbulk_umap']] = as.data.frame(umap_obj)
   }
-  
+
   return(x)
 }
 
