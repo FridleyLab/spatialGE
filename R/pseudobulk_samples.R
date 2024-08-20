@@ -30,19 +30,16 @@
 #' @importFrom magrittr %>%
 #' @importFrom methods as is new
 #'
-pseudobulk_samples = function(x=NULL, max_var_genes=5000){
-  #require('magrittr')
-  #require('Matrix')
-  #require('ggplot2')
+pseudobulk_samples_2 = function(x=NULL, max_var_genes=5000, calc_umap=F){
 
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STlist')){
-    stop("The input must be an STList.")
+    raise_err(err_code='error0018')
   }
 
   # Stop function if only one sample provided.
   if(length(x@counts) < 3){
-    stop('Refusing to make PCA and heatmap containing less than three samples!')
+    raise_err(err_code='error0017')
   }
 
   # Need at least two variable genes to create 2 PCs
@@ -50,26 +47,26 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
     raise_err(err_code='error0005')
   }
 
-  # Create data frame to store "bulk counts".
-  bulkcounts_df <- tibble::tibble(gene=rownames(x@counts[[1]]))
-
-  # Loop through count matrices, get gene-wise sums, and collate samples
-  for(i in names(x@counts)){
-    expanded_mtx = expandSparse(x@counts[[i]])
-
-    bulk_expr <- rowSums(expanded_mtx) %>%
-      tibble::as_tibble_col(., column_name=i) %>%
-      tibble::add_column(gene=rownames(x@counts[[i]]), .before=1)
-
-    bulkcounts_df <- dplyr::inner_join(bulkcounts_df, bulk_expr, by='gene')
-  }
+  #Loop through count matrices, get gene-wise sums, and collate samples
+  bulkcounts_tmp = lapply(1:length(x@counts), function(i){
+    bulk_expr = data.frame(V1=Matrix::rowSums(x@counts[[i]]), gene=rownames(x@counts[[i]]))
+    rownames(bulk_expr) = NULL
+    colnames(bulk_expr)[1] = names(x@counts)[i]
+    return(bulk_expr)
+  })
+  bulkcounts_df = data.frame(gene=bulkcounts_tmp[[1]][['gene']])
+  lapply(1:length(bulkcounts_tmp), function(i){
+    bulkcounts_df <<- dplyr::full_join(bulkcounts_df, bulkcounts_tmp[[i]], by='gene')
+    return(NULL)
+  })
+  rm(bulkcounts_tmp) # Clean env
 
   # Apply log transform
   # Calculate (spot) library sizes. Then, add 1 to each library size.
-  libsizes = colSums(bulkcounts_df[, -1])
+  libsizes = colSums(bulkcounts_df[, -1], na.rm=T)
   # Check that there are not zero-count spots
   if(any(libsizes == 0)){
-    stop('Please, remove samples containing zero reads...')
+    raise_err(err_code='error0019')
   }
   # Divide each count value by their respective column (spot) normalization factor.
   normcounts_df = sweep(bulkcounts_df[, -1], 2, libsizes, '/')
@@ -80,6 +77,8 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
     tibble::add_column(gene=bulkcounts_df[[1]], .before=1) %>%
     tibble::column_to_rownames('gene')
 
+  rm(bulkcounts_df, normcounts_df, libsizes) # Clean env
+  
   # Turn transformed counts to a transposed matrix.
   tr_df <- t(as.matrix(tr_df))
 
@@ -96,6 +95,8 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
   tr_df = tr_df[, match(names(vargenes[1:max_var_genes]), colnames(tr_df))]
   tr_df = scale(tr_df)
 
+  rm(vargenes) # Clean env
+  
   # Save scaled pseudobulk matrix to STlist for plotting
   x@misc[['scaled_pbulk_mtx']] = tr_df
 
@@ -104,9 +105,21 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000){
   pca_expr = prcomp(tr_df, scale=F, center=F)
   pca_expl_var = pca_expr[['sdev']]^2 / sum(pca_expr[['sdev']]^2)
   names(pca_expl_var) = colnames(pca_expr[['x']])
+  
   x@misc[['pbulk_pca']] = as.data.frame(pca_expr[['x']])
   x@misc[['pbulk_pca_var']] = pca_expl_var
 
+  if(calc_umap){
+    pcs = 30
+    if(ncol(pca_expr[['x']]) < 30){
+      pcs = ncol(pca_expr[['x']])
+    }
+    umap_obj = uwot::umap(pca_expr[['x']][, 1:pcs], pca=NULL, n_neighbors=round(pcs/2, 0))
+    #rownames(umap_obj) = rownames(merged_cts_scl)
+    colnames(umap_obj) = c('UMAP1', 'UMAP2')
+    x@misc[['pbulk_umap']] = as.data.frame(umap_obj)
+  }
+  
   return(x)
 }
 
