@@ -266,7 +266,8 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
       inputtype$samples = c('samplesfile', del)
     } else if(length(samples) == length(rnacounts)){
       inputtype$samples = 'sample_names'
-    } else if(is.data.frame(test_clin)){
+    #} else if(is.data.frame(test_clin)){
+    } else if(is.data.frame(samples)){
       raise_err(err_code='error0004')
     } else{
       stop('Number of sample names do not match number of Visium output folders.')
