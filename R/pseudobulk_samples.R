@@ -38,7 +38,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
   }
 
   # Stop function if only one sample provided.
-  if(length(x@counts) < 3){
+  if(length(x@counts) < 4){
     raise_err(err_code='error0017')
   }
 
@@ -114,7 +114,12 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
     if(ncol(pca_expr[['x']]) < 30){
       pcs = ncol(pca_expr[['x']])
     }
-    umap_obj = uwot::umap(pca_expr[['x']][, 1:pcs], pca=NULL, n_neighbors=round(pcs/2, 0))
+    if(nrow(pca_expr[['x']]) <= 4){
+      n_neighbors = 2
+    } else{
+      n_neighbors = round(pcs/2, 0)
+    }
+    umap_obj = uwot::umap(pca_expr[['x']][, 1:pcs], pca=NULL, n_neighbors=n_neighbors)
     #rownames(umap_obj) = rownames(merged_cts_scl)
     colnames(umap_obj) = c('UMAP1', 'UMAP2')
     x@misc[['pbulk_umap']] = as.data.frame(umap_obj)
@@ -158,7 +163,8 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 #'
 #' @export pseudobulk_pca_plot
 #'
-pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1, pcy=2, ptsize=5){
+pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='pca', pcx=1, pcy=2, ptsize=5){
+
   # Prepare meta data
   meta_df = prepare_pseudobulk_meta(x, plot_meta) %>%
     tibble::rownames_to_column('pca_labs')
@@ -168,8 +174,15 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
     plot_meta = 'ST_sample'
   }
 
+  # Select PCA or UMAP
+  if(tolower(dim) == 'umap'){
+    pca_tbl = x@misc[['pbulk_umap']]
+  } else{
+    pca_tbl = x@misc[['pbulk_pca']]
+  }
+
   # Get PCA coordinates and add clinical variable data.
-  pca_tbl = x@misc[['pbulk_pca']] %>%
+  pca_tbl = pca_tbl %>%
     tibble::rownames_to_column(var='pca_labs') %>%
     dplyr::full_join(meta_df, by='pca_labs')
   # Get number of categories from selected variable.
@@ -178,20 +191,28 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
   cat_cols = color_parse(color_pal, n_cats=n_cats)
   # Associate colors with categories.
   names(cat_cols) <- levels(as.factor(pca_tbl[[plot_meta]]))
-  # Define shapes of points according to clinical variable.
-  #cat_shapes <- (15:25)[1:n_cats]
-  #names(cat_shapes) <- levels(as.factor(pca_tbl[[plot_meta]]))
 
-  pcx = grep(paste0('^PC', pcx, '$'), colnames(pca_tbl), value=T)
-  pcy = grep(paste0('^PC', pcy, '$'), colnames(pca_tbl), value=T)
+  # Select columns (PCs/UMAPs) to plot
+  if(tolower(dim) == 'umap'){
+    pcx = 'UMAP1'
+    pcy = 'UMAP2'
+    pcx_lab = pcx
+    pcy_lab = pcy
+    title = 'UMAP'
+  } else{
+    pcx = grep(paste0('^PC', pcx, '$'), colnames(pca_tbl), value=T)
+    pcy = grep(paste0('^PC', pcy, '$'), colnames(pca_tbl), value=T)
+    pcx_lab = paste0(pcx, ' (', round(x@misc[['pbulk_pca_var']][pcx], 3) * 100, '%)')
+    pcy_lab = paste0(pcy, ' (', round(x@misc[['pbulk_pca_var']][pcy], 3) * 100, '%)')
+    title = 'PCA'
+  }
 
   # Make plot
   pca_p = ggplot2::ggplot(pca_tbl) +
-    #geom_point(aes(x=.data[[pcx]], y=.data[[pcy]], shape=.data[[plot_meta]], color=.data[[plot_meta]]), size=ptsize) +
     ggplot2::geom_point(ggplot2::aes(x=.data[[pcx]], y=.data[[pcy]], color=.data[[plot_meta]]), size=ptsize) +
     ggrepel::geom_text_repel(ggplot2::aes(x=.data[[pcx]], y=.data[[pcy]], label=pca_labs)) +
-    ggplot2::xlab(paste0(pcx, ' (', round(x@misc[['pbulk_pca_var']][pcx], 3) * 100, '%)')) +
-    ggplot2::ylab(paste0(pcy, ' (', round(x@misc[['pbulk_pca_var']][pcy], 3) * 100, '%)'))
+    ggplot2::xlab(pcx_lab) +
+    ggplot2::ylab(pcy_lab)
 
   if(plot_meta == 'pca_labs'){
     pca_p = pca_p + ggplot2::labs(color='Sample')
@@ -200,7 +221,7 @@ pseudobulk_pca_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, pcx=1,
   pca_p = pca_p +
     ggplot2::scale_color_manual(values=cat_cols) +
     #scale_shape_manual(values=cat_shapes) +
-    ggplot2::ggtitle('PCA of "pseudobulk" samples') +
+    ggplot2::ggtitle(paste0(title, ' of "pseudobulk" samples')) +
     ggplot2::coord_fixed() +
     ggplot2::theme_bw()
 

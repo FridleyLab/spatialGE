@@ -135,7 +135,7 @@ tnbc <- pseudobulk_samples(tnbc, max_var_genes=5000)
 In this case, we apply the function to look for agreement between samples from the same patient: It is expected that tissue slices from the same patient are more similar among them than tissue slices from other patients. The `pseudobulk_pca` allows to map a sample-level variable to the points in the PCA by including the name of the column from the sample metadata (`patient_id` in this example).
 
 ```{r pca_chunk, fig.align='center'}
-pseudobulk_pca_plot(tnbc, plot_meta='patient_id')
+pseudobulk_dim_plot(tnbc, plot_meta='patient_id')
 ```
 
 Users can also generate a heatmap from pseudobulk counts by calling the `pseudobulk_heatmap` function, which also requires prior use of the `pseudobulk_samples` function. The number of variable genes to show can be controlled via the `hm_display_genes` argument.
