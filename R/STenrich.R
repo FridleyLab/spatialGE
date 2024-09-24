@@ -293,7 +293,7 @@ calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=
   result_df = lapply(1:length(samples), function(i){
     sample_tmp = as.vector(unique(samples))[i]
     pw_genes_tmp = pw_genes[combo[[1]] == sample_tmp]
-    names(pw_genes_tmp) = as.vector(combo[[2]][combo[[1]] == "Lung5_Rep1_fov_26"])
+    names(pw_genes_tmp) = as.vector(combo[[2]][combo[[1]] == sample_tmp])
     gene_sets_tmp = gene_sets[ names(pw_genes_tmp)[unlist(lapply(pw_genes_tmp, length)) >= min_genes] ]
     # Calculate GSVA scores for each spot or cell
     gsvapar = GSVA::gsvaParam(as.array(x[[sample_tmp]]), geneSets=gene_sets_tmp)
