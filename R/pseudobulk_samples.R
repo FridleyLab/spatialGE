@@ -130,7 +130,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 
 
 ##
-#' @title pseudobulk_pca_plot: Plot PCA of pseudobulk samples
+#' @title pseudobulk_dim_plot: Plot PCA of pseudobulk samples
 #' @description Generates a PCA plot after computation of "pseudobulk" counts
 #' @details
 #' Generates a Principal Components Analysis plot to help in initial data exploration of
@@ -161,7 +161,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 #' melanoma <- pseudobulk_samples(melanoma)
 #' pseudobulk_pca_plot(melanoma, plot_meta='patient')
 #'
-#' @export pseudobulk_pca_plot
+#' @export pseudobulk_dim_plot
 #'
 pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='pca', pcx=1, pcy=2, ptsize=5){
 
