@@ -198,9 +198,17 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     tibble::add_column(prop_size_test=.[['size_test']]/.[['size_gene_set']], .before='p_value') %>%
     dplyr::mutate(prop_size_test=round(prop_size_test, 3))
 
-  # Adjust p-values
-  pval_res[['adj_p_value']] = p.adjust(pval_res[['p_value']], method=pval_adj_method)
-  pval_res = pval_res[order(pval_res[['adj_p_value']]), ]
+  # Split result among samples (for compatibility with old STenrich implementation)
+  # Also, adjust p-values
+  sample_names_tmp = unique(pval_res[['sample_name']])
+  pval_res = lapply(sample_names_tmp, function(i){
+    df_tmp = pval_res[pval_res[['sample_name']] == i, ]
+    df_tmp[['adj_p_value']] = p.adjust(df_tmp[['p_value']], method=pval_adj_method)
+    df_tmp = df_tmp[order(df_tmp[['adj_p_value']]), ]
+
+    return(df_tmp)
+  })
+  names(pval_res) = sample_names_tmp
 
   # Print time
   verbose = 1L
