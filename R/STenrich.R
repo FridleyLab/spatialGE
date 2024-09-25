@@ -295,10 +295,17 @@ calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=
     pw_genes_tmp = pw_genes[combo[[1]] == sample_tmp]
     names(pw_genes_tmp) = as.vector(combo[[2]][combo[[1]] == sample_tmp])
     gene_sets_tmp = gene_sets[ names(pw_genes_tmp)[unlist(lapply(pw_genes_tmp, length)) >= min_genes] ]
+
     # Calculate GSVA scores for each spot or cell
-    gsvapar = GSVA::gsvaParam(as.array(x[[sample_tmp]]), geneSets=gene_sets_tmp)
-    pw_gsva_exp = GSVA::gsva(gsvapar, BPPARAM=BiocParallel::MulticoreParam(workers=cores))
-    pw_gsva_exp = as.data.frame(pw_gsva_exp)
+    if(length(gene_sets_tmp) > 0){
+      gsvapar = GSVA::gsvaParam(as.array(x[[sample_tmp]]), geneSets=gene_sets_tmp)
+      pw_gsva_exp = GSVA::gsva(gsvapar, BPPARAM=BiocParallel::MulticoreParam(workers=cores))
+      pw_gsva_exp = as.data.frame(pw_gsva_exp)
+    } else{
+      pw_gsva_exp = data.frame(matrix(nrow=length(pw_genes_tmp), ncol=ncol(x[[sample_tmp]])))
+      rownames(pw_gsva_exp) = names(pw_genes_tmp)
+      colnames(pw_gsva_exp) = colnames(x[[sample_tmp]])
+    }
 
     # Add rows with NA to mimic output from "average expression" approach
     if(length(gene_sets_tmp) != length(gene_sets)){
@@ -306,7 +313,7 @@ calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=
         if(j %in% rownames(pw_gsva_exp)){
           return(pw_gsva_exp[j, , drop=F])
         } else{
-          df_tmp = data.frame(as.list(setNames(rep(NA, ncol(pw_gsva_exp)), colnames(pw_gsva_exp))))
+          df_tmp = as.data.frame(as.list(setNames(rep(NA, ncol(pw_gsva_exp)), colnames(pw_gsva_exp))), check.names=F)
           rownames(df_tmp) = j
           return(df_tmp)
         }
