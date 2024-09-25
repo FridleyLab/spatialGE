@@ -146,6 +146,7 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     cores = count_cores(nrow(combo))
   }
   pval_res = parallel::mclapply(1:nrow(combo), function(i){
+print(i)
     sample_tmp = as.vector(combo[i, 1])
     gs_tmp = as.vector(combo[i, 2])
     expr_vals = unlist(result_df[[sample_tmp]][gs_tmp, ])
@@ -259,7 +260,7 @@ calculate_gs_mean_exp = function(x=NULL, combo=NULL, pw_genes=NULL, min_genes=NU
       pw_avg_exp = rep(NA, ncol(x[[sample_tmp]]))
       names(pw_avg_exp) = colnames(x[[sample_tmp]])
     }
-    pw_avg_exp = as.data.frame(as.list(pw_avg_exp))
+    pw_avg_exp = data.frame(as.list(pw_avg_exp), check.names=F)
     rownames(pw_avg_exp) = geneset_tmp
 
     return(pw_avg_exp)
