@@ -47,7 +47,7 @@
 #
 #
 STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
-                      out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, nb_dist_thr=NULL, cores=NULL){
+                      out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, nb_dist_thr=NULL, log_dist=F, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
@@ -266,6 +266,11 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
               df_gene_outrm = df_gene
             }
             if(nrow(df_gene_outrm) > 1){
+              # log-transform distances if selected by user
+              if(log_dist){
+                df_gene_outrm[['dist2ref']] = log(df_gene_outrm[['dist2ref']] + 1e-200)
+              }
+
               # Run linear model and get summary
               lm_tmp = lm(df_gene_outrm[[gene]] ~ df_gene_outrm[['dist2ref']])
               lm_summ_tmp = summary(lm_tmp)[['coefficients']]
@@ -290,6 +295,12 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
               df_gene_range = df_gene
               if(nrow(df_gene_range) > 1){
                 pval_warn = NA_character_
+
+                # log-transform distances if selected by user
+                if(log_dist){
+                  df_gene_range[['dist2ref']] = log(df_gene_range[['dist2ref']] + 1e-200)
+                }
+
                 # Run robust linear model and get summary
                 lm_tmp = MASS::rlm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']], maxit=100)
                 if(lm_tmp[['converged']] & lm_tmp[['coefficients']][2] != 0){ # Check the model converged and an effect was estimated
@@ -314,6 +325,12 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
             } else{ # Regular linear models without outlier removal
               df_gene_range = df_gene
               if(nrow(df_gene_range) > 1){
+
+                # log-transform distances if selected by user
+                if(log_dist){
+                  df_gene_range[['dist2ref']] = log(df_gene_range[['dist2ref']] + 1e-200)
+                }
+
                 lm_tmp = lm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']])
                 lm_summ_tmp = summary(lm_tmp)[['coefficients']]
                 if(nrow(lm_summ_tmp) > 1){ # Test a linear model could be run
