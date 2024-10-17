@@ -92,7 +92,8 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 
   # Get variable genes and subset
   vargenes = sort(apply(tr_df, 2, sd), decreasing=T)
-  tr_df = tr_df[, match(names(vargenes[1:max_var_genes]), colnames(tr_df))]
+  vargenes = as.vector(na.omit(names(vargenes[1:max_var_genes])))
+  tr_df = tr_df[, match(vargenes, colnames(tr_df))]
   tr_df = scale(tr_df)
 
   rm(vargenes) # Clean env
