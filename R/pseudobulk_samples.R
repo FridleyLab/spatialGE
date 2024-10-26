@@ -288,7 +288,10 @@ pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_disp
   # Order samples according to annotation and subset genes
   hm_mtx = t(x@misc[['scaled_pbulk_mtx']])
   hm_mtx = hm_mtx[, match(rownames(meta_df), colnames(hm_mtx))]
-  hm_mtx = hm_mtx[1:hm_display_genes, ]
+
+  # Order genes based on coefficient of variation
+  order_genes = rownames(hm_mtx)[ order(apply(hm_mtx, 1, function(i){sd(i)/mean(i)})) ]
+  hm_mtx = hm_mtx[ order_genes[1:hm_display_genes], ]
   # Make heatmap
   hm_p = ComplexHeatmap::Heatmap(hm_mtx, show_row_dend=F,
                                  top_annotation=hm_ann,
