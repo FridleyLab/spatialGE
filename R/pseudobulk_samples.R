@@ -290,8 +290,14 @@ pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_disp
   hm_mtx = hm_mtx[, match(rownames(meta_df), colnames(hm_mtx))]
 
   # Order genes based on coefficient of variation
-  order_genes = rownames(hm_mtx)[ order(apply(hm_mtx, 1, function(i){sd(i)/mean(i)}), decreasing=T) ]
-  hm_mtx = hm_mtx[ order_genes[1:hm_display_genes], ]
+  order_genes = sort(apply(hm_mtx, 1, function(i){
+    mean_tmp = mean(unlist(i)) + 1e-20 # Add shift to avoid zero division
+    sd_tmp = sd(unlist(i))
+    cv_tmp = mean_tmp/sd_tmp
+  }), decreasing=T)
+
+  hm_mtx = hm_mtx[ names(order_genes)[1:hm_display_genes], ]
+
   # Make heatmap
   hm_p = ComplexHeatmap::Heatmap(hm_mtx, show_row_dend=F,
                                  top_annotation=hm_ann,
