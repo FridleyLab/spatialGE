@@ -342,7 +342,8 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
     }
     return(x)
   } else{
-    vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+    #vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+    vst_tmp = Seurat_FindVariableFeatures(x) %>%
       tibble::rownames_to_column(var='gene') %>%
       dplyr::select('gene', 'vst.variance.standardized')
     return(vst_tmp)
