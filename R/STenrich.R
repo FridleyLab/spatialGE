@@ -3,17 +3,20 @@
 #' @description Test for spatial enrichment of gene expression sets in ST data sets
 #' @details The function performs a randomization test to assess if the sum of
 #' distances between cells/spots with high expression of a gene set is lower than
-#' the sum of distances of randomly selected cells/spots. The cells/spots are
+#' the sum of distances among randomly selected cells/spots. The cells/spots are
 #' considered as having high gene set expression if the average expression of genes in a
-#' set is higher than the average expression plus a `num_sds` times the standard deviation.
+#' set is higher than the average expression plus `num_sds` times the standard deviation.
 #' Control over the size of regions with high expression is provided by setting the
-#' minimum number of cells or spots (`min_units`). This method is a modification of
-#' the method devised by Hunter et al. 2021 (zebrafish melanoma study)
+#' minimum number of cells/spots (`min_units`). This method is a modification of
+#' the method devised by Hunter et al. 2021 (zebrafish melanoma study).
 #'
 #' @param x an STlist with transformed gene expression
 #' @param samples a vector with sample names or indexes to run analysis
 #' @param gene_sets a named list of gene sets to test. The names of the list should
 #' identify the gene sets to be tested
+#' @param score_type Controls how gene set expression is calculated. The options are
+#' the average expression among genes in a set ('avg'), or a GSEA score ('gsva'). The
+#' default is 'avg'.
 #' @param reps the number of random samples to be extracted. Default is 1000 replicates
 #' @param num_sds the number of standard deviations to set the minimum gene set
 #' expression threshold. Default is one (1) standard deviation
@@ -33,7 +36,7 @@
 #' @importFrom magrittr %>%
 #
 #
-STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps=1000, num_sds=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
+STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps=1000, annot=NULL, domain=NULL, num_sds=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
@@ -59,6 +62,41 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     }
   }
 
+  # Check if user request analysis within a specific domain(s)
+  # Select spots/cells from specific domain(s)
+  tissue_spots = NULL
+  sample_rm = c() # Remove samples if annotation or domain(s) are not present
+  if(!is.null(annot) & !is.null(domain)){
+    cat(paste0('\tUsing domain-restricted mode.\n'))
+    tissue_spots = list()
+    for(i in samples){
+      if(any(colnames(x@spatial_meta[[i]]) == annot)){
+        if(any(x@spatial_meta[[i]][[annot]] %in% domain)){
+          tissue_spots_tmp = x@spatial_meta[[i]][[1]][ x@spatial_meta[[i]][[annot]] %in% domain ]
+          if(length(tissue_spots_tmp) >= min_units){
+            tissue_spots[[i]] = tissue_spots_tmp
+          } else{
+            cat(paste0('\tSample ', i, ' has less than two spots/cells assigned to domain. Skipping.\n'))
+            sample_rm = append(sample_rm, i)
+          }
+          rm(tissue_spots_tmp) # Clean env
+        } else{
+          cat(paste0('\tSample ', i, ' does not contain the specified domains. Skipping.\n'))
+          sample_rm = append(sample_rm, i)
+        }
+      } else{
+        cat(paste0('\tSample ', i, ' does not contain the specified annotation. Skipping.\n'))
+        sample_rm = append(sample_rm, i)
+      }
+    }
+  }
+  samples = samples[!(samples %in% sample_rm)]
+
+  # Check if no samples were left in data set after checking for annotations
+  if(length(samples) < 1){
+    raise_err(err_code="error0021")
+  }
+
   # Define number of cores for parallelization of tests
   if(is.null(cores)){
     cores = count_cores(length(samples))
@@ -75,16 +113,14 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
   # Loop through samples in STlist and calculate distances
   dists_mtx = parallel::mclapply(samples, function(i){
     system(sprintf('echo "%s"', paste0("\tCalculating distances in sample: ", i, "...")))
-    # Extract spots to be used in analysis
-    # This selection implemented proactively as analysis might later be applied to tissue niches within samples
-    tissue_spots = x@spatial_meta[[i]][['libname']]
-
-    # Extract gene expression
-    exp = x@tr_counts[[i]][, tissue_spots]
 
     # Extract spot coordinates and match order of spots
     coords_df = x@spatial_meta[[i]][, c('libname', 'xpos', 'ypos')]
-    coords_df = coords_df[match(colnames(exp), coords_df[['libname']]), ]
+
+    # Extract spots to be used in analysis
+    if(length(tissue_spots) > 0){
+      coords_df = coords_df[coords_df[['libname']] %in% tissue_spots[[i]], ]
+    }
     coords_df = coords_df %>% tibble::column_to_rownames(var='libname')
 
     # Calculate distances for the sample
@@ -115,14 +151,22 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
   }
 
   # Convert expression data to delayed matrix
-  delayed_x = lapply(x@tr_counts, function(i){
-    DelayedArray::DelayedArray(i)
+  delayed_x = lapply(samples, function(i){
+    mtx_tmp = x@tr_counts[[i]]
+    if(length(tissue_spots) > 0){
+      mtx_tmp = mtx_tmp[, tissue_spots[[i]]]
+    }
+    mtx_tmp = DelayedArray::DelayedArray(mtx_tmp)
+    return(mtx_tmp)
   })
-  names(delayed_x) = names(x@tr_counts)
+  names(delayed_x) = samples
+
+  # Clear memory by offloading STlist
+  x = NULL
 
   # Check requested score type (mean or GSVA) and calculate average expresion or scores
   if(score_type == 'avg'){
-    cat("\tCalculating average gene set expression...")
+    cat("\tCalculating average gene set expression...\n")
     # Define if user input number of cores, otherwise determine
     if(!user_cores){
       cores = count_cores(nrow(combo))
@@ -131,7 +175,7 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     result_df = calculate_gs_mean_exp(delayed_x, combo, pw_genes, min_genes, cores)
 
   } else if(score_type == 'gsva'){
-    cat("\tCalculating GSVA score...")
+    cat("\tCalculating GSVA score...\n")
     # Define if user input number of cores, otherwise determine
     if(!user_cores){
       cores = count_cores(length(gene_sets))
@@ -146,15 +190,16 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     cores = count_cores(nrow(combo))
   }
   pval_res = parallel::mclapply(1:nrow(combo), function(i){
-print(i)
     sample_tmp = as.vector(combo[i, 1])
     gs_tmp = as.vector(combo[i, 2])
     expr_vals = unlist(result_df[[sample_tmp]][gs_tmp, ])
+
     res_df = data.frame(sample_name=sample_tmp, gene_set=gs_tmp,
                         size_test=length(pw_genes[[i]]),
                         size_gene_set=length(gene_sets[[gs_tmp]]),
                         p_value=NA)
 
+    # Perform tests
     if(!all(is.na(expr_vals))){ # Are all values for a gene set NA? (can happen if not enough genes in gene set, for example)
       system(sprintf('echo "%s"', paste0("\tTesting sample ", sample_tmp, ", ", gs_tmp, "...")))
       # Calculate expression or score threshold
