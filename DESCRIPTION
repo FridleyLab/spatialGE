@@ -73,7 +73,7 @@ Suggests:
     rgeos,
     rmarkdown,
     R.utils,
-    sc.SpatialSIM,
+    scSpatialSIM,
     testthat (>= 3.0.0)
 VignetteBuilder: 
 	knitr

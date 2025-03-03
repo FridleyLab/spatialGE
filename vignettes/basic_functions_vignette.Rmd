@@ -286,11 +286,11 @@ kableExtra::add_footnote(kbl_t,
                          notation="none")
 ```
 
-To better understand how the Moran's I and Geary's C statistics quantify spatial heterogeneity, tissue can be simulated using the `sc.SpatialSIM` and `spatstat` packages. Also `tidyverse` and `janitor` for some data manipulation.
+To better understand how the Moran's I and Geary's C statistics quantify spatial heterogeneity, tissue can be simulated using the `scSpatialSIM` and `spatstat` packages. Also `tidyverse` and `janitor` for some data manipulation.
 
 ```{r load_simpkg, message=F}
 library('spatstat')
-library('sc.SpatialSIM')
+library('scSpatialSIM')
 library('tidyverse')
 library('janitor')
 ```
