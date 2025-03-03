@@ -44,6 +44,7 @@ Imports:
 	raster,
 	RColorBrewer,
 	Rcpp (>= 1.0.7),
+	RcppProgress,
 	reshape,
 	readr,
 	readxl,
@@ -64,13 +65,16 @@ LinkingTo:
 	RcppEigen
 Suggests:
     geoR,
-	ggpubr,
-	janitor,
-	kableExtra,
+    ggpubr,
+    janitor,
+    kableExtra,
     knitr,
     progress,
     rgeos,
     rmarkdown,
-    R.utils
+    R.utils,
+    sc.SpatialSIM,
+    testthat (>= 3.0.0)
 VignetteBuilder: 
 	knitr
+Config/testthat/edition: 3
