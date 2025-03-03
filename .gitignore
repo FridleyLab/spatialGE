@@ -8,3 +8,4 @@ docs/.DS_Store
 inst/.DS_Store
 R/STdiff_2.R
 vignettes/.Rhistory
+.Rbuildignore
