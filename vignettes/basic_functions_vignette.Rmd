@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
   comment="#>",
   fig.width=8, fig.height=5
 )
+options(rmarkdown.html_vignette.check_title=F)
 ```
 
 The package ***`spatialGE`*** provides a collection of tools for the visualization of gene expression from spatially-resolved transcriptomic experiments. The data input methods have been designed so that any data can be analyzed as long as it contains gene expression counts per region of interest (ROI), spot, or cell, and the spatial coordinates of those ROIs, spots, or cells, as it is generated in platforms such as GeoMx, Visium, and CosMx-SMI. Specialized data input options are available to allow interoperability with workflows such as [*Space Ranger*](https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger).

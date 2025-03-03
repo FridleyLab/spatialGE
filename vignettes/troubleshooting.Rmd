@@ -4,7 +4,7 @@ date: '`r format(Sys.Date())`'
 output: rmarkdown::html_vignette
 bibliography: vignette_references.bib
 vignette: >
-  %\VignetteIndexEntry{spatialge_tutorial_stdiff}
+  %\VignetteIndexEntry{troubleshooting_page}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
   comment="#>",
   fig.width=10, fig.height=7
 )
+options(rmarkdown.html_vignette.check_title=F)
 ```
 
 <details>
