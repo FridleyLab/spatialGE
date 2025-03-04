@@ -59,7 +59,7 @@ This melanoma ST data set also contains sample-level meta data. We will also pro
 ```{r data_fpaths2}
 # Find clinical data within folder
 #clin_file <- list.files(data_files, full.names=T, pattern='clinical')
-clin_file <- list.files(thrane_files, full.names=T, pattern='clinical')
+clin_file <- list.files(thrane_files(), full.names=T, pattern='clinical')
 ```
 
 We can load the data into an STlist object with:
