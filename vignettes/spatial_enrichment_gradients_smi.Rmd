@@ -84,6 +84,7 @@ metas <- c('~/Desktop/lung_cancer_smi/Lung5_Rep1/Lung5_Rep1-Flat_files_and_image
 
 lung <- STlist(rnacounts=exprmats, spotcoords=metas, samples=c('Lung5_Rep1', 'Lung6'))
 ```
+
 To obtain count statistics, the `summarize_STlist` function can be used:
 
 ```{r count_stats}
@@ -102,6 +103,15 @@ Cells with zero counts, can be removed using the `filter_data` function. The fun
 
 ```{r filter_chunk}
 lung <- filter_data(lung, spot_minreads=20, rm_genes_expr='^NegPrb')
+```
+
+Some of the analyses in this tutorial can be time consuming, and hence the data set will be reduced to six FOVs:
+
+```{r filter_fovs_chunk}
+fovs_keep <- c('Lung5_Rep1_fov_11', 'Lung5_Rep1_fov_6', 'Lung5_Rep1_fov_2', 'Lung6_fov_4', 'Lung6_fov_6', 'Lung6_fov_7')
+fovs_rm <- names(lung@counts)[!(names(lung@counts) %in% fovs_keep)]
+
+lung <- filter_data(lung, rm_tissue=fovs_rm)
 ```
 
 ## Transformation of spatially-resolved transcriptomics data
@@ -153,6 +163,11 @@ gene_sets <- gene_sets[gene_sets[['gs_cat']] == "H", ]
 # The result is a named list. The names of the list are the names of each gene set
 # The contents of each list element are the gene names within each gene set
 gene_sets <- split(x=gene_sets[['gene_symbol']], f=gene_sets[['gs_name']])
+```
+
+For the purpose of this example, we will only test "signaling" pathways:
+```{r genesets_sub, message=F}
+gene_sets = gene_sets[grep('SIGNALING', names(gene_sets))]
 ```
 
 Please keep in mind that it is assumed that HUGO gene names are used. For CosMx-SMI and Visium, normally *HUGO names* are provided. If spatial transcriptomics data from a non-human species is used, the appropriate database should be used. Otherwise, `spatialGE` will not be able to identify genes within the gene set.
@@ -239,17 +254,8 @@ Although expression of the NOTCH signaling pathway is higher overall in "Lung6",
 
 Since this expression of this pathway has been identified as spatially aggregated, it might be of interest to know if there is correspondence of NOTCH signaling with tissue domains. With the `STclust` function, tissue domains can be identified. 
 
-To speed up computations, the STlist will be subset to only the FOVs in the plots
-
-```{r rm_samples}
-keep_fovs <- c('Lung5_Rep1_fov_2', 'Lung5_Rep1_fov_6', 'Lung5_Rep1_fov_11',
-              'Lung6_fov_4', 'Lung6_fov_6', 'Lung6_fov_7')
-rm_fovs = summ_df$sample_name[!(summ_df$sample_name %in% keep_fovs)] 
-lung_subset <- filter_data(lung, rm_tissue=rm_fovs)
-```
-
 ```{r stclust_smi}
-lung_subset <- STclust(lung_subset, ws=0.02, ks='dtc')
+lung <- STclust(lung, ws=0.02, ks='dtc')
 ```
 
 Optinally, if tissue images are available for some or all the FOVs, users can upload those to the STlist for display next to the other plot types available in `spatialGE`. Users can upload an entire folder of images to the STlist, as long as image files have the same names as the FOVs within the STlist (e.g., "Lung5_Rep1_fov_2", "Lung6_fov_4", etc). Keep in mind, however, this will increase the size of the STlist significantly, especially in CosMx experiment that usually contain many FOVs. Here, only the images for the FOVs on which domain prediction was done will be uploaded. To do that, the corresponding images need to be renamed. Please, locate in the downloaded data the folder named "CellComposite" (there is one for each slide). The files are named "CellComposite_F001.jpg", "CellComposite_F002.jpg", and so on. The consecutive numbers indicate the FOV id. Now please rename the files as follows:
@@ -260,25 +266,25 @@ Optinally, if tissue images are available for some or all the FOVs, users can up
 Now, upload the images to the STlist with the `load_images` function:
 
 ```{r loadimages1}
-lung_subset <- load_images(lung_subset, images='~/Desktop/lung_cancer_smi/Lung5_Rep1/Lung5_Rep1-Flat_files_and_images/CellComposite')
+lung <- load_images(lung, images='~/Desktop/lung_cancer_smi/Lung5_Rep1/Lung5_Rep1-Flat_files_and_images/CellComposite')
 ```
 
 The images for slide "Lung6" were not found, which are in the corresponsing folder. The `load_images` function is ran again to add images from "Lung6":
 
 ```{r loadimages2}
-lung_subset <- load_images(lung_subset, images='~/Desktop/lung_cancer_smi/Lung6/Lung6-Flat_files_and_images/CellComposite')
+lung <- load_images(lung, images='~/Desktop/lung_cancer_smi/Lung6/Lung6-Flat_files_and_images/CellComposite')
 ```
 
 The function `plot_image` is used to generate the ggplot objects containing the images:
 
 ```{r plotimages}
-ti <- plot_image(lung_subset)
+ti <- plot_image(lung)
 ```
 
 The domains can be plotted with the `STplot` function too.
 
 ```{r plot_domains, fig.width=12}
-dom_p <- STplot(lung_subset, ks='dtc', ws=0.02, deepSplit=F,
+dom_p <- STplot(lung, ks='dtc', ws=0.02, deepSplit=F,
                 color_pal='discreterainbow')
 
 ggpubr::ggarrange(dom_p$Lung5_Rep1_fov_2_stclust_spw0.02_dsplFalse,
@@ -302,7 +308,7 @@ ggpubr::ggarrange(dom_p$Lung5_Rep1_fov_2_stclust_spw0.02_dsplFalse,
 Now, to identify the domains, differential gene expression can be performed:
 
 ```{r domain_de}
-deg <- STdiff(lung_subset, w=0.02, k='dtc', deepSplit=F, test_type='wilcoxon')
+deg <- STdiff(lung, w=0.02, k='dtc', deepSplit=F, test_type='wilcoxon')
 ```
 
 Then, the top 3 DE genes per cluster in the samples showing NOTCH signaling spatial patterns are identified:
@@ -332,13 +338,13 @@ In `STgradient`, the spatial coordinates are used to calculate Euclidean distanc
 The `STgradient` function can be executed with these commands, in order to test for gradients within the tumor compartment. First, it is necessary to find the name of the column in `lung_subset@spatial_meta` containing the domain assigments:
 
 ```{r columnnames}
-colnames(lung_subset@spatial_meta$Lung5_Rep1_fov_2)
+colnames(lung@spatial_meta$Lung5_Rep1_fov_2)
 ```
 
 The name of the column is `stclust_spw0.02_dsplFalse` (STclust results using spatial weight of 0.02 and DynamicTreeCuts with no deepSplit). This name is used in the `annot` argument of `STgradient`:
 
 ```{r stgradient_run}
-stg <- STgradient(lung_subset, 
+stg <- STgradient(lung, 
                   topgenes=1000, 
                   annot='stclust_spw0.02_dsplFalse',
                   ref=3,
@@ -368,7 +374,7 @@ bind_rows(stg) %>%
 It can be seen from these results that multiple keratin genes show spatial gradients, all of them with negative Spearman's coefficients (cells close to domain 3 tend to have higher keratin expression). Other such __HLA-B__ and __NDRG1__ have higher expression in cells far from domain 3: 
 
 ```{r stg_plots}
-qp2 <- STplot(lung_subset, genes=c('KRT6A', 'HLA-B'), samples='Lung6_fov_4', color_pal='YlOrBr')
+qp2 <- STplot(lung, genes=c('KRT6A', 'HLA-B'), samples='Lung6_fov_4', color_pal='YlOrBr')
 ggpubr::ggarrange(plotlist=qp2, common.legend=T)
 ```
 
@@ -379,7 +385,6 @@ bind_rows(stg) %>%
   arrange(desc(abs(min_spearman_r))) %>%
   filter(gene %in% gene_sets[['HALLMARK_NOTCH_SIGNALING']]) %>%
   filter(min_spearman_r_pval_adj < 0.05)
-
 ```
 
 Although the correlations in genes from this pathway are not as large as and those for __KRT6A__ and __HLA-B__ (i.e., lower absolute Spearman's coefficient), it can be seen that the genes __NOTCH1__ and __NOTCH3__ show evidence of expression gradients in FOVs 'Lung6_fov_4' and 'Lung6_fov_6'.

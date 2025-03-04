@@ -42,13 +42,10 @@ The `STlist` function takes data in several formats. The reader is encouraged to
 ```{r data_fpaths1}
 # spatialGE contains an object containing the file path to a built-in folder with the Thrane et al. data set
 data_files <- system.file("extdata", "melanoma_thrane", package="spatialGE")
-# data_files <- '../inst/extdata/melanoma_thrane/'
 
 # Find expression and coordinates files within folder
 count_files <- list.files(data_files, full.names=T, pattern='counts')
 coord_files <- list.files(data_files, full.names=T, pattern='mapping')
-#count_files <- list.files(thrane_files(), full.names=T, pattern='counts')
-#coord_files <- list.files(thrane_files(), full.names=T, pattern='mapping')
 ```
 
 This melanoma ST data set also contains sample-level meta data. We will also provide this file to specify sample names:
@@ -56,7 +53,6 @@ This melanoma ST data set also contains sample-level meta data. We will also pro
 ```{r data_fpaths2}
 # Find clinical data within folder
 clin_file <- list.files(data_files, full.names=T, pattern='clinical')
-#clin_file <- list.files(thrane_files(), full.names=T, pattern='clinical')
 ```
 
 We can load the data into an STlist object with:
@@ -225,7 +221,7 @@ cluster_p <- STplot(melanoma,
                     samples='ST_mel1_rep1', 
                     ws=0.025, 
                     deepSplit=F,
-                    ptsize=2, color=c('#00BA38', '#619CFF', '#F8766D'))
+                    ptsize=2, color_pal=c('#00BA38', '#EEBA38', '#619CFF', '#F8766D'))
 
 print(cluster_p[[1]])
 ```
@@ -237,7 +233,7 @@ deg <- STdiff(melanoma,
               samples='ST_mel1_rep1', 
               w=0.025, k='dtc', deepSplit=F, 
               topgenes=1000,
-              sp_topgenes=0.2) # Test the 20% of the top differtially expressed genes (based on adjusted p-value)
+              sp_topgenes=0.2) # Test the 20% of the top differentially expressed genes (based on adjusted p-value)
 ```
 
 The output of `STdiff` is a list, where each element is a data frame containing the test results for each sample:
