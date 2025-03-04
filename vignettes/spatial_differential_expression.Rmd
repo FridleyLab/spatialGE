@@ -39,27 +39,24 @@ library('spatialGE')
 
 The `STlist` function takes data in several formats. The reader is encouraged to see the `STlist` reference (see [here](https://fridleylab.github.io/spatialGE/reference/STList.html) to learn about the different options to read ST data in `spatialGE`. In this guide, we provide the `STlist` function with comma-delimited files containing gene expression counts per spot and comma-delimited containing the spatial coordinates per spot. The example files in this tutorial can be downloaded from the [GitHub repository](https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata). They can also be accessed directly from R like so:
 
-```{r data_fpaths0}
-# spatialGE contains an object containing the file path to a built-in folder with the Thrane et al. data set
-#data_files <- system.file("extdata/melanoma_thrane", package="spatialGE")
-#thrane_files()
-```
-
 ```{r data_fpaths1}
-# Find expression and coordinates within folder
+# spatialGE contains an object containing the file path to a built-in folder with the Thrane et al. data set
+data_files <- system.file("extdata/melanoma_thrane", package="spatialGE")
 # data_files <- '../inst/extdata/melanoma_thrane/'
-# count_files <- list.files(data_files, full.names=T, pattern='counts')
-# coord_files <- list.files(data_files, full.names=T, pattern='mapping')
-count_files <- list.files(thrane_files(), full.names=T, pattern='counts')
-coord_files <- list.files(thrane_files(), full.names=T, pattern='mapping')
+
+# Find expression and coordinates files within folder
+count_files <- list.files(data_files, full.names=T, pattern='counts')
+coord_files <- list.files(data_files, full.names=T, pattern='mapping')
+#count_files <- list.files(thrane_files(), full.names=T, pattern='counts')
+#coord_files <- list.files(thrane_files(), full.names=T, pattern='mapping')
 ```
 
 This melanoma ST data set also contains sample-level meta data. We will also provide this file to specify sample names:
 
 ```{r data_fpaths2}
 # Find clinical data within folder
-#clin_file <- list.files(data_files, full.names=T, pattern='clinical')
-clin_file <- list.files(thrane_files(), full.names=T, pattern='clinical')
+clin_file <- list.files(data_files, full.names=T, pattern='clinical')
+#clin_file <- list.files(thrane_files(), full.names=T, pattern='clinical')
 ```
 
 We can load the data into an STlist object with:
