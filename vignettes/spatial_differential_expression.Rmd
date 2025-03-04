@@ -41,7 +41,7 @@ The `STlist` function takes data in several formats. The reader is encouraged to
 
 ```{r data_fpaths1}
 # spatialGE contains an object containing the file path to a built-in folder with the Thrane et al. data set
-data_files <- system.file("extdata/melanoma_thrane", package="spatialGE")
+data_files <- system.file("extdata", "melanoma_thrane", package="spatialGE")
 # data_files <- '../inst/extdata/melanoma_thrane/'
 
 # Find expression and coordinates files within folder
