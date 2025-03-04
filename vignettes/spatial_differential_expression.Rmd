@@ -31,6 +31,12 @@ The spatial dependency is described quantitatively by means of the spatial covar
 
 The `spatialGE` package does not have built-in methods to generate variogram plots, however an STlist object will be created to normalize the ST data, which is necessary for variogram analysis. The same STlist will be used later to conduct differential expression analysis with `STdiff`.
 
+Load the `spatialGE` package:
+
+```{r load_spatialge, message=F, warning=F}
+library('spatialGE')
+```
+
 The `STlist` function takes data in several formats. The reader is encouraged to see the `STlist` reference (see [here](https://fridleylab.github.io/spatialGE/reference/STList.html) to learn about the different options to read ST data in `spatialGE`. In this guide, we provide the `STlist` function with comma-delimited files containing gene expression counts per spot and comma-delimited containing the spatial coordinates per spot. The example files in this tutorial can be downloaded from the [GitHub repository](https://github.com/FridleyLab/spatialGEdev/tree/main/inst/extdata). They can also be accessed directly from R like so:
 
 ```{r data_fpaths0}
@@ -54,12 +60,6 @@ This melanoma ST data set also contains sample-level meta data. We will also pro
 # Find clinical data within folder
 #clin_file <- list.files(data_files, full.names=T, pattern='clinical')
 clin_file <- list.files(thrane_files, full.names=T, pattern='clinical')
-```
-
-Load the `spatialGE` package:
-
-```{r load_spatialge, message=F, warning=F}
-library('spatialGE')
 ```
 
 We can load the data into an STlist object with:
