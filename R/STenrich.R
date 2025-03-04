@@ -333,19 +333,22 @@ calculate_gs_mean_exp = function(x=NULL, combo=NULL, pw_genes=NULL, min_genes=NU
 # The function works on an STlist and works by calculating the GSVA score on a series of samples and gene sets
 # Returns a named list of data frames
 #
-calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=NULL, min_genes=NULL, cores=NULL){
+calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=NULL, min_genes=NULL, cores=NULL, verbose=T){
   # Loop through samples
   samples = as.vector(unique(combo[[1]]))
   result_df = lapply(1:length(samples), function(i){
     sample_tmp = as.vector(unique(samples))[i]
-    pw_genes_tmp = pw_genes[combo[[1]] == sample_tmp]
-    names(pw_genes_tmp) = as.vector(combo[[2]][combo[[1]] == sample_tmp])
+
+    if(!is.null(pw_genes)){
+      pw_genes_tmp = pw_genes[combo[[1]] == sample_tmp]
+      names(pw_genes_tmp) = as.vector(combo[[2]][combo[[1]] == sample_tmp])
+    }
     gene_sets_tmp = gene_sets[ names(pw_genes_tmp)[unlist(lapply(pw_genes_tmp, length)) >= min_genes] ]
 
     # Calculate GSVA scores for each spot or cell
     if(length(gene_sets_tmp) > 0){
       gsvapar = GSVA::gsvaParam(as.array(x[[sample_tmp]]), geneSets=gene_sets_tmp)
-      pw_gsva_exp = GSVA::gsva(gsvapar, BPPARAM=BiocParallel::MulticoreParam(workers=cores))
+      pw_gsva_exp = GSVA::gsva(gsvapar, BPPARAM=BiocParallel::MulticoreParam(workers=cores), verbose=verbose)
       pw_gsva_exp = as.data.frame(pw_gsva_exp)
     } else{
       pw_gsva_exp = data.frame(matrix(nrow=length(pw_genes_tmp), ncol=ncol(x[[sample_tmp]])))

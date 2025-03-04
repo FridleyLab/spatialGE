@@ -7,16 +7,21 @@
 #' results from most `spatialGE`'s functions are stored within the object.
 #' \itemize{
 #' \item Raw gene counts and spatial coordinates. Gene count data have genes in rows and
-#' sampling units (e.g., cells, spots, ROIs) in columns. Spatial coordinates have
+#' sampling units (e.g., cells, spots) in columns. Spatial coordinates have
 #' sampling units in rows and three columns: sample unit IDs, Y position, and X position.
-#' \item Visium outputs from *space ranger*. The Visium directory should generally have
-#' the file structure resulting from `spaceranger count`, with either a count matrix
-#' represented in MEX files or a h5 file. The directory should also contain a `spatial`
-#' sub-directory, with the spatial coordinates (`tissue_positions_list.csv`), and
+#' \item Visium outputs from *Space Ranger*. The Visium directory must have the directory
+#' structure resulting from `spaceranger count`, with either a count matrix represented in
+#' MEX files or a h5 file. The directory should also contain a `spatial` sub-directory,
+#' with the spatial coordinates (`tissue_positions_list.csv`), and
 #' optionally the high resolution tissue image and scaling factor file `scalefactors_json.json`.
+#' \item Xenium outputs from *Xenium Ranger*. The Xenium directory must have the directory
+#' structure resulting from the `xeniumranger` pipeline, with either a cell-feature matrix
+#' represented in MEX files or a h5 file. The directory should also contain a parquet file,
+#' with the spatial coordinates (`cells.parquet`).
 #' \item CosMx-SMI outputs. Two files are required to process SMI outputs: The `exprMat` and
 #' `metadata` files. Both files must contain the "fov" and "cell_ID" columns. In addition,
 #' the `metadata` files must contain the "CenterX_local_px" and "CenterY_local_px" columns.
+#'  \item Seurat object (V4). A Seurat V4 object produced via `Seurat::Load10X_Spatial`.
 #' }
 #' Optionally, the user can input a path to a file containing a table of sample-level
 #' metadata (e.g., clinical outcomes, tissue type, age). This sample metadata file
@@ -25,7 +30,7 @@
 #' given sample cannot be a substring of the sample ID of another sample. For example,
 #' instead of using "tissue1" and "tissue12", use "tissue01" and "tissue12".
 #'
-#' The function uses parallelization if run in a unix system. Windows users
+#' The function uses parallelization if run in a Unix system. Windows users
 #' will experience longer times depending on the number of samples.
 #'
 #' @param rnacounts the count data which can be provided in one of these formats:
@@ -33,76 +38,63 @@
 #' \item File paths to comma- or tab-delimited files containing raw gene counts, one file
 #' for each spatial sample. The first column contains gene names and subsequent columns
 #' contain the expression data for each cell/spot. Duplicate gene names will be
-#' modified using `make.unique`. Requires `spotcoords` and `samples`
+#' modified using `make.unique`. Requires `spotcoords` and `samples`.
 #' \item File paths to Visium output directories (one per spatial sample). The directory
-#' should follow the structure resulting from `spaceranger count`. The directory contains
+#' must follow the structure resulting from `spaceranger count`. The directory contains
 #' the `.h5` and `spatial` sub-directory. If no `.h5` file is available, sparse
 #' matrices (MEX) from `spaceranger count`. In that case a second sub-directory
 #' called `filtered_feature_bc_matrix` should contain contain the `barcodes.tsv.gz`,
 #' `features.tsv.gz`, and `matrix.mtx.gz` files. The `spatial` sub-directory minimally
 #' contains the coordinates (`tissue_positions_list.csv`), and optionally the high
 #' resolution PNG image and accompanying scaling factors (`scalefactors_json.json`).
-#' Requires `samples`
+#' Requires `samples`.
+#' #' \item File paths to Xenium output directories (one per spatial sample). The directory
+#' must follow the structure resulting from the `xeniumranger` pipeline. The directory
+#' contains the `.h5` or sparse matrices (MEX). In that case a second sub-directory
+#' called `cell_feature_matrix` should contain contain the `barcodes.tsv.gz`,
+#' `features.tsv.gz`, and `matrix.mtx.gz` files. The coordinates must be available
+#' in the `cells.parquet`. Requires `samples`.
 #' \item The `exprMat` file for each slide of a CosMx-SMI output. The file must contain
 #' the "fov" and "cell_ID" columns. The `STlist` function will separate data from each
 #' FOV, since analysis in spatialGE is conducted at the FOV level. Requires `samples` and
-#' `spotcoords`
+#' `spotcoords`.
+#' \item Seurat object (V4). A Seurat V4 object produced via `Seurat::Load10X_Spatial`.
+#' Multiple samples are allowed as long as they are stored as "slices" in the Seurat object.
+#' Does not require `samples` as sample names are taken from `names(seurat_obj@images)`
 #' \item A named list of data frames with raw gene counts (one data frame per spatial
 #' sample). Requires `spotcoords`. Argument `samples` only needed when a file path to
-#' sample metadata is the input.
-# \item File path to `.dcc` files from GeoMx output. Requires `samples`
+#' sample metadata is provided.
 #' }
-#' @param spotcoords the cell/spot coordinates. Not required if inputs are Visium
-#' space ranger outputs
-# or GeoMx DCC files
+#' @param spotcoords the cell/spot coordinates. Not required if inputs are Visium or
+#' Xenium (spaceranger or xeniumranger outputs).
 #' \itemize{
 #' \item File paths to comma- or tab-delimited files containing cell/spot coordinates, one
 #' for each spatial sample. The files must contain three columns: cell/spot IDs, Y positions, and
 #' X positions. The cell/spot IDs must match the column names for each cells/spots (columns) in
-#' the gene count files
+#' the gene count files. Requires `samples` and `rnacounts`.
 #' \item The `metadata` file for each slide of a CosMx-SMI output. The file must contain
 #' the "fov", "cell_ID", "CenterX_local_px", and "CenterY_local_px" columns. The `STlist`
 #' function will separate data from each FOV, since analysis in spatialGE is conducted at
-#' the FOV level. Requires `samples` and `rnacounts`
+#' the FOV level. Requires `samples` and `rnacounts`.
 #' \item A named list of data frames with cell/spot coordinates. The list names must
 #' match list names of the gene counts list
 #' }
 #' @param samples the sample names/IDs and (optionally) metadata associated with
-#' each spatial sample. This file can also include files paths to gene counts and
-#' cell/spot coordinate files, bypassing the need to specify `rnacounts` and `spotcoords`.
+#' each spatial sample.
 #' The following options are available for `samples`:
 #' \itemize{
-#' \item A vector with sample names, which will be used to partially match gene
-#' counts and cell/spot coordinates file paths. A sample name must not match file
+#' \item A vector with sample names, which will be used to match gene the counts and
+#' cell/spot coordinates file paths. A sample name must not match file
 #' paths for two different samples. For example, instead of using "tissue1" and
 #' "tissue12", use "tissue01" and "tissue12".
 #' \item A path to a file containing a table with metadata. This file is a comma- or
 #' tab-separated table with one sample per row and sample names/IDs in the first
-#' column. Paths to gene counts and coordinate files can be placed in the second and
-#' third columns respectively (while leaving the `rnacounts` and `spotcoords` arguments
-#' empty). If Visium directories are provided, only the second column with paths to
-#' `spaceranger count` directories are expected. Subsequent columns can contain
-#' variables associated with each spatial sample
-# Note: For GeoMx, the metadata file contains one row per ROI. This information is
-# automatically summarized to one row per tissue slice. This metadata file usually
-# also contains the X and Y positions, which can be identified via `gmx_y_col` and
-# `gmx_x_col` arguments
+#' column. Subsequent columns may contain variables associated with each spatial sample
 #' }
-# @param gmx_pkc the file path to the `.pkc` probe set file (for GeoMx input)
-# @param gmx_slide_col the name of the column in the metadata table containing
-# the slide names (for GeoMx input)
-# @param gmx_roi_col the name of the column in the metadata table containing the
-# ROI IDs, matching IDs in the DCC files (for GeoMx input)
-# @param gmx_y_col the name of the column in the metadata table containing the
-# Y positions (for GeoMx input)
-# @param gmx_x_col the name of the column in the metadata table containing the
-# X positions (for GeoMx input)
-# @param gmx_meta_cols a vector with column names in the metadata table containing
-# clinical data (for GeoMx input)
 #' @param cores integer indicating the number of cores to use during parallelization.
 #' If NULL, the function uses half of the available cores at a maximum. The parallelization
 #' uses `parallel::mclapply` and works only in Unix systems.
-#' @return x an STlist object containing the counts and coordinates, and optionally
+#' @return an STlist object containing the counts and coordinates, and optionally
 #' the sample metadata, which can be used for downstream analysis with `spatialGE`
 #'
 #' @examples
@@ -120,130 +112,118 @@
 #' @import Matrix
 #' @importFrom magrittr %>%
 #'
-STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL,
-#                   gmx_pkc=NULL, gmx_slide_col=NULL, gmx_roi_col=NULL, gmx_y_col=NULL, gmx_x_col=NULL, gmx_meta_cols=NULL, ### DISABLED UNTIL SUPPORT FOR GEOMX-DCC IS SORTED OUT
-                  cores=NULL){
+STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL){
   # Check input type.
   input_check = detect_input(rnacounts=rnacounts, spotcoords=spotcoords, samples=samples)
+  input_rnacounts = detect_input_rnacounts(rnacounts)
+  input_spotcoords = detect_input_spotcoords(spotcoords)
+  input_samples = detect_input_samples(samples)
 
   # Define number of available cores to use.
-  if(is.null(cores)){
-    if(!is.null(rnacounts)){
-      cores = count_cores(length(rnacounts))
-    } else{ # In case samplefile including filepaths is provided
-      cores_tmp = length(readLines(samples))
-      cores = count_cores(cores_tmp)
-      rm(cores_tmp) # Clean env
-    }
+  if(is.null(cores) && !is.null(rnacounts)){
+    cores = count_cores(length(rnacounts))
   } else{
     cores = as.integer(cores)
     if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
+      raise_err(err_code='error0032')
     }
   }
 
   # Output error if input_check is empty (likely input format not recognized).
-  if(rlang::is_empty(input_check)){
-    stop('Input not recognized. Please refer to documentation.')
+  if(rlang::is_empty(input_rnacounts)){
+    raise_err(err_code='error0033')
   }
+
+  # Parse sample names
+  if(input_rnacounts == 'list_dfs'){
+    sample_names = names(rnacounts)
+  } else if(input_samples == 'sample_names'){
+    sample_names = samples
+  } else if(input_rnacounts == 'seurat'){
+    sample_names = names(rnacounts@images)
+  } else {
+    if(input_samples == 'samplesfile_excel'){
+      samples_df = readxl::read_excel(samples)
+    } else if(input_samples == 'samplesfile_tab'){
+      samples_df = readr::read_delim(samples, name_repair='unique', delim='\t', show_col_types=F)
+    } else if(input_samples == 'samplesfile_comma'){
+      samples_df = readr::read_delim(samples, name_repair='unique', delim=',', show_col_types=F)
+    }
+    sample_names = samples_df[[1]]
+  }
+
+  # Test the validity of sample names
+  if(length(sample_names) > 0){
+    # Sample names SHOULD NOT begin with a number
+    test_number = any(sapply(sample_names, function(i){grepl("^[0-9]", i)}))
+    if(test_number){
+      raise_err(err_code='error0028')
+    }
+    # Test that sample names contain only alpha-numerics, spaces, dash, and underscores
+    test_chars = any(!sapply(sample_names, function(i){grepl("^[ //-_//A-Za-z0-9]+$", i)}))
+    if(test_chars){
+      raise_err(err_code='error0028')
+    }
+    rm(test_number, test_chars) # Clean env
+  } else{
+    raise_err(err_code='error0004')
+  }
+
+
+  #### CASES BEGIN HERE ########################################################
+
 
   # CASE: NAMED LIST OF DATAFRAMES WITH COUNTS AND NAMED LIST OF DATA FRAMES WITH COORDINATES.
   # METADATA INFO OPTIONAL.
-  if(!is.null(input_check$rna)){
-    if(input_check$rna[1] == 'list_dfs' && input_check$coords[1] == 'list_dfs'){
-      cat(crayon::green(paste("Found list of dataframes.\n")))
-      pre_lists = read_list_dfs(rnacounts, spotcoords)
-    }
+  if(input_rnacounts == 'list_dfs' && input_spotcoords == 'list_dfs'){
+    cat(crayon::green(paste("Found list of dataframes.\n")))
+    pre_lists = read_list_dfs(rnacounts, spotcoords)
   }
+
 
   # CASE: SEURAT OBJECT
-  if(!is.null(input_check$rna)){
-    if(input_check$rna[1] == 'seurat'){
-      cat(crayon::green(paste("Found Seurat object.\n")))
-      pre_lists = read_seurat(rnacounts)
-      img_obj = pre_lists[['images']]
-      platform = 'visium'
-    }
+  if(input_rnacounts == 'seurat'){
+    cat(crayon::green(paste("Found Seurat object.\n")))
+    pre_lists = read_seurat(rnacounts)
+    img_obj = pre_lists[['images']]
+    platform = 'visium' # FUTURE DEVELOPMENT: CANT ASSUME IT'S VISIUM... MAYBE SHOULD USE INFO FROM SEURAT OBJECT TO IDENTIFY TECH
   }
 
-  # CASE: GEOMX INPUT
-  if(!is.null(input_check$rna)){
-    if(input_check$rna[1] == 'geomx_dcc'){
-      cat(crayon::green(paste("Found GeoMx DCC output.\n")))
-      pre_lists = import_Geomx(dcc=rnacounts, pkc=gmx_pkc, annots=samples, slide_col=gmx_slide_col, id_col=gmx_roi_col, x_col=gmx_x_col, y_col=gmx_y_col)
-      platform = 'geomx'
-    }
-  }
 
-  # CASE: SAMPLE FILE ONLY CONTAINING FILE PATH(S) TO COUNT COORDINATE MATRICES OR VISIUM DIRS
-  if(is.null(rnacounts) && is.null(input_check$coords) && !is.null(input_check$samples)){
+  # CASE: SAMPLE FILE PLUS FILE PATH(S) TO COUNT COORDINATE MATRICES OR VISIUM/XENIUM DIRS
+  visium = c('visium_filtered_h5', 'visium_raw_h5', 'visium_filtered_mex', 'visium_raw_mex')
+  xenium = c('xenium_h5', 'xenium_mex')
+  cosmx = c('tab_delim_cosmx', 'comma_delim_cosmx')
+  delim = c('tab_delim', 'comma_delim')
+  if(input_rnacounts %in% c(visium, xenium, cosmx, delim)){
     # Get list of filepaths
-    filepaths = process_sample_names_from_file(samples=samples, input_check=input_check)
-    # Check if input is Visium or count/coord matrices
-    if(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex')){
-      cat(crayon::green(paste("Found Visium data\n")))
-      pre_lists = read_visium_outs(filepaths, input_check=input_check, cores=cores)
+    filepaths = process_sample_names(rnacounts, spotcoords, sample_names, input_rnacounts, input_spotcoords)
+
+    # Check if input is Visium, Xenium, CosMx, or count+coord matrices
+    if(input_rnacounts %in% visium){
+      cat(paste("Found Visium data\n"))
+      pre_lists = read_visium_outs(filepaths, input_rnacounts, cores=cores)
       img_obj = pre_lists[['images']]
       image_scale = pre_lists[['json_scale']]
       platform = 'visium'
+    } else if(input_rnacounts %in% xenium){
+      cat(paste("Found Xenium data\n"))
+      pre_lists = read_xenium_outs(filepaths, input_rnacounts, cores=cores)
+      platform = 'xenium'
+    } else if(input_check$rna[1] == 'cosmx'){
+      cat(paste("Found CosMx-SMI data\n"))
+      pre_lists = read_cosmx_input(filepaths, input_check, cores=cores)
+      img_obj = pre_lists[['images']]
+      platform = 'cosmx'
     } else{
-      cat(crayon::green(paste("Found matrix data\n")))
+      cat(paste("Found matrix data\n"))
       pre_lists = read_matrices_fps(filepaths, input_check, cores=cores)
     }
   }
 
-  # CASE: SAMPLE FILE PLUS FILE PATH(S) TO COUNT COORDINATE MATRICES OR VISIUM DIRS
-  if(!is.null(rnacounts) && (input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex') || input_check$samples[1] == 'samplesfile')){
-    if(input_check$rna[1] != 'list_dfs'){
-      # Read sample nanes
-      sample_names = readr::read_delim(samples, show_col_types=F)
-      sample_names = as.character(sample_names[[1]])
-      # Get list of filepaths
-      filepaths = process_sample_names(rnacounts, spotcoords, sample_names, input_check)
 
-      # Check if input is Visium, CosMx, or count/coord matrices
-      if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
-        cat(crayon::green(paste("Found Visium data\n")))
-        pre_lists = read_visium_outs(filepaths, input_check, cores=cores)
-        img_obj = pre_lists[['images']]
-        image_scale = pre_lists[['json_scale']]
-        platform = 'visium'
-      } else if(input_check$rna[1] == 'cosmx'){
-        cat(crayon::green(paste("Found CosMx-SMI data\n")))
-        pre_lists = read_cosmx_input(filepaths, input_check, cores=cores)
-        img_obj = pre_lists[['images']]
-        platform = 'cosmx'
-      } else{
-        cat(crayon::green(paste("Found matrix data\n")))
-        pre_lists = read_matrices_fps(filepaths, input_check, cores=cores)
-      }
-    }
-  }
+  #### CASES FINISH HERE ########################################################
 
-  # CASE: FILE PATH(S) TO COUNT/COORDINATES MATRICES OR VISIUM DIRS, AND SAMPLE NAMES VECTOR.
-  if(any(input_check$samples == 'sample_names') && !is.null(rnacounts)){
-    if(input_check$rna[1] != 'list_dfs'){
-      # Get list of filepaths
-      filepaths = process_sample_names(rnacounts, spotcoords, as.character(samples), input_check)
-
-      # Check if input is Visium, CosMx, or count/coord matrices
-      if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
-        cat(crayon::green(paste("Found Visium data\n")))
-        pre_lists = read_visium_outs(filepaths, input_check, cores=cores)
-        img_obj = pre_lists[['images']]
-        image_scale = pre_lists[['json_scale']]
-        platform = 'visium'
-      } else if(input_check$rna[1] %in% c('cosmx')){
-        cat(crayon::green(paste("Found CosMx-SMI data\n")))
-        pre_lists = read_cosmx_input(filepaths, input_check, cores=cores)
-        img_obj = pre_lists[['images']]
-        platform = 'cosmx'
-      } else{
-        cat(crayon::green(paste("Found matrix data\n")))
-        pre_lists = read_matrices_fps(filepaths, input_check, cores=cores)
-      }
-    }
-  }
 
   # No input provided
   if(is.null(input_check$rna) && is.null(input_check$coords) && is.null(input_check$samples)){
@@ -457,16 +437,6 @@ read_matrices_fps = function(filepaths, input_check, cores=NULL){
     }
   }
 
-  # # Define number of available cores to use.
-  # if(is.null(cores)){
-  #   cores = count_cores(length(filepaths[['count_found']]))
-  # } else{
-  #   cores = as.integer(cores)
-  #   if(is.na(cores)){
-  #     stop('Could not recognize number of cores requested')
-  #   }
-  # }
-
   # Use parallelization to read count data if possible.
   counts_df_list = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
     # Read filepaths.
@@ -508,10 +478,10 @@ read_matrices_fps = function(filepaths, input_check, cores=NULL){
 # read_visium_outs: Takes a list with Visium output file paths and sample names and
 # returns a list with count and coordinates data frames per sample
 # @param filepaths a list with file paths to Visium outputs and sample IDs
-# @param input_check The result of detect_input
-# @return return_lists a list with two lists within (one with counts, one with coordinates)
+# @param input_rnacounts The result of detect_input_rnacounts
+# @return a list with two lists within (one with counts, one with coordinates)
 #
-read_visium_outs = function(filepaths, input_check, cores=NULL){
+read_visium_outs = function(filepaths, input_rnacounts, cores=NULL){
   # Find necessary files from visium input
   missingSamples = 0
   fp_list = list()
@@ -529,47 +499,31 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
     # Filter out 'SPATIAL_RNA_COUNTER' folders (intermediate files from Space Ranger?).
     vcoords = vcoords[!grepl('SPATIAL_RNA_COUNTER', vcoords)]
 
-    # Check if data is MEX of HDF5
-    if(!is.null(input_check$rna)){
-      if(input_check$rna[1] == 'visium_out_mex'){
-        mtx_type = 'mex'
-      } else if(input_check$rna[1] == 'visium_out_h5'){
-        mtx_type = 'h5'
-      }
-    } else{
-      if(input_check$samples[1] == 'samplesfile_visium_mex'){
-        mtx_type = 'mex'
-      } else if(input_check$samples[1] == 'samplesfile_visium_h5'){
-        mtx_type = 'h5'
-      }
-    }
-
-    if(mtx_type == 'mex'){
-      # NOTE: For MEX, assume files are inside a directory named 'filtered_feature_bc_matrix'
-      vfeatures = grep('[raw|filtered]_feature_bc_matrix\\/features.tsv.gz',  temp_fps, value=T)
-      vbarcodes = grep('[raw|filtered]_feature_bc_matrix\\/barcodes.tsv.gz', temp_fps, value=T)
-      vcounts = grep('[raw|filtered]_feature_bc_matrix\\/matrix.mtx.gz', temp_fps, value=T)
-
-      # In case there are both raw and filtered data within output directory, choose filtered
-      if(length(vfeatures) > 1){
-        vfeatures = grep("filtered_feature_bc_matrix", vfeatures, value=T)
-        vbarcodes = grep("filtered_feature_bc_matrix", vbarcodes, value=T)
-        vcounts = grep("filtered_feature_bc_matrix", vcounts, value=T)
+    if(input_rnacounts[1] %in% c('visium_filtered_mex', 'visium_raw_mex')){
+      if(input_rnacounts[1] == 'visium_filtered_mex'){
+        # NOTE: For MEX, assume files are inside a directory named 'filtered_feature_bc_matrix'
+        vfeatures = grep('filtered_feature_bc_matrix\\/features.tsv.gz',  temp_fps, value=T)
+        vbarcodes = grep('filtered_feature_bc_matrix\\/barcodes.tsv.gz', temp_fps, value=T)
+        vcounts = grep('filtered_feature_bc_matrix\\/matrix.mtx.gz', temp_fps, value=T)
+      } else if(input_rnacounts[1] == 'visium_raw_mex'){
+        vfeatures = grep('raw_feature_bc_matrix\\/features.tsv.gz',  temp_fps, value=T)
+        vbarcodes = grep('raw_feature_bc_matrix\\/barcodes.tsv.gz', temp_fps, value=T)
+        vcounts = grep('raw_feature_bc_matrix\\/matrix.mtx.gz', temp_fps, value=T)
       }
 
       # Test that all files have been found.
       needed_mex_test = c(!grepl('gz', vfeatures), !grepl('gz', vbarcodes), !grepl('gz', vcounts), !grepl('csv', vcoords))
       if(any(needed_mex_test)){
-        stop(paste0('Visium output folder (', filepaths[['count_found']][i], ') does not have all necessary files.'))
+        raise_err(err_code='error0035')
       }
 
       fp_list[[i]]$features = vfeatures
       fp_list[[i]]$barcodes = vbarcodes
       fp_list[[i]]$counts = vcounts
 
-      if(rlang::is_empty(vfeatures)) cat(crayon::red(paste("Features for", filepaths$sampleids[i], "not able to be found...")))
-      if(rlang::is_empty(vbarcodes)) cat(crayon::red(paste("Barcodes for", filepaths$sampleids[i], "not able to be found...")))
-      if(rlang::is_empty(vcounts)) cat(crayon::red(paste("Counts for", filepaths$sampleids[i], "not able to be found...")))
+      if(rlang::is_empty(vfeatures)) cat(paste("Features for", filepaths$sampleids[i], "not able to be found..."))
+      if(rlang::is_empty(vbarcodes)) cat(paste("Barcodes for", filepaths$sampleids[i], "not able to be found..."))
+      if(rlang::is_empty(vcounts)) cat(paste("Counts for", filepaths$sampleids[i], "not able to be found..."))
 
       if(rlang::is_empty(vfeatures) | rlang::is_empty(vbarcodes) | rlang::is_empty(vcounts) | rlang::is_empty(vcoords)){
         fp_list[[i]] = list()
@@ -577,23 +531,22 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
       }
 
       rm(vfeatures, vbarcodes, vcounts) # Clean environment
-    } else if(mtx_type == 'h5'){
-      h5counts = grep('[raw|filtered]_feature_bc_matrix.h5', temp_fps, value=T)
-
-      # In case there are both raw and filtered data within output directory, choose filtered
-      if(length(h5counts) > 1){
-        h5counts = grep("filtered_feature_bc_matrix", h5counts, value=T)
+    } else if(input_rnacounts[1] %in% c('visium_filtered_h5', 'visium_raw_h5')){
+      if(input_rnacounts[1] == 'visium_filtered_h5'){
+        h5counts = grep('filtered_feature_bc_matrix.h5', temp_fps, value=T)
+      } else if(input_rnacounts[1] == 'visium_raw_h5'){
+        h5counts = grep('raw_feature_bc_matrix.h5', temp_fps, value=T)
       }
 
       # Test that all files have been found.
       needed_h5_test = c(!grepl('\\.h5$', h5counts), !grepl('csv', vcoords))
       if(any(needed_h5_test)){
-        stop(paste0('Visium output folder (', filepaths[['count_found']][i], ') does not have all necessary files.'))
+        raise_err(err_code='error0035')
       }
 
       fp_list[[i]]$counts = h5counts
 
-      if(rlang::is_empty(vcoords)) cat(crayon::red(paste("Coordinates for", filepaths$sampleids[i], "not able to be found...\n")))
+      if(rlang::is_empty(vcoords)) cat(paste("Coordinates for", filepaths$sampleids[i], "not able to be found...\n"))
       if(rlang::is_empty(h5counts) | rlang::is_empty(vcoords)){
         fp_list[[i]] = list()
         missingSamples  = missingSamples + 1
@@ -609,7 +562,7 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
     rm(temp_fps, vcoords, vimage) # Clean environment
   }
 
-  cat(crayon::green$bold(paste("Found", length(filepaths$sampleids)-missingSamples, "Visium samples\n")))
+  cat(paste("\tFound", length(filepaths$sampleids)-missingSamples, "Visium samples\n"))
 
   # Define number of available cores to use.
   if(is.null(cores)){
@@ -617,7 +570,7 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
   } else{
     cores = as.integer(cores)
     if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
+      raise_err(err_code='error0036')
     }
   }
 
@@ -626,10 +579,10 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
     if(length(fp_list[[i]]$counts) == 0){
       return(list())
     }
-    system(sprintf('echo "%s"', crayon::yellow(paste0("\tProcessing Sample ", i, "...."))))
+    system(sprintf('echo "%s"', paste0("\t\tProcessing Sample ", i, "....")))
 
-    # Process Visium outputs.
-    if(mtx_type == 'mex'){
+    # Process Visium outputs
+    if(input_rnacounts %in% c('visium_filtered_mex', 'visium_raw_mex')){
       visium_processed = import_visium(features_fp=fp_list[[i]][['features']],
                                        barcodes_fp=fp_list[[i]][['barcodes']],
                                        counts_fp=fp_list[[i]][['counts']],
@@ -638,10 +591,11 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
       visium_processed = import_visium_h5(counts_fp=fp_list[[i]][['counts']],
                                           coords_fp=fp_list[[i]][['coords']])
     }
-    system(sprintf('echo "%s"', crayon::green(paste0("\tFinished data read Sample ", i))))
+    system(sprintf('echo "%s"', paste0("\t\tFinished data read Sample ", i)))
+
     return(visium_processed)
   }, mc.cores=cores, mc.preschedule=F)
-  cat(crayon::green$bold(paste("\tData read completed\n")))
+  cat(paste("\tData read completed\n"))
 
   # Organize the paralellized output into corresponding lists.
   return_lists = list()
@@ -684,8 +638,125 @@ read_visium_outs = function(filepaths, input_check, cores=NULL){
 
   rm(fp_list) # Clean environment
   return(return_lists)
-}
+} # CLOSE read_visium_outs
 
+##
+# read_xenium_outs: Takes a list with Xenium output file paths and sample names and
+# returns a list with count and coordinates data frames per sample
+# @param filepaths a list with file paths to Xemium outputs and sample IDs
+# @param input_rnacounts The result of detect_input_rnacounts
+# @return a list with two lists within (one with counts, one with coordinates)
+#
+read_xenium_outs = function(filepaths, input_rnacounts, cores=NULL){
+  # Find necessary files from Xenium input
+  missingSamples = 0
+  fp_list = list()
+  for(i in 1:length(filepaths[['count_found']])){
+    fp_list[[i]] = list()
+    # Get all system paths within output folder (h5/MEX, coordinates, image)
+    temp_fps = list.files(filepaths[['count_found']][i], recursive=T, include.dirs=T, full.names=T)
+
+    vcoords = grep('cells.parquet$', temp_fps, value=T)
+    # Filter out 'SPATIAL_RNA_COUNTER' folders (intermediate files from Space Ranger? Also in Xenium outputs?).
+    #vcoords = vcoords[!grepl('SPATIAL_RNA_COUNTER', vcoords)]
+
+    if(input_rnacounts[1] == 'xenium_mex'){
+      vfeatures = grep('cell_feature_matrix\\/features.tsv.gz',  temp_fps, value=T)
+      vbarcodes = grep('cell_feature_matrix\\/barcodes.tsv.gz', temp_fps, value=T)
+      vcounts = grep('cell_feature_matrix\\/matrix.mtx.gz', temp_fps, value=T)
+
+      # Test that all files have been found.
+      needed_mex_test = c(!grepl('gz', vfeatures), !grepl('gz', vbarcodes), !grepl('gz', vcounts), !grepl('csv', vcoords))
+      if(any(needed_mex_test)){
+        raise_err(err_code='error0037')
+      }
+
+      fp_list[[i]]$features = vfeatures
+      fp_list[[i]]$barcodes = vbarcodes
+      fp_list[[i]]$counts = vcounts
+
+      if(rlang::is_empty(vfeatures)) cat(paste("Features for", filepaths$sampleids[i], "not able to be found..."))
+      if(rlang::is_empty(vbarcodes)) cat(paste("Barcodes for", filepaths$sampleids[i], "not able to be found..."))
+      if(rlang::is_empty(vcounts)) cat(paste("Counts for", filepaths$sampleids[i], "not able to be found..."))
+
+      if(rlang::is_empty(vfeatures) | rlang::is_empty(vbarcodes) | rlang::is_empty(vcounts) | rlang::is_empty(vcoords)){
+        fp_list[[i]] = list()
+        missingSamples  = missingSamples + 1
+      }
+
+      rm(vfeatures, vbarcodes, vcounts) # Clean environment
+    } else if(input_rnacounts[1] == 'xenium_h5'){
+      h5counts = grep('cell_feature_matrix.h5', temp_fps, value=T)
+
+      # Test that all files have been found.
+      needed_h5_test = c(!grepl('\\.h5$', h5counts), !grepl('\\.parquet|\\.csv', vcoords))
+      if(any(needed_h5_test)){
+        raise_err(err_code='error0037')
+      }
+
+      fp_list[[i]]$counts = h5counts
+
+      if(rlang::is_empty(vcoords)) cat(paste("Coordinates for", filepaths$sampleids[i], "not able to be found...\n"))
+      if(rlang::is_empty(h5counts) | rlang::is_empty(vcoords)){
+        fp_list[[i]] = list()
+        missingSamples  = missingSamples + 1
+      }
+      rm(h5counts) # Clean environment
+    }
+
+    fp_list[[i]]$coords = vcoords
+    fp_list[[i]]$runname = filepaths[['sampleids']][i]
+
+    rm(temp_fps, vcoords) # Clean environment
+  }
+
+  cat(paste("\tFound", length(filepaths$sampleids)-missingSamples, "Xenium samples\n"))
+
+  # Define number of available cores to use.
+  if(is.null(cores)){
+    cores = count_cores(length(filepaths[['count_found']]))
+  } else{
+    cores = as.integer(cores)
+    if(is.na(cores)){
+      raise_err(err_code='error0038')
+    }
+  }
+
+  # Use parallelization to read count data if possible.
+  output_temp = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
+    if(length(fp_list[[i]]$counts) == 0){
+      return(list())
+    }
+    system(sprintf('echo "%s"', paste0("\t\tProcessing Sample ", i, "....")))
+
+    # Process Visium outputs
+    if(input_rnacounts[1] == 'xenium_mex'){
+      xenium_processed = import_xenium_mex(features_fp=fp_list[[i]][['features']],
+                                       barcodes_fp=fp_list[[i]][['barcodes']],
+                                       counts_fp=fp_list[[i]][['counts']],
+                                       coords_fp=fp_list[[i]][['coords']])
+    } else{
+      xenium_processed = import_xenium_h5(counts_fp=fp_list[[i]][['counts']],
+                                          coords_fp=fp_list[[i]][['coords']])
+    }
+    system(sprintf('echo "%s"', paste0("\t\tFinished data read Sample ", i)))
+
+    return(xenium_processed)
+  }, mc.cores=cores, mc.preschedule=F)
+  cat(paste("\tData read completed\n"))
+
+  # Organize the paralellized output into corresponding lists.
+  return_lists = list()
+  return_lists[['counts']] = list()
+  return_lists[['coords']] = list()
+  for(i in 1:length(output_temp)){
+    return_lists[['counts']][[fp_list[[i]]$runname]] = output_temp[[i]]$rawcounts
+    return_lists[['coords']][[fp_list[[i]]$runname]] = output_temp[[i]]$coords
+  }
+
+  rm(fp_list) # Clean environment
+  return(return_lists)
+} # CLOSE read_xenium_outs
 
 ##
 # read_cosmx_input: Takes a list with CosMx-SMI output file paths and sample names and
@@ -876,15 +947,18 @@ process_sample_filepaths = function(samples, input_check){
 # to sample names for processing
 # @param rnacounts, vector of file paths to Visium outputs or count matrices
 # @param spotcoords, vector of file paths to coordinate matrices
-# @param sample_names, vector of sample names
-# @param input_check, a list resulting from detect_input
-# @return filepaths, a list with found file paths per each sample, and sample IDs
+# @param samples, vector of sample names
+# @param input_rnacounts, a string resulting from detect_input_rnacounts
+# @param input_spotcoords, a string resulting from detect_input_spotcoords
+# @return a list with found file paths per each sample, and sample IDs
 #
-process_sample_names = function(rnacounts, spotcoords, samples, input_check){
+process_sample_names = function(rnacounts, spotcoords, samples, input_rnacounts, input_spotcoords){
   # Create objects to store sample names found. Will be used to assess if expected samples exist.
-  # Also store file paths to open
+  # Also store paths to files
   filepaths = list()
-  if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
+  vis_xen = c('visium_filtered_h5', 'visium_raw_h5', 'visium_filtered_mex', 'visium_raw_mex', 'xenium_h5', 'xenium_mex')
+  delim = c('tab_delim', 'comma_delim', 'tab_delim_cosmx', 'comma_delim_cosmx')
+  if(input_rnacounts %in% vis_xen){
     for(i in samples){
       sample_i = grep(i, rnacounts, value=T, fixed=T)
       if(length(sample_i) == 1){
@@ -893,10 +967,10 @@ process_sample_names = function(rnacounts, spotcoords, samples, input_check){
       } else if(length(sample_i) > 1){
         raise_err(err_code='error0001')
       } else{
-        warning(paste0('Sample ', i, ' was not found among the Visium outputs.'))
+        warning(paste0('Sample ', i, ' was not found among the Visium or Xenium outputs.'))
       }
     }
-  } else{
+  } else if(input_rnacounts %in% delim && input_spotcoords %in% delim){
     for(i in samples){
       sample_count = grep(i, rnacounts, value=T, fixed=T)
       sample_coord = grep(i, spotcoords, value=T, fixed=T)
@@ -908,6 +982,8 @@ process_sample_names = function(rnacounts, spotcoords, samples, input_check){
         warning(paste0('Sample ', i, ' was not found among the count/coordinate files.'))
       }
     }
+  } else{
+    raise_err(err_code='error0034')
   }
   return(filepaths)
 }

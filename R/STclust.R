@@ -131,8 +131,6 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
   }, mc.cores=cores)
   names(trcounts_df) = samples
 
-  # Add VST
-
   # Parallelize clustering
   res_ls = parallel::mclapply(samples, function(i){
     # Calculate scaled expression and spatial distance matrices

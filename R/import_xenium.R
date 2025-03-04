@@ -1,10 +1,10 @@
 ##
-# @title importVisium: Reads Visium outputs in MEX format
+# @title import_xenium_mex: Reads Xenium outputs in MEX format (Xenium Ranger)
 # @description Reads Market Exchange (MEX) format files in the output directory of a
-# Visium run, and returns data for creation of a STList.
+# Xenium run, and returns data for creation of a STList.
 # @details
 # The function takes as an argument the paths to the features, barcodes, and matrix
-# outputs of a Visium run, as well as the spot coordinates in the `spatial` directory.
+# outputs of a Xenium run, as well as the spot coordinates in the `spatial` directory.
 # Then, reads the files and returns a list with sparse count matrix (genes x spots) and
 # a dataframe with spot coordinates. Zero-count genes across spots are removed.
 #
@@ -12,7 +12,7 @@
 # @param barcodes_fp File path to the barcodes.tsv.gz file.
 # @param counts_fp File path to the matrix.mtx.gz file.
 # @param coords_fp File path to the tissue_positions_list.csv file.
-# @return x A list with two objects: Visium counts in `dgCMatrix` sparse format and
+# @return a list with two objects: Xenium counts in `dgCMatrix` sparse format and
 # a data frames with spot coordinates.
 #
 #
@@ -77,27 +77,27 @@ import_visium = function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coo
   spotcoords_df = spotcoords_df[(spotcoords_df$barcode %in% colnames(rawcounts_df)), ] %>%
     tibble::as_tibble()
 
-  visium_list = list(rawcounts=rawcounts_df, coords=spotcoords_df)
-  return(visium_list)
+  xenium_list = list(rawcounts=rawcounts_df, coords=spotcoords_df)
+  return(xenium_list)
 }
 
 ##
-# @title import_Visium_h5: Reads Visium `space ranger` HDF5 outputs
+# @title import_xenium_h5: Reads Xenium HDF5 outputs (Xenium Ranger)
 # @description Reads the HDF5 file and spot coordinates in the output directory
-# of a Visium run, and returns data for creation of a STList.
+# of a Xeniu, run, and returns data for creation of a STList.
 # @details
 # The function takes as an argument the path a HDF5 file containing the gene counts
-# and a coordinates .csv file from the `spatial` sub-directory. It returns a list
-# with sparse count matrix (genes x spots) and a dataframe with spot coordinates.
-# Zero-count genes across spots are removed.
+# and a coordinates (parquet) file. It returns a list with sparse count matrix
+# (genes x spots) and a dataframe with spot coordinates. Zero-count genes across
+# spots are removed.
 #
-# @param counts_fp Path to a Visium HDF5 (.h5) file within.
-# @param coords_fp Path to the tissue_positions_list.csv file.
-# @return x A list with two objects: Visium counts in `dgCMatrix` sparse format and
+# @param counts_fp Path to a Xenium HDF5 (.h5) file.
+# @param coords_fp Path to the cells.parquet file.
+# @return a list with two objects: Xenium counts in `dgCMatrix` sparse format and
 # a data frames with spot coordinates.
 #
 #
-import_visium_h5 = function(counts_fp=NULL, coords_fp=NULL){
+import_xenium_h5 = function(counts_fp=NULL, coords_fp=NULL){
   # Read HDF5 file
   h5_read = hdf5r::H5File$new(filename=counts_fp, mode='r')
 
@@ -108,7 +108,7 @@ import_visium_h5 = function(counts_fp=NULL, coords_fp=NULL){
     warning('There is more than one group in \"', h5_file, '\". Reading only the first group.')
   }
   if(h5_group[1] != 'matrix'){
-    warning('The .h5 file group is not called \"matrix\". Is this a Visium .h5 output?')
+    warning('The .h5 file group is not called \"matrix\". Is this a Xenium .h5 output?')
   }
   rm(counts_fp)
 
@@ -131,25 +131,35 @@ import_visium_h5 = function(counts_fp=NULL, coords_fp=NULL){
   counts_mtx = counts_mtx[Matrix::rowSums(counts_mtx) > 0, ]
 
   # Read in coordinate data
-  spotcoords_df = data.table::fread(coords_fp, header=F, check.names=F) %>%
-    dplyr::select(barcode=1, intissue=2, imagerow=5, imagecol=6) %>%
-    dplyr::filter(intissue == 1) %>%
-    dplyr::select(barcode, imagerow, imagecol) %>%
+  if(grepl('\\.parquet$', coords_fp)){
+  spotcoords_df = arrow::read_parquet(coords_fp) %>%
+    dplyr::select(barcode=cell_id, ypos=y_centroid, xpos=x_centroid) %>% ### FUTURE DEV: OTHER METADATA IS AVAILABLE... SHOULD IT BE IMPORTED TOO?
     tibble::as_tibble()
+  } else if(grepl('\\.csv$', coords_fp)){
+    spotcoords_df = data.table::fread(coords_fp, header=F, check.names=F)
+    if(all(!(c('cell_id', 'y_centroid', 'x_centroid') %in% colnames(spotcoords_df)))){
+      raise_err(err_code='error0040')
+    }
+    spotcoords_df = spotcoords_df %>%
+      dplyr::select(barcode=cell_id, ypos=y_centroid, xpos=x_centroid) %>% ### FUTURE DEV: OTHER METADATA IS AVAILABLE... SHOULD IT BE IMPORTED TOO?
+      tibble::as_tibble()
+  } else{
+    raise_err(err_code='error0039')
+  }
 
   # Warning if number of spot coordinate do not match number of spots in counts
   # Subset to spots with coordinate information (to possibly deal with raw_feature_bc_matrix.h5)
   if(nrow(spotcoords_df) != ncol(counts_mtx)){
-    warning('Number of spots do not match between count and coordinate data. Subsetting to spots with coordinates.')
+    warning('Number of cells do not match between count and coordinate data. Subsetting to cells with coordinates.')
     counts_mtx = counts_mtx[ , colnames(counts_mtx) %in% spotcoords_df[['barcode']] ]
 
     # Check that spots are available after subsetting
     if(ncol(counts_mtx) == 0){
-      stop('Spots in expression data and coordinate data do not match.')
+      stop('Cells in expression data and coordinate data do not match.')
     }
   }
 
-  visium_list = list(rawcounts=counts_mtx, coords=spotcoords_df)
-  return(visium_list)
+  xenium_list = list(rawcounts=counts_mtx, coords=spotcoords_df)
+  return(xenium_list)
 }
 

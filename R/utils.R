@@ -299,7 +299,7 @@ get_gene_meta = function(x=NULL, sthet_only=F){
 #
 raise_err = function(err_code=NULL, samplename=NULL){
   pkg_fp = list.files(system.file(package='spatialGE'), full.names=T, pattern='err\\.csv')
-  err_db = suppressWarnings(read.csv(pkg_fp, header=F))
+  err_db = suppressWarnings(read.csv(pkg_fp, header=F, quote="'"))
   str_to_print = err_db[[2]][ err_db[[1]] == err_code ]
   if(is.null(samplename)){
     stop(paste0('spatialGE exception: ', str_to_print), call.=F)
