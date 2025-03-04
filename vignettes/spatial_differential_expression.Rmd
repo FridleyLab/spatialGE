@@ -42,7 +42,7 @@ The `STlist` function takes data in several formats. The reader is encouraged to
 ```{r data_fpaths0}
 # spatialGE contains an object containing the file path to a built-in folder with the Thrane et al. data set
 #data_files <- system.file("extdata/melanoma_thrane", package="spatialGE")
-thrane_files
+#thrane_files()
 ```
 
 ```{r data_fpaths1}
@@ -50,8 +50,8 @@ thrane_files
 # data_files <- '../inst/extdata/melanoma_thrane/'
 # count_files <- list.files(data_files, full.names=T, pattern='counts')
 # coord_files <- list.files(data_files, full.names=T, pattern='mapping')
-count_files <- list.files(thrane_files, full.names=T, pattern='counts')
-coord_files <- list.files(thrane_files, full.names=T, pattern='mapping')
+count_files <- list.files(thrane_files(), full.names=T, pattern='counts')
+coord_files <- list.files(thrane_files(), full.names=T, pattern='mapping')
 ```
 
 This melanoma ST data set also contains sample-level meta data. We will also provide this file to specify sample names:
