@@ -38,10 +38,10 @@ genes and spatial samples
 \examples{
 # Using included melanoma example (Thrane et al.)
 library('spatialGE')
-data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
-count_files <- grep("counts", data_files, value=T)
-coord_files <- grep("mapping", data_files, value=T)
-clin_file <- grep("thrane_clinical", data_files, value=T)
+data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
+count_files <- list.files(data_files, full.names=T, pattern='counts')
+coord_files <- list.files(data_files, full.names=T, pattern='mapping')
+clin_file <- list.files(data_files, full.names=T, pattern='clinical')
 melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
 melanoma <- transform_data(melanoma)
 melanoma <- gene_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')

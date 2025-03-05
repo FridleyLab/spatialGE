@@ -20,7 +20,7 @@
 # @return a list with the requested plots.
 #
 # @examples
-# # In this example, melanoma is an STList.
+# # In this example, melanoma is an STlist.
 # # cluster_p <- plot_STclusters(melanoma, samples=c(2,3), visium=F)
 #
 # @export

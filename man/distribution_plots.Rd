@@ -21,9 +21,10 @@ distribution_plots(
 
 \item{plot_meta}{vector of variables in \code{x@spatial_meta} to plot distributions.
 If 'total_counts', the function plots the counts per spot/cell. If 'total_genes',
-the function plots the number of genes per spot/cell are plotted.}
+the function plots the number of genes per spot/cell are plotted}
 
-\item{genes}{vector of genes to plot expression distribution}
+\item{genes}{vector of genes to plot expression distribution. If used in conjunction
+with \code{plot_meta}, the expression values are grouped using that variable}
 
 \item{samples}{samples to include in the plot. Default (NULL) includes all samples}
 
@@ -33,19 +34,20 @@ the function plots the number of genes per spot/cell are plotted.}
 vector with colors}
 
 \item{plot_type}{one of "violin", "box", or "density" (violin plots, box plots, or
-density plots respectively)}
+density plots respectively). If \code{plot_meta} and \code{gene} are used together, then
+density plots are disabled}
 
 \item{ptsize}{the size of points in the plots}
 
 \item{ptalpha}{the transparency of points (violin/box plot) or curves (density plots)}
 }
 \description{
-Generates violin plots, boxplots, or density plots of continuous
-variables in the spatial meta data or of gene expression to make comparisons
-across samples
+Generates violin plots, boxplots, or density plots of variables in the
+spatial meta data or of gene expression
 }
 \details{
 The function allows to visualize the distribution of spot/cell total
 counts, total genes, or expression of specific genes across all samples for
-comparative purposes.
+comparative purposes. It also allows grouping of gene expression values by
+categorical variables (e.g., clusters).
 }

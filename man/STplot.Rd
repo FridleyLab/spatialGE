@@ -14,7 +14,8 @@ STplot(
   deepSplit = NULL,
   color_pal = NULL,
   data_type = "tr",
-  ptsize = NULL
+  ptsize = NULL,
+  txsize = NULL
 )
 }
 \arguments{
@@ -43,7 +44,9 @@ vector with enough color names or HEX values}
 \item{data_type}{one of 'tr' or 'raw', to plot transformed or raw counts
 respectively}
 
-\item{ptsize}{a number specifying the size of the points. Passed to the \code{size}
+\item{ptsize}{a number specifying the size of the points. Passed to the \code{size}}
+
+\item{txsize}{a number controlling the size of the text in the plot title and legend title. Passed to the \code{element_text}
 aesthetic.}
 }
 \value{
@@ -63,10 +66,10 @@ The function also can average expression of gene sets.
 \examples{
 # Using included melanoma example (Thrane et al.)
 library('spatialGE')
-data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
-count_files <- grep("counts", data_files, value=T)
-coord_files <- grep("mapping", data_files, value=T)
-clin_file <- grep("thrane_clinical", data_files, value=T)
+data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
+count_files <- list.files(data_files, full.names=T, pattern='counts')
+coord_files <- list.files(data_files, full.names=T, pattern='mapping')
+clin_file <- list.files(data_files, full.names=T, pattern='clinical')
 melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
 melanoma <- transform_data(melanoma)
 STplot(melanoma, gene='MLANA', samples='ST_mel1_rep2', ptsize=1)

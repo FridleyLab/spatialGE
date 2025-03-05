@@ -4,7 +4,7 @@
 \alias{pseudobulk_samples}
 \title{pseudobulk_samples: Aggregates counts into "pseudo bulk" samples}
 \usage{
-pseudobulk_samples(x = NULL, max_var_genes = 5000)
+pseudobulk_samples(x = NULL, max_var_genes = 5000, calc_umap = F)
 }
 \arguments{
 \item{x}{an STlist.}
@@ -27,11 +27,11 @@ variation
 \examples{
 # Using included melanoma example (Thrane et al.)
 library('spatialGE')
-data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
-count_files <- grep("counts", data_files, value=T)
-coord_files <- grep("mapping", data_files, value=T)
-clin_file <- grep("thrane_clinical", data_files, value=T)
-melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file) # Only first two samples
+data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
+count_files <- list.files(data_files, full.names=T, pattern='counts')
+coord_files <- list.files(data_files, full.names=T, pattern='mapping')
+clin_file <- list.files(data_files, full.names=T, pattern='clinical')
+melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file) # Only first four samples
 melanoma <- pseudobulk_samples(melanoma)
 pseudobulk_pca_plot(melanoma)
 

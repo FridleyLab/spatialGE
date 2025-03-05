@@ -16,6 +16,8 @@ STgradient(
   distsumm = "min",
   min_nb = 3,
   robust = T,
+  nb_dist_thr = NULL,
+  log_dist = F,
   cores = NULL
 )
 }
@@ -28,7 +30,7 @@ STgradient(
 selected in descending order of variance as caclulated using Seurat's vst method}
 
 \item{annot}{the name of a column in \verb{@spatial_meta} containing the tissue domain
-assigmemnts for each spot or cell. These assignents can be generated using the
+assignments for each spot or cell. These assignments can be generated using the
 \code{STclust} function}
 
 \item{ref}{one of the tissue domains in the column specified in \code{annot},
@@ -54,6 +56,11 @@ have in order to be included in the analysis. This parameter seeks to reduce the
 effect of isolated \code{ref} spots on the correlation}
 
 \item{robust}{logical, wheter to use robus regression (\code{MASS} and \code{sfsmisc} packages)}
+
+\item{nb_dist_thr}{a numeric vector of length two indicating the tolerance interval to assign
+spots/cells to neighborhoods. The wider the range of the interval, the more likely
+distinct neighbors to be considered. If NULL, \code{c(0.75, 1.25)} and \code{c(0.25, 3)} is assigned
+for Visium and CosMx respectively.}
 
 \item{cores}{the number of cores used during parallelization. If NULL (default),
 the number of cores is defined automatically}

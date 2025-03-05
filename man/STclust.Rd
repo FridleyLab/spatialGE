@@ -6,16 +6,21 @@
 \usage{
 STclust(
   x = NULL,
+  samples = NULL,
   ws = 0.025,
   dist_metric = "euclidean",
-  linkage = "ward.D",
+  linkage = "ward.D2",
   ks = "dtc",
   topgenes = 2000,
-  deepSplit = F
+  deepSplit = F,
+  cores = NULL
 )
 }
 \arguments{
 \item{x}{an STlist with normalized expression data}
+
+\item{samples}{a vector with strings or a vector with integers indicating the samples
+to run STclust}
 
 \item{ws}{a double (0-1) indicating the weight to be applied to spatial distances.
 Defaults to 0.025}
@@ -34,6 +39,8 @@ variance is calculated via \code{Seurat::FindVariableFeatures}.}
 
 \item{deepSplit}{a logical or integer (1-4), to be passed to \code{cutreeDynamic} and
 control cluster resolution}
+
+\item{cores}{an integer indicating the number of cores to use in parallelization (Unix only)}
 }
 \value{
 an STlist with cluster assignments
@@ -54,10 +61,10 @@ spatially cohesive.
 \examples{
 # Using included melanoma example (Thrane et al.)
 library('spatialGE')
-data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
-count_files <- grep("counts", data_files, value=T)
-coord_files <- grep("mapping", data_files, value=T)
-clin_file <- grep("thrane_clinical", data_files, value=T)
+data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
+count_files <- list.files(data_files, full.names=T, pattern='counts')
+coord_files <- list.files(data_files, full.names=T, pattern='mapping')
+clin_file <- list.files(data_files, full.names=T, pattern='clinical')
 melanoma <- STlist(rnacounts=count_files[c(1,3)], spotcoords=coord_files[c(1,3)], samples=clin_file)
 melanoma <- transform_data(melanoma, method='log')
 melanoma <- STclust(melanoma, ws=c(0, 0.025))

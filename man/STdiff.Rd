@@ -81,7 +81,7 @@ spots/cells with respect to the rest of spots/cells in the sample. The method fi
 runs non-spatial linear models on the genes to detect differentially expressed genes.
 Then spatial linear models with exponential covariance structure are fit on a
 subset of genes detected as differentially expressed by the non-linear models (\code{sp_topgenes}).
-If running on clusters detected via STclust, the user should specify the assignments
+If running on clusters detected via STclust, the user can specify the assignments
 using the same parameters (\code{w}, \code{k}, \code{deepSplit}). Otherwise, the assignments are
 specified by indicating one of the column names in \code{x@spatial_meta}. The function
 uses \code{spaMM::fitme} and is computationally expensive even on HPC environments.
