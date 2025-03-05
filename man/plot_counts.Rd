@@ -55,9 +55,9 @@ spot/cell, the function \code{distribution_plots} should be used instead.
 # Using included melanoma example (Thrane et al.)
 library('spatialGE')
 data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
-count_files <- list.files(data_files, full.names=T, pattern='counts')
-coord_files <- list.files(data_files, full.names=T, pattern='mapping')
-clin_file <- list.files(data_files, full.names=T, pattern='clinical')
+count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
+coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
+clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
 melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
 cp <- plot_counts(melanoma, data_type='raw', plot_type=c('violin', 'box'))
 ggpubr::ggarrange(plotlist=cp)

@@ -79,14 +79,14 @@ Additionally, we will input meta data associated with each sample. The meta data
 Once the folders with samples have been created, we can use R to generate the file paths to be passed to the `STlist` function. Assuming that the user created the folder in the computer's Desktop:
 
 ```{r data_fpaths}
-visium_folders <- list.dirs('~/Desktop/tnbc_visium/', full.names=T, recursive=F)
+visium_folders <- list.dirs('~/Desktop/tnbc_visium/', full.names=TRUE, recursive=FALSE)
 ```
 
 The meta data can be accessed directly from the `spatialGE` package installed in the computer like so:
 
 ```{r data_fpaths2}
 data_files <- system.file("extdata/tnbc_bassiouni", package="spatialGE")
-clin_file <- list.files(data_files, full.names=T, recursive=F, pattern='clinical')
+clin_file <- list.files(data_files, full.names=TRUE, recursive=FALSE, pattern='clinical')
 ```
 
 We can load the files into an STlist using this command:
@@ -195,7 +195,7 @@ Generating gene expression surfaces can be time consuming. The finer resolution 
 kriges1 <- STplot_interpolation(tnbc,
                                 genes=c('NDRG1', 'IGKC'),
                                 samples='sample_094c')
-ggpubr::ggarrange(plotlist=kriges1, nrow=1, ncol=2, common.legend=T, legend='bottom')
+ggpubr::ggarrange(plotlist=kriges1, nrow=1, ncol=2, common.legend=TRUE, legend='bottom')
 ```
 
 By looking at the transcriptomic surfaces of the two genes, it is easier to detect where "pockets" of high and low expression are located within the tissue. It is now more evident that expression of *NDRG1* is higher in the lower right region of the tumor slice, as well in a smaller area to the left (potentially another hypoxic region).
@@ -260,7 +260,7 @@ The calculation of spatial statistics with `SThet` and and multi-sample comparis
 The computed statistics are stored in the STlist for additional analysis/plotting that the user may want to complete. The statistics value can be accessed as a data frame using the `get_gene_meta` function:
 
 ```{r stats_slot}
-get_gene_meta(tnbc, sthet_only=T)
+get_gene_meta(tnbc, sthet_only=TRUE)
 ```
 
 
@@ -280,8 +280,8 @@ sphet_info <- tibble::tibble(
   "Uniform expression"=c('Closer to -1', 'Closer to 2')
   )
 
-kbl_t = kableExtra::kbl(sphet_info, align='c', centering=T) %>%
-  kableExtra::kable_styling(position="center", full_width=F)
+kbl_t = kableExtra::kbl(sphet_info, align='c', centering=TRUE) %>%
+  kableExtra::kable_styling(position="center", full_width=FALSE)
 kableExtra::add_footnote(kbl_t, 
                          c("Note: The boundaries indicated for each statistic are reached when the number of spots/cells is very large."),
                          notation="none")
@@ -311,8 +311,8 @@ Next, the `sc.SpatialSIM` is used to generate the spatial point process (positio
 # Generate point process
 # Then, simulate tissue compartments
 set.seed(12345)
-sim_visium <- GenerateSpatialPattern(sim_visium, gridded=T, overwrite=T) %>% 
-  GenerateTissue(k=1, xmin=1, xmax=2, ymin=1, ymax=2, sdmin=1, sdmax=2, overwrite=T)
+sim_visium <- GenerateSpatialPattern(sim_visium, gridded=TRUE, overwrite=TRUE) %>% 
+  GenerateTissue(k=1, xmin=1, xmax=2, ymin=1, ymax=2, sdmin=1, sdmax=2, overwrite=TRUE)
 
 PlotSimulation(sim_visium, which=1, what="tissue points") + 
   scale_shape_manual(values=c(19, 1))
@@ -380,7 +380,7 @@ simulated <- transform_data(simulated)
 simulated <- SThet(simulated, genes=c('gene_1', 'gene_2', 'gene_3'), method=c('moran', 'geary'))
 
 # Extract results
-get_gene_meta(simulated, sthet_only=T)
+get_gene_meta(simulated, sthet_only=TRUE)
 ```
 
 The results for each of the metrics are as expected: "gene_1" shows aggregation/clustering, indicative of "hot-spot" expression. "gene_2" and "gene_3" show uniform and random expression respectively. Notice that none of these values are very far from the "random" expectation (Moran's I = 0 and Geary's C = 1). One of reasons for this result is the effect of library-size normalization. In addition, obtaining extreme values of I and C require extreme spatial patterns, which are unlikely to be observed even in the way data has been simulated here.

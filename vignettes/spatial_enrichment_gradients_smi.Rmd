@@ -4,7 +4,7 @@ date: '`r format(Sys.Date())`'
 output: rmarkdown::html_vignette
 bibliography: vignette_references.bib
 vignette: >
-  %\VignetteIndexEntry{spatialge_tutorial_main}
+  %\VignetteIndexEntry{spatialge_tutorial_spatial_patterns}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
   comment="#>",
   fig.width=8, fig.height=5
 )
+options(rmarkdown.html_vignette.check_title=F)
 ```
 
 The package ***`spatialGE`*** can be used to detect spatial patterns in gene expression at the gene and gene set level. Data from multiple spatial transcriptomics platforms can be analyzed, as long as gene expression counts per spot or cell are associated with spatial coordinates of those spots/cells. The ***`spatialGE`*** package is compatible with outputs from the Visium workflow or the CosMx-SMI spatial single-cell platform.
@@ -246,7 +247,7 @@ qp <- STplot(lung, genes=gene_sets[names(gene_sets) == 'HALLMARK_NOTCH_SIGNALING
                        'Lung6_fov_4', 'Lung6_fov_6', 'Lung6_fov_7'),
              color_pal='YlOrBr')
 
-ggpubr::ggarrange(plotlist=qp, ncol=3, nrow=2, common.legend=T)
+ggpubr::ggarrange(plotlist=qp, ncol=3, nrow=2, common.legend=TRUE)
 ```
 
 
@@ -284,7 +285,7 @@ ti <- plot_image(lung)
 The domains can be plotted with the `STplot` function too.
 
 ```{r plot_domains, fig.width=12}
-dom_p <- STplot(lung, ks='dtc', ws=0.02, deepSplit=F,
+dom_p <- STplot(lung, ks='dtc', ws=0.02, deepSplit=FALSE,
                 color_pal='discreterainbow')
 
 ggpubr::ggarrange(dom_p$Lung5_Rep1_fov_2_stclust_spw0.02_dsplFalse,
@@ -308,7 +309,7 @@ ggpubr::ggarrange(dom_p$Lung5_Rep1_fov_2_stclust_spw0.02_dsplFalse,
 Now, to identify the domains, differential gene expression can be performed:
 
 ```{r domain_de}
-deg <- STdiff(lung, w=0.02, k='dtc', deepSplit=F, test_type='wilcoxon')
+deg <- STdiff(lung, w=0.02, k='dtc', deepSplit=FALSE, test_type='wilcoxon')
 ```
 
 Then, the top 3 DE genes per cluster in the samples showing NOTCH signaling spatial patterns are identified:
@@ -350,7 +351,7 @@ stg <- STgradient(lung,
                   ref=3,
                   samples=c('Lung6_fov_4', 'Lung6_fov_6', 'Lung6_fov_7'), 
                   distsumm='min', 
-                  robust=T)
+                  robust=TRUE)
 ```
 
 Here are the first few rows of the `STgradient` result for sample "Lung6_fov_4":
@@ -375,7 +376,7 @@ It can be seen from these results that multiple keratin genes show spatial gradi
 
 ```{r stg_plots}
 qp2 <- STplot(lung, genes=c('KRT6A', 'HLA-B'), samples='Lung6_fov_4', color_pal='YlOrBr')
-ggpubr::ggarrange(plotlist=qp2, common.legend=T)
+ggpubr::ggarrange(plotlist=qp2, common.legend=TRUE)
 ```
 
 Here are the results for genes within the NOTCH signaling pathway:

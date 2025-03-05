@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
   comment="#>",
   fig.width=10, fig.height=7
 )
+options(rmarkdown.html_vignette.check_title=F)
 ```
 
 Differential gene expression testing has been a fundamental part in studies using "bulk" RNAseq data, and continues to be critical in the analysis of single-cell and spatial transcriptomics. The `STdiff` function from the ***`spatialGE`*** package provides methods for traditional, non-spatial differential gene expression analysis such as Wilcoxon's rank test, T-test, and mixed models.
@@ -44,15 +45,15 @@ The `STlist` function takes data in several formats. The reader is encouraged to
 data_files <- system.file("extdata", "melanoma_thrane", package="spatialGE")
 
 # Find expression and coordinates files within folder
-count_files <- list.files(data_files, full.names=T, pattern='counts')
-coord_files <- list.files(data_files, full.names=T, pattern='mapping')
+count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
+coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 ```
 
 This melanoma ST data set also contains sample-level meta data. We will also provide this file to specify sample names:
 
 ```{r data_fpaths2}
 # Find clinical data within folder
-clin_file <- list.files(data_files, full.names=T, pattern='clinical')
+clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
 ```
 
 We can load the data into an STlist object with:
@@ -148,15 +149,15 @@ Using the variogram calculated previously, the different covariance structures c
 
 ```{r vgm_model_plot, message=F, fig.asp=1, fig.width=5, fig.align='center'}
 # Exponential covariance structure:
-exp_model <- geoR::variofit(vgm, fix.nugget=F, cov.model='exponential',
+exp_model <- geoR::variofit(vgm, fix.nugget=FALSE, cov.model='exponential',
                             ini.cov.pars=c(0.2, 11), nugget=0.7, # Sill, range, and nugget specified here
                             max.dist=15) # Maximum distance to which model will be fitted
 
-sph_model <- geoR::variofit(vgm, fix.nugget=F, cov.model='spherical',
+sph_model <- geoR::variofit(vgm, fix.nugget=FALSE, cov.model='spherical',
                             ini.cov.pars=c(0.2, 11), nugget=0.7, 
                             max.dist=15)
 
-gau_model <- geoR::variofit(vgm, fix.nugget=F, cov.model='gaussian',
+gau_model <- geoR::variofit(vgm, fix.nugget=FALSE, cov.model='gaussian',
                             ini.cov.pars=c(0.2, 11), nugget=0.7, 
                             max.dist=15)
 
@@ -220,7 +221,7 @@ Results of `STclust` domain detection can be plotted using the `STplot` function
 cluster_p <- STplot(melanoma, 
                     samples='ST_mel1_rep1', 
                     ws=0.025, 
-                    deepSplit=F,
+                    deepSplit=FALSE,
                     ptsize=2, color_pal=c('#00BA38', '#EEBA38', '#619CFF', '#F8766D'))
 
 print(cluster_p[[1]])
@@ -231,7 +232,7 @@ With the domains identified, the `STdiff` function can be used. The following co
 ```{r stdiff_chunk}
 deg <- STdiff(melanoma, 
               samples='ST_mel1_rep1', 
-              w=0.025, k='dtc', deepSplit=F, 
+              w=0.025, k='dtc', deepSplit=FALSE, 
               topgenes=1000,
               sp_topgenes=0.2) # Test the 20% of the top differentially expressed genes (based on adjusted p-value)
 ```
@@ -265,7 +266,7 @@ p1 <- ggplot(log_pval, aes(x=log_p_val, y=log_exp_p_val)) +
   geom_vline(xintercept=-log10(0.05), linetype="dashed", color='gray50') + # Line p-value <0.05
   geom_point(aes(color=cluster_1)) +
   xlim(0, 20) + ylim(0, 20) + # Restrict axes to ease visualization (very small p-values)
-  geom_text_repel(aes(label=gene), size=2, show.legend=F) +
+  geom_text_repel(aes(label=gene), size=2, show.legend=FALSE) +
   theme_bw()
 ```
 
@@ -288,7 +289,7 @@ It has been shown above that accounting for spatial dependence between spots/cel
 ```{r stdiff_wilcox}
 deg_wilcox <- STdiff(melanoma, 
                      samples='ST_mel1_rep1', 
-                     w=0.025, k='dtc', deepSplit=F, 
+                     w=0.025, k='dtc', deepSplit=FALSE, 
                      topgenes=1000,
                      test_type='wilcoxon')
 ```
@@ -314,7 +315,7 @@ vp <- STdiff_volcano(deg)
 Now, the `ggpubr` package can be used to arrange all plots:
 
 ```{r volc_plots2, warning=F, fig.width=7.5, fig.height=4, fig.align='center'}
-ggpubr::ggarrange(plotlist=vp, ncol=3, common.legend=T)
+ggpubr::ggarrange(plotlist=vp, ncol=3, common.legend=TRUE)
 ```
 
 ## References
