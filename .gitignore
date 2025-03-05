@@ -10,3 +10,5 @@ R/.DS_Store
 R/STdiff_2.R
 vignettes/.Rhistory
 .Rbuildignore
+src/*.o
+src/*.so
