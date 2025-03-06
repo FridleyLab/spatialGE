@@ -92,7 +92,7 @@ clin_file <- list.files(data_files, full.names=TRUE, recursive=FALSE, pattern='c
 We can load the files into an STlist using this command:
 
 ```{r create_stlist, warning=F}
-tnbc <- STlist(rnacounts=visium_folders, samples=clin_file)
+tnbc <- STlist(rnacounts=visium_folders, samples=clin_file, cores=2)
 ```
 
 The `tnbc` object is an STlist that contains the count data, spot coordinates, and clinical meta data.
@@ -150,7 +150,7 @@ hm_p <- pseudobulk_heatmap(tnbc, plot_meta='patient_id', hm_display_genes=30)
 Many transformation methods are available for RNAseq count data. In `spatialGE`, the function `transform_data` applies log-transformation to the counts, after library size normalization performed on each sample separately. Similar to [Seurat](https://satijalab.org/seurat/reference/normalizedata), it applies a scaling factor (`scale_f=10000` by default).
 
 ```{r norm_chunk}
-tnbc <- transform_data(tnbc, method='log')
+tnbc <- transform_data(tnbc, method='log', cores=2)
 ```
 
 Users also can apply variance-stabilizing transformation (SCT; @hafemeister_2019), which is another method increasingly used in single-cell and spatial transcriptomics studies. See [here](https://fridleylab.github.io/spatialGE/reference/transform_data.html) for details.
@@ -186,7 +186,7 @@ The function `gene_interpolation` performs kriging of gene expression via the `f
 ```{r genekrige_chunk}
 tnbc <- gene_interpolation(tnbc, 
                            genes=c('NDRG1', 'IGKC'),
-                           samples=c('sample_094c', 'sample_117e'))
+                           samples=c('sample_094c', 'sample_117e'), cores=2)
 ```
 
 Generating gene expression surfaces can be time consuming. The finer resolution to which the surface is to be predicted (`ngrid` argument), the longer the time it takes. The execution time also depends on the number of spots/cells. The surfaces can be visualized using the `STplot_interpolation()` function:
@@ -217,7 +217,7 @@ We'll try several weights to see it's effect on the cluster assignments:
 ```{r clustespots_chunk, warning=F, message=F}
 tnbc <- STclust(tnbc, 
                 ks='dtc', 
-                ws=c(0, 0.025, 0.05, 0.2))
+                ws=c(0, 0.025, 0.05, 0.2), cores=2)
 ```
 
 Results of clustering can be plotted via the `STplot` function:
@@ -239,7 +239,7 @@ To explore the relationship between a clinical (sample-level) variable of intere
 ```{r sthet_chunk}
 tnbc <- SThet(tnbc, 
               genes=c('NDRG1', 'IGKC'),
-              method='moran')
+              method='moran', cores=2)
 ```
 
 The `SThet` function calculates the Moran's I statsitic (or Geary's C) to measure the level of spatial heterogeneity in the expression of the genes ( *NDRG1*, *IGKC*). The estimates can be compared across samples using the function `compare_SThet()`
@@ -290,6 +290,7 @@ kableExtra::add_footnote(kbl_t,
 To better understand how the Moran's I and Geary's C statistics quantify spatial heterogeneity, tissue can be simulated using the `scSpatialSIM` and `spatstat` packages. Also `tidyverse` and `janitor` for some data manipulation.
 
 ```{r load_simpkg, message=F}
+library('rpart')
 library('spatstat')
 library('scSpatialSIM')
 library('tidyverse')
@@ -363,7 +364,7 @@ sim_xy <- sim_visium_df %>%
 
 # The `STlist` function can take a list of data frames
 simulated <- STlist(rnacounts=list(sim_visium=sim_expr), 
-                   spotcoords=list(sim_visium=sim_xy))
+                    spotcoords=list(sim_visium=sim_xy), cores=2)
 
 # Plot expression
 ps <- STplot(simulated, genes=c('gene_1', 'gene_2', 'gene_3'), data_type='raw', color_pal='sunset', ptsize=1)
@@ -374,7 +375,7 @@ As expected, simulated expression of "gene_1" is aggregated (i.e., clustered, re
 
 ```{r tissue_sim_5, warning=F, message=F}
 # The `SThet` function requires normalized data
-simulated <- transform_data(simulated)
+simulated <- transform_data(simulated, cores=2)
 
 # Run `SThet`
 simulated <- SThet(simulated, genes=c('gene_1', 'gene_2', 'gene_3'), method=c('moran', 'geary'))

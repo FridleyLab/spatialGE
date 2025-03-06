@@ -31,8 +31,8 @@ data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
 count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file) # Only first four samples
+melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file, cores=2) # Only first four samples
 melanoma <- pseudobulk_samples(melanoma)
-pseudobulk_pca_plot(melanoma)
+pseudobulk_dim_plot(melanoma)
 
 }

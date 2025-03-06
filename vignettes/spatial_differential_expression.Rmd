@@ -59,7 +59,7 @@ clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
 We can load the data into an STlist object with:
 
 ```{r create_stlist, warning=F}
-melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file)
+melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file, cores=2)
 ```
 
 *Note*: If you receive a warning indicating that an input file has a incomplete final line, you can ignore it. Alternatively, modify the input files with a text editor by adding an empty line at the end of the files.
@@ -73,7 +73,7 @@ melanoma
 To normalize the ST data, the `transform_data` is used:
 
 ```{r norm_chunk}
-melanoma <- transform_data(melanoma)
+melanoma <- transform_data(melanoma, cores=2)
 ```
 
 ### A variogram of gene expression in ST data
@@ -212,7 +212,7 @@ The `STclust` function groups spots/cells into tissue domains using hierarchical
 ```{r clustespots_chunk, warning=F}
 melanoma <- STclust(melanoma, 
                     ks='dtc', 
-                    ws=0.025)
+                    ws=0.025, cores=2)
 ```
 
 Results of `STclust` domain detection can be plotted using the `STplot` function:
@@ -234,7 +234,7 @@ deg <- STdiff(melanoma,
               samples='ST_mel1_rep1', 
               w=0.025, k='dtc', deepSplit=FALSE, 
               topgenes=1000,
-              sp_topgenes=0.2) # Test the 20% of the top differentially expressed genes (based on adjusted p-value)
+              sp_topgenes=0.2, cores=2) # Test the 20% of the top differentially expressed genes (based on adjusted p-value)
 ```
 
 The output of `STdiff` is a list, where each element is a data frame containing the test results for each sample:
@@ -291,7 +291,7 @@ deg_wilcox <- STdiff(melanoma,
                      samples='ST_mel1_rep1', 
                      w=0.025, k='dtc', deepSplit=FALSE, 
                      topgenes=1000,
-                     test_type='wilcoxon')
+                     test_type='wilcoxon', cores=2)
 ```
 
 No spatial tests are executed when Wilcoxon's Rank tests or T-tests are requested.

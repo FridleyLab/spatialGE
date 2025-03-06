@@ -19,9 +19,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file) # Only first four samples
+#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file, cores=2) # Only first four samples
 #' melanoma <- pseudobulk_samples(melanoma)
-#' pseudobulk_pca_plot(melanoma)
+#' pseudobulk_dim_plot(melanoma)
 #'
 #' @export pseudobulk_samples
 #'
@@ -155,12 +155,12 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 ##' # Using included melanoma example (Thrane et al.)
 #' library('spatialGE')
 #' data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
-#' count_files <- list.files(data_files, full.names=T, pattern='counts')
-#' coord_files <- list.files(data_files, full.names=T, pattern='mapping')
-#' clin_file <- list.files(data_files, full.names=T, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file) # Only first two samples
+#' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
+#' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
+#' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
+#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file, cores=2) # Only first two samples
 #' melanoma <- pseudobulk_samples(melanoma)
-#' pseudobulk_pca_plot(melanoma, plot_meta='patient')
+#' pseudobulk_dim_plot(melanoma, plot_meta='patient')
 #'
 #' @export pseudobulk_dim_plot
 #'
@@ -254,10 +254,10 @@ pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='p
 ##' # Using included melanoma example (Thrane et al.)
 #' library('spatialGE')
 #' data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
-#' count_files <- list.files(data_files, full.names=T, pattern='counts')
-#' coord_files <- list.files(data_files, full.names=T, pattern='mapping')
-#' clin_file <- list.files(data_files, full.names=T, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file) # Only first two samples
+#' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
+#' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
+#' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
+#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file, cores=2) # Only first two samples
 #' melanoma <- pseudobulk_samples(melanoma)
 #' hm <- pseudobulk_heatmap(melanoma, plot_meta='BRAF_status', hm_display_genes=30)
 #'

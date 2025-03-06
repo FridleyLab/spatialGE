@@ -206,7 +206,7 @@ cluster_gene_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
     if(!plot_meta %in% colnames(x@spatial_meta[[i]])){
       warning(paste0('Variable ', plot_meta, ' is not present in sample ', i, '.'))
       samples = grep(paste0('^', i, '$'), samples, value=T, invert=T)
-    } else if(!plyr::is.discrete(x@spatial_meta[[i]][[plot_meta]]) | length(unique(x@spatial_meta[[i]][[plot_meta]])) > 30){
+    } else if(is.double(x@spatial_meta[[i]][[plot_meta]]) | length(as.character(unique(x@spatial_meta[[i]][[plot_meta]]))) > 30){
       warning(paste0('Variable ', plot_meta, ' seems continuous or has more than 30 categories and will be skipped for sample ', i, '.'))
       samples = grep(paste0('^', i, '$'), samples, value=T, invert=T)
     }
@@ -250,6 +250,8 @@ cluster_gene_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
                                                    x@spatial_meta[[i]][, c('libname', plot_meta)], by='libname'))
       }
     }
+    # Force categories as character
+    df_tmp[[plot_meta]] = as.character(df_tmp[[plot_meta]])
 
     # Define color palette
     gene_cols = color_parse(color_pal, n_cats=length(unique(df_tmp[[plot_meta]])))

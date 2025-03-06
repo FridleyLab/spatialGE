@@ -83,7 +83,7 @@ exprmats <- c('~/Desktop/lung_cancer_smi/Lung5_Rep1/Lung5_Rep1-Flat_files_and_im
 metas <- c('~/Desktop/lung_cancer_smi/Lung5_Rep1/Lung5_Rep1-Flat_files_and_images/Lung5_Rep1_metadata_file.csv',
              '~/Desktop/lung_cancer_smi/Lung6/Lung6-Flat_files_and_images/Lung6_metadata_file.csv')
 
-lung <- STlist(rnacounts=exprmats, spotcoords=metas, samples=c('Lung5_Rep1', 'Lung6'))
+lung <- STlist(rnacounts=exprmats, spotcoords=metas, samples=c('Lung5_Rep1', 'Lung6'), cores=2)
 ```
 
 To obtain count statistics, the `summarize_STlist` function can be used:
@@ -120,7 +120,7 @@ lung <- filter_data(lung, rm_tissue=fovs_rm)
 The function `transform_data` allows data transformation using one of two possible options. The first options applies log-transformation to the counts, after library size normalization performed on each sample separately. The second option applies variance-stabilizing transformation (SCT; @hafemeister_2019), which is a method increasingly used in single-cell and spatial transcriptomics studies. To apply SCT transformation, use the following command:
 
 ```{r norm_chunk, message=F}
-lung <- transform_data(lung, method='sct')
+lung <- transform_data(lung, method='sct', cores=2)
 ```
 
 ## Detecting gene sets with spatial aggregation patterns
@@ -181,7 +181,7 @@ stenrich_df <- STenrich(lung, gene_sets=gene_sets,
                         num_sds=1.5, 
                         min_genes=5,
                         min_units=10, 
-                        seed=12345) 
+                        seed=12345, cores=2) 
 ```
 
 The result of the function is a list of data frames, with one data frame per samples (FOV in this case). For example, this is the data frame for the first FOV in the STlist:
@@ -256,7 +256,7 @@ Although expression of the NOTCH signaling pathway is higher overall in "Lung6",
 Since this expression of this pathway has been identified as spatially aggregated, it might be of interest to know if there is correspondence of NOTCH signaling with tissue domains. With the `STclust` function, tissue domains can be identified. 
 
 ```{r stclust_smi}
-lung <- STclust(lung, ws=0.02, ks='dtc')
+lung <- STclust(lung, ws=0.02, ks='dtc', cores=2)
 ```
 
 Optinally, if tissue images are available for some or all the FOVs, users can upload those to the STlist for display next to the other plot types available in `spatialGE`. Users can upload an entire folder of images to the STlist, as long as image files have the same names as the FOVs within the STlist (e.g., "Lung5_Rep1_fov_2", "Lung6_fov_4", etc). Keep in mind, however, this will increase the size of the STlist significantly, especially in CosMx experiment that usually contain many FOVs. Here, only the images for the FOVs on which domain prediction was done will be uploaded. To do that, the corresponding images need to be renamed. Please, locate in the downloaded data the folder named "CellComposite" (there is one for each slide). The files are named "CellComposite_F001.jpg", "CellComposite_F002.jpg", and so on. The consecutive numbers indicate the FOV id. Now please rename the files as follows:
@@ -309,7 +309,7 @@ ggpubr::ggarrange(dom_p$Lung5_Rep1_fov_2_stclust_spw0.02_dsplFalse,
 Now, to identify the domains, differential gene expression can be performed:
 
 ```{r domain_de}
-deg <- STdiff(lung, w=0.02, k='dtc', deepSplit=FALSE, test_type='wilcoxon')
+deg <- STdiff(lung, w=0.02, k='dtc', deepSplit=FALSE, test_type='wilcoxon', cores=2)
 ```
 
 Then, the top 3 DE genes per cluster in the samples showing NOTCH signaling spatial patterns are identified:
@@ -351,7 +351,7 @@ stg <- STgradient(lung,
                   ref=3,
                   samples=c('Lung6_fov_4', 'Lung6_fov_6', 'Lung6_fov_7'), 
                   distsumm='min', 
-                  robust=TRUE)
+                  robust=TRUE, cores=2)
 ```
 
 Here are the first few rows of the `STgradient` result for sample "Lung6_fov_4":
