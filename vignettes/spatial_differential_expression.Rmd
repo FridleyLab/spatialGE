@@ -91,7 +91,7 @@ melanoma <- transform_data(melanoma, cores=2)
 
 ### A variogram of gene expression in ST data
 
-The expression of the gene _COL1A1_ will be used to illustrate spatial dependency in ST. The gene _COL1A1_ is one of the collagen genes, a key component of the extracellular matrix and the stroma compartment. The stroma is the region in a cancer tissue that surrounds and often supports the tumor cells. The variogram can show how its expression varies with respect to the distance between spots within the sample ST_mel1_rep1.
+The expression of the gene _COL1A1_ will be used to illustrate spatial dependency in ST. The gene _COL1A1_ is one of the collagen genes, a key component of the extracellular matrix and the stroma compartment. The stroma is the region in a cancer tissue that surrounds and often supports the tumor cells. The variogram can show how its expression varies with respect to the distance between spots within the sample "ST_mel1_rep2".
 
 Load `tidtverse` for data manipulation:
 
@@ -99,11 +99,11 @@ Load `tidtverse` for data manipulation:
 library('tidyverse')
 ```
 
-Then, data frame is created with both gene _COL1A1_ gene expression and spatial coordinates from sample ST_mel1_rep1.
+Then, data frame is created with both gene _COL1A1_ gene expression and spatial coordinates from sample "ST_mel1_rep2".
 
 ```{r variogram_chunk}
 # Sample and gene to be used in example
-samplename <- 'ST_mel1_rep1'
+samplename <- 'ST_mel1_rep2'
 gene <- 'COL1A1'
 
 # Prepare data with coordinate and expression data
@@ -192,7 +192,7 @@ lines(sph_model, col=alpha('blue', 0.7), lwd=3)
 lines(gau_model, col=alpha('orange', 0.7), lwd=3)
 ```
 
-In the case of _COL1A1_ for sample 'ST_mel1_rep1', all models (exponential, spherical, and gaussian) fit well the variogram. Due to computational constraints, the `geoR` package is not used in `spatialGE` to estimate the covariance structures. Rather, the `spaMM` package has been used and only the exponential covariance structure has been implemented. While this choice is not optimal for all genes, accounting for the spatial dependency even if the model fit is not optimal, is likely better than not accounting for the spatial dependency at all.
+In the case of _COL1A1_ for sample "ST_mel1_rep2", all models (exponential, spherical, and gaussian) fit well the variogram. Due to computational constraints, the `geoR` package is not used in `spatialGE` to estimate the covariance structures. Rather, the `spaMM` package has been used and only the exponential covariance structure has been implemented. While this choice is not optimal for all genes, accounting for the spatial dependency even if the model fit is not optimal, is likely better than not accounting for the spatial dependency at all.
 
 </details>
 
@@ -232,7 +232,7 @@ Results of `STclust` domain detection can be plotted using the `STplot` function
 
 ```{r plotclustspots_chunk, fig.align='center', fig.height=4, fig.width=3}
 cluster_p <- STplot(melanoma, 
-                    samples='ST_mel1_rep1', 
+                    samples='ST_mel1_rep2', 
                     ws=0.025, 
                     deepSplit=FALSE,
                     ptsize=2, color_pal=c('#00BA38', '#EEBA38', '#619CFF', '#F8766D'))
@@ -244,7 +244,7 @@ With the domains identified, the `STdiff` function can be used. The following co
 
 ```{r stdiff_chunk}
 deg <- STdiff(melanoma, 
-              samples='ST_mel1_rep1', 
+              samples='ST_mel1_rep2', 
               w=0.025, k='dtc', deepSplit=FALSE, 
               topgenes=1000,
               sp_topgenes=0.2, cores=2) # Test the 20% of the top differentially expressed genes (based on adjusted p-value)
@@ -253,7 +253,7 @@ deg <- STdiff(melanoma,
 The output of `STdiff` is a list, where each element is a data frame containing the test results for each sample:
 
 ```{r stdiff_res1}
-print(deg[['ST_mel1_rep1']])
+print(deg[['ST_mel1_rep2']])
 ```
 
 The columns `p_val` and `adj_p_val` are respectively the nominal and adjusted p-values resulting from the differential expression tests using the _non-spatial_ models. The `exp_p_val` and `exp_adj_p_val` are the p-values resulting from the _spatial_ models.
@@ -267,7 +267,7 @@ We can look at the -log10(p-values) to compare each spatial model to the non-spa
 library('ggrepel')
 
 # Calculate -log10 p-values
-log_pval <- deg[['ST_mel1_rep1']] %>%
+log_pval <- deg[['ST_mel1_rep2']] %>%
   select(gene, cluster_1, mm_p_val, exp_p_val) %>%
   mutate(log_p_val= -log10(mm_p_val+1e-100)) %>% # Add a constant to avoid -log10(0)
   mutate(log_exp_p_val= -log10(exp_p_val+1e-100))
@@ -301,7 +301,7 @@ It has been shown above that accounting for spatial dependence between spots/cel
 
 ```{r stdiff_wilcox}
 deg_wilcox <- STdiff(melanoma, 
-                     samples='ST_mel1_rep1', 
+                     samples='ST_mel1_rep2', 
                      w=0.025, k='dtc', deepSplit=FALSE, 
                      topgenes=1000,
                      test_type='wilcoxon', cores=2)
@@ -310,7 +310,7 @@ deg_wilcox <- STdiff(melanoma,
 No spatial tests are executed when Wilcoxon's Rank tests or T-tests are requested.
 
 ```{r stdiff_wilcox_res}
-print(deg_wilcox[['ST_mel1_rep1']])
+print(deg_wilcox[['ST_mel1_rep2']])
 ```
 
 </details>
