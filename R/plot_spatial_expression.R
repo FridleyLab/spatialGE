@@ -27,6 +27,9 @@
 #
 plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuRd', data_type='tr', visium=T, ptsize=NULL){
 
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Test that a gene name was entered.
   if (is.null(genes)) {
     stop("Please, enter one or more genes to plot.")

@@ -1,43 +1,44 @@
 ##
-#' @title STenrich_old
-#' @description Test for spatial enrichment of gene expression sets in ST data sets
-#' @details The function performs a randomization test to assess if the sum of
-#' distances between cells/spots with high expression of a gene set is lower than
-#' the sum of distances of randomly selected cells/spots. The cells/spots are
-#' considered as having high gene set expression if the average expression of genes in a
-#' set is higher than the average expression plus a `num_sds` times the standard deviation.
-#' Control over the size of regions with high expression is provided by setting the
-#' minimum number of cells or spots (`min_units`). This method is a modification of
-#' the method devised by Hunter et al. 2021 (zebrafish melanoma study)
-#'
-#' @param x an STlist with transformed gene expression
-#' @param samples a vector with sample names or indexes to run analysis
-#' @param gene_sets a named list of gene sets to test. The names of the list should
-#' identify the gene sets to be tested
-#' @param reps the number of random samples to be extracted. Default is 1000 replicates
-#' @param num_sds the number of standard deviations to set the minimum gene set
-#' expression threshold. Default is one (1) standard deviation
-#' @param min_units Minimum number of spots with high expression of a pathway for
-#' that gene set to be considered in the analysis. Defaults to 20 spots or cells
-#' @param min_genes the minimum number of genes of a gene set present in the data set
-#' for that gene set to be included. Default is 5 genes
-#' @param pval_adj_method the method for multiple comparison adjustment of p-values.
-#' Options are the same as that of `p.adjust`. Default is 'BH'
-#' @param seed the seed number for the selection of random samples. Default is 12345
-#' @param cores the number of cores used during parallelization. If NULL (default),
-#' the number of cores is defined automatically
-#' @return a list of data frames with the results of the test
-#'
-#' @export
-#'
+# @title STenrich_old
+# @description Test for spatial enrichment of gene expression sets in ST data sets
+# @details The function performs a randomization test to assess if the sum of
+# distances between cells/spots with high expression of a gene set is lower than
+# the sum of distances of randomly selected cells/spots. The cells/spots are
+# considered as having high gene set expression if the average expression of genes in a
+# set is higher than the average expression plus a `num_sds` times the standard deviation.
+# Control over the size of regions with high expression is provided by setting the
+# minimum number of cells or spots (`min_units`). This method is a modification of
+# the method devised by Hunter et al. 2021 (zebrafish melanoma study)
+#
+# @param x an STlist with transformed gene expression
+# @param samples a vector with sample names or indexes to run analysis
+# @param gene_sets a named list of gene sets to test. The names of the list should
+# identify the gene sets to be tested
+# @param reps the number of random samples to be extracted. Default is 1000 replicates
+# @param num_sds the number of standard deviations to set the minimum gene set
+# expression threshold. Default is one (1) standard deviation
+# @param min_units Minimum number of spots with high expression of a pathway for
+# that gene set to be considered in the analysis. Defaults to 20 spots or cells
+# @param min_genes the minimum number of genes of a gene set present in the data set
+# for that gene set to be included. Default is 5 genes
+# @param pval_adj_method the method for multiple comparison adjustment of p-values.
+# Options are the same as that of `p.adjust`. Default is 'BH'
+# @param seed the seed number for the selection of random samples. Default is 12345
+# @param cores the number of cores used during parallelization. If NULL (default),
+# the number of cores is defined automatically
+# @return a list of data frames with the results of the test
+#
+# @export
+#
 #' @importFrom magrittr %>%
+#' @importFrom stats p.adjust
 #
 #
 STenrich_old = function(x=NULL, samples=NULL, gene_sets=NULL, reps=1000, num_sds=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
-  cat(crayon::yellow("Running STenrich...\n"))
+  cat("Running STenrich...\n")
 
   reps = as.integer(reps)
   num_sds = as.double(num_sds)
@@ -68,7 +69,7 @@ STenrich_old = function(x=NULL, samples=NULL, gene_sets=NULL, reps=1000, num_sds
 
   # Loop through samples in STlist
   result_dfs = parallel::mclapply(samples, function(i){
-    system(sprintf('echo "%s"', crayon::yellow(paste0("\tSample: ", i, "..."))))
+    system(sprintf('echo "%s"', paste0("\tSample: ", i, "...")))
     # Extract spots to be used in analysis
     # This selection implemented proactively as analysis might later be applied to tissue niches within samples
     tissue_spots = x@spatial_meta[[i]][['libname']]
@@ -165,7 +166,7 @@ STenrich_old = function(x=NULL, samples=NULL, gene_sets=NULL, reps=1000, num_sds
   verbose = 1L
   end_t = difftime(Sys.time(), zero_t, units='min')
   if(verbose > 0L){
-    cat(crayon::green(paste0('STenrich completed in ', round(end_t, 2), ' min.\n')))
+    cat(paste0('STenrich completed in ', round(end_t, 2), ' min.\n'))
   }
 
   return(result_dfs)

@@ -10,6 +10,7 @@
 #' @param x an STlist.
 #' @param max_var_genes number of most variable genes (standard deviation) to use in
 #' pseudobulk analysis
+#' @param calc_umap logical, whether to calculate UMAP embeddings in addition to PCs
 #' @return an STlist with appended pseudobulk counts and PCA coordinates
 #'
 #' @examples
@@ -19,7 +20,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file, cores=2) # Only first four samples
+#' melanoma <- STlist(rnacounts=count_files[c(1:4)],
+#'                    spotcoords=coord_files[c(1:4)],
+#'                    samples=clin_file, cores=2) # Only first four samples
 #' melanoma <- pseudobulk_samples(melanoma)
 #' pseudobulk_dim_plot(melanoma)
 #'
@@ -145,6 +148,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 #' variable specified in `plot_meta`
 #' @param plot_meta a string indicating the name of the variable in the sample
 #' metadata to color points in the PCA plot
+#' @param dim one of `umap` or `pca`. The dimension reduction to plot
 #' @param pcx integer indicating the principal component to plot in the x axis
 #' @param pcy integer indicating the principal component to plot in the y axis
 #' @param ptsize the size of the points in the PCA plot. Passed to the `size`
@@ -158,7 +162,9 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file, cores=2) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1:4)],
+#'                    spotcoords=coord_files[c(1:4)],
+#'                    samples=clin_file, cores=2) # Only first two samples
 #' melanoma <- pseudobulk_samples(melanoma)
 #' pseudobulk_dim_plot(melanoma, plot_meta='patient')
 #'
@@ -257,7 +263,9 @@ pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='p
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1:4)], spotcoords=coord_files[c(1:4)], samples=clin_file, cores=2) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1:4)],
+#'                    spotcoords=coord_files[c(1:4)],
+#'                    samples=clin_file, cores=2) # Only first two samples
 #' melanoma <- pseudobulk_samples(melanoma)
 #' hm <- pseudobulk_heatmap(melanoma, plot_meta='BRAF_status', hm_display_genes=30)
 #'

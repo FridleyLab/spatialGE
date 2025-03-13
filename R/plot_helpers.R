@@ -25,7 +25,6 @@
 #
 #
 quilt_p <- function(data_f=NULL, color_pal="BuRd", leg_name='', title_name='', minvalue=minvalue, maxvalue=maxvalue, visium=T, ptsize=0.5){
-  #requireNamespace('ggplot2')
 
   # Creates color palette function.
   p_palette = color_parse(color_pal)
@@ -85,14 +84,13 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
                     title_name='', minvalue=minvalue, maxvalue=maxvalue,
                     visium=T){
 
-  #require('ggplot2')
-  require('ggpolypath')
+  #requireNamespace('sf')
 
   # Creates color palette function.
   p_palette = color_parse(color_pal)
 
   # Convert the SpatialPolygon mask into a data frame.
-  mask_df <- ggplot2::fortify(mask)
+  #mask_df <- ggplot2::fortify(mask)
 
   # Create plot.
   p <- ggplot2::ggplot(data=data_f, ggplot2::aes(x=x_pos, y=y_pos)) +
@@ -101,16 +99,16 @@ krige_p <- function(data_f=NULL, mask=NULL, color_pal="YlOrBr", leg_name='',
     ggplot2::xlab("X Position") +
     ggplot2::ylab("Y Position") +
     ggplot2::labs(fill=leg_name, title=title_name) +
-    ggpolypath::geom_polypath(data=mask_df, ggplot2::aes(long, lat, group=group),
-                              size=2, color='white', fill="white", inherit.aes=F) +
+    ggplot2::geom_sf(data=mask, color='white', fill="white", linewidth=2, inherit.aes=F) +
     ggplot2::theme_void()
 
-  if(visium){
-    p <- p + ggplot2::scale_y_reverse() #+ scale_x_reverse() +
-      #coord_fixed(ratio=1.7)
-  }
+  # if(visium){
+  #   p <- p + ggplot2::scale_y_reverse() #+ scale_x_reverse() +
+  #     #coord_fixed(ratio=1.7)
+  # }
 
-  p <- p + ggplot2::coord_equal() + ggplot2::theme(legend.position="right")
+  p <- p + #ggplot2::coord_equal() +
+    ggplot2::theme(legend.position="right")
 
   return(p)
 }

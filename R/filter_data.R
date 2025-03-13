@@ -44,7 +44,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,2)],
+#'                    spotcoords=coord_files[c(1,2)],
+#'                    samples=clin_file) # Only first two samples
 #' melanoma <- filter_data(melanoma, spot_minreads=2000)
 #'
 #' @export
@@ -66,7 +68,8 @@ filter_data = function(x=NULL,
                        rm_genes_expr=NULL,
                        spot_pct_expr="^MT-"){
 
-  #require('magrittr')
+  # To prevent NOTES in R CMD check
+  . = NULL
 
   # Check than an STList was provided
   if(is.null(x)){

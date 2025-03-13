@@ -22,6 +22,10 @@
 #
 #
 plot_spatial_geneset = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuRd', visium=T, ptsize=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # May implement later
   image = F
 

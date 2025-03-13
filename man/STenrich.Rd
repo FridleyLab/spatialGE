@@ -30,9 +30,15 @@ identify the gene sets to be tested}
 
 \item{score_type}{Controls how gene set expression is calculated. The options are
 the average expression among genes in a set ('avg'), or a GSEA score ('gsva'). The
-default is 'avg'.}
+default is 'avg'}
 
 \item{reps}{the number of random samples to be extracted. Default is 1000 replicates}
+
+\item{annot}{name of the annotation within \code{x@spatial_meta} containing the spot/cell
+categories. Needs to be used in conjunction with \code{domain}}
+
+\item{domain}{the domain to restrict the analysis. Must exist within the spot/cell
+categories included in the selected annotation (i.e., \code{annot})}
 
 \item{num_sds}{the number of standard deviations to set the minimum gene set
 expression threshold. Default is one (1) standard deviation}

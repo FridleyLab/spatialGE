@@ -16,12 +16,6 @@
 #' Default is 10.
 #' @param samples the spatial samples for which interpolations will be performed.
 #' If NULL (Default), all samples are interpolated.
-#' @param ngrid an integer indicating the number of point to predict. Default is 10000,
-#' resulting in a grid of 100 x 100 points. Larger numbers provide more resolution,
-#' but computing time is longer.
-#' @param REML wheter to use restricted maximum likelihood to estimate spatial covariance
-#' parameters. Default is FALSE. Setting to TRUE might speed up interpolation, but some
-#' issue have been found.
 #' @param cores integer indicating the number of cores to use during parallelization.
 #' If NULL, the function uses half of the available cores at a maximum. The parallelization
 #' uses `parallel::mclapply` and works only in Unix systems.
@@ -34,7 +28,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,2)],
+#'                    spotcoords=coord_files[c(1,2)],
+#'                    samples=clin_file) # Only first two samples
 #' melanoma <- transform_data(melanoma)
 #' melanoma <- gene_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
 #' kp = STplot_interpolation(melanoma, genes=c('MLANA', 'COL1A1'))
@@ -42,31 +38,36 @@
 #'
 #' @export
 #'
-#' @import fields
 #' @importFrom magrittr %>%
-#'
-gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid=10000, REML=F, cores=NULL){
+#
+#
+gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Record time
   zero_t = Sys.time()
   verbose = 1L
   if(verbose > 0L){
-    cat(crayon::green(paste0('Gene interpolation started.\n')))
+    cat('Gene interpolation started.\n')
   }
 
-  suppressPackageStartupMessages(require('fields'))
+  #suppressPackageStartupMessages(require('fields'))
+  #requireNamespace('fields')
 
   # Resolution removed after implementation of `fields` interpolation
-  res=0.5
+  #res=0.5
   # Covariance structure between spots/cells
   # May later allow users to select Exponential or Mattern (both supported by fields)
-  covstr = 'Exponential'
+  #covstr = 'Exponential'
   #covstr = 'Matern'
   #smoothness = 0.5
   # Specify number of spots in grid
-  nxy = ceiling(sqrt(ngrid))
+  #nxy = ceiling(sqrt(ngrid))
 
   top_n = as.integer(top_n)
-  res = as.double(res)
+  #res = as.double(res)
 
   # Test that transformed counts are available
   if(rlang::is_empty(x@tr_counts)) {
@@ -95,7 +96,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
       if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
         x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
       }
-      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
         tibble::rownames_to_column(var='gene') %>%
         dplyr::select('gene', 'vst.variance.standardized') %>%
         dplyr::left_join(x@gene_meta[[i]], ., by='gene')
@@ -122,18 +123,18 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
   x@misc[['gene_krige']][['type']] = 'ordinary'
 
   # Specify resolution if not input by user
-  if(is.null(res)){
-    res = 0.5
-  }
-  x@misc[['gene_krige']][['res']] = res
+  # if(is.null(res)){
+  #   res = 0.5
+  # }
+  #x@misc[['gene_krige']][['res']] = res
 
   # Give warning about kriging res < 0.5 for large matrices (e.g. Visium)
-  sizes = lapply(x@spatial_meta[samples], nrow)
-  if(res < 0.5 & (any(sizes > 1000))){
-    cat('Kriging at the requested resolution is computationally expensive. Setting to res=0.5\n')
-    res=0.5
-  }
-  rm(sizes) # Clean environment
+  # sizes = lapply(x@spatial_meta[samples], nrow)
+  # if(res < 0.5 & (any(sizes > 1000))){
+  #   cat('Kriging at the requested resolution is computationally expensive. Setting to res=0.5\n')
+  #   res=0.5
+  # }
+  # rm(sizes) # Clean environment
 
   # Create lists to store prediction grids and borders.
   if(is.null(x@misc[['gene_krige']][['krige_border']])){
@@ -164,7 +165,8 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
   }
 
   # Save interpolation method
-  x@misc[['gene_krige']][['gene_krige_algorithm']] = 'fields'
+  #x@misc[['gene_krige']][['gene_krige_algorithm']] = 'fields'
+  x@misc[['gene_krige']][['gene_krige_algorithm']] = 'gstat'
 
   # Store decompressed transformed counts list in separate object
   # tr_counts = list()
@@ -199,18 +201,27 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
       # Match order of library names in counts data and coordinate data
       gene_expr = gene_expr[match(x@spatial_meta[[i]][[1]], gene_expr[[1]]), ]
       gene_geo_df = dplyr::bind_cols(x@spatial_meta[[i]][c('xpos', 'ypos')], gene_expr=as.numeric(gene_expr[[2]]))
+      gene_geo_df = as.data.frame(gene_geo_df)
+      sp::coordinates(gene_geo_df) = ~xpos+ypos
 
       rm(gene_expr) # Clean env
 
+      # Create a grid with points in the middle of each coordinate
+      ny = range(sp::coordinates(gene_geo_df)[, 'ypos'])
+      ny = length(seq(ny[1], ny[2], by=100))
+      nx = range(sp::coordinates(gene_geo_df)[, 'xpos'])
+      nx = length(seq(nx[1], nx[2], by=100))
+      grid_sf = sf::st_make_grid(gene_geo_df, n=c(nx, ny), what="centers")
+
       # Give hope to users...
-      system(sprintf('echo "%s"', crayon::yellow(paste0("\tInterpolating ", j, ' in ', i, "...."))))
-      # Fit spatial process
+      system(sprintf('echo "%s"', paste0("\tInterpolating ", j, ' in ', i, "....")))
+
+      # Perform kriging
       suppressMessages({
-        cov_est = tryCatch({
-          fields::spatialProcess(x=gene_geo_df[, c('ypos', 'xpos')], y=gene_geo_df[['gene_expr']],
-                                 #spatialProcess_mod(x=gene_geo_df[, c('ypos', 'xpos')], y=gene_geo_df[['gene_expr']],
-                                 cov.args=list(Covariance=covstr),
-                                 verbose=F, REML=REML)
+        krige_out = tryCatch({
+          dat_vgm = gstat::variogram(gene_expr~1, gene_geo_df) # Calculates sample variogram values
+          est_vgm = gstat::fit.variogram(dat_vgm, gstat::vgm('Exp')) # Fit variaogram
+          krige_pred = gstat::krige(gene_expr~1, gene_geo_df, grid_sf, model=est_vgm) # Predict values
         },
         error=function(err){return(err)}
         )
@@ -218,18 +229,22 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
 
       # Compute surface if parameters available and save kriging values
       # Record if kriging was successful
-      if(any(class(cov_est) == 'simpleError') | !cov_est[['optimSuccess']]){
+      #if(any(class(cov_est) == 'simpleError') | !cov_est[['optimSuccess']]){
+      if(any(class(krige_out) == 'simpleError')){
         kriging_res[[j]] = list(krige_out=NULL,
                                 success_or_not='error')
       } else{
-        kriging_res[[j]] = list(krige_out=fields::predictSurface(cov_est, nx=nxy, ny=nxy, extrap=T))
-        if(any(class(cov_est) == 'simpleWarning')){
+        krige_tmp = as.data.frame(sf::st_coordinates(krige_out))
+        krige_tmp[['krige']] = krige_out[['var1.pred']]
+        kriging_res[[j]] = list(krige_out=krige_tmp)
+        rm(krige_tmp) # Clean env
+        if(any(class(krige_out) == 'simpleWarning')){
           kriging_res[[j]][['success_or_not']] = 'warning'
         } else{
           kriging_res[[j]][['success_or_not']] = 'kriging_completed'
         }
       }
-      rm(cov_est) # Clean env
+      rm(krige_out) # Clean env
     }
 
     return(kriging_res)
@@ -247,7 +262,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, ngrid
   # Print time
   end_t = difftime(Sys.time(), zero_t, units='min')
   if(verbose > 0L){
-    cat(crayon::green(paste0('Gene interpolation completed in ', round(end_t, 2), ' min.\n')))
+    cat(paste0('Gene interpolation completed in ', round(end_t, 2), ' min.\n'))
   }
 
   return(x)

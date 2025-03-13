@@ -9,8 +9,6 @@ gene_interpolation(
   genes = "top",
   top_n = 10,
   samples = NULL,
-  ngrid = 10000,
-  REML = F,
   cores = NULL
 )
 }
@@ -26,14 +24,6 @@ Default is 10.}
 
 \item{samples}{the spatial samples for which interpolations will be performed.
 If NULL (Default), all samples are interpolated.}
-
-\item{ngrid}{an integer indicating the number of point to predict. Default is 10000,
-resulting in a grid of 100 x 100 points. Larger numbers provide more resolution,
-but computing time is longer.}
-
-\item{REML}{wheter to use restricted maximum likelihood to estimate spatial covariance
-parameters. Default is FALSE. Setting to TRUE might speed up interpolation, but some
-issue have been found.}
 
 \item{cores}{integer indicating the number of cores to use during parallelization.
 If NULL, the function uses half of the available cores at a maximum. The parallelization
@@ -59,7 +49,9 @@ data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
 count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+melanoma <- STlist(rnacounts=count_files[c(1,2)],
+                   spotcoords=coord_files[c(1,2)],
+                   samples=clin_file) # Only first two samples
 melanoma <- transform_data(melanoma)
 melanoma <- gene_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
 kp = STplot_interpolation(melanoma, genes=c('MLANA', 'COL1A1'))

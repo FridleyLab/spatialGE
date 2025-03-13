@@ -57,7 +57,9 @@ data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
 count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+melanoma <- STlist(rnacounts=count_files[c(1,2)],
+                   spotcoords=coord_files[c(1,2)],
+                   samples=clin_file) # Only first two samples
 melanoma <- transform_data(melanoma, method='log')
 melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
 get_gene_meta(melanoma, sthet_only=TRUE)

@@ -32,11 +32,13 @@
 #' @param min_nb the minimum number of immediate neighbors a spot or cell has to
 #' have in order to be included in the analysis. This parameter seeks to reduce the
 #' effect of isolated `ref` spots on the correlation
-#' @param robust logical, wheter to use robus regression (`MASS` and `sfsmisc` packages)
+#' @param robust logical, whether to use robust regression (`MASS` and `sfsmisc` packages)
 #' @param nb_dist_thr a numeric vector of length two indicating the tolerance interval to assign
 #' spots/cells to neighborhoods. The wider the range of the interval, the more likely
 #' distinct neighbors to be considered. If NULL, `c(0.75, 1.25)` and `c(0.25, 3)` is assigned
 #' for Visium and CosMx respectively.
+#' @param log_dist logical, whether to apply the natural logarithm to the spot/cell
+#' distances. It applies to all distances a constant (1e-200) to avoid log(0)
 #' @param cores the number of cores used during parallelization. If NULL (default),
 #' the number of cores is defined automatically
 #' @return a list of data frames with the results of the test
@@ -44,10 +46,15 @@
 #' @export
 #'
 #' @importFrom magrittr %>%
+#' @importFrom stats IQR lm cor.test p.adjust quantile
 #
 #
 STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
                       out_rm=F, limit=NULL, distsumm='min', min_nb=3, robust=T, nb_dist_thr=NULL, log_dist=F, cores=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Record time
   zero_t = Sys.time()
 
@@ -66,7 +73,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   for(i in samplenames){
     if( !(annot %in% colnames(x@spatial_meta[[i]])) ){
       sample_rm = append(sample_rm, i)
-      cat(crayon::red(paste0('The annotation specified in `annot` is not present in ', i, '\n')))
+      cat(paste0('The annotation specified in `annot` is not present in ', i, '\n'))
     }
   }
   samplenames = samplenames[ !(samplenames %in% sample_rm) ]
@@ -185,7 +192,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       if(ncol(raw_cts) > 1){
         #vargenes = Seurat::FindVariableFeatures(raw_cts, verbose=F) %>%
         vargenes = calculate_vst(x=raw_cts) %>%
-          dplyr::arrange(desc(vst.variance.standardized)) %>%
+          dplyr::arrange(dplyr::desc(vst.variance.standardized)) %>%
           dplyr::select(gene) %>%
           unlist() %>%
           as.vector()
@@ -219,9 +226,9 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
 
           for(gene in colnames(dfdist2ref)){
             # Calculate gene expression quartiles
-            quarts = quantile(dfdist2ref[[gene]], probs=c(0.25, 0.75))
+            quarts = stats::quantile(dfdist2ref[[gene]], probs=c(0.25, 0.75))
             # Calculate inter-quartile range
-            iqr_dist2ref = IQR(dfdist2ref[[gene]])
+            iqr_dist2ref = stats::IQR(dfdist2ref[[gene]])
             # Calculate distribution lower and upper limits
             low_up_limits = c((quarts[1]-1.5*iqr_dist2ref),
                               (quarts[2]+1.5*iqr_dist2ref))
@@ -403,7 +410,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   verbose = 1L
   end_t = difftime(Sys.time(), zero_t, units='min')
   if(verbose > 0L){
-    cat(crayon::green(paste0('STgradient completed in ', round(end_t, 2), ' min.\n')))
+    cat(paste0('STgradient completed in ', round(end_t, 2), ' min.\n'))
   }
 
   return(results_ls)

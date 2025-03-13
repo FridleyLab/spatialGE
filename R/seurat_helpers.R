@@ -20,7 +20,9 @@
 # @title Seurat_FindVariableFeatures
 # @description Extracted from the Seurat package
 #
-
+#' @importFrom stats loess setNames
+#
+#
 Seurat_FindVariableFeatures = function(object=NULL){
   # Fixed arguments
   selection.method="vst"

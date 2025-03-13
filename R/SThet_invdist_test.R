@@ -19,6 +19,7 @@
 #' that estimates are not as accurate as when using the default distance-based method.
 #' @param overwrite logical indicating if previous statistics should be overwritten.
 #' Default to FALSE (do not overwrite)
+#' @param cores the number of cores to use during computations
 #' @return an STlist containing spatial statistics
 #'
 # @examples
@@ -77,7 +78,7 @@ SThet_invdist_test = function(x=NULL, genes=NULL, samples=NULL, method='moran', 
 
   # Check whether or not a list of weights have been created
   if(overwrite | is.null(x@misc[['sthet']][['listws']])){
-    cat(crayon::yellow(paste("Calculating spatial weights...\n"))) ## Mostly added to make sure calculation is happening only when needed.
+    cat("Calculating spatial weights...\n") ## Mostly added to make sure calculation is happening only when needed.
     if(!is.null(k)){
       k = as.integer(k)
       if(!is.na(k) & k > 0){

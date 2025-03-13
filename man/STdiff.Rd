@@ -48,6 +48,9 @@ will be applied the spatial models. Default=0.05}
 \item{pval_adj}{Method to adjust p-values. Defaults to \code{FDR}. Other options as
 available from \code{p.adjust}}
 
+\item{test_type}{one of \code{mm}, \code{t_test}, or \code{wilcoxon}. Specifies the type of
+test performed.}
+
 \item{sp_topgenes}{Proportion of differentially expressed genes from non-spatial
 linear models (and controlled by \code{pval_thr}) to use in differential gene expression
 analysis with spatial linear models. If 0 (zero), no spatial models are fit. Default=0.2}

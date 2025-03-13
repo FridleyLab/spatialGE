@@ -29,7 +29,12 @@
 #' @importFrom methods as is new
 #
 #
-compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL, categorical=T, color_pal="muted", ptsize=1) {
+compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL,
+                         categorical=T, color_pal="muted", ptsize=1) {
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Test if an STList has been input.
   if(is.null(x) | !is(x, 'STlist')){
     stop("The input must be a STList.")

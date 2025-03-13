@@ -25,13 +25,14 @@
 #'
 #' @export
 #'
+#' @importFrom magrittr %>%
 #' @import ggplot2
 #
 #
 distribution_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, data_type='tr',
                               color_pal='okabeito', plot_type='violin', ptsize=0.5, ptalpha=0.5){
 
-  require('magrittr')
+  #require('magrittr')
 
   # Define samples to plot if NULL or numeric
   if(is.null(samples)){

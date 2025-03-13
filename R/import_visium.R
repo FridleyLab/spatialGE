@@ -1,5 +1,5 @@
 ##
-# @title importVisium: Reads Visium outputs in MEX format
+# @title import_visium: Reads Visium outputs in MEX format
 # @description Reads Market Exchange (MEX) format files in the output directory of a
 # Visium run, and returns data for creation of a STList.
 # @details
@@ -17,6 +17,10 @@
 #
 #
 import_visium = function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Read in feature data
   features_df = data.table::fread(features_fp, header = F, check.names =F) %>%
     dplyr::rename("emsb" = 1,
@@ -82,7 +86,7 @@ import_visium = function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coo
 }
 
 ##
-# @title import_Visium_h5: Reads Visium `space ranger` HDF5 outputs
+# @title import_visium_h5: Reads Visium `space ranger` HDF5 outputs
 # @description Reads the HDF5 file and spot coordinates in the output directory
 # of a Visium run, and returns data for creation of a STList.
 # @details

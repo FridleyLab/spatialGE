@@ -31,6 +31,8 @@ that estimates are not as accurate as when using the default distance-based meth
 
 \item{overwrite}{logical indicating if previous statistics should be overwritten.
 Default to FALSE (do not overwrite)}
+
+\item{cores}{the number of cores to use during computations}
 }
 \value{
 an STlist containing spatial statistics

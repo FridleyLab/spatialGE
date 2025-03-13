@@ -16,8 +16,12 @@
 #' identify the gene sets to be tested
 #' @param score_type Controls how gene set expression is calculated. The options are
 #' the average expression among genes in a set ('avg'), or a GSEA score ('gsva'). The
-#' default is 'avg'.
+#' default is 'avg'
 #' @param reps the number of random samples to be extracted. Default is 1000 replicates
+#' @param annot name of the annotation within `x@spatial_meta` containing the spot/cell
+#' categories. Needs to be used in conjunction with `domain`
+#' @param domain the domain to restrict the analysis. Must exist within the spot/cell
+#' categories included in the selected annotation (i.e., `annot`)
 #' @param num_sds the number of standard deviations to set the minimum gene set
 #' expression threshold. Default is one (1) standard deviation
 #' @param min_units Minimum number of spots with high expression of a pathway for
@@ -34,9 +38,16 @@
 #' @export
 #'
 #' @importFrom magrittr %>%
+#' @importFrom stats p.adjust
 #
 #
-STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps=1000, annot=NULL, domain=NULL, num_sds=1, min_units=20, min_genes=5, pval_adj_method='BH', seed=12345, cores=NULL){
+STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps=1000,
+                    annot=NULL, domain=NULL, num_sds=1, min_units=20, min_genes=5,
+                    pval_adj_method='BH', seed=12345, cores=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Record time
   zero_t = Sys.time()
 

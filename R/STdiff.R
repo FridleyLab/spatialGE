@@ -27,11 +27,13 @@
 #' @param deepSplit the deepSplit value if used in STclust. Required if `k='dtc'`.
 #' @param topgenes an integer indicating the top variable genes to select from each sample
 #' based on variance (default=5000). If NULL, all genes are selected.
-#' @param pval_adj Method to adjust p-values. Defaults to `FDR`. Other options as
-#' available from `p.adjust`
 #' @param pval_thr cut-off of adjusted p-values to define differentially expressed genes from
 #' non-spatial linear models. A proportion of genes (`sp_topgenes`) under this cut-off
 #' will be applied the spatial models. Default=0.05
+#' @param pval_adj Method to adjust p-values. Defaults to `FDR`. Other options as
+#' available from `p.adjust`
+#' @param test_type one of `mm`, `t_test`, or `wilcoxon`. Specifies the type of
+#' test performed.
 #' @param sp_topgenes Proportion of differentially expressed genes from non-spatial
 #' linear models (and controlled by `pval_thr`) to use in differential gene expression
 #' analysis with spatial linear models. If 0 (zero), no spatial models are fit. Default=0.2
@@ -50,11 +52,17 @@
 #' @export
 #'
 #' @importFrom magrittr %>%
+#' @importFrom rlang :=
+#' @importFrom stats p.adjust
 #
 #
 STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NULL,
                   topgenes=5000, pval_thr=0.05, pval_adj='fdr', test_type='mm', sp_topgenes=0.2,
                   clusters=NULL, pairwise=F, verbose=1L, cores=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Record time
   zero_t = Sys.time()
 
@@ -140,7 +148,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
     if(!(annot %in% colnames(x@spatial_meta[[i]]))){
       samples_tmp = grep(i, samples_tmp, value=T, invert=T)
       if(verbose > 0L){
-        cat(crayon::yellow(paste0('Skipping ', i, '. Annotation not available for this sample.\n')))
+        cat(paste0('Skipping ', i, '. Annotation not available for this sample.\n'))
       }
     }
     if(length(samples_tmp) == 0){
@@ -178,7 +186,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
 
   # Print metadata to be tested
   if(verbose > 0L){
-    cat(crayon::yellow(test_print))
+    cat(test_print)
   }
   rm(test_print) # Clean environment
 
@@ -194,7 +202,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   genes = tibble::tibble()
   for(sample_name in samples){
     # Get top variable genes
-    genes_tmp = x@gene_meta[[sample_name]] %>% dplyr::arrange(desc(vst.variance.standardized))
+    genes_tmp = x@gene_meta[[sample_name]] %>% dplyr::arrange(dplyr::desc(vst.variance.standardized))
     if(!is.null(topgenes)){
       genes_tmp = genes_tmp %>% dplyr::slice_head(n=topgenes)
     }
@@ -234,7 +242,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
 
   # Print test to conduct
   if(verbose > 0L){
-    cat(crayon::yellow(paste0('\tRunning ', test_print, '...\n')))
+    cat(paste0('\tRunning ', test_print, '...\n'))
   }
 
   # Get annotations to run in parallel
@@ -299,17 +307,17 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
           stdout_print = unique(stdout_print[['meta2']])
           stdout_print = meta_dict[['orig_annot']][ meta_dict[['coded_annot']] %in% stdout_print ]
           stdout_print = paste0(stdout_print, collapse=', ')
-          system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
-                                                           sample_name, ", ",
-                                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == cluster_tmp ],
-                                                           " vs. ", stdout_print,
-                                                           " (", nrow(combo_clust_cl), " tests)"))))
+          system(sprintf('echo "%s"', paste0("\t\tSample: ",
+                                             sample_name, ", ",
+                                             meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == cluster_tmp ],
+                                             " vs. ", stdout_print,
+                                             " (", nrow(combo_clust_cl), " tests)")))
           rm(stdout_print)
         } else {
-          system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
-                                                           sample_name, ", ",
-                                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == cluster_tmp ],
-                                                           " (", nrow(combo_clust_cl), " tests)"))))
+          system(sprintf('echo "%s"', paste0("\t\tSample: ",
+                                             sample_name, ", ",
+                                             meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == cluster_tmp ],
+                                             " (", nrow(combo_clust_cl), " tests)")))
         }
       }
       if(test_type == 'mm'){
@@ -391,9 +399,9 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
     }
     # Arrange results
     if(pairwise){
-      non_sp_de_tmp[[i]] = non_sp_de_tmp[[i]] %>% dplyr::arrange(cluster_1, cluster_2, adj_p_val, desc(avg_log2fc))
+      non_sp_de_tmp[[i]] = non_sp_de_tmp[[i]] %>% dplyr::arrange(cluster_1, cluster_2, adj_p_val, dplyr::desc(avg_log2fc))
     } else{
-      non_sp_de_tmp[[i]] = non_sp_de_tmp[[i]] %>% dplyr::arrange(cluster_1, adj_p_val, desc(avg_log2fc))
+      non_sp_de_tmp[[i]] = non_sp_de_tmp[[i]] %>% dplyr::arrange(cluster_1, adj_p_val, dplyr::desc(avg_log2fc))
     }
   }
   result_de = non_sp_de_tmp
@@ -401,14 +409,14 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
 
   end_t = difftime(Sys.time(), start_t, units='min')
   if(verbose > 0L){
-    cat(crayon::green(paste0('\tCompleted ', test_print, ' (', round(end_t, 2), ' min).\n')))
+    cat(paste0('\tCompleted ', test_print, ' (', round(end_t, 2), ' min).\n'))
   }
 
   ######## ######## ######## BEGIN SPATIAL TESTS ######## ######## ########     ##### MADE BIG CHANGES TO NON-SPATIAL... NEED TO CHECK SPATIAL TESTS
   if(test_type == 'mm' & sp_topgenes > 0){
     start_t = Sys.time()
     if(verbose > 0L){
-      cat(crayon::yellow(paste0('\tRunning spatial tests...\n')))
+      cat(paste0('\tRunning spatial tests...\n'))
     }
     sp_models = list()
     for(sample_name in names(result_de)){
@@ -500,17 +508,17 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
                                           meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == m2 ])
               }
               stdout_print = stdout_print_tmp %>% paste0(., collapse=', ')
-              system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
-                                                               sample_name, ", ",
-                                                               meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
-                                                               " vs. ", stdout_print,
-                                                               " (", length(models_keep_tmp), " tests)..."))))
+              system(sprintf('echo "%s"', paste0("\t\tSample: ",
+                                                 sample_name, ", ",
+                                                 meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
+                                                 " vs. ", stdout_print,
+                                                 " (", length(models_keep_tmp), " tests)...")))
               rm(stdout_print)
             } else {
-              system(sprintf('echo "%s"', crayon::green(paste0("\t\tSample: ",
-                                                               sample_name, ", ",
-                                                               meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
-                                                               " (", length(models_keep_tmp), " tests)..."))))
+              system(sprintf('echo "%s"', paste0("\t\tSample: ",
+                                                 sample_name, ", ",
+                                                 meta_dict[['orig_annot']][ meta_dict[['coded_annot']] == clusters_tmp[i] ],
+                                                 " (", length(models_keep_tmp), " tests)...")))
             }
           }
 
@@ -528,7 +536,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
     }
     end_t = difftime(Sys.time(), start_t, units='min')
     if(verbose > 0L){
-      cat(crayon::green(paste0('\n\tCompleted spatial mixed models (', round(end_t, 2), ' min).\n')))
+      cat(paste0('\n\tCompleted spatial mixed models (', round(end_t, 2), ' min).\n'))
     }
     rm(non_sp_models) # Clean environment
 
@@ -632,7 +640,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   # Print time
   end_t = difftime(Sys.time(), zero_t, units='min')
   if(verbose > 0L){
-    cat(crayon::green(paste0('STdiff completed in ', round(end_t, 2), ' min.\n')))
+    cat(paste0('STdiff completed in ', round(end_t, 2), ' min.\n'))
   }
   return(result_de)
 }
@@ -650,6 +658,8 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
 # @param cores number of cores to use in parallelization. If `NULL`, the number of
 # cores is to use is detected automatically.
 # @return a list containing spaMM models
+#
+#' @importFrom stats as.formula
 #
 non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
   models_ls = list()
@@ -691,7 +701,7 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
     error_message = c()
     warning_message = c()
     res_mod = withCallingHandlers(
-      tryCatch(spaMM::fitme(formula=as.formula('exprval~meta'), data=expr_tmp, method="REML"),
+      tryCatch(spaMM::fitme(formula=stats::as.formula('exprval~meta'), data=expr_tmp, method="REML"),
                error=function(e){error_message <<- conditionMessage(e)}),
       warning=function(w){warning_message <<- conditionMessage(w)
       invokeRestart("muffleWarning")}
@@ -726,7 +736,13 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
 # cores is to use is detected automatically.
 # @return a list of spatial models
 #
+#' @importFrom stats as.formula
+#
 spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   res_ls = list()
   for(i in names(non_sp_mods)){
     # Extract sample name
@@ -752,7 +768,7 @@ spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NUL
                          annot_dict[['orig_annot']][ annot_dict[['coded_annot']] == stdout_print[2] ])
         stdout_print = paste0(stdout_print[1], ' vs. ', stdout_print[2])
       }
-      system(sprintf('echo "%s"', crayon::green(paste0('\t\tSample: ', sample_tmp, '; ', gene_tmp, ', ', stdout_print))))
+      system(sprintf('echo "%s"', paste0('\t\tSample: ', sample_tmp, '; ', gene_tmp, ', ', stdout_print)))
     }
 
     expr_subset = expr_dat[, c("meta" , "group", "ypos", "xpos", gene_tmp)] %>%
@@ -765,7 +781,7 @@ spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NUL
 
     exp_out = tryCatch({
       #R.utils::withTimeout({
-      spaMM::fitme(formula=as.formula(paste0("exprval~meta+Matern(1|xpos+ypos)")),
+      spaMM::fitme(formula=stats::as.formula(paste0("exprval~meta+Matern(1|xpos+ypos)")),
                    data=expr_subset,
                    fixed=list(nu=0.5), method="REML",
                    control.HLfit=list(algebra="decorr"))
@@ -845,7 +861,7 @@ prepare_stdiff_combo = function(to_expand=NULL, user_clusters=NULL, pairwise=NUL
                                     tibble::add_column(samplename=sample_name, .before=1))
     } else{
       if(verbose >= 1L){
-        cat(crayon::yellow(paste0('\t\tSkipping sample ', sample_name, '. Less than two clusters to compare.\n')))
+        cat(paste0('\t\tSkipping sample ', sample_name, '. Less than two clusters to compare.\n'))
       }
     }
   }
@@ -889,12 +905,12 @@ stdiff_mean_test = function(expr_data=NULL, combo=NULL, pairwise=NULL, test_type
 
     # Perform test for diferences in mean
     if(test_type == 't_test'){
-      res_test = t.test(expr_tmp %>% dplyr::filter(meta == meta1_tmp) %>% dplyr::select('exprval') %>% unlist(),
-                        expr_tmp %>% dplyr::filter(meta == meta2_tmp) %>% dplyr::select('exprval') %>% unlist())
+      res_test = stats::t.test(expr_tmp %>% dplyr::filter(meta == meta1_tmp) %>% dplyr::select('exprval') %>% unlist(),
+                               expr_tmp %>% dplyr::filter(meta == meta2_tmp) %>% dplyr::select('exprval') %>% unlist())
     } else if(test_type == 'wilcoxon'){
       # Create non-spatial model
-      res_test = wilcox.test(expr_tmp %>% dplyr::filter(meta == meta1_tmp) %>% dplyr::select('exprval') %>% unlist(),
-                             expr_tmp %>% dplyr::filter(meta == meta2_tmp) %>% dplyr::select('exprval') %>% unlist())
+      res_test = stats::wilcox.test(expr_tmp %>% dplyr::filter(meta == meta1_tmp) %>% dplyr::select('exprval') %>% unlist(),
+                                    expr_tmp %>% dplyr::filter(meta == meta2_tmp) %>% dplyr::select('exprval') %>% unlist())
     }
 
     test_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]] = list()

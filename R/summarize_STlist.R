@@ -15,13 +15,15 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,2)],
+#'                    spotcoords=coord_files[c(1,2)],
+#'                    samples=clin_file) # Only first two samples
 #' summarize_STlist(melanoma)
 #'
 #' @export summarize_STlist
 #'
 summarize_STlist = function(x=NULL){
-  if(class(x) != 'STlist'){
+  if(!is(x, 'STlist')){
     stop('The input is not an STlist')
   }
 

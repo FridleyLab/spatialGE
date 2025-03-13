@@ -21,7 +21,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,2)],
+#'                    spotcoords=coord_files[c(1,2)],
+#'                    samples=clin_file) # Only first two samples
 #' melanoma <- transform_data(melanoma)
 #' melanoma <- gene_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
 #' kp = STplot_interpolation(melanoma, genes=c('MLANA', 'COL1A1'), samples='ST_mel1_rep2')
@@ -34,6 +36,10 @@
 #
 STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, color_pal='BuRd'){
 
+  # To prevent NOTES in R CMD check
+  . = NULL
+
+  # Force number of top variable genes as integer
   top_n = as.integer(top_n)
 
   # Test that a gene name was entered.
@@ -58,7 +64,7 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
       if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
         x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
       }
-      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]], verbose=F) %>%
+      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
         tibble::rownames_to_column(var='gene') %>%
         dplyr::select('gene', 'vst.variance.standardized') %>%
         dplyr::left_join(x@gene_meta[[i]], ., by='gene')
@@ -79,7 +85,7 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
         if(!is.null(x@gene_krige[[gene]][[i]][['success_or_not']])){
           if(x@gene_krige[[gene]][[i]][['success_or_not']] != 'error'){
             # Find maximum expression value for each spatial array.
-            values <- x@gene_krige[[gene]][[i]][['krige_out']][['z']]
+            values <- x@gene_krige[[gene]][[i]][['krige_out']][['krige']]
             maxvalue <- append(maxvalue, max(values, na.rm=T))
             minvalue <- append(minvalue, min(values, na.rm=T))
           }
@@ -105,17 +111,18 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
       }
 
       # Create data frame with coordinates and kriging values.
-      krige_vals = x@gene_krige[[gene]][[i]][['krige_out']][['z']]
-      colnames(krige_vals) = paste0('id_', x@gene_krige[[gene]][[i]][['krige_out']][['y']])
-      rownames(krige_vals) = paste0('id_', x@gene_krige[[gene]][[i]][['krige_out']][['x']])
-      suppressWarnings({krige_vals = reshape::melt.array(krige_vals)})
+      krige_vals = x@gene_krige[[gene]][[i]][['krige_out']]
+      #krige_vals[['krige']] = x@gene_krige[[gene]][[i]][['krige_out']][['var1.pred']]
+#      colnames(krige_vals) = paste0('id_', x@gene_krige[[gene]][[i]][['krige_out']][['y']])
+#      rownames(krige_vals) = paste0('id_', x@gene_krige[[gene]][[i]][['krige_out']][['x']])
+#      suppressWarnings({krige_vals = reshape::melt.array(krige_vals)})
 
       # Looks like reshape::melt.array pass columns from matrix to first column, and
       # columns from matrix to second column. Values go in third column
-      names(krige_vals) <- c("y_pos", "x_pos", "krige")
-      krige_vals = krige_vals %>%
-        dplyr::mutate(y_pos=gsub('id_', '', y_pos) %>% as.numeric()) %>%
-        dplyr::mutate(x_pos=gsub('id_', '', x_pos) %>% as.numeric())
+      names(krige_vals) <- c("x_pos", "y_pos", "krige")
+      # krige_vals = krige_vals %>%
+      #   dplyr::mutate(y_pos=gsub('id_', '', y_pos) %>% as.numeric()) %>%
+      #   dplyr::mutate(x_pos=gsub('id_', '', x_pos) %>% as.numeric())
 
       # Get coordinates of bounding box enclosing the predicted grid.
       bbox = rbind(
@@ -126,25 +133,41 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
         c(min(krige_vals$x_pos)-1, min(krige_vals$y_pos)-1)
       )
       bbox <- as.data.frame(bbox)
-      names(bbox) <- c("x", "y")
+      colnames(bbox) <- c("x", "y")
 
-      # Create SpatialPolygon object with the bounding box.
-      bbox_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(bbox)), "id")))
-
-      # Create Spatial Polygon with the inner tissue border (concave hull)
-      mask_sp <- sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(x@misc[['gene_krige']][['krige_border']][[i]][, c('V1', 'V2')])), "id")))
-
-      # Substract the concave hull from the bounding box, yielding a SpatialPolygon object.
-      bbox_mask_diff <- raster::erase(bbox_sp, mask_sp)
-
-      # Construct title.
-      titlekrige <- paste0(gene, " (interpolation)\nsample: ", i)
+      # Extract coordinates from kriging
+      mask_df = as.data.frame(x@misc[['gene_krige']][['krige_border']][[i]][, c('V1', 'V2')])
 
       visium = F
       # Define if visium
       if(x@misc[['platform']] == 'visium'){
-        visium=T
+        #bbox[['x']] = rev(bbox[['x']])
+        bbox[['y']] = bbox[['y']] *-1
+        #mask_df[['V1']] = rev(mask_df[['V1']])
+        mask_df[['V2']] = mask_df[['V2']] *-1
+
+        krige_vals[['y_pos']] = krige_vals[['y_pos']] *-1
       }
+
+      # Create SpatialPolygon object with the bounding box.
+      bbox_sp = sf::st_as_sf(bbox, coords=c('x', 'y')) %>%
+        sf::st_combine() %>%
+        sf::st_cast(to='POLYGON')
+        # dplyr::group_by(id) %>%
+        # dplyr::summarise(geometry=sf::st_combine(geometry))
+      #bbox_sp =  %>% sf::st_sf()
+      #sf::st_agr(bbox_sp) = 'constant'
+
+      # Create Spatial Polygon with the inner tissue border (concave hull)
+      mask_sp = sf::st_as_sf(mask_df, coords=c('V1', 'V2')) %>%
+        sf::st_combine() %>%
+        sf::st_cast(to='POLYGON')
+
+      # Substract the concave hull from the bounding box, yielding a SpatialPolygon object.
+      bbox_mask_diff <- sf::st_difference(bbox_sp, mask_sp)
+
+      # Construct title.
+      titlekrige <- paste0(gene, " (interpolation)\nsample: ", i)
 
       kp <- krige_p(data_f=krige_vals, mask=bbox_mask_diff, color_pal=color_pal, leg_name="pred_expr",
                     title_name=titlekrige, minvalue=minvalue, maxvalue=maxvalue, visium=visium)

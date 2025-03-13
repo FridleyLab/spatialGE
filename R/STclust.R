@@ -45,10 +45,13 @@
 #'
 #' @importFrom magrittr %>%
 #' @importFrom methods as is new
-#' @importFrom stats as.dist complete.cases cutree dist hclust prcomp sd
+#' @importFrom stats as.dist complete.cases cutree dist hclust prcomp sd na.omit
 #
 #
 STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', linkage='ward.D2', ks='dtc', topgenes=2000, deepSplit=F, cores=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
 
   # Record time
   zero_t = Sys.time()
@@ -118,7 +121,7 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
   # Subset variable genes
   trcounts_df = parallel::mclapply(samples, function(i){
     topgenenames_tmp = x@gene_meta[[i]] %>%
-      dplyr::arrange(desc(vst.variance.standardized)) %>%
+      dplyr::arrange(dplyr::desc(vst.variance.standardized)) %>%
       dplyr::slice_head(n=topgenes) %>%
       dplyr::select(gene) %>%
       unlist() %>%
@@ -289,6 +292,10 @@ get_hier_clusters_dtc = function(weighted_dists=NULL, ws=NULL, deepSplit=NULL, l
 # @return a list of data frames with spot/cells cluster assignments for each weight
 #
 get_hier_clusters_ks = function(weighted_dists=NULL, ws=NULL, ks=NULL, linkage=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   grp_df_ls = lapply(1:length(ws), function(w){
     grp_df = tibble::tibble(libname=colnames(weighted_dists[[w]]))
     for(k in ks){

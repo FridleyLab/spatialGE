@@ -101,7 +101,7 @@ STdiff_volcano = function(x=NULL, samples=NULL, clusters=NULL, pval_thr=0.05, co
           cat_cols = color_pal
           names(cat_cols) = c('Not DE', 'Down',  'Up', 'Down (spatial)', 'Up (spatial)')
         } else{
-          cat(crayon::green(paste0('Custom color palettes must have three (non-spatial results) or five colors (spatial results). Setting to default palette.')))
+          cat(paste0('Custom color palettes must have three (non-spatial results) or five colors (spatial results). Setting to default palette.'))
           cat_cols = c('black', 'cornflowerblue', 'lightpink', 'blue', 'red')
           names(cat_cols) = c('Not DE', 'Down',  'Up', 'Down (spatial)', 'Up (spatial)')
         }

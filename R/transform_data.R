@@ -32,7 +32,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,2)],
+#'                    spotcoords=coord_files[c(1,2)],
+#'                    samples=clin_file) # Only first two samples
 #' melanoma <- transform_data(melanoma, method='log')
 #'
 #' @export
@@ -128,7 +130,7 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
   # Perform log-transformation on parallel if possible.
   log_counts = parallel::mclapply(seq_along(x@counts), function(i){
     # Show progress
-    system(sprintf('echo "%s"', crayon::yellow(paste0("Log-transforming sample ", names(x@counts)[i], "...."))))
+    system(sprintf('echo "%s"', paste0("Log-transforming sample ", names(x@counts)[i], "....")))
 
     df_tmp = as.matrix(x@counts[[i]])
     # Calculate (spot/cell) library sizes.
@@ -138,7 +140,7 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
     if(any(libsizes == 0)){
       zero_size = as.vector(which(libsizes == 0))
       df_tmp = df_tmp[, -zero_size]
-      system(sprintf('echo "%s"', crayon::red(paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", names(x@counts)[i], " and from the entire STlist."))))
+      system(sprintf('echo "%s"', paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", names(x@counts)[i], " and from the entire STlist.")))
       libsizes = libsizes[libsizes != 0]
     }
 
@@ -198,7 +200,7 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
   # Perform log-transformation on parallel if possible.
   sct_counts = parallel::mclapply(seq_along(x@counts), function(i){
     # Show progress
-    system(sprintf('echo "%s"', crayon::yellow(paste0("Applying SCTransform to sample ", names(x@counts)[i], "...."))))
+    system(sprintf('echo "%s"', paste0("Applying SCTransform to sample ", names(x@counts)[i], "....")))
 
     df_tmp = as.matrix(x@counts[[i]])
     # Calculate (spot/cell) library sizes.
@@ -208,7 +210,7 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
     if(any(libsizes == 0)){
       zero_size = as.vector(which(libsizes == 0))
       df_tmp = df_tmp[, -zero_size]
-      system(sprintf('echo "%s"', crayon::red(paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", names(x@counts)[i], " and from the entire STlist."))))
+      system(sprintf('echo "%s"', paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", names(x@counts)[i], " and from the entire STlist.")))
       libsizes = libsizes[libsizes != 0]
     }
 

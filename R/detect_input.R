@@ -26,7 +26,7 @@ detect_input_rnacounts = function(rnacounts=NULL){
   # FUTURE DEV: May be good to be able to input a list of Seurat objects, instead of a single object at a time
   # ALSO CONSIDER: Currently multiple samples from Seurat are allowed as long as they are stored as "slices" (names(seurat_oj@images))
   # FUTURE DEV: Seurat V5 -_-
-  if(class(rnacounts) == 'Seurat'){
+  if(is(rnacounts, 'Seurat')){
     inputtype_rnacounts = 'seurat'
 
     return(inputtype_rnacounts)
@@ -301,6 +301,10 @@ detect_input_samples = function(samples=NULL){
 #
 #
 detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Define output/return variable.
   # If variable remains NULL, then no valid input was given by the user.
   inputtype = list()
@@ -310,7 +314,7 @@ detect_input = function(rnacounts=NULL, spotcoords=NULL, samples=NULL){
 
   # CASE SEURAT OBJECT(S) WITH SAMPLE NAMES OR SAMPLE FILE
   if(!is.null(rnacounts)){
-    if(class(rnacounts) == 'Seurat'){
+    if(is(rnacounts, 'Seurat')){
       inputtype$rna = 'seurat'
       inputtype$samples = 'samples_from_seurat'
       return(inputtype)

@@ -104,7 +104,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1,3)], spotcoords=coord_files[c(1,3)], samples=clin_file) # Only first three samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,3)],
+#'                    spotcoords=coord_files[c(1,3)],
+#'                    samples=clin_file) # Only first three samples
 #' melanoma
 #
 #' @export STlist
@@ -176,14 +178,15 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL){
   # CASE: NAMED LIST OF DATAFRAMES WITH COUNTS AND NAMED LIST OF DATA FRAMES WITH COORDINATES.
   # METADATA INFO OPTIONAL.
   if(input_rnacounts == 'list_dfs' && input_spotcoords == 'list_dfs'){
-    cat(crayon::green(paste("Found list of dataframes.\n")))
+    cat(paste("Found list of dataframes.\n"))
     pre_lists = read_list_dfs(rnacounts, spotcoords)
   }
 
 
   # CASE: SEURAT OBJECT
   if(input_rnacounts == 'seurat'){
-    cat(crayon::green(paste("Found Seurat object.\n")))
+    requireNamespace('SeuratObject')
+    cat(paste("Found Seurat object.\n"))
     pre_lists = read_seurat(rnacounts)
     img_obj = pre_lists[['images']]
     platform = 'visium' # FUTURE DEVELOPMENT: CANT ASSUME IT'S VISIUM... MAYBE SHOULD USE INFO FROM SEURAT OBJECT TO IDENTIFY TECH
@@ -231,15 +234,15 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL){
   }
 
   # Process count and coordinate lists before placing within STlist
-  cat(crayon::yellow(paste("Matching gene expression and coordinate data...\n")))
+  cat(paste("Matching gene expression and coordinate data...\n"))
   procLists = process_lists(counts_df_list=pre_lists[['counts']], coords_df_list=pre_lists[['coords']])
 
   # Process metadata if provided or make an empty tibble
   samples_df = tibble::tibble()
   if(input_check$samples[1] == 'samplesfile' || input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex') || input_check$samples[1] == 'samplesfile_matrices'){
     samples_df = process_meta(samples=samples, input_check=input_check, counts_df_list=procLists[['counts']])
-  }else if(input_check$samples[1] == 'samplesfile_geomx'){
-    samples_df = process_meta_geomx(samples, input_check, procLists[['counts']], gmx_slide_col, gmx_meta_cols)
+  #}else if(input_check$samples[1] == 'samplesfile_geomx'){
+  #  samples_df = process_meta_geomx(samples, input_check, procLists[['counts']], gmx_slide_col, gmx_meta_cols)
   }else{
     samples_df = tibble::tibble(sample_name=names(procLists[['counts']]))
   }
@@ -248,13 +251,13 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL){
 
   if(!is.null(input_check$rna[1])){
     if(!(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex'))){
-      cat(crayon::yellow(paste("Converting counts to sparse matrices\n")))
+      cat(paste("Converting counts to sparse matrices\n"))
       procLists[['counts']] = parallel::mclapply(procLists[['counts']], function(x){
         makeSparse(x)
       })
     }
   } else if(!(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex'))){
-    cat(crayon::yellow(paste("Converting counts to sparse matrices\n")))
+    cat(paste("Converting counts to sparse matrices\n"))
     procLists[['counts']] = parallel::mclapply(procLists[['counts']], function(x){
       makeSparse(x)
     })
@@ -290,7 +293,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL){
                              image_scaling=image_scale,
                              sthet=list())
   )
-  cat(crayon::green$bold(paste("Completed STlist!\n")))
+  cat("Completed STlist!\n")
   return(STlist_obj)
 }
 
@@ -305,6 +308,10 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL){
 # @return a sparsed data matrix
 #
 makeSparse = function(dataframe){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   if(any(class(dataframe) == 'dgCMatrix')){
     numdat = dataframe
   } else if(!is.matrix(dataframe)){
@@ -482,6 +489,10 @@ read_matrices_fps = function(filepaths, input_check, cores=NULL){
 # @return a list with two lists within (one with counts, one with coordinates)
 #
 read_visium_outs = function(filepaths, input_rnacounts, cores=NULL){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Find necessary files from visium input
   missingSamples = 0
   fp_list = list()
@@ -791,24 +802,24 @@ read_cosmx_input = function(filepaths, input_check, cores=NULL){
     }
   }
 
-  cat(crayon::green$bold(paste("Found", length(filepaths$sampleids)-missingSamples, "CosMx-SMI samples\n")))
+  cat(paste("Found", length(filepaths$sampleids)-missingSamples, "CosMx-SMI samples\n"))
 
   # Use parallelization to read count data if possible.
   output_temp = parallel::mclapply(seq_along(1:length(fp_list)), function(i){
     if(length(fp_list[[i]][['counts']]) == 0){
       return(list())
     }
-    system(sprintf('echo "%s"', crayon::yellow(paste0("\tProcessing sample ", i, "...."))))
+    system(sprintf('echo "%s"', paste0("\tProcessing sample ", i, "....")))
 
     # Process CosMx outputs.
     cosmx_processed = import_smi(counts_fp=fp_list[[i]][['counts']],
                                  coords_fp=fp_list[[i]][['coords']],
                                  slidename=fp_list[[i]][['runname']])
 
-    system(sprintf('echo "%s"', crayon::green(paste0("\tFinished data read sample ", i))))
+    system(sprintf('echo "%s"', paste0("\tFinished data read sample ", i)))
     return(cosmx_processed)
   }, mc.cores=cores, mc.preschedule=F)
-  cat(crayon::green$bold(paste("\tData read completed\n")))
+  cat("\tData read completed\n")
 
   # Organize the paralellized output into corresponding lists.
   return_lists = list()
@@ -1054,6 +1065,10 @@ process_sample_names_from_file = function(rnacounts, spotcoords, samples, input_
 # @return samples_df, a data frame to be placed within the clinical slot of the STlist
 #
 process_meta = function(samples, input_check, counts_df_list){
+
+  # To prevent NOTES in R CMD check
+  . = NULL
+
   # Get delimiter of file from input_check
   del = input_check[['samples']][2]
   # Read file.
@@ -1093,32 +1108,32 @@ process_meta = function(samples, input_check, counts_df_list){
   return(samples_df)
 }
 
-process_meta_geomx = function(samples, input_check, counts_df_list, gmx_slide_col, gmx_meta_cols){
-  if(input_check$samples[2] == 'xls'){
-    samples_df = readxl::read_excel(samples)
-  } else {
-    # Get delimiter of file from input_check
-    del = input_check$samples[2]
-    samples_df = readr::read_delim(samples, delim=del, col_types=readr::cols(), progress=F, show_col_types=F)
-  }
-  samples_df = samples_df[samples_df[[gmx_slide_col]] %in% names(counts_df_list), ]
-  samples_df = samples_df[, c(gmx_slide_col, gmx_meta_cols)]
-
-  samples_df_summ = tibble::tibble()
-  for(slide_id in unique(samples_df[[gmx_slide_col]])){
-    meta_row = c(sampleID=slide_id)
-    for(metacol in gmx_meta_cols){
-      if(is.numeric(samples_df[[metacol]])){
-        tmp_val = mean(samples_df[[metacol]][samples_df[[gmx_slide_col]] == slide_id], na.rm=T)
-      } else{
-        tmp_val = unique(samples_df[[metacol]][samples_df[[gmx_slide_col]] == slide_id])
-        tmp_val = paste(tmp_val, collapse='|')
-      }
-      names(tmp_val) = metacol
-      meta_row = append(meta_row, tmp_val)
-    }
-    samples_df_summ = dplyr::bind_rows(samples_df_summ, meta_row)
-  }
-  return(samples_df_summ)
-}
+# process_meta_geomx = function(samples, input_check, counts_df_list, gmx_slide_col, gmx_meta_cols){
+#   if(input_check$samples[2] == 'xls'){
+#     samples_df = readxl::read_excel(samples)
+#   } else {
+#     # Get delimiter of file from input_check
+#     del = input_check$samples[2]
+#     samples_df = readr::read_delim(samples, delim=del, col_types=readr::cols(), progress=F, show_col_types=F)
+#   }
+#   samples_df = samples_df[samples_df[[gmx_slide_col]] %in% names(counts_df_list), ]
+#   samples_df = samples_df[, c(gmx_slide_col, gmx_meta_cols)]
+#
+#   samples_df_summ = tibble::tibble()
+#   for(slide_id in unique(samples_df[[gmx_slide_col]])){
+#     meta_row = c(sampleID=slide_id)
+#     for(metacol in gmx_meta_cols){
+#       if(is.numeric(samples_df[[metacol]])){
+#         tmp_val = mean(samples_df[[metacol]][samples_df[[gmx_slide_col]] == slide_id], na.rm=T)
+#       } else{
+#         tmp_val = unique(samples_df[[metacol]][samples_df[[gmx_slide_col]] == slide_id])
+#         tmp_val = paste(tmp_val, collapse='|')
+#       }
+#       names(tmp_val) = metacol
+#       meta_row = append(meta_row, tmp_val)
+#     }
+#     samples_df_summ = dplyr::bind_rows(samples_df_summ, meta_row)
+#   }
+#   return(samples_df_summ)
+# }
 

@@ -31,7 +31,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,2)],
+#'                    spotcoords=coord_files[c(1,2)],
+#'                    samples=clin_file) # Only first two samples
 #' melanoma <- transform_data(melanoma, method='log')
 #' melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
 #' get_gene_meta(melanoma, sthet_only=TRUE)
@@ -43,7 +45,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
   zero_t = Sys.time()
   verbose = 1L
   if(verbose > 0L){
-    cat(crayon::green(paste0('SThet started.\n')))
+    cat(paste0('SThet started.\n'))
   }
 
   # Select sample names if NULL or if number entered
@@ -88,7 +90,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
   # Check whether or not a list of weights have been created
   if(overwrite | is.null(x@misc[['sthet']][['listws']])){
     if(verbose > 0L){
-      cat(crayon::yellow(paste("\tCalculating spatial weights...\n"))) ## Mostly added to make sure calculation is happening only when needed.
+      cat(paste("\tCalculating spatial weights...\n")) ## Mostly added to make sure calculation is happening only when needed.
     }
     if(!is.null(k)){
       k = as.integer(k)
@@ -113,7 +115,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
   # Print time
   end_t = difftime(Sys.time(), zero_t, units='min')
   if(verbose > 0L){
-    cat(crayon::green(paste0('SThet completed in ', round(end_t, 2), ' min.\n')))
+    cat(paste0('SThet completed in ', round(end_t, 2), ' min.\n'))
   }
 
   return(x)

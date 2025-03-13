@@ -31,7 +31,9 @@
 #' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
 #' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
 #' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-#' melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
+#' melanoma <- STlist(rnacounts=count_files[c(1,2)],
+#'                    spotcoords=coord_files[c(1,2)],
+#'                    samples=clin_file) # Only first two samples
 #' cp <- plot_counts(melanoma, data_type='raw', plot_type=c('violin', 'box'))
 #' ggpubr::ggarrange(plotlist=cp)
 #'
@@ -42,7 +44,9 @@
 plot_counts = function(x=NULL, samples=NULL, data_type='tr', plot_type='density',
                        color_pal='okabeito', cvalpha=0.5, distrib_subset=0.5,
                        subset_seed=12345){
-  #require('ggplot2')
+
+  # To prevent NOTES in R CMD check
+  . = NULL
 
   # Define samples to plot if NULL or numeric
   if(is.null(samples)){
