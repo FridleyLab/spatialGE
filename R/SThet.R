@@ -25,12 +25,25 @@
 #' @return an STlist containing spatial statistics
 #'
 #' @examples
-##' # Using included melanoma example (Thrane et al.)
+##'
+#' # Using included melanoma example (Thrane et al.)
+#' # Download example data set from spatialGE_Data
+#' thrane_tmp = tempdir()
+#' unlink(thrane_tmp, recursive=TRUE)
+#' dir.create(thrane_tmp)
+#' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
+#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'))
+#' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#' unzip(zipfile=zip_tmp, exdir=thrane_tmp)
+#' # Generate the file paths to be passed to the STlist function
+#' count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
+#'                           full.names=TRUE, pattern='counts')
+#' coord_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
+#'                           full.names=TRUE, pattern='mapping')
+#' clin_file <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
+#'                         full.names=TRUE, pattern='clinical')
+#' # Create STlist
 #' library('spatialGE')
-#' data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
-#' count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
-#' coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
-#' clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
 #' melanoma <- STlist(rnacounts=count_files[c(1,2)],
 #'                    spotcoords=coord_files[c(1,2)],
 #'                    samples=clin_file) # Only first two samples
@@ -39,7 +52,7 @@
 #' get_gene_meta(melanoma, sthet_only=TRUE)
 #'
 #' @export
-#'
+#
 SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overwrite=T, cores=NULL){
   # Record time
   zero_t = Sys.time()

@@ -3,14 +3,17 @@
 #
 
 # Create STlist from Thrane et al. data
-# FUTURE DEV: Maybe, would be better to have a package (spatialGEData) to perform
-# tests with other ST technologies
-
+thrane_tmp = tempdir()
+unlink(thrane_tmp, recursive=TRUE)
+dir.create(thrane_tmp)
+download.file('https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download=',
+			  destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'))
+zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+unzip(zipfile=zip_tmp, exdir=thrane_tmp)
+count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'), full.names=TRUE, pattern='counts')
+coord_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'), full.names=TRUE, pattern='mapping')
+clin_file <- list.files(paste0(thrane_tmp, '/melanoma_thrane'), full.names=TRUE, pattern='clinical')
 # library('spatialGE')
-data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
-count_files <- list.files(data_files, full.names=T, pattern='counts')
-coord_files <- list.files(data_files, full.names=T, pattern='mapping')
-clin_file <- list.files(data_files, full.names=T, pattern='clinical')
 melanoma = STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
 
 # Test that resulting STlist is an S4 object

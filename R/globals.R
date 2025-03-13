@@ -1,0 +1,10 @@
+utils::globalVariables(c('.', 'CenterX_local_px', 'CenterY_local_px', 'adj_p_val', 'as.sparse', 'avg_log2fc',
+                         'barcode', 'cell_ID', 'cell_id', 'cluster_1', 'cluster_2', 'coded_annot', 'comments',
+                         'comments_spatial', 'contains', 'counts', 'dist2ref', 'dtype', 'emsb', 'exp_adj_p_val',
+                         'exp_p_val', 'expr_values', 'exprval', 'feat_n', 'fov', 'geary', 'geary_c', 'gene', 'gene_mean',
+                         'gene_stdevs', 'h5_file', 'imagecol', 'imagerow', 'import_xenium_mex', 'intissue',
+                         'krige', 'libname', 'meta', 'meta1', 'meta2', 'moran', 'moran_i', 'orig_annot', 'pca_labs',
+                         'plot_pval', 'prop_size_test', 'sample_name', 'samplename', 'spatialmod',
+                         'spearman_r_pval', 'spearman_r_pval_adj', 'spot_n', 'total_counts', 'total_genes',
+                         'values', 'vst.variance.standardized', 'x_centroid', 'x_pos', 'xpos', 'y_centroid',
+                         'y_pos', 'ypos'))

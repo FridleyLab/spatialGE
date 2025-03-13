@@ -19,15 +19,10 @@
 # @param ptsize, a number specifying the size of the points. Passed to `size` aesthetic.
 # @return a list with the requested plots.
 #
-# @examples
-# # In this example, melanoma is an STlist.
-# # cluster_p <- plot_STclusters(melanoma, samples=c(2,3), visium=F)
-#
 # @export
 #
 #' @import ggplot2
 #' @importFrom magrittr %>%
-#
 #
 plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
                              plot_meta=NULL, color_pal=NULL, visium=T, ptsize=NULL, txsize=NULL){

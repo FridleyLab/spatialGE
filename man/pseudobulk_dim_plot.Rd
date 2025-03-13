@@ -46,15 +46,28 @@ differences among samples. The points in the plot represent "pseudobulk" samples
 This function follows after usage of \code{pseudobulk_samples}.
 }
 \examples{
+
 # Using included melanoma example (Thrane et al.)
+# Download example data set from spatialGE_Data
+thrane_tmp = tempdir()
+unlink(thrane_tmp, recursive=TRUE)
+dir.create(thrane_tmp)
+lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
+download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'))
+zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+unzip(zipfile=zip_tmp, exdir=thrane_tmp)
+# Generate the file paths to be passed to the STlist function
+count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
+                          full.names=TRUE, pattern='counts')
+coord_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
+                          full.names=TRUE, pattern='mapping')
+clin_file <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
+                        full.names=TRUE, pattern='clinical')
+# Create STlist
 library('spatialGE')
-data_files <- system.file("extdata", 'melanoma_thrane', package="spatialGE")
-count_files <- list.files(data_files, full.names=TRUE, pattern='counts')
-coord_files <- list.files(data_files, full.names=TRUE, pattern='mapping')
-clin_file <- list.files(data_files, full.names=TRUE, pattern='clinical')
-melanoma <- STlist(rnacounts=count_files[c(1:4)],
-                   spotcoords=coord_files[c(1:4)],
-                   samples=clin_file, cores=2) # Only first two samples
+melanoma <- STlist(rnacounts=count_files,
+                   spotcoords=coord_files,
+                   samples=clin_file, cores=2)
 melanoma <- pseudobulk_samples(melanoma)
 pseudobulk_dim_plot(melanoma, plot_meta='patient')
 

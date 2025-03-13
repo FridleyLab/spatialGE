@@ -1,41 +1,29 @@
 ##
-#' @title SThet: Computes global spatial autocorrelation statistics on gene expression
-#' @description Computes the global spatial autocorrelation statistics Moran's I and/or
-#' Geary's C for a set of genes
-#' @details The function computes global spatial autocorrelation statistics (Moran's I and/or
-#' Geary's C) for the requested genes and samples. Then computation uses the
-#' package `spdep`. The calculated statistics are stored in the STlist, which can
-#' be accessed with the `get_gene_meta` function. For visual comparative analysis,
-#' the function `compare_SThet` can be used afterwards.
-#'
-#' @param x an STlist
-#' @param genes a vector of gene names to compute statistics
-#' @param samples the samples to compute statistics
-#' @param method The spatial statistic(s) to estimate. It can be set to 'moran',
-#' 'geary' or both. Default is 'moran'
-#' @param k the number of neighbors to estimate weights. By default NULL, meaning that
-#' spatial weights will be estimated from Euclidean distances. If an positive integer is
-#' entered, then the faster k nearest-neighbors approach is used. Please keep in mind
-#' that estimates are not as accurate as when using the default distance-based method.
-#' @param overwrite logical indicating if previous statistics should be overwritten.
-#' Default to FALSE (do not overwrite)
-#' @param cores the number of cores to use during computations
-#' @return an STlist containing spatial statistics
-#'
-# @examples
-# # Using included melanoma example (Thrane et al.)
-# library('spatialGE')
-# data_files <- list.files(system.file("extdata", package="spatialGE"), recursive=T, full.names=T)
-# count_files <- grep("counts", data_files, value=T)
-# coord_files <- grep("mapping", data_files, value=T)
-# clin_file <- grep("thrane_clinical", data_files, value=T)
-# melanoma <- STlist(rnacounts=count_files[c(1,2)], spotcoords=coord_files[c(1,2)], samples=clin_file) # Only first two samples
-# melanoma <- transform_data(melanoma, method='log')
-# melanoma <- SThet(melanoma, genes=c('MLANA', 'TP53'), method='moran')
-# get_gene_meta(melanoma, sthet_only=T)
-#'
-#' @export
-#'
+# @title SThet: Computes global spatial autocorrelation statistics on gene expression
+# @description Computes the global spatial autocorrelation statistics Moran's I and/or
+# Geary's C for a set of genes
+# @details The function computes global spatial autocorrelation statistics (Moran's I and/or
+# Geary's C) for the requested genes and samples. Then computation uses the
+# package `spdep`. The calculated statistics are stored in the STlist, which can
+# be accessed with the `get_gene_meta` function. For visual comparative analysis,
+# the function `compare_SThet` can be used afterwards.
+#
+# @param x an STlist
+# @param genes a vector of gene names to compute statistics
+# @param samples the samples to compute statistics
+# @param method The spatial statistic(s) to estimate. It can be set to 'moran',
+# 'geary' or both. Default is 'moran'
+# @param k the number of neighbors to estimate weights. By default NULL, meaning that
+# spatial weights will be estimated from Euclidean distances. If an positive integer is
+# entered, then the faster k nearest-neighbors approach is used. Please keep in mind
+# that estimates are not as accurate as when using the default distance-based method.
+# @param overwrite logical indicating if previous statistics should be overwritten.
+# Default to FALSE (do not overwrite)
+# @param cores the number of cores to use during computations
+# @return an STlist containing spatial statistics
+#
+# @export
+#
 SThet_invdist_test = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overwrite=T, cores=NULL){
   # Select sample names if NULL or if number entered
   if (is.null(samples)){
