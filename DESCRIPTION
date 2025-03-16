@@ -72,7 +72,8 @@ Imports:
 	wordspace
 LinkingTo: 
 	Rcpp, 
-	RcppEigen
+	RcppEigen,
+	RcppProgress
 Suggests:
     geoR,
     ggpubr,

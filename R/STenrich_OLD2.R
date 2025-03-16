@@ -1,53 +1,44 @@
 ##
-#' @title STenrich
-#' @description Test for spatial enrichment of gene expression sets in ST data sets
-#' @details The function performs a randomization test to assess if the sum of
-#' distances between cells/spots with high expression of a gene set is lower than
-#' the sum of distances among randomly selected cells/spots. The cells/spots are
-#' considered as having high gene set expression if the average expression of genes in a
-#' set is higher than the average expression plus `num_sds` times the standard deviation.
-#' Control over the size of regions with high expression is provided by setting the
-#' minimum number of cells/spots (`min_units`). This method is a modification of
-#' the method devised by Hunter et al. 2021 (zebrafish melanoma study).
-#'
-#' @param x an STlist with transformed gene expression
-#' @param samples a vector with sample names or indexes to run analysis
-#' @param gene_sets a named list of gene sets to test. The names of the list should
-#' identify the gene sets to be tested
-#' @param score_type Controls how gene set expression is calculated. The options are
-#' the average expression among genes in a set ('avg'), or a GSEA score ('gsva'). The
-#' default is 'avg'
-#' @param reps the number of random samples to be extracted. Default is 1000 replicates
-#' @param annot name of the annotation within `x@spatial_meta` containing the spot/cell
-#' categories. Needs to be used in conjunction with `domain`
-#' @param domain the domain to restrict the analysis. Must exist within the spot/cell
-#' categories included in the selected annotation (i.e., `annot`)
-#' @param num_sds the number of standard deviations to set the minimum gene set
-#' expression threshold. Default is one (1) standard deviation
-#' @param min_units Minimum number of spots with high expression of a pathway for
-#' that gene set to be considered in the analysis. Defaults to 20 spots or cells
-#' @param min_genes the minimum number of genes of a gene set present in the data set
-#' for that gene set to be included. Default is 5 genes
-#' @param pval_adj_method the method for multiple comparison adjustment of p-values.
-#' Options are the same as that of `p.adjust`. Default is 'BH'
-#' @param seed the seed number for the selection of random samples. Default is 12345
-#' @param cores the number of cores used during parallelization. If NULL (default),
-#' the number of cores is defined automatically
-#' @return a list of data frames with the results of the test
-#'
-#' @export
-#'
+# @title STenrich
+# @description Test for spatial enrichment of gene expression sets in ST data sets
+# @details The function performs a randomization test to assess if the sum of
+# distances between cells/spots with high expression of a gene set is lower than
+# the sum of distances among randomly selected cells/spots. The cells/spots are
+# considered as having high gene set expression if the average expression of genes in a
+# set is higher than the average expression plus `num_sds` times the standard deviation.
+# Control over the size of regions with high expression is provided by setting the
+# minimum number of cells/spots (`min_units`). This method is a modification of
+# the method devised by Hunter et al. 2021 (zebrafish melanoma study).
+#
+# @param x an STlist with transformed gene expression
+# @param samples a vector with sample names or indexes to run analysis
+# @param gene_sets a named list of gene sets to test. The names of the list should
+# identify the gene sets to be tested
+# @param score_type Controls how gene set expression is calculated. The options are
+# the average expression among genes in a set ('avg'), or a GSEA score ('gsva'). The
+# default is 'avg'.
+# @param reps the number of random samples to be extracted. Default is 1000 replicates
+# @param num_sds the number of standard deviations to set the minimum gene set
+# expression threshold. Default is one (1) standard deviation
+# @param min_units Minimum number of spots with high expression of a pathway for
+# that gene set to be considered in the analysis. Defaults to 20 spots or cells
+# @param min_genes the minimum number of genes of a gene set present in the data set
+# for that gene set to be included. Default is 5 genes
+# @param pval_adj_method the method for multiple comparison adjustment of p-values.
+# Options are the same as that of `p.adjust`. Default is 'BH'
+# @param seed the seed number for the selection of random samples. Default is 12345
+# @param cores the number of cores used during parallelization. If NULL (default),
+# the number of cores is defined automatically
+# @return a list of data frames with the results of the test
+#
+# @export
+#
 #' @importFrom magrittr %>%
-#' @importFrom stats p.adjust
 #
 #
-STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps=1000,
-                    annot=NULL, domain=NULL, num_sds=1, min_units=20, min_genes=5,
-                    pval_adj_method='BH', seed=12345, cores=NULL){
-
-  # To prevent NOTES in R CMD check
-  . = NULL
-
+STenrich_OLD2 = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps=1000,
+                         annot=NULL, domain=NULL, num_sds=1, min_units=20, min_genes=5,
+                         pval_adj_method='BH', seed=12345, cores=NULL){
   # Record time
   zero_t = Sys.time()
 
@@ -117,38 +108,29 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     user_cores = T
   }
 
-  # Extract spots to be used in analysis (in case analysis restricted to domain was requested)
-    # Extract spot coordinates and match order of spots
-  coords_df = lapply(samples, function(i){
-    df_tmp = x@spatial_meta[[i]][, c('libname', 'xpos', 'ypos')]
-    if(length(tissue_spots) > 0){
-      df_tmp = df_tmp[df_tmp[['libname']] %in% tissue_spots[[i]], ]
-    }
-    df_tmp = df_tmp %>% tibble::column_to_rownames(var='libname')
-    df_tmp = as.matrix(df_tmp)
-
-    return(df_tmp)
-  })
-  names(coords_df) = samples
-
   # Make sure temp directory is empty (needed for out-of-memory operations)
   #  unlink(dir(tempdir(), full.names=T), force=T, recursive=T)
   #library('DelayedArray')
   #library('HDF5Array')
   # Loop through samples in STlist and calculate distances
-  # dists_mtx = parallel::mclapply(samples, function(i){
-  #   system(sprintf('echo "%s"', paste0("\tCalculating distances in sample: ", i, "...")))
-  #
-  #
-  #
-  #
-  #
-  #   # Calculate distances for the sample
-  #   distances_spots = calculate_euclidean_distances(coords_df)
-  #
-  #   return(distances_spots)
-  # }, mc.cores=cores)
-  # names(dists_mtx) = samples
+  dists_mtx = parallel::mclapply(samples, function(i){
+    system(sprintf('echo "%s"', paste0("\tCalculating distances in sample: ", i, "...")))
+
+    # Extract spot coordinates and match order of spots
+    coords_df = x@spatial_meta[[i]][, c('libname', 'xpos', 'ypos')]
+
+    # Extract spots to be used in analysis
+    if(length(tissue_spots) > 0){
+      coords_df = coords_df[coords_df[['libname']] %in% tissue_spots[[i]], ]
+    }
+    coords_df = coords_df %>% tibble::column_to_rownames(var='libname')
+
+    # Calculate distances for the sample
+    distances_spots = calculate_euclidean_distances(coords_df)
+
+    return(distances_spots)
+  }, mc.cores=cores)
+  names(dists_mtx) = samples
 
   # Create data frame with combinations of samples and gene sets
   combo = expand.grid(sample_name=samples, gene_set=names(gene_sets))
@@ -230,20 +212,16 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
       # Are there at least 'min_units' number of cells/spots?
       if(length(high_spots_bc) >= min_units){
         # Compute sum of distances among high expression spots
-        #sum_high_distances = calculate_sum_distances(dists_mtx=dists_mtx[[sample_tmp]], select_spots=high_spots_bc)
-        coords_df_tmp = coords_df[[sample_tmp]][high_spots_bc, ]
-        sum_high_distances = computeSubsampleSums(coords_df_tmp, n_subsample=nrow(coords_df_tmp), n_samples=1)
-        rm(coords_df_tmp) # Clean env
+        sum_high_distances = calculate_sum_distances(dists_mtx=dists_mtx[[sample_tmp]], select_spots=high_spots_bc)
 
         # Compute random distance permutations
         set.seed(seed)
-        # sum_rand_distances = lapply(1:reps, function(rep){
-        #   rand_idx = sample(x=colnames(dists_mtx[[sample_tmp]]), size=length(high_spots_bc))
-        #   rand_dists = calculate_sum_distances(dists_mtx=dists_mtx[[sample_tmp]], select_spots=rand_idx)
-        #   return(rand_dists)
-        # })
-        # sum_rand_distances = unlist(sum_rand_distances)
-        sum_rand_distances = computeSubsampleSums(coords_df[[sample_tmp]], n_subsample=length(high_spots_bc), n_samples=reps)
+        sum_rand_distances = lapply(1:reps, function(rep){
+          rand_idx = sample(x=colnames(dists_mtx[[sample_tmp]]), size=length(high_spots_bc))
+          rand_dists = calculate_sum_distances(dists_mtx=dists_mtx[[sample_tmp]], select_spots=rand_idx)
+          return(rand_dists)
+        })
+        sum_rand_distances = unlist(sum_rand_distances)
 
         # Compute p-value
         # Ho: sum of observed distances is larger than sum of random distances
@@ -357,22 +335,19 @@ calculate_gs_mean_exp = function(x=NULL, combo=NULL, pw_genes=NULL, min_genes=NU
 # The function works on an STlist and works by calculating the GSVA score on a series of samples and gene sets
 # Returns a named list of data frames
 #
-calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=NULL, min_genes=NULL, cores=NULL, verbose=T){
+calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=NULL, min_genes=NULL, cores=NULL){
   # Loop through samples
   samples = as.vector(unique(combo[[1]]))
   result_df = lapply(1:length(samples), function(i){
     sample_tmp = as.vector(unique(samples))[i]
-
-    if(!is.null(pw_genes)){
-      pw_genes_tmp = pw_genes[combo[[1]] == sample_tmp]
-      names(pw_genes_tmp) = as.vector(combo[[2]][combo[[1]] == sample_tmp])
-    }
+    pw_genes_tmp = pw_genes[combo[[1]] == sample_tmp]
+    names(pw_genes_tmp) = as.vector(combo[[2]][combo[[1]] == sample_tmp])
     gene_sets_tmp = gene_sets[ names(pw_genes_tmp)[unlist(lapply(pw_genes_tmp, length)) >= min_genes] ]
 
     # Calculate GSVA scores for each spot or cell
     if(length(gene_sets_tmp) > 0){
       gsvapar = GSVA::gsvaParam(as.array(x[[sample_tmp]]), geneSets=gene_sets_tmp)
-      pw_gsva_exp = GSVA::gsva(gsvapar, BPPARAM=BiocParallel::MulticoreParam(workers=cores), verbose=verbose)
+      pw_gsva_exp = GSVA::gsva(gsvapar, BPPARAM=BiocParallel::MulticoreParam(workers=cores))
       pw_gsva_exp = as.data.frame(pw_gsva_exp)
     } else{
       pw_gsva_exp = data.frame(matrix(nrow=length(pw_genes_tmp), ncol=ncol(x[[sample_tmp]])))

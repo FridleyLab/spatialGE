@@ -9,3 +9,7 @@ SparseRowVarStd <- function(mat, mu, sd, vmax) {
     .Call('_spatialGE_SparseRowVarStd', PACKAGE = 'spatialGE', mat, mu, sd, vmax)
 }
 
+computeSubsampleSums <- function(coords, n_subsample, n_samples) {
+    .Call('_spatialGE_computeSubsampleSums', PACKAGE = 'spatialGE', coords, n_subsample, n_samples)
+}
+

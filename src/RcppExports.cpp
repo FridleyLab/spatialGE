@@ -35,10 +35,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// computeSubsampleSums
+NumericVector computeSubsampleSums(NumericMatrix coords, int n_subsample, int n_samples);
+RcppExport SEXP _spatialGE_computeSubsampleSums(SEXP coordsSEXP, SEXP n_subsampleSEXP, SEXP n_samplesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< int >::type n_subsample(n_subsampleSEXP);
+    Rcpp::traits::input_parameter< int >::type n_samples(n_samplesSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeSubsampleSums(coords, n_subsample, n_samples));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_spatialGE_SparseRowVar2", (DL_FUNC) &_spatialGE_SparseRowVar2, 2},
     {"_spatialGE_SparseRowVarStd", (DL_FUNC) &_spatialGE_SparseRowVarStd, 4},
+    {"_spatialGE_computeSubsampleSums", (DL_FUNC) &_spatialGE_computeSubsampleSums, 3},
     {NULL, NULL, 0}
 };
 
