@@ -172,7 +172,9 @@ library('msigdbr')
 
 # Get HALLMARK gene sets
 gene_sets <- msigdbr(species='Homo sapiens')
-gene_sets <- gene_sets[gene_sets[['gs_cat']] == "H", ]
+# Select the appropriate column depending on the msigdbr version
+gs_column <- grep('gs_cat|gs_collection', colnames(gene_sets), value=T)[1]
+gene_sets <- gene_sets[gene_sets[[gs_column]] == "H", ]
 
 # Convert gene set dataframe to list
 # The result is a named list. The names of the list are the names of each gene set
