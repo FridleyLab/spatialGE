@@ -18,6 +18,12 @@ knitr::opts_chunk$set(
 options(rmarkdown.html_vignette.check_title=F)
 ```
 
+```{r extrenal_figs, echo=FALSE}
+knitr::include_graphics(c("img/smi_dir_structure.png", 
+                          "img/diagram_stenrich.png",
+                          "img/spatial_gradients.png"))
+```
+
 The package ***`spatialGE`*** can be used to detect spatial patterns in gene expression at the gene and gene set level. Data from multiple spatial transcriptomics platforms can be analyzed, as long as gene expression counts per spot or cell are associated with spatial coordinates of those spots/cells. The ***`spatialGE`*** package is also compatible with outputs from the Visium workflow (i.e., Space Ranger) or the CosMx-SMI spatial single-cell platform.
 
 In this tutorial, the functions `STenrich`, `STclust`, and `STgradient` will be used to test for spatial gene set enrichment and genes showing expression gradients on a [CosMx-SMI data set](https://nanostring.com/products/cosmx-spatial-molecular-imager/nsclc-ffpe-dataset/) from Non-Small Cell Lung Cancer (NSCLC).
@@ -71,7 +77,7 @@ Data for each tissue slice is stored in separate folders. The structure of the f
 
 
 <p align="center">
-<img src="../vignettes/smi_dir_structure.png" height="250" width="550"/>
+<img src="img/smi_dir_structure.png" height="250" width="550"/>
 </p>
 
 
@@ -146,7 +152,7 @@ The algorithm in `STenrich` is depicted in the following diagram:
 
 
 <p align="center">
-<img src="../vignettes/diagram_stenrich.png" height="250" width="550"/>
+<img src="img/diagram_stenrich.png" height="250" width="550"/>
 </p>
 
 
@@ -350,7 +356,7 @@ Since the tumor areas have been visually identified, it is possible now to ascer
 
 
 <p align="center">
-<img src="../vignettes/spatial_gradients.png" height="250" width="550"/>
+<img src="img/spatial_gradients.png" height="250" width="550"/>
 </p>
 
 

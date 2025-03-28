@@ -38,3 +38,4 @@ error0037,'STlist -> read_xenium_outs: One of the Xenium output folders does not
 error0038,'STlist -> read_xenium_outs: Could not recognize number of cores requested.'
 error0039,'STlist -> read_xenium_outs: Could not recognize the file containing coordinates (csv or parquet).'
 error0040,'STlist -> read_xenium_outs: Could not find cell_id, y_centroid, and x_centroid in coordinates file.'
+error0041,'STgradient: None of the requested samples are present in the STlist.'

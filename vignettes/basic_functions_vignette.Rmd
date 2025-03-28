@@ -18,6 +18,10 @@ knitr::opts_chunk$set(
 options(rmarkdown.html_vignette.check_title=F)
 ```
 
+```{r extrenal_figs, echo=FALSE}
+knitr::include_graphics(c("img/dir_structure.png", "img/metadata_file.png"))
+```
+
 The package ***`spatialGE`*** provides a collection of tools for the visualization of gene expression from spatially-resolved transcriptomic experiments. The data input methods have been designed so that any data can be analyzed as long as it contains gene expression counts per spot or cell, and the spatial coordinates of those spots or cells. Specialized data input options are available to allow interoperability with workflows such as [*Space Ranger*](https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger).
 
 ## Installation
@@ -63,7 +67,7 @@ For convenience, the data is also available at our [spatialGE_Data GitHub reposi
 
 
 <p align="center">
-<img src="../../vignettes/dir_structure.png" height="550" width="550"/>
+<img src="img/dir_structure.png" height="550" width="550"/>
 </p>
 
 
@@ -87,7 +91,7 @@ Additionally, we will input meta data associated with each sample. The meta data
 
 
 <p align="center">
-<img src="../../vignettes/metadata_file.png" height="250" width="550"/>
+<img src="img/metadata_file.png" height="250" width="550"/>
 </p>
 
 
