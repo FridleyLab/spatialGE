@@ -18,13 +18,7 @@ setClass(Class="STlist",
                     gene_meta="list",
                     sample_meta=class(tibble::tibble())[1],
                     tr_counts="list",
-                    #gene_var="list",
-                    #gene_het="list",
                     gene_krige="list",
-                    #cell_deconv="list",
-                    #cell_krige="list",
-                    #st_clusters="list",
-                    #spstats_plots="list",
                     misc="list"
          )
 )
@@ -116,8 +110,8 @@ setMethod("summary", signature="STlist",
 #' @param x an STList object to show summary from.
 #
 #
-setMethod(dim, signature(x="STlist"),
-          function(x){
+setMethod(f="dim", signature="STlist",
+          definition=function(x){
             dim_res = list()
             for(i in seq(x@counts)){
               dim_res[[i]] = c(base::nrow(x@counts[[i]]), base::ncol(x@counts[[i]]))

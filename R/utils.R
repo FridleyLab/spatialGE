@@ -27,6 +27,40 @@ count_cores = function(n){
 
 
 ##
+#' @title spatial_metadata: Prints the names of the available spot/cell annotations
+#' @description returns a character vector with the names of the annotations in the
+#' `x@spatial_meta` slot.
+#'
+#' @param x an STList object
+#
+#
+spatial_metadata = function(x){
+  meta_res = list()
+  for(i in seq(x@spatial_meta)){
+    meta_res[[i]] = base::colnames(x@spatial_meta[[i]][, -c(1:3)])
+  }
+  names(meta_res) = names(x@spatial_meta)
+
+  return(meta_res)
+}
+
+
+##
+#' @title tissue_names: Prints the names of the tissue samples in the STlist
+#' @description returns a character vector with the names of tissue samples in the
+#' STlist.
+#'
+#' @param x an STList object
+#
+#
+tissue_names = function(x){
+  sample_res = names(x@counts)
+
+  return(sample_res)
+}
+
+
+##
 # @title color_parse: Creates a color palette
 # @description Uses Khroma or RColorBrewer to return the colors of a palette name.
 # @details
