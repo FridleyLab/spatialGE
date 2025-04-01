@@ -32,6 +32,8 @@ count_cores = function(n){
 #' `x@spatial_meta` slot.
 #'
 #' @param x an STList object
+#'
+#' @export
 #
 #
 spatial_metadata = function(x){
@@ -51,6 +53,8 @@ spatial_metadata = function(x){
 #' STlist.
 #'
 #' @param x an STList object
+#'
+#' @export
 #
 #
 tissue_names = function(x){
