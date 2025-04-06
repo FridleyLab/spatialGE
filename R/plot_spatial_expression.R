@@ -68,11 +68,18 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
   # Also join coordinate data
   for(i in samples){
     if(any(rownames(counts[[i]]) %in% genes)){
-      counts[[i]] = counts[[i]] %>%
-        expandSparse() %>%
-        tibble::rownames_to_column(var='gene') %>%
-        dplyr::filter(gene %in% genes) %>%
-        tibble::column_to_rownames(var='gene') %>%
+      # counts[[i]] = counts[[i]] %>%
+      #   expandSparse() %>%
+      #   tibble::rownames_to_column(var='gene') %>%
+      #   dplyr::filter(gene %in% genes) %>%
+      #   tibble::column_to_rownames(var='gene') %>%
+      #   t() %>%
+      #   as.data.frame() %>%
+      #   tibble::rownames_to_column(var='libname') %>%
+      #   dplyr::left_join(x@spatial_meta[[i]] %>%
+      #                      dplyr::select(libname, xpos, ypos), ., by='libname')
+
+      counts[[i]] = expandSparse(counts[[i]][rownames(counts[[i]]) %in% genes, , drop=FALSE]) %>%
         t() %>%
         as.data.frame() %>%
         tibble::rownames_to_column(var='libname') %>%
@@ -81,7 +88,7 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
     } else{
       # Remove samples for which none of the requested genes are available
       counts = counts[grep(i, names(counts), value=T, invert=T)]
-      warning(paste0('Not all requested genes are available for sample ', i, '.'))
+      warning(paste0('None of the requested genes are available for sample ', i, '.'))
     }
   }
 
