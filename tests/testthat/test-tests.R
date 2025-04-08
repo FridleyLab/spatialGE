@@ -7,7 +7,7 @@ thrane_tmp = tempdir()
 unlink(thrane_tmp, recursive=TRUE)
 dir.create(thrane_tmp)
 download.file('https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download=',
-			  destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'))
+			  destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
 zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'), full.names=TRUE, pattern='counts')

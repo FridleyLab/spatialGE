@@ -16,7 +16,7 @@
 #' unlink(thrane_tmp, recursive=TRUE)
 #' dir.create(thrane_tmp)
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
-#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'))
+#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
 #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #' unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #' # Generate the file paths to be passed to the STlist function

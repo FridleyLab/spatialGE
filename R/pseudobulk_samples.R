@@ -21,7 +21,7 @@
 #' unlink(thrane_tmp, recursive=TRUE)
 #' dir.create(thrane_tmp)
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
-#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'))
+#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
 #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #' unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #' # Generate the file paths to be passed to the STlist function
@@ -176,7 +176,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=F){
 #' unlink(thrane_tmp, recursive=TRUE)
 #' dir.create(thrane_tmp)
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
-#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'))
+#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
 #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #' unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #' # Generate the file paths to be passed to the STlist function
@@ -290,7 +290,7 @@ pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='p
 #' unlink(thrane_tmp, recursive=TRUE)
 #' dir.create(thrane_tmp)
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
-#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'))
+#' download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
 #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #' unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #' # Generate the file paths to be passed to the STlist function
