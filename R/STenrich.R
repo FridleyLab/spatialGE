@@ -109,6 +109,9 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
   }
 
   # Define number of cores for parallelization of tests
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(samples))
     user_cores = F

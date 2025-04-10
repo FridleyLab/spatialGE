@@ -131,6 +131,9 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
   }
 
   # Detect usable cores
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(x@counts))
   } else{
@@ -201,6 +204,9 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
   }
 
   # Detect usable cores
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(x@counts))
   } else{

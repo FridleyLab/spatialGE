@@ -266,6 +266,9 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   }
 
   # Define number of cores for parallelization of tests
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(unique(combo_df[['samplename']])))
   } else{

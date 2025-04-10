@@ -98,6 +98,9 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   rm(sample_rm) # Clean env
 
   # Define number of cores to use
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(samplenames))
   }

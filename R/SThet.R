@@ -148,6 +148,9 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
 #
 gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   # Define cores available ### PARALLEL
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(x@spatial_meta))
   } else{
@@ -220,6 +223,9 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
 #
 gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   # Define cores available ### PARALLEL
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(x@spatial_meta))
   } else{

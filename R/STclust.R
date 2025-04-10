@@ -121,6 +121,9 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
   }
 
   # Define number of cores for parallelization of tests
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(samples))
   } else{

@@ -188,6 +188,9 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
 
   # Define cores available
   # Define cores available ### PARALLEL
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(unique(combo[[1]])))
   } else{

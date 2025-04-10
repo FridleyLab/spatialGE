@@ -135,6 +135,9 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL){
   input_samples = detect_input_samples(samples)
 
   # Define number of available cores to use.
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores) && !is.null(rnacounts)){
     cores = count_cores(length(rnacounts))
   } else{
@@ -589,6 +592,9 @@ read_visium_outs = function(filepaths, input_rnacounts, cores=NULL){
   cat(paste("\tFound", length(filepaths$sampleids)-missingSamples, "Visium samples\n"))
 
   # Define number of available cores to use.
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(filepaths[['count_found']]))
   } else{
@@ -737,6 +743,9 @@ read_xenium_outs = function(filepaths, input_rnacounts, cores=NULL){
   cat(paste("\tFound", length(filepaths$sampleids)-missingSamples, "Xenium samples\n"))
 
   # Define number of available cores to use.
+  if(.Platform$OS.type == 'windows'){
+    cores = 1
+  }
   if(is.null(cores)){
     cores = count_cores(length(filepaths[['count_found']]))
   } else{
