@@ -143,8 +143,7 @@ cancer biopsies from 22 patients, with two tissue slices per patient.
 The Visium platform allows gene expression quantitation in approximately
 5000 capture areas (i.e., “spots”) separated each other by 100μM. The
 spots are 55μM in diameter, which corresponds to 1-10 cells
-approximately <a href="https://kb.10xgenomics.com/hc/en-us/articles/360035487952-How-many-cells-are-captured-in-a-single-spot" class="external-link">according
-to the manufacturer</a>.</p>
+approximately, depending on cell size.</p>
 <p>Data for all the tissue slices are available at the Gene Expression
 Omnibus (GEO). For the purpose of this tutorial, we will use eight
 samples from four patients.</p>
@@ -181,7 +180,7 @@ block:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">visium_tmp</span>, recursive<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">visium_tmp</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning in dir.create(visium_tmp):</span></span>
-<span><span class="co">#&gt; 'C:\Users\oscar\AppData\Local\Temp\RtmpO8fdXN' already exists</span></span>
+<span><span class="co">#&gt; 'C:\Users\oscar\AppData\Local\Temp\Rtmpu8rGyg' already exists</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">'https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/tnbc_bassiouni.zip?download='</span>, </span>
 <span>              destfile<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">visium_tmp</span>, <span class="st">'/'</span>, <span class="st">'tnbc_bassiouni.zip'</span><span class="op">)</span>, mode<span class="op">=</span><span class="st">'wb'</span><span class="op">)</span></span>
 <span><span class="va">zip_tmp</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">visium_tmp</span>, pattern<span class="op">=</span><span class="st">'tnbc_bassiouni.zip$'</span>, full.names<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
@@ -391,7 +390,7 @@ will be performed for two of the spatial samples
 <span><span class="co">#&gt; [using ordinary kriging]</span></span>
 <span><span class="co">#&gt; [using ordinary kriging]</span></span>
 <span><span class="co">#&gt; [using ordinary kriging]</span></span>
-<span><span class="co">#&gt; Gene interpolation completed in 1.1 min.</span></span></code></pre></div>
+<span><span class="co">#&gt; Gene interpolation completed in 1.64 min.</span></span></code></pre></div>
 <p>Generating gene expression surfaces can be time consuming. The finer
 resolution to which the surface is to be predicted (<code>ngrid</code>
 argument), the longer the time it takes. The execution time also depends
@@ -452,7 +451,7 @@ assignments:</p>
 <span>                ws<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.025</span>, <span class="fl">0.05</span>, <span class="fl">0.2</span><span class="op">)</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; STclust started...</span></span>
 <span><span class="co">#&gt; Updating STlist with results...</span></span>
-<span><span class="co">#&gt; STclust completed in 1.07 min.</span></span></code></pre></div>
+<span><span class="co">#&gt; STclust completed in 0.72 min.</span></span></code></pre></div>
 <p>Results of clustering can be plotted via the <code>STplot</code>
 function:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
@@ -487,7 +486,7 @@ within a sample, we can use the <code><a href="../reference/SThet.html">SThet()<
 <span>              method<span class="op">=</span><span class="st">'moran'</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="co">#&gt; SThet started.</span></span>
 <span><span class="co">#&gt;  Calculating spatial weights...</span></span>
-<span><span class="co">#&gt; SThet completed in 0.06 min.</span></span></code></pre></div>
+<span><span class="co">#&gt; SThet completed in 0.03 min.</span></span></code></pre></div>
 <p>The <code>SThet</code> function calculates the Moran’s I statsitic
 (or Geary’s C) to measure the level of spatial heterogeneity in the
 expression of the genes ( <em>NDRG1</em>, <em>IGKC</em>). The estimates
