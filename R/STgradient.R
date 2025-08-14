@@ -1,10 +1,11 @@
 ##
 #' @title STgradient: Tests of gene expression spatial gradients
-#' @description Calculates Spearman's coefficients to detect genes showing expression spatial gradients
+#' @description Calculates Spearman's coefficients to detect genes showing expression 
+#' spatial gradients
 #' @details
 #' The `STgradient` function fits linear models and calculates Spearman coefficients
 #' between the expression of a gene and the minimum or average distance of spots or
-#' cells to a reference tissue domain. In other wordsm the `STgradient` function
+#' cells to a reference tissue domain. In other words the `STgradient` function
 #' can be used to investigate if a gene is expressed higher in spots/cells closer to
 #' a specific reference tissue domain, compared to spots/cells farther from the
 #' reference domain (or viceversa as indicated by the Spearman's cofficient).
@@ -12,7 +13,7 @@
 #' @param x an STlist with transformed gene expression
 #' @param samples the samples on which the test should be executed
 #' @param topgenes the number of high-variance genes to be tested. These genes are
-#' selected in descending order of variance as caclulated using Seurat's vst method
+#' selected in descending order of variance as calculated using Seurat's vst method
 #' @param annot the name of a column in `@spatial_meta` containing the tissue domain
 #' assignments for each spot or cell. These assignments can be generated using the
 #' `STclust` function
@@ -23,7 +24,7 @@
 #' @param exclude optional, a cluster/domain to exclude from the analysis
 #' @param out_rm logical (optional), remove gene expression outliers defined by
 #' the interquartile method. This option is only valid when `robust=F`
-#' @param limit limite the analysis to spots/cells with distances to `ref` shorther
+#' @param limit limits the analysis to spots/cells with distances to `ref` shorter
 #' than the value specified here. Useful when gradients might occur at smaller scales
 #' or when the domain in `ref` is scattered through the tissue. Caution must be used
 #' due to difficult interpretation of imposed limits. It is suggested to run analysis
@@ -39,10 +40,12 @@
 #' for Visium and CosMx respectively.
 #' @param log_dist logical, whether to apply the natural logarithm to the spot/cell
 #' distances. It applies to all distances a constant (1e-200) to avoid log(0)
+#' @param scale01 scales distances so that they go from 0 to 1.
+#' @param invert_dist inverts (*-1) distances to show "closeness" to reference niche.
 #' @param cores the number of cores used during parallelization. If NULL (default),
-#' the number of cores is defined automatically
-#' @param verbose logical, whether to print text to console
-#' @return a list of data frames with the results of the test
+#' the number of cores is defined automatically.
+#' @param verbose logical, whether to print text to console.
+#' @return a list of data frames with the results of the test.
 #'
 #' @export
 #'
@@ -52,17 +55,18 @@
 #
 STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL, exclude=NULL,
                       out_rm=FALSE, limit=NULL, distsumm='min', min_nb=3, robust=TRUE,
-                      nb_dist_thr=NULL, log_dist=FALSE, cores=NULL, verbose=TRUE){
-
+                      nb_dist_thr=NULL, log_dist=FALSE, scale01=FALSE, invert_dist=FALSE, 
+                      cores=NULL, verbose=TRUE){
+  
   # To prevent NOTES in R CMD check
   . = NULL
-
+  
   # Record time
   zero_t = Sys.time()
-
+  
   # Make sure the reference cluster is character
   ref = as.character(ref)
-
+  
   # Define samples using names (convert indexes to names if necessary)
   if(is.null(samples)){
     samplenames = names(x@tr_counts)
@@ -77,7 +81,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       raise_err(err_code="error0041")
     }
   }
-
+  
   # Remove samples for which the requested annotation is not present
   sample_rm = c()
   for(i in samplenames){
@@ -88,7 +92,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   }
   samplenames = samplenames[ !(samplenames %in% sample_rm) ]
   rm(sample_rm) # Clean env
-
+  
   # Remove samples that do not have the requested reference cluster
   sample_rm = c()
   for(i in samplenames){
@@ -98,7 +102,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   }
   samplenames = samplenames[ !(samplenames %in% sample_rm) ]
   rm(sample_rm) # Clean env
-
+  
   # Define number of cores to use
   if(.Platform$OS.type == 'windows'){
     cores = 1
@@ -106,7 +110,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   if(is.null(cores)){
     cores = count_cores(length(samplenames))
   }
-
+  
   # Define neighborhood tolerance
   if(is.null(nb_dist_thr) | !is.numeric(nb_dist_thr) | length(nb_dist_thr) != 2){
     nb_dist_thr = c(0.75, 1.25)
@@ -114,31 +118,31 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       nb_dist_thr = c(0.25, 3)
     }
   }
-
+  
   results_ls = parallel::mclapply(seq(samplenames), function(i){
     # Calculate euclidean distances
     coords_tmp = x@spatial_meta[[samplenames[i]]] %>%
       dplyr::select(c('libname', 'ypos', 'xpos')) %>% tibble::column_to_rownames('libname')
     dist_tmp = as.matrix(stats::dist(coords_tmp, method='euclidean'))
     rm(coords_tmp) # Clean env
-
+    
     # Save spots in the different categories (ref, nonref, excl)
     ref_tmp = x@spatial_meta[[samplenames[i]]][['libname']][x@spatial_meta[[samplenames[i]]][[annot]] == ref]
     #excl_tmp = x@spatial_meta[[samplenames[i]]][['libname']][x@spatial_meta[[samplenames[i]]][[annot]] == exclude]
     nonref_tmp = x@spatial_meta[[samplenames[i]]][['libname']][!(x@spatial_meta[[samplenames[i]]][[annot]] %in% c(ref, exclude))]
-
+    
     # Identify spots to be removed from reference if not enough neighbors
     # Get minimum distance among all spots within a sample (for Visium would be approximately the same for any sample)
     min_sample = min(as.data.frame(dist_tmp[lower.tri(dist_tmp)]))
     # Get distances among reference spots
     dists_ref_tmp = dist_tmp[ref_tmp, ref_tmp, drop=F]
-
+    
     # Get number of neighbors within minimum distance
     # NOTE: When dealing with other technologies like SMI, will need to be more flexible with
     # minimum distances as not an array of equally distant spots. In this case, allowed a "buffer"
     # of a quarter of the minimum distance
     #if(x@misc[['platform']] == 'cosmx'){
-      nbs = colSums(dists_ref_tmp >= min_sample * nb_dist_thr[1] & dists_ref_tmp <= min_sample * nb_dist_thr[2])
+    nbs = colSums(dists_ref_tmp >= min_sample * nb_dist_thr[1] & dists_ref_tmp <= min_sample * nb_dist_thr[2])
     #} else{
     #  nbs = colSums(dists_ref_tmp >= min_sample * 0.75 & dists_ref_tmp <= min_sample * 1.25)
     #}
@@ -148,13 +152,13 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       nbs_keep = names(nbs)[nbs >= min_nb] # Save spots to be kept (enough neighbors)
     }
     rm(nbs, dists_ref_tmp) # Clean environment
-
+    
     # Get summarized distances from the reference for each spot in the non-reference
     # Select spots in analysis (non reference in rows, reference in columns)
     dists_nonref_tmp = as.data.frame(dist_tmp[nonref_tmp, ref_tmp, drop=F])
     # Remove columns corresponding to spots without enough neighbors
     dists_nonref_tmp = dists_nonref_tmp[, colnames(dists_nonref_tmp) %in% nbs_keep, drop=F]
-
+    
     # Check that distances are available for the comparison
     # Number of rows larger than 1, because cannot compute variable genes with a single non-reference spot
     if(nrow(dists_nonref_tmp) > 1 & ncol(dists_nonref_tmp) > 0){
@@ -169,7 +173,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       dists_summ_tmp = tibble::tibble()
     }
     rm(dists_nonref_tmp) # Clean environment
-
+    
     # Remove distances if outside user-specified limit
     if(!is.null(limit) & nrow(dists_summ_tmp) > 1){
       # Get lower and upper distance limits
@@ -184,11 +188,11 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
         # Make NA the distances outside range
         dists_summ_tmp = dists_summ_tmp %>%
           dplyr::mutate(dist2ref=dplyr::case_when(dist2ref <= dist2refupper ~ as.numeric(dist2ref)))
-
+        
         rm(dist2reflower, dist2refupper) # Clean environment
       }
     }
-
+    
     # Get expression from variable genes
     # Genes are identified within the range limit
     # Extract expression data (non-transformed counts to be passed to FindVariableFeatures)
@@ -199,7 +203,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
       # Get spots that have at least 1 distance value
       # However, if only one spot, then sample will be removed from analysis as cannot detect variable genes from single spot
       raw_cts = raw_cts[, dists_summ_tmp[['barcode']][ !is.na(dists_summ_tmp[['dist2ref']]) ], drop=F]
-
+      
       # Number of rows larger than 1, because cannot compute variable genes with a single non-reference spot
       # Variable genes in minimum distance range
       if(ncol(raw_cts) > 1){
@@ -210,7 +214,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
           unlist() %>%
           as.vector()
         vargenes = vargenes[1:topgenes] # Get number of genes defined by user
-
+        
         # Get transformed gene expression data (will be used for the correlations with distance)
         # Matrices will contain only the non-reference spots (as defined by non-NA value in distance)
         if(length(vargenes) > 0){
@@ -225,18 +229,31 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                 tibble::rownames_to_column(var='barcode') %>%
                                 dplyr::select(barcode=libname, ypos, xpos), ., by='barcode') %>%
             tibble::column_to_rownames('barcode')
-
+          
+          # log-transform distances if selected by user
+          if(log_dist){
+            vargenes_expr[['dist2ref']] = log(vargenes_expr[['dist2ref']] + 1e-200)
+          }
+          # Scale to 0-1
+          if(scale01){
+            vargenes_expr[['dist2ref']] = (vargenes_expr[['dist2ref']] - min(vargenes_expr[['dist2ref']])) / (max(vargenes_expr[['dist2ref']]) - min(vargenes_expr[['dist2ref']]))
+          }
+          # Invert distances
+          if(invert_dist){
+            vargenes_expr[['dist2ref']] = 1 - vargenes_expr[['dist2ref']]
+          }
+          
           rm(vargenes) # Clean environment
         } else{
           vargenes_expr = tibble::tibble()
         }
-
+        
         # Detect gene expression outlier spots for each sample and gene
         if(out_rm & !robust){
           outs_dist2ref = list()
           dfdist2ref = vargenes_expr[!is.na(vargenes_expr[['dist2ref']]), ] %>%
             dplyr::select(-c('ypos', 'xpos', 'dist2ref'))
-
+          
           for(gene in colnames(dfdist2ref)){
             # Calculate gene expression quartiles
             quarts = stats::quantile(dfdist2ref[[gene]], probs=c(0.25, 0.75))
@@ -245,13 +262,13 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
             # Calculate distribution lower and upper limits
             low_up_limits = c((quarts[1]-1.5*iqr_dist2ref),
                               (quarts[2]+1.5*iqr_dist2ref))
-
+            
             # Save outliers (barcodes)
             outs_dist2ref[[gene]] = rownames(dfdist2ref)[ dfdist2ref[[gene]] < low_up_limits[1] | dfdist2ref[[gene]] > low_up_limits[2] ]
           }
           rm(list=grep("iqr|quarts|low_up|dfdist2ref", ls(), value=T)) # Clean environment
         }
-
+        
         # Calculate Spearman's correlations
         # Initialize data frame to store results
         dist_cor = tibble::tibble(sample_name=character(),
@@ -261,7 +278,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                   spearman_r=numeric(),
                                   spearman_r_pval=numeric(),
                                   pval_comment=character())
-
+        
         # CORRELATIONS DISTANCE TO REFERENCE CLUSTER
         genes_sample = colnames(vargenes_expr %>% dplyr::select(-c('ypos', 'xpos', 'dist2ref')))
         for(gene in genes_sample){
@@ -272,9 +289,9 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                       spearman_r=numeric(),
                                       spearman_r_pval=numeric(),
                                       pval_comment=character())
-
+          
           df_gene = vargenes_expr %>% dplyr::select(dist2ref, !!!gene)
-
+          
           lm_res = list(estimate=NA, estimate_p=NA)
           cor_res = list(estimate=NA, p.value=NA)
           if(out_rm & !robust){ # Regular linear models after removal of outliers
@@ -286,11 +303,11 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
               df_gene_outrm = df_gene
             }
             if(nrow(df_gene_outrm) > 1){
-              # log-transform distances if selected by user
-              if(log_dist){
-                df_gene_outrm[['dist2ref']] = log(df_gene_outrm[['dist2ref']] + 1e-200)
-              }
-
+              # # log-transform distances if selected by user
+              # if(log_dist){
+              #   df_gene_outrm[['dist2ref']] = log(df_gene_outrm[['dist2ref']] + 1e-200)
+              # }
+              
               # Run linear model and get summary
               lm_tmp = lm(df_gene_outrm[[gene]] ~ df_gene_outrm[['dist2ref']])
               lm_summ_tmp = summary(lm_tmp)[['coefficients']]
@@ -305,7 +322,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                 if(grepl('standard deviation is zero', cor_res$message)){
                   pval_warn = 'zero_st_deviation'
                 } #else if(grepl('Cannot compute exact p-value with ties', cor_res$message)){ ## WARNING REMOVED AS MOST GENES WILL HAVE TIES = NON EXACT P-VAL
-                  #pval_warn = 'non_exact_pvalue'
+                #pval_warn = 'non_exact_pvalue'
                 #}
                 cor_res = cor.test(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]], method='spearman', exact=F)
               }
@@ -315,12 +332,12 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
               df_gene_range = df_gene
               if(nrow(df_gene_range) > 1){
                 pval_warn = NA_character_
-
-                # log-transform distances if selected by user
-                if(log_dist){
-                  df_gene_range[['dist2ref']] = log(df_gene_range[['dist2ref']] + 1e-200)
-                }
-
+                
+                # # log-transform distances if selected by user
+                # if(log_dist){
+                #   df_gene_range[['dist2ref']] = log(df_gene_range[['dist2ref']] + 1e-200)
+                # }
+                
                 # Run robust linear model and get summary
                 lm_tmp = MASS::rlm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']], maxit=100)
                 if(lm_tmp[['converged']] & lm_tmp[['coefficients']][2] != 0){ # Check the model converged and an effect was estimated
@@ -334,7 +351,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                     if(grepl('standard deviation is zero', cor_res$message)){
                       pval_warn = 'zero_st_deviation'
                     } #else if(grepl('Cannot compute exact p-value with ties', cor_res$message)){ ## WARNING REMOVED AS MOST GENES WILL HAVE TIES = NON EXACT P-VAL
-                      #pval_warn = 'non_exact_pvalue'
+                    #pval_warn = 'non_exact_pvalue'
                     #}
                     cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman', exact=F)
                   }
@@ -345,12 +362,12 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
             } else{ # Regular linear models without outlier removal
               df_gene_range = df_gene
               if(nrow(df_gene_range) > 1){
-
-                # log-transform distances if selected by user
-                if(log_dist){
-                  df_gene_range[['dist2ref']] = log(df_gene_range[['dist2ref']] + 1e-200)
-                }
-
+                
+                # # log-transform distances if selected by user
+                # if(log_dist){
+                #   df_gene_range[['dist2ref']] = log(df_gene_range[['dist2ref']] + 1e-200)
+                # }
+                
                 lm_tmp = lm(df_gene_range[[gene]] ~ df_gene_range[['dist2ref']])
                 lm_summ_tmp = summary(lm_tmp)[['coefficients']]
                 if(nrow(lm_summ_tmp) > 1){ # Test a linear model could be run
@@ -364,14 +381,14 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                   if(grepl('standard deviation is zero', cor_res$message)){
                     pval_warn = 'zero_st_deviation'
                   } #else if(grepl('Cannot compute exact p-value with ties', cor_res$message)){ ## WARNING REMOVED AS MOST GENES WILL HAVE TIES = NON EXACT P-VAL
-                    #pval_warn = 'non_exact_pvalue'
+                  #pval_warn = 'non_exact_pvalue'
                   #}
                   cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman', exact=F)
                 }
               }
             }
           }
-
+          
           # Create row with results
           tibble_tmp = tibble::tibble(sample_name=samplenames[i],
                                       gene=gene,
@@ -380,9 +397,9 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                                       spearman_r=as.vector(cor_res[['estimate']]),
                                       spearman_r_pval=cor_res[['p.value']],
                                       pval_comment=pval_warn)
-
+          
           rm(list=grep("lm_|_res|_test|cor_|df_gene|exact_p", ls(), value=T)) # Clean environment
-
+          
           # Add row to result table if there is one row with results
           if(nrow(tibble_tmp) == 1){
             dist_cor = dplyr::bind_rows(dist_cor, tibble_tmp)
@@ -392,23 +409,23 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
         rm(genes_sample) # Clean environment
       }
     }
-
+    
     if(nrow(dist_cor) > 0){
       # Adjust p-values for multiple comparison
       dist_cor[['spearman_r_pval_adj']] = p.adjust(dist_cor[['spearman_r_pval']], method='BH')
       dist_cor = dist_cor %>%
         dplyr::relocate(spearman_r_pval_adj, .after=spearman_r_pval) %>%
         dplyr::arrange(spearman_r_pval_adj)
-
+      
       # Rename columns
       colnames(dist_cor) = c('sample_name', 'gene', paste0(distsumm, '_', colnames(dist_cor[, -c(1,2)])))
     }
-
+    
     return(dist_cor)
   }, mc.cores=cores)
-
+  
   names(results_ls) = samplenames
-
+  
   sample_rm = c()
   for(i in names(results_ls)){
     if(nrow(results_ls[[i]]) == 0){
@@ -418,13 +435,13 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   if(length(sample_rm) > 0){
     results_ls = results_ls[ !(names(results_ls) %in% sample_rm) ]
   }
-
+  
   # Print time
   end_t = difftime(Sys.time(), zero_t, units='min')
   if(verbose){
     cat(paste0('STgradient completed in ', round(end_t, 2), ' min.\n'))
   }
-
+  
   return(results_ls)
 }
 
