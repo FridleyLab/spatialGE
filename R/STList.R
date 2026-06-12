@@ -77,7 +77,9 @@
 #' function will separate data from each FOV, since analysis in spatialGE is conducted at
 #' the FOV level. Requires `samples` and `rnacounts`.
 #' \item A named list of data frames with cell/spot coordinates. The list names must
-#' match list names of the gene counts list
+#' match list names of the gene counts list. For each data frame the first column contains 
+#' gene names and subsequent columns contain the expression data for each cell/spot. 
+#' Duplicate gene names will be modified using `make.unique`.
 #' }
 #' @param samples the sample names/IDs and (optionally) metadata associated with
 #' each spatial sample.
@@ -179,17 +181,13 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
 
   # Test the validity of sample names
   if(length(sample_names) > 0){
-    # Sample names SHOULD NOT begin with a number
-    test_number = any(sapply(sample_names, function(i){grepl("^[0-9]", i)}))
-    if(test_number){
+    # Sample names should begin with letters only and contain only alpha-numerics, spaces, dashes, and underscores
+    # Regex pattern looks for a letter at the beginning (denoted by the caret) and then alpha-numeric, space, dash, or underscore after throughout to the end of the string (denoted by the dollar sign)
+    test_sample_name = any(!sapply(sample_names, function(i){grepl("^[A-Za-z][A-Za-z0-9 _-]*$​", i)}))
+    if(test_sample_name){
       raise_err(err_code='error0028')
     }
-    # Test that sample names contain only alpha-numerics, spaces, dash, and underscores
-    test_chars = any(!sapply(sample_names, function(i){grepl("^[ //-_//A-Za-z0-9]+$", i)}))
-    if(test_chars){
-      raise_err(err_code='error0028')
-    }
-    rm(test_number, test_chars) # Clean env
+    rm(test_sample_name) # Clean env
   } else{
     raise_err(err_code='error0004')
   }
