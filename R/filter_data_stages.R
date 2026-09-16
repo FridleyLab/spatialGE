@@ -104,7 +104,7 @@ filter_stage_genes_expr = function(x, samples, rm_genes_expr){
         x@tr_counts[[i]] = x@tr_counts[[i]][!grepl(rm_genes_expr, rownames(x@tr_counts[[i]])), ]
       }
       if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta[[i]] = x@gene_meta[[i]][!grepl(rm_genes_expr, rownames(x@gene_meta[[i]])),, ]
+        x@gene_meta[[i]] = x@gene_meta[[i]][!grepl(rm_genes_expr, x@gene_meta[[i]][['gene']]), ]
       }
     }
   }
