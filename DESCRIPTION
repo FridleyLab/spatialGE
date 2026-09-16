@@ -99,7 +99,8 @@ Suggests:
     spatstat,
     SeuratObject,
     tidyverse,
-    testthat (>= 3.0.0)
-VignetteBuilder: 
+    testthat (>= 3.0.0),
+    writexl
+VignetteBuilder:
 	knitr
 Config/testthat/edition: 3

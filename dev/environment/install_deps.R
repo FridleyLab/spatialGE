@@ -28,7 +28,7 @@ cran_pkgs <- c(
   "curl", "geoR", "ggpubr", "httr", "janitor", "kableExtra", "knitr",
   "msigdbr", "progress", "rmarkdown", "rpart", "R.utils", "spatstat",
   "tidyverse", "testthat", "bench", "profvis", "covr", "waldo", "devtools",
-  "roxygen2"
+  "roxygen2", "writexl"
 )
 
 bioc_pkgs <- c(
