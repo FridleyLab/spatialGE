@@ -114,7 +114,10 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     if(length(tissue_spots) > 0){
       df_tmp = df_tmp[df_tmp[['libname']] %in% tissue_spots[[i]], ]
     }
-    df_tmp = df_tmp %>% tibble::column_to_rownames(var='libname')
+    # The row subset above leaves non-contiguous row names behind (e.g. 1, 5, 9),
+    # which column_to_rownames() rejects. Drop them first so the domain-restricted
+    # path behaves like the unrestricted one.
+    df_tmp = df_tmp %>% tibble::remove_rownames() %>% tibble::column_to_rownames(var='libname')
     df_tmp = as.matrix(df_tmp)
 
     return(df_tmp)
