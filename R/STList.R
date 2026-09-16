@@ -142,16 +142,9 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
   input_samples = detect_input_samples(samples)
 
   # Define number of available cores to use.
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores) && !is.null(rnacounts)){
-    cores = count_cores(length(rnacounts))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      raise_err(err_code='error0032')
-    }
+  cores = resolve_cores(length(rnacounts), cores, coerce='as_integer')
+  if(is.na(cores)){
+    raise_err(err_code='error0032')
   }
 
   # Output error if input_check is empty (likely input format not recognized).

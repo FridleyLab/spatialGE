@@ -35,19 +35,16 @@ testthat::test_that("tab-delimited matrix files build a valid STlist", {
   testthat::expect_s4_class(st, "STlist")
 })
 
-testthat::test_that("samplesfile_matrices (paths-only samples file): known STlist() bugs", {
-  # Two independent bugs currently make this input unusable:
-  #  1. STlist()'s cores-resolution `if(is.null(cores) && !is.null(rnacounts))`
-  #     is FALSE whenever rnacounts is NULL (as it must be for this format),
-  #     so it falls to `cores = as.integer(cores)` on a NULL cores, giving
-  #     integer(0); `is.na(integer(0))` in the next `if()` then errors with
-  #     "argument is of length zero" before samples-file-specific logic runs.
-  #  2. process_sample_names_from_file(), the function that would resolve the
-  #     counts_path/coords_path columns from the samples file, is defined in
-  #     R/STList.R but never called from anywhere -- this input path is dead
-  #     code regardless of bug #1. Tracked for Phase 11.
+testthat::test_that("samplesfile_matrices (paths-only samples file): unsupported input", {
+  # process_sample_names_from_file(), the function that would have resolved
+  # counts_path/coords_path columns from a paths-only samples file, was dead
+  # code (never called from anywhere) and was removed in Phase 4 -- so this
+  # input format (samples file with no rnacounts/spotcoords) has never
+  # actually been supported. STlist() now fails with a clear validation error
+  # (rnacounts is required) instead of the internal "argument is of length
+  # zero" it previously raised due to a separate cores-resolution bug.
   f <- fixtures$samplesfile_matrices
-  testthat::expect_error(STlist(samples = f$samples), "argument is of length zero")
+  testthat::expect_error(STlist(samples = f$samples), "rnacounts argument must be provided")
 })
 
 testthat::test_that("Visium MEX directories build a valid STlist", {
