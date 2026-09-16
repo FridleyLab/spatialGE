@@ -109,7 +109,7 @@ import_visium_h5 = function(counts_fp=NULL, coords_fp=NULL){
   # `matrix`. 10X indicates their HDF5 outputs have one group named ('matrix')
   h5_group = names(h5_read)
   if(length(h5_group) > 1){
-    warning('There is more than one group in \"', h5_file, '\". Reading only the first group.')
+    warning('There is more than one group in \"', counts_fp, '\". Reading only the first group.')
   }
   if(h5_group[1] != 'matrix'){
     warning('The .h5 file group is not called \"matrix\". Is this a Visium .h5 output?')
