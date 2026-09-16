@@ -100,11 +100,7 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
   # Calculate gene-wise standard deviations in parallel if possible.
   cores = 1
   x@gene_meta = sge_lapply(seq_along(x@tr_counts), function(i){
-    #gene_stdevs_df = apply(x@tr_counts[[i]], 1, sd, na.rm=T) # There shouldn't be any NAs in data transformed counts
-    gene_stdevs_df = tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(x@tr_counts[[i]]))) %>%
-      tibble::add_column(gene_stdevs=as.vector(apply(x@tr_counts[[i]], 1, sd))) %>%
-      tibble::add_column(gene=rownames(x@tr_counts[[i]]), .before=1)
-    return(gene_stdevs_df)
+    gene_meta_one_sample(sample_tr_counts(x, i))
   }, cores=cores, preschedule=F)
   # Copy names of the list
   names(x@gene_meta) = names(x@counts)
@@ -142,35 +138,7 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
 
   # Perform log-transformation on parallel if possible.
   log_counts = sge_lapply(seq_along(x@counts), function(i){
-    # Show progress
-    system(sprintf('echo "%s"', paste0("Log-transforming sample ", names(x@counts)[i], "....")))
-
-    df_tmp = as.matrix(x@counts[[i]])
-    # Calculate (spot/cell) library sizes.
-    libsizes = colSums(df_tmp)
-    # Check that there are not zero-count spot/cells
-    zero_size = NULL
-    if(any(libsizes == 0)){
-      zero_size = as.vector(which(libsizes == 0))
-      df_tmp = df_tmp[, -zero_size]
-      system(sprintf('echo "%s"', paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", names(x@counts)[i], " and from the entire STlist.")))
-      libsizes = libsizes[libsizes != 0]
-    }
-
-    # Divide each count value by their respective column (spot) normalization factor.
-    df_tmp = sweep(df_tmp, 2, libsizes, '/')
-    # Then multiply by scaling factor
-    df_tmp = df_tmp * scale_f
-    # Apply log transformation to count data.
-    df_tmp = log1p(df_tmp)
-
-    # # Put back gene names to matrix and store in object.
-    # df = tibble::as_tibble(df) %>%
-    #   tibble::add_column(gene=rownames(x@counts[[i]]), .before=1)
-
-    result_list = list(counts=df_tmp, zero_size=zero_size)
-
-    return(result_list)
+    log_transf_one_sample(sample_counts(x, i), names(x@counts)[i], scale_f)
   }, cores=cores, preschedule=F)
 
   # Copy list names from raw counts to transformed counts
@@ -206,30 +174,7 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
 
   # Perform log-transformation on parallel if possible.
   sct_counts = sge_lapply(seq_along(x@counts), function(i){
-    # Show progress
-    system(sprintf('echo "%s"', paste0("Applying SCTransform to sample ", names(x@counts)[i], "....")))
-
-    df_tmp = as.matrix(x@counts[[i]])
-    # Calculate (spot/cell) library sizes.
-    libsizes = colSums(df_tmp)
-    # Check that there are not zero-count spot/cells
-    zero_size = NULL
-    if(any(libsizes == 0)){
-      zero_size = as.vector(which(libsizes == 0))
-      df_tmp = df_tmp[, -zero_size]
-      system(sprintf('echo "%s"', paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", names(x@counts)[i], " and from the entire STlist.")))
-      libsizes = libsizes[libsizes != 0]
-    }
-
-    # Apply SCTransform
-    df_tmp = sctransform::vst(df_tmp, n_genes=sct_n_regr_genes, min_cells=sct_min_cells,
-                              return_corrected_umi=T, verbosity=0)
-    # log transform the corrected UMI counts from SCTransform
-    df_tmp = log1p(df_tmp[['umi_corrected']])
-
-    result_list = list(counts=df_tmp, zero_size=zero_size)
-
-    return(result_list)
+    sct_transf_one_sample(sample_counts(x, i), names(x@counts)[i], sct_n_regr_genes, sct_min_cells)
   }, cores=cores, preschedule=F)
 
   # Copy list names from raw counts to transformed counts
@@ -237,5 +182,106 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
   names(sct_counts) = names(x@counts)
 
   return(sct_counts)
+}
+
+
+##
+# @title log_transf_one_sample: Log-transform a single sample's raw counts
+# @description The per-sample unit of work dispatched by `log_transf()`'s
+# `sge_lapply` call, extracted so it is directly callable/benchmarkable for
+# one sample without going through the whole STlist or the parallel dispatch.
+#
+# @param counts_mat a raw count matrix (spots/cells in columns).
+# @param sample_name the sample's name, used only in progress messages.
+# @param scale_f the scaling factor to use.
+# @return a list with `counts` (the transformed matrix) and `zero_size`
+# (indices of zero-count spots/cells removed, or NULL).
+#
+log_transf_one_sample = function(counts_mat, sample_name, scale_f){
+  # Show progress
+  system(sprintf('echo "%s"', paste0("Log-transforming sample ", sample_name, "....")))
+
+  df_tmp = as.matrix(counts_mat)
+  # Calculate (spot/cell) library sizes.
+  libsizes = colSums(df_tmp)
+  # Check that there are not zero-count spot/cells
+  zero_size = NULL
+  if(any(libsizes == 0)){
+    zero_size = as.vector(which(libsizes == 0))
+    df_tmp = df_tmp[, -zero_size]
+    system(sprintf('echo "%s"', paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", sample_name, " and from the entire STlist.")))
+    libsizes = libsizes[libsizes != 0]
+  }
+
+  # Divide each count value by their respective column (spot) normalization factor.
+  df_tmp = sweep(df_tmp, 2, libsizes, '/')
+  # Then multiply by scaling factor
+  df_tmp = df_tmp * scale_f
+  # Apply log transformation to count data.
+  df_tmp = log1p(df_tmp)
+
+  result_list = list(counts=df_tmp, zero_size=zero_size)
+
+  return(result_list)
+}
+
+
+##
+# @title sct_transf_one_sample: Apply SCTransform to a single sample's raw counts
+# @description The per-sample unit of work dispatched by `sct_transf()`'s
+# `sge_lapply` call, extracted so it is directly callable/benchmarkable for
+# one sample without going through the whole STlist or the parallel dispatch.
+#
+# @param counts_mat a raw count matrix (spots/cells in columns).
+# @param sample_name the sample's name, used only in progress messages.
+# @param sct_n_regr_genes the number of genes used in `sctransform::vst`'s
+# regression model.
+# @param sct_min_cells the minimum number of cells used in `sctransform::vst`'s
+# regression model.
+# @return a list with `counts` (the transformed matrix) and `zero_size`
+# (indices of zero-count spots/cells removed, or NULL).
+#
+sct_transf_one_sample = function(counts_mat, sample_name, sct_n_regr_genes, sct_min_cells){
+  # Show progress
+  system(sprintf('echo "%s"', paste0("Applying SCTransform to sample ", sample_name, "....")))
+
+  df_tmp = as.matrix(counts_mat)
+  # Calculate (spot/cell) library sizes.
+  libsizes = colSums(df_tmp)
+  # Check that there are not zero-count spot/cells
+  zero_size = NULL
+  if(any(libsizes == 0)){
+    zero_size = as.vector(which(libsizes == 0))
+    df_tmp = df_tmp[, -zero_size]
+    system(sprintf('echo "%s"', paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", sample_name, " and from the entire STlist.")))
+    libsizes = libsizes[libsizes != 0]
+  }
+
+  # Apply SCTransform
+  df_tmp = sctransform::vst(df_tmp, n_genes=sct_n_regr_genes, min_cells=sct_min_cells,
+                            return_corrected_umi=T, verbosity=0)
+  # log transform the corrected UMI counts from SCTransform
+  df_tmp = log1p(df_tmp[['umi_corrected']])
+
+  result_list = list(counts=df_tmp, zero_size=zero_size)
+
+  return(result_list)
+}
+
+
+##
+# @title gene_meta_one_sample: Compute per-gene mean/stdev for a single sample
+# @description The per-sample unit of work dispatched by `transform_data()`'s
+# gene-wise standard deviation `sge_lapply` call, extracted so it is directly
+# callable/benchmarkable for one sample without going through the whole STlist.
+#
+# @param tr_counts_mat a transformed count matrix for one sample (genes in rows).
+# @return a tibble with columns `gene`, `gene_mean`, `gene_stdevs`.
+#
+gene_meta_one_sample = function(tr_counts_mat){
+  gene_stdevs_df = tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(tr_counts_mat))) %>%
+    tibble::add_column(gene_stdevs=as.vector(apply(tr_counts_mat, 1, sd))) %>%
+    tibble::add_column(gene=rownames(tr_counts_mat), .before=1)
+  return(gene_stdevs_df)
 }
 
