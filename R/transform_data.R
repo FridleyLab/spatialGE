@@ -98,7 +98,7 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
   }
 
   # Calculate gene-wise standard deviations in parallel if possible.
-  cores = 1
+  cores = resolve_cores(length(x@tr_counts), cores, coerce='as_integer')
   x@gene_meta = sge_lapply(seq_along(x@tr_counts), function(i){
     gene_meta_one_sample(sample_tr_counts(x, i))
   }, cores=cores, preschedule=F)

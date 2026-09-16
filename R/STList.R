@@ -291,7 +291,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
       }
       procLists[['counts']] = sge_lapply(procLists[['counts']], function(x){
         makeSparse(x)
-      })
+      }, cores=cores)
     }
   } else if(!(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex'))){
     if(verbose){
@@ -299,7 +299,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
     }
     procLists[['counts']] = sge_lapply(procLists[['counts']], function(x){
       makeSparse(x)
-    })
+    }, cores=cores)
   }
 
   # Detect if image from Visium out is available
