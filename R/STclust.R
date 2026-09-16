@@ -123,53 +123,14 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
 
   # Subset variable genes
   trcounts_df = sge_lapply(samples, function(i){
-    topgenenames_tmp = x@gene_meta[[i]] %>%
-      dplyr::arrange(dplyr::desc(vst.variance.standardized)) %>%
-      dplyr::slice_head(n=topgenes) %>%
-      dplyr::select(gene) %>%
-      unlist() %>%
-      as.vector()
-
-    # Get transformed counts
-    trcounts_df_tmp = x@tr_counts[[i]][rownames(x@tr_counts[[i]]) %in% topgenenames_tmp, ]
-
-    return(trcounts_df_tmp)
+    stclust_topgenes_one_sample(sample_gene_meta(x, i), sample_tr_counts(x, i), topgenes)
   }, cores=cores)
   names(trcounts_df) = samples
 
   # Parallelize clustering
   res_ls = sge_lapply(samples, function(i){
-    # Calculate scaled expression and spatial distance matrices
-    scaled_dists = calculate_dist_matrices(expr_dat=trcounts_df[[i]], coord_dat=x@spatial_meta[[i]], dist_metric=dist_metric)
-
-    # Calculate weighted distance matrices
-    weighted_dists = calculate_weighted_dist(scaled_dists=scaled_dists, ws=ws)
-
-    rm(scaled_dists) # Clean env
-
-    # Identify clustering method... ONLY HIERARCHICAL CLUSTERING IMPLEMENTED SO FAR
-    if(clmethod == 'hclust'){
-
-      # Apply dtc or split to k
-      if(as.character(ks[1]) == 'dtc'){
-        # Hierarchical clustering using DynamicTreeCLusters
-        hierclusters_ls = get_hier_clusters_dtc(weighted_dists=weighted_dists, ws=ws, deepSplit=deepSplit, linkage=linkage)
-      } else if(is.numeric(ks)){
-        # Hierarchical clustering using range of Ks
-        hierclusters_ls = get_hier_clusters_ks(weighted_dists=weighted_dists, ws=ws, ks=ks, linkage=linkage)
-      } else{
-        stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')
-      }
-
-    } else{
-      stop('Currently, only spatially-informed hierarchical clustering is supported.')
-    }
-
-    if(verbose > 1L){
-      system(sprintf('echo "%s"', paste0("\tClustering completed for ", i, "...")))
-    }
-
-    return(hierclusters_ls)
+    stclust_one_sample(trcounts_df[[i]], sample_spatial_meta(x, i), dist_metric, ws, clmethod,
+                       ks, deepSplit, linkage, verbose, i)
   }, cores=cores)
   names(res_ls) = samples
 
@@ -200,6 +161,93 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
 
 
 # Helpers ----------------------------------------------------------------------
+
+##
+# @title stclust_topgenes_one_sample: Subset a sample's counts to its top
+# variable genes
+# @description The per-sample unit of work dispatched by `STclust()`'s
+# "Subset variable genes" `sge_lapply` call, extracted so it is directly
+# callable/benchmarkable for one sample without going through the whole STlist.
+#
+# @param gene_meta_df the sample's gene metadata tibble (must contain
+# `gene` and `vst.variance.standardized` columns).
+# @param tr_counts_mat the sample's transformed count matrix.
+# @param topgenes the number of top variable genes to keep.
+# @return the transformed count matrix subset to the top variable genes.
+#
+stclust_topgenes_one_sample = function(gene_meta_df, tr_counts_mat, topgenes){
+  # To prevent NOTES in R CMD check
+  . = NULL
+
+  topgenenames_tmp = gene_meta_df %>%
+    dplyr::arrange(dplyr::desc(vst.variance.standardized)) %>%
+    dplyr::slice_head(n=topgenes) %>%
+    dplyr::select(gene) %>%
+    unlist() %>%
+    as.vector()
+
+  # Get transformed counts
+  trcounts_df_tmp = tr_counts_mat[rownames(tr_counts_mat) %in% topgenenames_tmp, ]
+
+  return(trcounts_df_tmp)
+}
+
+
+##
+# @title stclust_one_sample: Run spatially-weighted hierarchical clustering
+# for one sample
+# @description The per-sample unit of work dispatched by `STclust()`'s
+# "Parallelize clustering" `sge_lapply` call, extracted so it is directly
+# callable/benchmarkable for one sample without going through the whole STlist.
+#
+# @param trcounts_mat the sample's transformed counts, subset to top variable genes.
+# @param spatial_meta_df the sample's spatial metadata tibble.
+# @param dist_metric the distance metric, passed to `calculate_dist_matrices`.
+# @param ws vector of spatial weights.
+# @param clmethod the clustering method (only 'hclust' is currently supported).
+# @param ks the range of k values, or 'dtc' to apply `cutreeDynamic`.
+# @param deepSplit passed to `get_hier_clusters_dtc`.
+# @param linkage the linkage method, passed to `hclust`.
+# @param verbose either logical or an integer (0, 1, or 2); values > 1 print
+# a per-sample progress message.
+# @param sample_name the sample's name, used only in the progress message.
+# @return a list of data frames with cluster assignments, one per spatial weight.
+#
+stclust_one_sample = function(trcounts_mat, spatial_meta_df, dist_metric, ws, clmethod,
+                              ks, deepSplit, linkage, verbose, sample_name){
+  # Calculate scaled expression and spatial distance matrices
+  scaled_dists = calculate_dist_matrices(expr_dat=trcounts_mat, coord_dat=spatial_meta_df, dist_metric=dist_metric)
+
+  # Calculate weighted distance matrices
+  weighted_dists = calculate_weighted_dist(scaled_dists=scaled_dists, ws=ws)
+
+  rm(scaled_dists) # Clean env
+
+  # Identify clustering method... ONLY HIERARCHICAL CLUSTERING IMPLEMENTED SO FAR
+  if(clmethod == 'hclust'){
+
+    # Apply dtc or split to k
+    if(as.character(ks[1]) == 'dtc'){
+      # Hierarchical clustering using DynamicTreeCLusters
+      hierclusters_ls = get_hier_clusters_dtc(weighted_dists=weighted_dists, ws=ws, deepSplit=deepSplit, linkage=linkage)
+    } else if(is.numeric(ks)){
+      # Hierarchical clustering using range of Ks
+      hierclusters_ls = get_hier_clusters_ks(weighted_dists=weighted_dists, ws=ws, ks=ks, linkage=linkage)
+    } else{
+      stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')
+    }
+
+  } else{
+    stop('Currently, only spatially-informed hierarchical clustering is supported.')
+  }
+
+  if(verbose > 1L){
+    system(sprintf('echo "%s"', paste0("\tClustering completed for ", sample_name, "...")))
+  }
+
+  return(hierclusters_ls)
+}
+
 
 ##
 # calculate_dist_matrices: Calculate distance matrices and scale to 1
