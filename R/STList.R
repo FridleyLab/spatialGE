@@ -278,8 +278,6 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
   samples_df = tibble::tibble()
   if(input_check$samples[1] == 'samplesfile' || input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex') || input_check$samples[1] == 'samplesfile_matrices'){
     samples_df = process_meta(samples=samples, input_check=input_check, counts_df_list=procLists[['counts']])
-  #}else if(input_check$samples[1] == 'samplesfile_geomx'){
-  #  samples_df = process_meta_geomx(samples, input_check, procLists[['counts']], gmx_slide_col, gmx_meta_cols)
   }else{
     samples_df = tibble::tibble(sample_name=names(procLists[['counts']]))
   }
@@ -999,42 +997,6 @@ process_lists = function(counts_df_list, coords_df_list){
 }
 
 ##
-# process_sample_filepaths: Gets file paths to Visium outputs or count/coord matrices
-# from a sample metadata file
-# @param samples, the file path to metadata file
-# @param input_check, a list resulting from detect_input
-# @return filepaths, a list with found file paths per each sample, and sample IDs
-#
-process_sample_filepaths = function(samples, input_check){
-  # Check that all system paths provided exist.
-  if(!file.exists(samples)){
-    stop('Could not find samples file.')
-  }
-  # Read sample file and get sample names.
-  delsample = input_check$samples[2]
-  sample_file_df = readr::read_delim(samples, delim=delsample, col_types=readr::cols(), progress=F, show_col_types=F)
-  sample_names = sample_file_df[[1]]
-  # Create objects to store sample names found. Will be used to assess if expected samples exist.
-  # Also store file paths to open
-  filepaths = list()
-  if(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex')){
-    for(i in sample_names){
-      sample_i = as.vector(unlist(sample_file_df[, 2][grep(i, sample_file_df[[1]]), ]))
-      filepaths[['count_found']] = append(filepaths[['count_found']], sample_i[1])
-    }
-    filepaths[['sampleids']] = sample_names
-  } else{
-    for(i in sample_names){
-      sample_i = as.vector(unlist(sample_file_df[, c(2, 3)][grep(i, sample_file_df[[1]]), ]))
-      filepaths[['count_found']] = append(filepaths[['count_found']], sample_i[1])
-      filepaths[['coord_found']] = append(filepaths[['coord_found']], sample_i[2])
-    }
-    filepaths[['sampleids']] = sample_names
-  }
-  return(filepaths)
-}
-
-##
 # process_sample_names: Match file paths to Visium outputs or count/coord matrices
 # to sample names for processing
 # @param rnacounts, vector of file paths to Visium outputs or count matrices
@@ -1076,63 +1038,6 @@ process_sample_names = function(rnacounts, spotcoords, samples, input_rnacounts,
     }
   } else{
     raise_err(err_code='error0034')
-  }
-  return(filepaths)
-}
-
-##
-# process_sample_names_from_file: Match file paths to Visium outputs or count/coord matrices
-# to sample names from a meta data file for later processing
-# @params rnacounts, vector of file paths to Visium outputs or count matrices
-# @params spotcoords, vector of file paths to coordinate matrices
-# @param samples, the file path to metadata file
-# @param input_check, a list resulting from detect_input
-# @return filepaths, a list with found file paths per each sample, and sample IDs
-#
-process_sample_names_from_file = function(rnacounts, spotcoords, samples, input_check){
-  # Check that all system paths provided exist.
-  if(!file.exists(samples)){
-    stop('Could not find samples file.')
-  }
-  # Read sample file and get sample names.
-  delsample = input_check$samples[2]
-  sample_file_df = readr::read_delim(samples, delim=delsample, col_types=readr::cols(), progress=F, show_col_types=F, name_repair='minimal')
-  sample_names = sample_file_df[[1]]
-  # Create objects to store sample names found. Will be used to assess if expected samples exist.
-  # Also store file paths to open
-  filepaths = list()
-  if(!is.null(input_check$rna)){
-    if(input_check$rna[1] %in% c('visium_out_h5', 'visium_out_mex')){
-      for(i in sample_names){
-        sample_i = grep(i, rnacounts, value=T)
-        if(length(sample_i) != 0){
-          filepaths[['count_found']] = append(filepaths[['count_found']], sample_i)
-          filepaths[['sampleids']] = append(filepaths[['sampleids']], i)
-        }
-      }
-    }
-  } else if(input_check$samples[1] %in% c('samplesfile_visium_h5', 'samplesfile_visium_mex')){
-    for(i in sample_names){
-      visium_fps = sample_file_df[[2]] # If only samples file provided, then visium directories must be in second column of file
-      sample_i = grep(i, visium_fps, value=T)
-      if(length(sample_i) != 0){
-        filepaths[['count_found']] = append(filepaths[['count_found']], sample_i)
-        filepaths[['sampleids']] = append(filepaths[['sampleids']], i)
-      }
-    }
-  } else{
-    for(i in sample_names){
-      # Get file paths to counts and coords from samples file
-      rna_fps = sample_file_df[[2]]
-      coords_fp = sample_file_df[[3]]
-      sample_count = grep(i, rna_fps, value=T)
-      sample_coord = grep(i, coords_fp, value=T)
-      if(length(sample_count) != 0 & length(sample_coord) != 0){
-        filepaths[['count_found']] = append(filepaths[['count_found']], sample_count)
-        filepaths[['coord_found']] = append(filepaths[['coord_found']], sample_coord)
-        filepaths[['sampleids']] = append(filepaths[['sampleids']], i)
-      }
-    }
   }
   return(filepaths)
 }
@@ -1188,33 +1093,4 @@ process_meta = function(samples, input_check, counts_df_list){
   }
   return(samples_df)
 }
-
-# process_meta_geomx = function(samples, input_check, counts_df_list, gmx_slide_col, gmx_meta_cols){
-#   if(input_check$samples[2] == 'xls'){
-#     samples_df = readxl::read_excel(samples)
-#   } else {
-#     # Get delimiter of file from input_check
-#     del = input_check$samples[2]
-#     samples_df = readr::read_delim(samples, delim=del, col_types=readr::cols(), progress=F, show_col_types=F)
-#   }
-#   samples_df = samples_df[samples_df[[gmx_slide_col]] %in% names(counts_df_list), ]
-#   samples_df = samples_df[, c(gmx_slide_col, gmx_meta_cols)]
-#
-#   samples_df_summ = tibble::tibble()
-#   for(slide_id in unique(samples_df[[gmx_slide_col]])){
-#     meta_row = c(sampleID=slide_id)
-#     for(metacol in gmx_meta_cols){
-#       if(is.numeric(samples_df[[metacol]])){
-#         tmp_val = mean(samples_df[[metacol]][samples_df[[gmx_slide_col]] == slide_id], na.rm=T)
-#       } else{
-#         tmp_val = unique(samples_df[[metacol]][samples_df[[gmx_slide_col]] == slide_id])
-#         tmp_val = paste(tmp_val, collapse='|')
-#       }
-#       names(tmp_val) = metacol
-#       meta_row = append(meta_row, tmp_val)
-#     }
-#     samples_df_summ = dplyr::bind_rows(samples_df_summ, meta_row)
-#   }
-#   return(samples_df_summ)
-# }
 

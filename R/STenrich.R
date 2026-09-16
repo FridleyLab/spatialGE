@@ -139,25 +139,6 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
   })
   names(coords_df) = samples
 
-  # Make sure temp directory is empty (needed for out-of-memory operations)
-  #  unlink(dir(tempdir(), full.names=T), force=T, recursive=T)
-  #library('DelayedArray')
-  #library('HDF5Array')
-  # Loop through samples in STlist and calculate distances
-  # dists_mtx = parallel::mclapply(samples, function(i){
-  #   system(sprintf('echo "%s"', paste0("\tCalculating distances in sample: ", i, "...")))
-  #
-  #
-  #
-  #
-  #
-  #   # Calculate distances for the sample
-  #   distances_spots = calculate_euclidean_distances(coords_df)
-  #
-  #   return(distances_spots)
-  # }, mc.cores=cores)
-  # names(dists_mtx) = samples
-
   # Create data frame with combinations of samples and gene sets
   combo = expand.grid(sample_name=samples, gene_set=names(gene_sets))
 
@@ -244,19 +225,12 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
       # Are there at least 'min_units' number of cells/spots?
       if(length(high_spots_bc) >= min_units){
         # Compute sum of distances among high expression spots
-        #sum_high_distances = calculate_sum_distances(dists_mtx=dists_mtx[[sample_tmp]], select_spots=high_spots_bc)
         coords_df_tmp = coords_df[[sample_tmp]][high_spots_bc, ]
         sum_high_distances = computeSubsampleSums(coords_df_tmp, n_subsample=nrow(coords_df_tmp), n_samples=1)
         rm(coords_df_tmp) # Clean env
 
         # Compute random distance permutations
         set.seed(seed)
-        # sum_rand_distances = lapply(1:reps, function(rep){
-        #   rand_idx = sample(x=colnames(dists_mtx[[sample_tmp]]), size=length(high_spots_bc))
-        #   rand_dists = calculate_sum_distances(dists_mtx=dists_mtx[[sample_tmp]], select_spots=rand_idx)
-        #   return(rand_dists)
-        # })
-        # sum_rand_distances = unlist(sum_rand_distances)
         sum_rand_distances = computeSubsampleSums(coords_df[[sample_tmp]], n_subsample=length(high_spots_bc), n_samples=reps)
 
         # Compute p-value
@@ -305,21 +279,6 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
 
 
 # Helpers ----------------------------------------------------------------------
-
-##
-# calculate_euclidean_distances
-# The function returns a matrix of euclidean distances realized in HDF5Array out-of-memory format
-# Returns an HDF5Array
-#
-calculate_euclidean_distances = function(coords_df=NULL){
-  distances_spots = DelayedArray::DelayedArray(coords_df)
-  distances_spots = DelayedArray::DelayedArray(as.matrix(stats::dist(distances_spots[, c('xpos', 'ypos')], method='euclidean')))
-  #distances_spots = DelayedArray::realize(distances_spots, BACKEND='HDF5Array')
-  distances_spots = DelayedArray::realize(distances_spots, BACKEND='RleArray')
-
-  return(distances_spots)
-}
-
 
 ##
 # calculate_gs_mean_exp
@@ -412,23 +371,5 @@ calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=
   names(result_df) = unique(samples)
 
   return(result_df)
-}
-
-
-##
-# calculate_sum_distances
-# The function calculates the sum of all pairwise distances in a distance matrix
-# Returns a numeric value, the sum of distances
-#
-calculate_sum_distances = function(dists_mtx=NULL, select_spots=NULL){
-  distances_high_spots = DelayedArray::DelayedArray(dists_mtx[select_spots, select_spots])
-  upper_mtx_mask = DelayedArray::DelayedArray(upper.tri(distances_high_spots)) # Need to be DelayedArray to subset DelayedArray
-  #upper_mtx_mask = DelayedArray::realize(upper.tri(distances_high_spots), BACKEND='RleArray') # Need to be DelayedArray to subset DelayedArray
-  distances_high_spots[upper_mtx_mask] = 0 # Make upper half zero to avoid sum of distances twice
-  #sum_high_distances = sum(distances_high_spots)
-  sum_high_distances = DelayedMatrixStats::colSums2(distances_high_spots)
-  sum_high_distances = sum(sum_high_distances)
-
-  return(sum_high_distances)
 }
 

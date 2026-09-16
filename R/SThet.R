@@ -169,16 +169,11 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
 
   # Use method to compute autocorrelation described in tutorial of https://rspatial.org/
   # Loop through combinations of samples x genes
-  #stat_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){ ### PARALLEL
-  #stat_list = list()   #### WHEN NOT USING PARALLEL
-  #for(i_combo in 1:nrow(combo)){   #### WHEN NOT USING PARALLEL
   stat_list = parallel::mclapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
     i = unique(as.vector(unlist(combo[[1]])))[i_combo]
     genes_tmp = unique(as.vector(unlist(combo[[2]][combo[[1]] == i])))
     stat_list_tmp = list()
     for(j in genes_tmp){
-
-      #j = as.vector(unlist(combo[i_combo, 2]))
 
       # Extract expression data for a given gene.
       gene_expr = x@tr_counts[[i]][j, ]
@@ -189,16 +184,11 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
                               n=length(x@misc[['sthet']][['listws']][[i]]$neighbours),
                               S0=spdep::Szero(x@misc[['sthet']][['listws']][[i]]))
 
-      #stat_list[[i_combo]] = stat_est
       stat_list_tmp[[j]] = stat_est
-      #stat_list[[paste(i, j, sep='&&')]] = stat_est
-      #return(stat_est) ### PARALLEL
     }
     return(stat_list_tmp)
-  }, mc.cores=cores, mc.preschedule=F) ### PARALLEL
+  }, mc.cores=cores, mc.preschedule=F)
 
-  #}
-  #names(stat_list) = paste(combo[[1]], combo[[2]], sep='&&')
   names(stat_list) = unique(as.vector(unlist(combo[[1]])))
 
   # Store kriging results in STList.
@@ -244,16 +234,11 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
 
   # Use method to compute autocorrelation described in tutorial of https://rspatial.org/
   # Loop through combinations of samples x genes
-  #stat_list = parallel::mclapply(seq_along(1:nrow(combo)), function(i_combo){ ### PARALLEL
-  #stat_list = list()   #### WHEN NOT USING PARALLEL
-  #for(i_combo in 1:nrow(combo)){   #### WHEN NOT USING PARALLEL
   stat_list = parallel::mclapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
     i = unique(as.vector(unlist(combo[[1]])))[i_combo]
     genes_tmp = unique(as.vector(unlist(combo[[2]][combo[[1]] == i])))
     stat_list_tmp = list()
     for(j in genes_tmp){
-
-      #j = as.vector(unlist(combo[i_combo, 2]))
 
       # Extract expression data for a given gene.
       gene_expr = x@tr_counts[[i]][j, ]
@@ -265,16 +250,11 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
                               n1=length(x@misc[['sthet']][['listws']][[i]]$neighbours)-1,
                               S0=spdep::Szero(x@misc[['sthet']][['listws']][[i]]))
 
-      #stat_list[[i_combo]] = stat_est
       stat_list_tmp[[j]] = stat_est
-      #stat_list[[paste(i, j, sep='&&')]] = stat_est
-      #return(stat_est) ### PARALLEL
     }
     return(stat_list_tmp)
-  }, mc.cores=cores, mc.preschedule=F) ### PARALLEL
+  }, mc.cores=cores, mc.preschedule=F)
 
-  #}
-  #names(stat_list) = paste(combo[[1]], combo[[2]], sep='&&')
   names(stat_list) = unique(as.vector(unlist(combo[[1]])))
 
   # Store kriging results in STList.

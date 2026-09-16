@@ -71,21 +71,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
     cat('Gene interpolation started.\n')
   }
 
-  #suppressPackageStartupMessages(require('fields'))
-  #requireNamespace('fields')
-
-  # Resolution removed after implementation of `fields` interpolation
-  #res=0.5
-  # Covariance structure between spots/cells
-  # May later allow users to select Exponential or Mattern (both supported by fields)
-  #covstr = 'Exponential'
-  #covstr = 'Matern'
-  #smoothness = 0.5
-  # Specify number of spots in grid
-  #nxy = ceiling(sqrt(ngrid))
-
   top_n = as.integer(top_n)
-  #res = as.double(res)
 
   # Test that transformed counts are available
   if(rlang::is_empty(x@tr_counts)) {
@@ -139,20 +125,6 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
   x@misc[['gene_krige']] = list()
   # Store kriging type
   x@misc[['gene_krige']][['type']] = 'ordinary'
-
-  # Specify resolution if not input by user
-  # if(is.null(res)){
-  #   res = 0.5
-  # }
-  #x@misc[['gene_krige']][['res']] = res
-
-  # Give warning about kriging res < 0.5 for large matrices (e.g. Visium)
-  # sizes = lapply(x@spatial_meta[samples], nrow)
-  # if(res < 0.5 & (any(sizes > 1000))){
-  #   cat('Kriging at the requested resolution is computationally expensive. Setting to res=0.5\n')
-  #   res=0.5
-  # }
-  # rm(sizes) # Clean environment
 
   # Create lists to store prediction grids and borders.
   if(is.null(x@misc[['gene_krige']][['krige_border']])){

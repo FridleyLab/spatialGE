@@ -177,28 +177,6 @@ load_images = function(x=NULL, images=NULL){
 
 
 ##
-# @title create_listw
-# @param x an STlist
-#
-create_listw = function(x=NULL){
-  # Define cores available
-  cores = count_cores(length(x@spatial_meta))
-
-  # Create distance matrix based on the coordinates of each sampled location.
-  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
-    subj_dists = as.matrix(dist(x@spatial_meta[[i]][, c('ypos', 'xpos')]))
-    subj_dists[subj_dists == 0] = 0.0001
-    subj_dists_inv = 1/subj_dists
-    diag(subj_dists_inv) = 0
-    subj_dists_inv=spdep::mat2listw(subj_dists_inv, style='B')
-    return(subj_dists_inv)
-  }, mc.cores=cores, mc.preschedule=F)
-  names(listw_list) = names(x@spatial_meta)
-  return(listw_list)
-}
-
-
-##
 # @title create_listw_from_knn
 # @param x an STlist
 # @param ks

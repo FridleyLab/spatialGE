@@ -490,10 +490,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
           dplyr::relocate(meta, .before=1) %>%
           dplyr::select(-c('orig_annot'))
 
-        sp_models[[sample_name]] = parallel::mclapply(1:length(clusters_tmp), function(i){ ####### MCLAPPLY INSTEAD OF PBMCLAPPLY (PBMCLAPPY MAY HAVE ISSUES WITH TRYCATCH)
-          #sp_models[[sample_name]] = bettermc::mclapply(1:length(clusters_tmp), function(i){  ####### TRY BETTERMC INSTEAD OF PARALLEL
-          #sp_models[[sample_name]] = pbmcapply::pbmclapply(1:length(clusters_tmp), function(i){ ####### TEST LOOP INSTEAD MCLAPPLY
-          #for(i in 1:length(clusters_tmp)){  ####### TEST LOOP INSTEAD MCLAPPLY
+        sp_models[[sample_name]] = parallel::mclapply(1:length(clusters_tmp), function(i){
           # Non-spatial models to update
           models_keep_tmp = models_keep %>%
             dplyr::filter(cluster_1 == clusters_tmp[i]) %>%
@@ -529,10 +526,8 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
           # Run models
           sp_mods = spatial_de(expr_dat=expr_df, non_sp_mods=non_sp_models_tmp, annot_dict=meta_dict, verb=verbose)
 
-          return(sp_mods) ####### TEST LOOP INSTEAD MCLAPPLY
-        }, mc.cores=cores) ####### TEST LOOP INSTEAD MCLAPPLY
-        #sp_models[[sample_name]] = sp_mods  ####### TEST LOOP INSTEAD MCLAPPLY
-        #} ####### TEST LOOP INSTEAD MCLAPPLY
+          return(sp_mods)
+        }, mc.cores=cores)
         rm(models_keep, clusters_tmp) # Clean environment
       } else{
         warning(paste0('No genes to test for ',  sample_name, '. Try increasing sp_topgenes.'))
