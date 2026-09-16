@@ -42,10 +42,14 @@ plot_spatial_geneset = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuR
   # Test if no transformed counts are available
   assert_transformed(x, message='There are no transformed counts in the STlist.')
 
+  # Union of genes across all requested gene sets, so each sample's counts
+  # are decompressed once at the smallest size that still covers every set.
+  wanted_genes = unique(unlist(genes))
+
   avg_expr = list()
   # Loop through samples
   for(i in samples){
-    counts = expandSparse(x@tr_counts[[i]])
+    counts = expandSparse(x@tr_counts[[i]][ rownames(x@tr_counts[[i]]) %in% wanted_genes, , drop=FALSE])
     # Loop through gene sets
     avg_expr[[i]] = list()
     for(set in names(genes)){

@@ -153,7 +153,9 @@ stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, anno
 
       # Create data frame with expression, coordinate, and cluster data
       # Add group dummy column (in case of mixed models was requested)
-      expr_df = expandSparse(x@tr_counts[[sample_name]])
+      # spatial_de() only ever reads genes in non_sp_models_tmp, which is always
+      # restricted to models_keep's genes, so subset before decompressing.
+      expr_df = expandSparse(x@tr_counts[[sample_name]][ rownames(x@tr_counts[[sample_name]]) %in% unique(models_keep[['gene']]), , drop=FALSE])
       expr_df = t(expr_df) %>%
         as.data.frame() %>%
         tibble::rownames_to_column(var='libname') %>%
@@ -199,8 +201,7 @@ stdiff_nonspatial_one_sample = function(tr_counts_mat, spatial_meta_df, combo_cl
                                         annot, meta_dict, pairwise, verbose, test_type){
   # Create data frame with expression, coordinate, and cluster data
   # Add group dummy column (in case of mixed models was requested)
-  expr_df = expandSparse(tr_counts_mat)
-  expr_df = expr_df[ rownames(expr_df) %in% unique(combo_clust[['gene']]), ]
+  expr_df = expandSparse(tr_counts_mat[ rownames(tr_counts_mat) %in% unique(combo_clust[['gene']]), , drop=FALSE])
   expr_df = t(expr_df) %>%
     as.data.frame() %>%
     tibble::rownames_to_column(var='libname') %>%
