@@ -385,6 +385,31 @@ stgradient_expr_one_sample = function(counts_mat, tr_counts_mat, spatial_meta_df
 
 
 ##
+# @title spearman_cor_safe: Spearman cor.test with an exact-p-value retry
+# @description `cor.test(method='spearman')` warns (rather than erroring)
+# when it cannot compute an exact p-value (e.g. tied ranks). Shared by
+# `stgradient_fit_one_gene()`'s three mutually-exclusive fitting branches,
+# which each probed for that warning and retried with `exact=FALSE`.
+#
+# @param x,y numeric vectors, passed to `cor.test`.
+# @return a list with `cor_res` (the `cor.test` result) and `pval_warn`
+# ('zero_st_deviation' if the warning was due to zero standard deviation,
+# `NA_character_` otherwise).
+#
+spearman_cor_safe = function(x, y){
+  pval_warn = NA_character_
+  cor_res = tryCatch({cor.test(x, y, method='spearman')}, warning=function(w){return(w)})
+  if(any(class(cor_res) == 'simpleWarning')){ # Let known user if p-value could not be exactly calculated
+    if(grepl('standard deviation is zero', cor_res$message)){
+      pval_warn = 'zero_st_deviation'
+    }
+    cor_res = cor.test(x, y, method='spearman', exact=F)
+  }
+  return(list(cor_res=cor_res, pval_warn=pval_warn))
+}
+
+
+##
 # @title stgradient_fit_one_gene: Fit the distance-vs-expression model for
 # one gene
 # @description The per-gene model-fitting step of `stgradient_one_sample()`,
@@ -430,13 +455,9 @@ stgradient_fit_one_gene = function(df_gene, gene, out_rm, robust, log_dist, outl
                       estimate_p=lm_summ_tmp[2,4])
       }
       # Calculate Spearman correlation
-      cor_res = tryCatch({cor.test(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]], method='spearman')}, warning=function(w){return(w)})
-      if(any(class(cor_res) == 'simpleWarning')){ # Let known user if p-value could not be exactly calculated
-        if(grepl('standard deviation is zero', cor_res$message)){
-          pval_warn = 'zero_st_deviation'
-        }
-        cor_res = cor.test(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]], method='spearman', exact=F)
-      }
+      cor_safe = spearman_cor_safe(df_gene_outrm[['dist2ref']], df_gene_outrm[[gene]])
+      cor_res = cor_safe[['cor_res']]
+      pval_warn = cor_safe[['pval_warn']]
     }
   } else {
     if(robust){ # Robust linear models?
@@ -456,13 +477,9 @@ stgradient_fit_one_gene = function(df_gene, gene, out_rm, robust, log_dist, outl
           lm_res = list(estimate=summary(lm_tmp)[['coefficients']][2,1],
                         estimate_p=lm_test_tmp[['p.value']])
           # Calculate Spearman correlation
-          cor_res = tryCatch({cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')}, warning=function(w){return(w)})
-          if(any(class(cor_res) == 'simpleWarning')){ # Let known user if p-value could not be exactly calculated
-            if(grepl('standard deviation is zero', cor_res$message)){
-              pval_warn = 'zero_st_deviation'
-            }
-            cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman', exact=F)
-          }
+          cor_safe = spearman_cor_safe(df_gene_range[['dist2ref']], df_gene_range[[gene]])
+          cor_res = cor_safe[['cor_res']]
+          pval_warn = cor_safe[['pval_warn']]
         } else{
           pval_warn = 'rob_regr_no_convergence'
         }
@@ -483,13 +500,9 @@ stgradient_fit_one_gene = function(df_gene, gene, out_rm, robust, log_dist, outl
                         estimate_p=lm_summ_tmp[2,4])
         }
         # Calculate Spearman correlation
-        cor_res = tryCatch({cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman')}, warning=function(w){return(w)})
-        if(any(class(cor_res) == 'simpleWarning')){ # Let known user if p-value could not be exactly calculated
-          if(grepl('standard deviation is zero', cor_res$message)){
-            pval_warn = 'zero_st_deviation'
-          }
-          cor_res = cor.test(df_gene_range[['dist2ref']], df_gene_range[[gene]], method='spearman', exact=F)
-        }
+        cor_safe = spearman_cor_safe(df_gene_range[['dist2ref']], df_gene_range[[gene]])
+        cor_res = cor_safe[['cor_res']]
+        pval_warn = cor_safe[['pval_warn']]
       }
     }
   }
