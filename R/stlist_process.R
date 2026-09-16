@@ -57,8 +57,10 @@ process_lists = function(counts_df_list, coords_df_list){
 
     # Get total gene counts and genes with no-zero counts
 #    if(class(counts_df_list[[name_i]])[1] == 'dgCMatrix'){
-      coords_df_list[[name_i]][['total_counts']] = as.vector(colSums(as.matrix(counts_df_list[[name_i]])))
-      coords_df_list[[name_i]][['total_genes']] = as.vector(colSums(as.matrix(counts_df_list[[name_i]]) != 0))
+      coords_df_list[[name_i]][['total_counts']] = as.vector(Matrix::colSums(counts_df_list[[name_i]]))
+      # Matrix::colSums() on a logical (lgCMatrix) sum returns integer, unlike
+      # base colSums() on a dense logical matrix, which always returns double.
+      coords_df_list[[name_i]][['total_genes']] = as.double(as.vector(Matrix::colSums(counts_df_list[[name_i]] != 0)))
 #    } else{
 #      coords_df_list[[name_i]][['total_counts']] = colSums(counts_df_list[[name_i]][, -1])
 #      coords_df_list[[name_i]][['total_genes']] = colSums(counts_df_list[[name_i]][, -1] != 0)
