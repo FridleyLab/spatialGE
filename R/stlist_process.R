@@ -32,7 +32,7 @@ process_lists = function(counts_df_list, coords_df_list){
 
     array_col = names(coords_df_list[[name_i]])[3]
     # Sort coordinate data according to third column in the coordinate data frame.
-    coords_df_list[[name_i]] = coords_df_list[[name_i]] %>% dplyr::arrange(!!array_col)
+    coords_df_list[[name_i]] = coords_df_list[[name_i]] %>% dplyr::arrange(.data[[array_col]])
 
     # Convert to sparse matrix if not one
     if(!any(class(counts_df_list[[name_i]]) == 'dgCMatrix')){
