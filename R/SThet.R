@@ -160,21 +160,7 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   stat_list = sge_lapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
     i = unique(as.vector(unlist(combo[[1]])))[i_combo]
     genes_tmp = unique(as.vector(unlist(combo[[2]][combo[[1]] == i])))
-    stat_list_tmp = list()
-    for(j in genes_tmp){
-
-      # Extract expression data for a given gene.
-      gene_expr = x@tr_counts[[i]][j, ]
-
-      # Estimate statistic.
-      stat_est = spdep::moran(x=gene_expr,
-                              listw=x@misc[['sthet']][['listws']][[i]],
-                              n=length(x@misc[['sthet']][['listws']][[i]]$neighbours),
-                              S0=spdep::Szero(x@misc[['sthet']][['listws']][[i]]))
-
-      stat_list_tmp[[j]] = stat_est
-    }
-    return(stat_list_tmp)
+    sthet_stat_one_sample(sample_tr_counts(x, i), genes_tmp, x@misc[['sthet']][['listws']][[i]], method='moran')
   }, cores=cores, preschedule=F)
 
   names(stat_list) = unique(as.vector(unlist(combo[[1]])))
@@ -218,22 +204,7 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   stat_list = sge_lapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
     i = unique(as.vector(unlist(combo[[1]])))[i_combo]
     genes_tmp = unique(as.vector(unlist(combo[[2]][combo[[1]] == i])))
-    stat_list_tmp = list()
-    for(j in genes_tmp){
-
-      # Extract expression data for a given gene.
-      gene_expr = x@tr_counts[[i]][j, ]
-
-      # Estimate statistic.
-      stat_est = spdep::geary(x=gene_expr,
-                              listw=x@misc[['sthet']][['listws']][[i]],
-                              n=length(x@misc[['sthet']][['listws']][[i]]$neighbours),
-                              n1=length(x@misc[['sthet']][['listws']][[i]]$neighbours)-1,
-                              S0=spdep::Szero(x@misc[['sthet']][['listws']][[i]]))
-
-      stat_list_tmp[[j]] = stat_est
-    }
-    return(stat_list_tmp)
+    sthet_stat_one_sample(sample_tr_counts(x, i), genes_tmp, x@misc[['sthet']][['listws']][[i]], method='geary')
   }, cores=cores, preschedule=F)
 
   names(stat_list) = unique(as.vector(unlist(combo[[1]])))
@@ -253,5 +224,47 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
     }
   }
   return(x)
+}
+
+
+##
+# @title sthet_stat_one_sample: Compute a spatial autocorrelation statistic
+# for one sample's genes
+# @description The per-sample unit of work dispatched by both
+# `gene_moran_i_notest()`'s and `gene_geary_c_notest()`'s `sge_lapply` calls,
+# extracted so it is directly callable/benchmarkable for one sample without
+# going through the whole STlist. The two callers differ only in which
+# `spdep` statistic they request.
+#
+# @param tr_counts_mat a transformed count matrix for one sample (genes in rows).
+# @param genes the gene names to compute the statistic for.
+# @param listw a `spdep` listw object of spatial weights for this sample.
+# @param method one of 'moran' or 'geary'.
+# @return a named list (by gene) of `spdep::moran`/`spdep::geary` result objects.
+#
+sthet_stat_one_sample = function(tr_counts_mat, genes, listw, method=c('moran', 'geary')){
+  method = match.arg(method)
+  stat_list_tmp = list()
+  for(j in genes){
+    # Extract expression data for a given gene.
+    gene_expr = tr_counts_mat[j, ]
+
+    # Estimate statistic.
+    if(method == 'moran'){
+      stat_est = spdep::moran(x=gene_expr,
+                              listw=listw,
+                              n=length(listw$neighbours),
+                              S0=spdep::Szero(listw))
+    } else{
+      stat_est = spdep::geary(x=gene_expr,
+                              listw=listw,
+                              n=length(listw$neighbours),
+                              n1=length(listw$neighbours)-1,
+                              S0=spdep::Szero(listw))
+    }
+
+    stat_list_tmp[[j]] = stat_est
+  }
+  return(stat_list_tmp)
 }
 
