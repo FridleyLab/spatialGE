@@ -1,0 +1,38 @@
+## Minimal CI: runs the synthetic-fixture test tier (tests/testthat, backed by
+## inst/testdata/make_fixtures.R) on every push/PR. Golden-baseline comparisons
+## are not run here -- they require a locally captured tests/golden/*.rds
+## baseline (dev/baseline/capture_baseline.R) that is gitignored and never
+## ships, and are gated behind SPATIALGE_GOLDEN=true, which this workflow does
+## not set.
+
+on:
+  push:
+    branches: [main, alex-refactor]
+  pull_request:
+    branches: [main, alex-refactor]
+
+name: test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.3'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"hard"'
+          extra-packages: any::devtools, any::testthat
+
+      - name: Test
+        run: devtools::test(stop_on_failure = TRUE)
+        shell: Rscript {0}
