@@ -21,7 +21,7 @@ STdiff_volcano = function(x=NULL, samples=NULL, clusters=NULL, pval_thr=0.05, co
   # Define samples to plot if NULL or numeric
   if(is.null(samples)){
     samples = names(x)
-  } else if(is.numeric(x)){
+  } else if(is.numeric(samples)){
     samples = names(x)[samples]
   }
 
