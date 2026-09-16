@@ -76,7 +76,6 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
 
   # Record time
   zero_t = Sys.time()
-  verbose = 1L
   if(verbose){
     cat(paste0('STclust started...\n'))
   }
