@@ -324,12 +324,21 @@ get_gene_meta = function(x=NULL, sthet_only=FALSE){
 }
 
 
+## Cache for raise_err()'s err.csv lookup table, populated lazily on first
+## use rather than in .onLoad -- under devtools::load_all() system.file()
+## resolves differently, and the csv is edited during development, so
+## reading it at package-load time would risk caching a stale/wrong path.
+.err_db_cache = new.env(parent=emptyenv())
+
 ##
 # @title raise_err
 #
 raise_err = function(err_code=NULL, samplename=NULL){
-  pkg_fp = list.files(system.file(package='spatialGE'), full.names=T, pattern='err\\.csv')
-  err_db = suppressWarnings(utils::read.csv(pkg_fp, header=F, quote="'"))
+  if(is.null(.err_db_cache$err_db)){
+    pkg_fp = list.files(system.file(package='spatialGE'), full.names=T, pattern='err\\.csv')
+    .err_db_cache$err_db = suppressWarnings(utils::read.csv(pkg_fp, header=F, quote="'"))
+  }
+  err_db = .err_db_cache$err_db
   str_to_print = err_db[[2]][ err_db[[1]] == err_code ]
   if(is.null(samplename)){
     stop(paste0('spatialGE exception: ', str_to_print), call.=F)
