@@ -2,17 +2,48 @@
 
 ## Behavior changes
 
-* Spot/cell ordering within an `STlist` has changed. `process_lists()` sorted
-  coordinates in a way that silently had no effect, so spots retained their
-  input file order; the sort now actually applies, ordering by `xpos` then
-  `ypos`. No function signatures, arguments, or return types changed, and no
-  expression values changed -- every count, transformed count, and gene-level
-  statistic is identical once reordered. What does change is order: the column
-  order of `@counts`/`@tr_counts`, the row order of `@spatial_meta`, and
-  therefore the row order of results built from them. Code that addresses
-  spots by `libname` is unaffected; code that indexes them positionally, or
-  that depends on how ties break in a `adj_p_value`-sorted result, may need
-  updating.
+* `pseudobulk_heatmap()` displays a different set of genes, because it was
+  selecting the wrong ones. The heatmap keeps the `hm_display_genes` most
+  variable genes, ranked by coefficient of variation, but the CV was computed
+  upside down as `mean/sd` instead of `sd/mean`. Sorting that decreasing put the
+  *highest* `mean/sd` first -- that is, the **lowest** true CV -- so the plot
+  showed the most uniformly-expressed genes rather than the most variable ones,
+  the exact opposite of the intent. Any heatmap produced by 1.2.x is showing the
+  wrong gene set and is worth regenerating.
+
+* `cores=` is now honored by `STlist()` and `transform_data()`. Both accepted the
+  argument and then ignored it, so they always ran at the auto-detected core
+  count no matter what was passed. Passing `cores=` now actually changes the
+  number of forked workers. Two consequences: wall-clock times for these two
+  functions will differ from 1.2.x for any explicit `cores=`, and because forked
+  children re-seed their own RNG, `transform_data(method='sct')` is only
+  reproducible at `cores=1` once a sample exceeds `sctransform::vst`'s internal
+  sampling threshold. Pass `cores=1` where exact SCT reproducibility matters.
+
+* Spot/cell ordering within an `STlist` is now deterministic. `process_lists()`
+  contained a coordinate sort that silently had no effect, so through 1.2.2
+  spots simply retained whatever order they appeared in in the input files --
+  meaning two files describing the same tissue with rows in a different order
+  produced differently-ordered `STlist`s. The sort now applies, ordering by
+  `xpos` then `ypos`, so ordering depends on the coordinates themselves rather
+  than on input file layout.
+
+  No function signatures, arguments, or return types changed, and no expression
+  values changed -- every count, transformed count, and gene-level statistic is
+  identical once reordered. What changes is order: the column order of
+  `@counts`/`@tr_counts`, the row order of `@spatial_meta`, and therefore the row
+  order of results built from them. Code that addresses spots by `libname` is
+  unaffected; code that indexes them positionally, or that depends on how ties
+  break in an `adj_p_value`-sorted result, may need updating.
+
+## New features
+
+* Set the environment variable `SPATIALGE_CORES`, or the option
+  `spatialGE.cores`, to force every parallelized call site to run serially and
+  in-process without editing any code. Intended for profiling (`profvis` cannot
+  see inside `parallel::mclapply`'s forks) and for debugging a worker that fails
+  only under forking. The option takes precedence over the environment variable.
+  This is a development aid and is deliberately not part of the documented API.
 
 ## Bug fixes
 
