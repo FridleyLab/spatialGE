@@ -1,3 +1,15 @@
 .Rproj.user
 src/*.o
 src/*.so
+.claude/
+.Rprofile
+renv/
+renv.lock
+dev/data/
+tests/golden/
+dev/profiling/out/
+*.Rcheck/
+*.tar.gz
+.Rhistory
+.RData
+.DS_Store

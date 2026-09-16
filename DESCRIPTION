@@ -27,7 +27,7 @@ Description: Visualization and analysis of spatially resolved transcriptomics da
 	interpolation, autocorrelation analysis, tissue domain detection, gene set enrichment, and 
 	differential expression analysis using spatial mixed models.
 License: MIT + file LICENSE
-Copyright: ins/COPYRIGHT
+Copyright: inst/COPYRIGHT
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)

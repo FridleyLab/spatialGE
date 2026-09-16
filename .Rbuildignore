@@ -1,3 +1,10 @@
+^renv$
+^renv\.lock$
+^\.Rprofile$
+^\.claude$
+^dev$
+^plans$
+^tests/golden$
 ^LICENSE\.md$
 ^docs$
 ^pkgdown$
