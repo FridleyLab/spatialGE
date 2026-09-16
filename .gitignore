@@ -1,7 +1,11 @@
 .Rproj.user
 src/*.o
 src/*.so
-.claude/
+# Track CLAUDE.md (project instructions) but not local settings or scratch.
+# Must be `.claude/*`, not `.claude/` -- git does not descend into an excluded
+# directory, so a negation inside one would never be seen.
+.claude/*
+!.claude/CLAUDE.md
 .Rprofile
 renv/
 renv.lock
