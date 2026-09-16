@@ -6,14 +6,14 @@
 
 testthat::test_that("list-of-data.frames input builds a valid STlist", {
   f <- fixtures$list_dfs
-  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords)
+  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, cores = 1)
   testthat::expect_s4_class(st, "STlist")
   testthat::expect_setequal(names(st@counts), fixtures$base$samples)
 })
 
 testthat::test_that("list-of-data.frames + csv samples file builds a valid STlist", {
   f <- fixtures$list_dfs_samplesfile_csv
-  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples)
+  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples, cores = 1)
   testthat::expect_s4_class(st, "STlist")
 })
 
@@ -32,13 +32,13 @@ testthat::test_that("list-of-data.frames + xlsx samples file: known detect_input
 
 testthat::test_that("comma-delimited matrix files build a valid STlist", {
   f <- fixtures$delim_csv
-  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples)
+  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples, cores = 1)
   testthat::expect_s4_class(st, "STlist")
 })
 
 testthat::test_that("tab-delimited matrix files build a valid STlist", {
   f <- fixtures$delim_tsv
-  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples)
+  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples, cores = 1)
   testthat::expect_s4_class(st, "STlist")
 })
 
@@ -59,25 +59,25 @@ testthat::test_that("samplesfile_matrices (paths-only samples file): known STlis
 
 testthat::test_that("Visium MEX directories build a valid STlist", {
   f <- fixtures$visium_mex
-  st <- STlist(rnacounts = f$rnacounts, samples = f$samples)
+  st <- STlist(rnacounts = f$rnacounts, samples = f$samples, cores = 1)
   testthat::expect_s4_class(st, "STlist")
 })
 
 testthat::test_that("CosMx exprMat/metadata csv build a valid STlist", {
   f <- fixtures$cosmx
-  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples)
+  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples, cores = 1)
   testthat::expect_s4_class(st, "STlist")
 })
 
 testthat::test_that("Visium 10x h5 directories build a valid STlist", {
   f <- fixtures$visium_h5
-  st <- STlist(rnacounts = f$rnacounts, samples = f$samples)
+  st <- STlist(rnacounts = f$rnacounts, samples = f$samples, cores = 1)
   testthat::expect_s4_class(st, "STlist")
 })
 
 testthat::test_that("Xenium 10x h5 directories build a valid STlist", {
   f <- fixtures$xenium_h5
-  st <- STlist(rnacounts = f$rnacounts, samples = f$samples)
+  st <- STlist(rnacounts = f$rnacounts, samples = f$samples, cores = 1)
   testthat::expect_s4_class(st, "STlist")
 })
 
