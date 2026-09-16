@@ -451,6 +451,29 @@ read_seurat = function(rnacounts){
 }
 
 ##
+# read_one_counts_file: Reads a single delimited gene count file
+# @param filepath the count file's path
+# @param delim the file's delimiter
+# @return a data frame with the file's raw gene counts
+#
+read_one_counts_file = function(filepath, delim){
+  counts_df = data.table::fread(filepath, sep=delim)
+  counts_df = as.data.frame(counts_df)
+  return(counts_df)
+}
+
+##
+# read_one_coords_file: Reads a single delimited spot/cell coordinate file
+# @param filepath the coordinate file's path
+# @param delim the file's delimiter
+# @return a data frame with the file's spot/cell coordinates
+#
+read_one_coords_file = function(filepath, delim){
+  coords_df = readr::read_delim(filepath, delim=delim, col_types=readr::cols(), progress=F)
+  return(coords_df)
+}
+
+##
 # read_matrices_fps: Takes a list with file paths to count and coordinate matrices
 # and sample names and returns a list with count and coordinates data frames per sample
 # @param filepaths a list with file paths to Visium outputs and sample IDs
@@ -489,20 +512,14 @@ read_matrices_fps = function(filepaths, input_check, cores=NULL){
 
   # Use parallelization to read count data if possible.
   counts_df_list = sge_lapply(seq_along(filepaths[['count_found']]), function(i){
-    # Read filepaths.
-    #counts_df = readr::read_delim(filepaths[['count_found']][i], delim=delrna, col_types=readr::cols(), progress=F)
-    counts_df = data.table::fread(filepaths[['count_found']][i], sep=delrna)
-    counts_df = as.data.frame(counts_df)
-    return(counts_df)
+    read_one_counts_file(filepaths[['count_found']][i], delrna)
   }, cores=cores, preschedule=F)
   # Name list elements.
   names(counts_df_list) = filepaths[['sampleids']]
 
   # Use parallelization to read coordinate data if possible.
   coords_df_list = sge_lapply(seq_along(filepaths[['coord_found']]), function(i){
-    # Read filepaths.
-    coords_df = readr::read_delim(filepaths[['coord_found']][i], delim=delcoords, col_types=readr::cols(), progress=F)
-    return(coords_df)
+    read_one_coords_file(filepaths[['coord_found']][i], delcoords)
   }, cores=cores, preschedule=F)
   # Name list elements.
   names(coords_df_list) = filepaths[['sampleids']]
@@ -522,6 +539,43 @@ read_matrices_fps = function(filepaths, input_check, cores=NULL){
   return_lists[['counts']] = counts_df_list
   return_lists[['coords']] = coords_df_list
   return(return_lists)
+}
+
+##
+# read_one_visium_sample: Reads and imports a single Visium sample's counts
+# and coordinates (MEX or h5)
+# @param fp_entry the sample's entry from `fp_list` (features/barcodes/counts
+# or h5 counts, plus coords)
+# @param sample_index the sample's position, used only for progress messages
+# @param input_rnacounts The result of detect_input_rnacounts
+# @param verbose logical, whether to print text to console
+# @return a list with the sample's raw counts and coordinates, or an empty
+# list if the sample's counts were not found
+#
+read_one_visium_sample = function(fp_entry, sample_index, input_rnacounts, verbose){
+  if(length(fp_entry$counts) == 0){
+    return(list())
+  }
+  if(verbose){
+    system(sprintf('echo "%s"', paste0("\t\tProcessing Sample ", sample_index, "....")))
+  }
+
+  # Process Visium outputs
+  if(input_rnacounts %in% c('visium_filtered_mex', 'visium_raw_mex')){
+    visium_processed = import_visium(features_fp=fp_entry[['features']],
+                                     barcodes_fp=fp_entry[['barcodes']],
+                                     counts_fp=fp_entry[['counts']],
+                                     coords_fp=fp_entry[['coords']])
+  } else{
+    visium_processed = import_visium_h5(counts_fp=fp_entry[['counts']],
+                                        coords_fp=fp_entry[['coords']])
+  }
+
+  if(verbose){
+    system(sprintf('echo "%s"', paste0("\t\tFinished data read Sample ", sample_index)))
+  }
+
+  return(visium_processed)
 }
 
 ##
@@ -628,29 +682,7 @@ read_visium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
 
   # Use parallelization to read count data if possible.
   output_temp = sge_lapply(seq_along(filepaths[['count_found']]), function(i){
-    if(length(fp_list[[i]]$counts) == 0){
-      return(list())
-    }
-    if(verbose){
-      system(sprintf('echo "%s"', paste0("\t\tProcessing Sample ", i, "....")))
-    }
-
-    # Process Visium outputs
-    if(input_rnacounts %in% c('visium_filtered_mex', 'visium_raw_mex')){
-      visium_processed = import_visium(features_fp=fp_list[[i]][['features']],
-                                       barcodes_fp=fp_list[[i]][['barcodes']],
-                                       counts_fp=fp_list[[i]][['counts']],
-                                       coords_fp=fp_list[[i]][['coords']])
-    } else{
-      visium_processed = import_visium_h5(counts_fp=fp_list[[i]][['counts']],
-                                          coords_fp=fp_list[[i]][['coords']])
-    }
-
-    if(verbose){
-      system(sprintf('echo "%s"', paste0("\t\tFinished data read Sample ", i)))
-    }
-
-    return(visium_processed)
+    read_one_visium_sample(fp_list[[i]], i, input_rnacounts, verbose)
   }, cores=cores, preschedule=F)
   if(verbose){
     cat(paste("\tData read completed\n"))
@@ -698,6 +730,44 @@ read_visium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
   rm(fp_list) # Clean environment
   return(return_lists)
 } # CLOSE read_visium_outs
+
+##
+# read_one_xenium_sample: Reads and imports a single Xenium sample's counts
+# and coordinates (MEX or h5)
+# @param fp_entry the sample's entry from `fp_list` (features/barcodes/counts
+# or h5 counts, plus coords)
+# @param sample_index the sample's position, used only for progress messages
+# @param input_rnacounts The result of detect_input_rnacounts
+# @param verbose logical, whether to print text to console
+# @return a list with the sample's raw counts and coordinates, or an empty
+# list if the sample's counts were not found
+#
+read_one_xenium_sample = function(fp_entry, sample_index, input_rnacounts, verbose){
+  if(length(fp_entry$counts) == 0){
+    return(list())
+  }
+
+  if(verbose){
+    system(sprintf('echo "%s"', paste0("\t\tProcessing Sample ", sample_index, "....")))
+  }
+
+  # Process Visium outputs
+  if(input_rnacounts[1] == 'xenium_mex'){
+    xenium_processed = import_xenium_mex(features_fp=fp_entry[['features']],
+                                     barcodes_fp=fp_entry[['barcodes']],
+                                     counts_fp=fp_entry[['counts']],
+                                     coords_fp=fp_entry[['coords']])
+  } else{
+    xenium_processed = import_xenium_h5(counts_fp=fp_entry[['counts']],
+                                        coords_fp=fp_entry[['coords']])
+  }
+
+  if(verbose){
+    system(sprintf('echo "%s"', paste0("\t\tFinished data read Sample ", sample_index)))
+  }
+
+  return(xenium_processed)
+}
 
 ##
 # read_xenium_outs: Takes a list with Xenium output file paths and sample names and
@@ -781,30 +851,7 @@ read_xenium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
 
   # Use parallelization to read count data if possible.
   output_temp = sge_lapply(seq_along(filepaths[['count_found']]), function(i){
-    if(length(fp_list[[i]]$counts) == 0){
-      return(list())
-    }
-
-    if(verbose){
-      system(sprintf('echo "%s"', paste0("\t\tProcessing Sample ", i, "....")))
-    }
-
-    # Process Visium outputs
-    if(input_rnacounts[1] == 'xenium_mex'){
-      xenium_processed = import_xenium_mex(features_fp=fp_list[[i]][['features']],
-                                       barcodes_fp=fp_list[[i]][['barcodes']],
-                                       counts_fp=fp_list[[i]][['counts']],
-                                       coords_fp=fp_list[[i]][['coords']])
-    } else{
-      xenium_processed = import_xenium_h5(counts_fp=fp_list[[i]][['counts']],
-                                          coords_fp=fp_list[[i]][['coords']])
-    }
-
-    if(verbose){
-      system(sprintf('echo "%s"', paste0("\t\tFinished data read Sample ", i)))
-    }
-
-    return(xenium_processed)
+    read_one_xenium_sample(fp_list[[i]], i, input_rnacounts, verbose)
   }, cores=cores, preschedule=F)
   if(verbose){
     cat(paste("\tData read completed\n"))
@@ -822,6 +869,36 @@ read_xenium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
   rm(fp_list) # Clean environment
   return(return_lists)
 } # CLOSE read_xenium_outs
+
+##
+# read_one_cosmx_slide: Reads and imports a single CosMx-SMI slide's counts
+# and coordinates
+# @param fp_entry the slide's entry from `fp_list` (counts, coords, runname)
+# @param sample_index the slide's position, used only for progress messages
+# @param verbose logical, whether to print text to console
+# @return a list with the slide's raw counts and coordinates (one entry per
+# FOV), or an empty list if the slide's counts were not found
+#
+read_one_cosmx_slide = function(fp_entry, sample_index, verbose){
+  if(length(fp_entry[['counts']]) == 0){
+    return(list())
+  }
+
+  if(verbose){
+    system(sprintf('echo "%s"', paste0("\tProcessing sample ", sample_index, "....")))
+  }
+
+  # Process CosMx outputs.
+  cosmx_processed = import_smi(counts_fp=fp_entry[['counts']],
+                               coords_fp=fp_entry[['coords']],
+                               slidename=fp_entry[['runname']])
+
+  if(verbose){
+    system(sprintf('echo "%s"', paste0("\tFinished data read sample ", sample_index)))
+  }
+
+  return(cosmx_processed)
+}
 
 ##
 # read_cosmx_input: Takes a list with CosMx-SMI output file paths and sample names and
@@ -862,24 +939,7 @@ read_cosmx_input = function(filepaths, input_check, cores=NULL, verbose=TRUE){
 
   # Use parallelization to read count data if possible.
   output_temp = sge_lapply(seq_along(1:length(fp_list)), function(i){
-    if(length(fp_list[[i]][['counts']]) == 0){
-      return(list())
-    }
-
-    if(verbose){
-      system(sprintf('echo "%s"', paste0("\tProcessing sample ", i, "....")))
-    }
-
-    # Process CosMx outputs.
-    cosmx_processed = import_smi(counts_fp=fp_list[[i]][['counts']],
-                                 coords_fp=fp_list[[i]][['coords']],
-                                 slidename=fp_list[[i]][['runname']])
-
-    if(verbose){
-      system(sprintf('echo "%s"', paste0("\tFinished data read sample ", i)))
-    }
-
-    return(cosmx_processed)
+    read_one_cosmx_slide(fp_list[[i]], i, verbose)
   }, cores=cores, preschedule=F)
 
   if(verbose){
