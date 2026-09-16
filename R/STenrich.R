@@ -62,19 +62,9 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
   min_genes = as.integer(min_genes)
 
   # Define samples using names (convert indexes to names if necessary)
-  if(is.null(samples)){
-    samples = names(x@spatial_meta)
-  } else{
-    if(is.numeric(samples)){
-      samples = as.vector(na.omit(names(x@spatial_meta)[samples]))
-    } else{
-      samples = samples[samples %in% names(x@spatial_meta)]
-    }
-    # Verify that sample names exist
-    if(length(samples) == 0 | !any(samples %in% names(x@spatial_meta))){
-      raise_err(err_code="error0020")
-    }
-  }
+  samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='na_omit',
+                            char_transform='exact', post_check='any_in',
+                            err_code='error0020')
 
   # Check if user request analysis within a specific domain(s)
   # Select spots/cells from specific domain(s)

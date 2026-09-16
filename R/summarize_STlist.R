@@ -42,9 +42,7 @@
 #' @export summarize_STlist
 #
 summarize_STlist = function(x=NULL){
-  if(!is(x, 'STlist')){
-    stop('The input is not an STlist')
-  }
+  assert_stlist(x, message='The input is not an STlist', check_null=FALSE)
 
   # Get statistics per sample
   df_tmp = lapply(names(x@counts), function(i){

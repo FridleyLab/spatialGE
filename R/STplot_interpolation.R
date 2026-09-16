@@ -66,13 +66,8 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
   }
 
   # Test if no specific subject plot was requested.
-  if (is.null(samples)) {
-    samples = names(x@tr_counts)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@tr_counts)[samples]
-    }
-  }
+  samples = resolve_samples(x, samples, slot='tr_counts', numeric_handling='plain',
+                            char_transform='none', post_check='none')
 
   # If genes='top', get names of 10 genes with the highest standard deviation.
   if(length(genes) == 1 && genes == 'top'){

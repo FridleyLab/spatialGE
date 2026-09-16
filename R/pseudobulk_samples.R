@@ -55,9 +55,7 @@
 pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
 
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    raise_err(err_code='error0018')
-  }
+  assert_stlist(x, err_code='error0018')
 
   # Stop function if only one sample provided.
   if(length(x@counts) < 4){

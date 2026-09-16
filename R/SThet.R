@@ -69,13 +69,8 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
   }
 
   # Select sample names if NULL or if number entered
-  if (is.null(samples)){
-    samples = names(x@tr_counts)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@tr_counts)[samples]
-    }
-  }
+  samples = resolve_samples(x, samples, slot='tr_counts', numeric_handling='plain',
+                            char_transform='none', post_check='none')
 
   # Check that genes have been input
   if(is.null(genes)){

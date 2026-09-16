@@ -64,19 +64,9 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   ref = as.character(ref)
 
   # Define samples using names (convert indexes to names if necessary)
-  if(is.null(samples)){
-    samplenames = names(x@tr_counts)
-  } else{
-    if(is.numeric(samples)){
-      samplenames = as.vector(na.omit(names(x@tr_counts)[samples]))
-    } else{
-      samplenames = samples[samples %in% names(x@tr_counts)]
-    }
-    # Verify that sample names exist
-    if(length(samplenames) == 0 | !any(samplenames %in% names(x@tr_counts))){
-      raise_err(err_code="error0041")
-    }
-  }
+  samplenames = resolve_samples(x, samples, slot='tr_counts', numeric_handling='na_omit',
+                                char_transform='exact', post_check='any_in',
+                                err_code='error0041')
 
   # Remove samples for which the requested annotation is not present
   sample_rm = c()

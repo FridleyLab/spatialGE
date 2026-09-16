@@ -68,17 +68,12 @@ plot_counts = function(x=NULL, samples=NULL, data_type='tr', plot_type='density'
   . = NULL
 
   # Define samples to plot if NULL or numeric
-  if(is.null(samples)){
-    samples = names(x@counts)
-  } else if(is.numeric(samples)){
-    samples = names(x@counts)[samples]
-  }
+  samples = resolve_samples(x, samples, slot='counts', numeric_handling='plain',
+                            char_transform='none', post_check='none')
 
   # Check that transfromed counts are available if data_type='tr'
   if(data_type == 'tr'){
-    if(rlang::is_empty(x@tr_counts)){
-      stop('No transformed expression data in this STlist.')
-    }
+    assert_transformed(x, message='No transformed expression data in this STlist.')
   }
 
   # Loop through samples and make long data frame

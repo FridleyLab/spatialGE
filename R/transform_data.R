@@ -132,9 +132,7 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
 #
 log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, "STlist")){
-    stop("The input must be a STlist.")
-  }
+  assert_stlist(x)
 
   # Detect usable cores
   cores = resolve_cores(length(x@counts), cores, coerce='as_integer')
@@ -198,9 +196,7 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
 #
 sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL){
   # Test if an STlist has been input.
-  if(is.null(x) | !is(x, "STlist")){
-    stop("The input must be a STlist.")
-  }
+  assert_stlist(x)
 
   # Detect usable cores
   cores = resolve_cores(length(x@counts), cores, coerce='as_integer')

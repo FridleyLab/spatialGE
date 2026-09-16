@@ -74,18 +74,11 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
   top_n = as.integer(top_n)
 
   # Test that transformed counts are available
-  if(rlang::is_empty(x@tr_counts)) {
-    stop("There are not transformed counts in this STList.")
-  }
+  assert_transformed(x, message="There are not transformed counts in this STList.")
 
   # Test if no specific subject plot was requested.
-  if (is.null(samples)) {
-    samples = names(x@tr_counts)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@tr_counts)[samples]
-    }
-  }
+  samples = resolve_samples(x, samples, slot='tr_counts', numeric_handling='plain',
+                            char_transform='none', post_check='none')
 
   # Test that a gene name was entered.
   if(is.null(genes)) {

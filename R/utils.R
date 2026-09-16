@@ -134,9 +134,7 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 #
 load_images = function(x=NULL, images=NULL){
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    stop("The input must be a STlist.")
-  }
+  assert_stlist(x)
 
   if(is.null(images)){
     stop("Please, provide a vector with images file paths.")
@@ -291,9 +289,7 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
 #
 get_gene_meta = function(x=NULL, sthet_only=FALSE){
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    stop("The input must be a STlist.")
-  }
+  assert_stlist(x)
   # Test is gene_meta is empty (no normalization performed on STlist)
   if(rlang::is_empty(x@gene_meta)){
     stop('No gene-level metadata available in this STlist.')

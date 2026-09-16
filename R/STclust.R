@@ -105,29 +105,15 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
   }
 
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    stop("The input must be a STlist.")
-  }
+  assert_stlist(x)
 
   # Check data has been normalized. Otherwise raise error
-  if(length(x@tr_counts) < 1){
-    raise_err(err_code='error0007')
-  }
+  assert_transformed(x, err_code='error0007')
 
   # Define samples using names (convert indexes to names if necessary)
-  if(is.null(samples)){
-    samples = names(x@spatial_meta)
-  } else{
-    if(is.numeric(samples)){
-      samples = as.vector(na.omit(names(x@spatial_meta)[samples]))
-    } else{
-      samples = samples[samples %in% names(x@spatial_meta)]
-    }
-    # Verify that sample names exist
-    if(length(samples) == 0 | !any(samples %in% names(x@spatial_meta))){
-      stop('None of the requested samples are present in the STlist.')
-    }
-  }
+  samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='na_omit',
+                            char_transform='exact', post_check='any_in',
+                            message='None of the requested samples are present in the STlist.')
 
   # Define number of cores for parallelization of tests
   cores = resolve_cores(length(samples), cores, coerce='ceiling')

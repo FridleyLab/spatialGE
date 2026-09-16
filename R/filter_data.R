@@ -90,9 +90,7 @@ filter_data = function(x=NULL,
   . = NULL
 
   # Check than an STList was provided
-  if(is.null(x)){
-    stop('Please, specify an STList to filter.')
-  }
+  assert_stlist(x, message='Please, specify an STList to filter.', check_class=FALSE)
 
   # Remove entire samples/tissues
   if(!is.null(rm_tissue)){
@@ -124,16 +122,9 @@ filter_data = function(x=NULL,
   }
 
   # Define set of samples to work on
-  if(is.null(samples)){
-    samples = names(x@counts)
-  }
-  if(is.character(samples)){
-    if(!all(samples %in% names(x@counts))){
-      stop('Samples in rm_tissue are not present in this STlist.')
-    }
-  } else if(is.numeric(samples)){
-    samples = names(x@counts)[samples]
-  }
+  samples = resolve_samples(x, samples, slot='counts', numeric_handling='plain',
+                            char_transform='validate_all', post_check='none',
+                            message='Samples in rm_tissue are not present in this STlist.')
 
   # Remove spots/cells by cell IDs
   if(!is.null(rm_spots)){

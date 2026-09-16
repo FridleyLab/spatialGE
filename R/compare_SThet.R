@@ -36,9 +36,7 @@ compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL,
   . = NULL
 
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    stop("The input must be a STList.")
-  }
+  assert_stlist(x, message="The input must be a STList.")
 
   if(is.null(genes)){
     stop('Please, enter one gene or more to generate plot.')

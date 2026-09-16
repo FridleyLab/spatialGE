@@ -91,19 +91,9 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   }
 
   # Define samples using names (convert indexes to names if necessary)
-  if(is.null(samples)){
-    samples = names(x@spatial_meta)
-  } else{
-    if(is.numeric(samples)){
-      samples = as.vector(na.omit(names(x@spatial_meta)[samples]))
-    } else{
-      samples = samples[samples %in% names(x@spatial_meta)]
-    }
-    # Verify that sample names exist
-    if(length(samples) == 0 | !any(samples %in% names(x@spatial_meta))){
-      stop('None of the requested samples are present in the STlist.')
-    }
-  }
+  samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='na_omit',
+                            char_transform='exact', post_check='any_in',
+                            message='None of the requested samples are present in the STlist.')
 
   # Define column to test
   if(is.null(annot)){

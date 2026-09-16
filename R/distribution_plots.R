@@ -36,11 +36,8 @@ distribution_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
   #require('magrittr')
 
   # Define samples to plot if NULL or numeric
-  if(is.null(samples)){
-    samples = names(x@counts)
-  } else if(is.numeric(samples)){
-    samples = names(x@counts)[samples]
-  }
+  samples = resolve_samples(x, samples, slot='counts', numeric_handling='plain',
+                            char_transform='none', post_check='none')
 
   # Define if plotting meta data or genes
   if(!is.null(plot_meta) & !is.null(genes)){
