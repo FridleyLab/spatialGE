@@ -13,12 +13,27 @@ fidelity rule 7 below.
 | Slot | Type | Contents |
 |---|---|---|
 | `counts` | `list` of matrix-like | raw per-spot/cell x gene counts, one entry per sample |
-| `spatial_meta` | `list` of `tibble` | per-spot/cell `libname`/`xpos`/`ypos` + any spot-level annotations |
+| `spatial_meta` | `list` of `data.frame` | per-spot/cell `libname`/`xpos`/`ypos` + any spot-level annotations. **A plain `data.frame`, not a tibble** -- see the row-names warning below |
 | `gene_meta` | `list` of `tibble` | per-gene stats (mean/variance, VST, Moran's I / Geary's C once `SThet` has run) |
 | `sample_meta` | `tibble` | one row per sample, user-supplied sample-level metadata |
 | `tr_counts` | `list` of matrix-like | transformed counts (log or SCT), populated by `transform_data()` |
 | `gene_krige` | `list` | kriging interpolation results (`gene_interpolation()`); **not** sample-major the way the others are -- see the Phase 7 accessor note below |
 | `misc` | `list` | grab-bag of parameters/derived objects that don't fit the slots above -- see the key census next |
+
+**`spatial_meta` row names are a live footgun.** Because it is a plain
+`data.frame` and not a tibble, base row-subsetting (`d[keep, ]`) leaves
+non-contiguous row names behind (`1, 5, 9, ...`), which
+`tibble::column_to_rownames()` then rejects with ``​`.data` must be a data frame
+without row names.`` That was a real, released bug in `STenrich()`'s
+`domain=`-restricted path -- it made the entire domain-restricted branch
+unreachable while the unrestricted branch worked fine, because only the
+restricted branch subsets rows. `dplyr` verbs (`filter`, joins) reset row names
+and are safe; `dplyr::select()` and base `[` do **not**. If you row-subset
+`spatial_meta` and then hand it to `column_to_rownames()`, insert
+`tibble::remove_rownames()` first. Two other call sites
+(`R/STgradient.R`'s `stgradient_dists_one_sample`, `R/STclust.R`'s
+`calculate_dist_matrices`) are only safe today because their callers pass the
+whole, unsubset frame via `sample_spatial_meta()`.
 
 Internal, non-exported accessors for the sample-major slots live in
 `R/utils_accessors.R` (`sample_counts()`, `sample_spatial_meta()`,

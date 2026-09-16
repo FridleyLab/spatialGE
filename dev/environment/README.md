@@ -66,6 +66,46 @@ export REQUESTS_CA_BUNDLE=/path/to/combined_cacert.pem
 `REQUESTS_CA_BUNDLE` covers conda. Export all three before running
 `conda env create`/`conda install` or `install_deps.R`.
 
+### Concrete values observed on the Moffitt network
+
+The intercepting root is `O=Moffitt Cancer Center, CN=ca.moffitt.goskope.com`,
+so the first command above is:
+
+```sh
+security find-certificate -a -c ca.moffitt.goskope.com -p \
+  /Library/Keychains/System.keychain > corp_roots.pem
+```
+
+Note that macOS trusts this CA via the system keychain, so `/usr/bin/curl`
+succeeds while conda's `curl` and conda R's libcurl both fail -- "curl works, so
+the network is fine" is a false conclusion here. `CURL_CA_BUNDLE=/etc/ssl/cert.pem`
+alone is also insufficient; the corporate root has to be appended. If the System
+keychain lookup comes back empty, try the login keychain
+(`~/Library/Keychains/login.keychain-db`) as well.
+
+Verify from conda R itself before trusting any network-dependent run. Expect
+`HTTP/2 302`, not `libcurl error code 60`:
+
+```sh
+Rscript -e 'cat(curlGetHeaders("https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download=")[1])'
+```
+
+### Why this is worth checking explicitly
+
+Left unfixed, the failure is close to silent and is actively misattributed
+rather than loud:
+
+- `tests/testthat/test-tests.R` calls `skip_if_offline()`, so the suite passes
+  having quietly run one test fewer.
+- `vignettes/basic_functions_vignette.Rmd` guards ~30 chunks on `eval=net_check`,
+  so a failed download renders a green but essentially empty document.
+- Every `@examples` block reports "Could not run example. Are you connected to
+  the internet?" regardless of the real cause -- that same message also appears
+  for genuine code defects, which is exactly how the `zip_tmp` bug fixed in
+  2.0.0 stayed hidden across two releases.
+
+So a green run with a broken CA bundle proves much less than it appears to.
+
 ## Known gaps as of this writing
 
 - `parallel::detectCores()` returns `NA` in network-sandboxed shells

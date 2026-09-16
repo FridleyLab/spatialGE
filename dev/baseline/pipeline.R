@@ -14,17 +14,6 @@
 ## callers are responsible for having the package and
 ## inst/testdata/make_fixtures.R already available.
 
-## Non-comparable outputs, recorded up front per plan Phase 3: results here
-## should never be waldo::compare()'d for bit-identity, only checked for
-## matching class/shape. Populated by bl_pipeline() as it runs.
-BL_NONCOMPARABLE <- c(
-  "gene_interpolation",       # gstat::fit.variogram nonlinear optimization
-  "STplot_interpolation",     # sf/GEOS geometry ops downstream of kriging
-  "STdiff",                   # spaMM::fitme numerical optimizer
-  "STdiff_volcano",           # built from STdiff's (non-comparable) output
-  "STenrich_gsva"              # GSVA kernel density estimation
-)
-
 bl_capture <- function(name, expr, results, cores){
   set.seed(20260115)
   val <- tryCatch(

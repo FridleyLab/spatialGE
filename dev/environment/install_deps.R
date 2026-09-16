@@ -12,11 +12,16 @@ if (!requireNamespace("remotes", quietly = TRUE)) {
   install.packages("remotes")
 }
 
-## ggplot2 is pinned below 4.0: the 4.x S7 rewrite changes ggplot_build()
-## layer-data columns that the golden-baseline plot comparisons (see
-## dev/baseline/capture_baseline.R) depend on, and STdiff_volcano.R's
-## element_rect(fill = NULL) call is a known 4.x compatibility risk.
-pinned <- list(ggplot2 = "3.5.1")
+## Version pins, as pkg = "version". Currently empty.
+##
+## ggplot2 used to be pinned to 3.5.1 here, on the theory that 4.x's S7 rewrite
+## would change the ggplot_build() layer data the golden plot comparisons diff.
+## That pin is gone because it was both stale and actively harmful: the golden
+## baseline is captured under ggplot2 4.x, so 4.x is the correct comparison
+## basis, and ggrepel (>= 0.9.8) and ggpubr (>= 1.0.0) both declare
+## ggplot2 (>= 3.5.2), so installing 3.5.1 breaks package loading outright.
+## Don't reinstate a ggplot2 pin without re-capturing tests/golden/ first.
+pinned <- list()
 
 cran_pkgs <- c(
   "arrow", "concaveman", "data.table", "dplyr", "ggforce", "ggpolypath",

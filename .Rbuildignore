@@ -2,6 +2,7 @@
 ^renv\.lock$
 ^\.Rprofile$
 ^\.claude$
+^\.github$
 ^dev$
 ^plans$
 ^tests/golden$
