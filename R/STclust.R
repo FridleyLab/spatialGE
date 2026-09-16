@@ -353,12 +353,14 @@ get_hier_clusters_ks = function(weighted_dists=NULL, ws=NULL, ks=NULL, linkage=N
 
   grp_df_ls = lapply(1:length(ws), function(w){
     grp_df = tibble::tibble(libname=colnames(weighted_dists[[w]]))
+
+    # Run hierarchical clustering once per weight: weighted_dists[[w]] and
+    # linkage do not change across k, only the dendrogram cut does.
+    hierclusters = hclust(as.dist(weighted_dists[[w]]), method=linkage)
+
     for(k in ks){
       # Construct column name to be put in `spatial_meta` based on weight and k
       col_name = paste0('stclust_spw', ws[w], '_k', k)
-
-      # Run hierarchical clustering
-      hierclusters = hclust(as.dist(weighted_dists[[w]]), method=linkage)
 
       # Cut the dendrogram
       grp_df_tmp = cutree(hierclusters, k=k)
@@ -367,8 +369,9 @@ get_hier_clusters_ks = function(weighted_dists=NULL, ws=NULL, ks=NULL, linkage=N
 
       grp_df = grp_df %>% dplyr::left_join(., grp_df_tmp, by='libname')
 
-      rm(grp_df_tmp, hierclusters, col_name) # Clean env
+      rm(grp_df_tmp, col_name) # Clean env
     }
+    rm(hierclusters) # Clean env
     return(grp_df)
   })
 
