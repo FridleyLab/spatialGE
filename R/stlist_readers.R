@@ -409,8 +409,10 @@ read_xenium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
       vbarcodes = grep('cell_feature_matrix\\/barcodes.tsv.gz', temp_fps, value=T)
       vcounts = grep('cell_feature_matrix\\/matrix.mtx.gz', temp_fps, value=T)
 
-      # Test that all files have been found.
-      needed_mex_test = c(!grepl('gz', vfeatures), !grepl('gz', vbarcodes), !grepl('gz', vcounts), !grepl('csv', vcoords))
+      # Test that all files have been found. vcoords is always a cells.parquet
+      # path (matched above), never csv, so this must check for 'parquet' --
+      # checking 'csv' made this fire unconditionally, masking any real result.
+      needed_mex_test = c(!grepl('gz', vfeatures), !grepl('gz', vbarcodes), !grepl('gz', vcounts), !grepl('parquet', vcoords))
       if(any(needed_mex_test)){
         raise_err(err_code='error0037')
       }

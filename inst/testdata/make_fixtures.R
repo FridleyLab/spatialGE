@@ -243,12 +243,8 @@ fixture_write_visium_mex <- function(base, dir) {
   list(rnacounts = file.path(dir, base$samples), samples = base$samples)
 }
 
-## Xenium, MEX layout. NOTE: this is the only fixture that drives
-## read_xenium_outs()'s xenium_mex branch, which calls a function
-## (`import_xenium_mex`) that does not exist in the package -- it is expected
-## to fail until that bug is fixed (see plan Phase 11). Kept here anyway
-## because it's the only way to demonstrate the import_visium/import_xenium
-## name-shadowing bug.
+## Xenium, MEX layout. The only fixture that drives read_xenium_outs()'s
+## xenium_mex branch (import_xenium_mex()).
 fixture_write_xenium_mex <- function(base, dir) {
   dir.create(dir, showWarnings = FALSE, recursive = TRUE)
   for (s in base$samples) {

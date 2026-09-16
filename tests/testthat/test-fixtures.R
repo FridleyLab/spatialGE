@@ -81,21 +81,8 @@ testthat::test_that("Xenium 10x h5 directories build a valid STlist", {
   testthat::expect_s4_class(st, "STlist")
 })
 
-testthat::test_that("Xenium MEX directories: known read_xenium_outs() bugs", {
-  # Two independent bugs currently make xenium_mex input unusable:
-  #  1. The needed_mex_test check at R/STList.R checks
-  #     `!grepl('csv', vcoords)`, but vcoords is always a "cells.parquet" path
-  #     (found via `grep('cells.parquet$', ...)`) -- it never contains the
-  #     substring "csv", so this term is always TRUE and raise_err('error0037')
-  #     fires unconditionally, regardless of whether files were actually found.
-  #  2. Downstream, the per-sample mclapply branch calls `import_xenium_mex()`,
-  #     which does not exist anywhere in the package (R/import_xenium.R
-  #     defines a function literally named `import_visium`, a copy-paste
-  #     duplicate of the real R/import_visium.R). Bug #1 currently masks bug #2
-  #     since it throws first. Both tracked for Phase 11.
+testthat::test_that("Xenium MEX directories build a valid STlist", {
   f <- fixtures$xenium_mex
-  testthat::expect_error(
-    STlist(rnacounts = f$rnacounts, samples = f$samples),
-    "does not have all necessary files"
-  )
+  st <- STlist(rnacounts = f$rnacounts, samples = f$samples, cores = 1)
+  testthat::expect_s4_class(st, "STlist")
 })
