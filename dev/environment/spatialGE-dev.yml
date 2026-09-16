@@ -1,0 +1,48 @@
+name: spatialge-dev
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.5.3
+  - clang
+  - clangxx
+  - gfortran
+  - make
+  - pkg-config
+  - gdal
+  - geos
+  - proj
+  - hdf5
+  - fftw
+  - libtiff
+  - libjpeg-turbo
+  - libpng
+  - zlib
+  - curl
+  - libxml2
+  - freetype
+  - cairo
+  - udunits2
+  - glib
+  - r-sf
+  - r-sp
+  - r-spdep
+  - r-gstat
+  - r-arrow
+  - r-s2
+  - r-units
+  - r-classint
+  - r-deldir
+  - r-stars
+  - r-mass
+  - r-rcpp
+  - r-rlang
+  - r-magrittr
+
+# NOTE: pinned to r-base=4.5.3, not 4.6.1. conda-forge's r-gstat/r-sf/etc.
+# bindings lag new R releases (r-gstat has no build yet for r-base 4.6.x as
+# of this writing), so pinning r-base=4.6.1 alongside these r-<pkg> bindings
+# is currently unsatisfiable in one solve. Getting to 4.6.1 would mean
+# dropping these conda-forge R-package bindings and source-building
+# sf/spdep/gstat/arrow/etc. from CRAN instead (install_deps.R already lists
+# them in cran_pkgs, so this is mechanically easy) -- deferred per explicit
+# decision to stay on 4.5.3 for now rather than wipe the working env.

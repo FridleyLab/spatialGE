@@ -1,0 +1,33 @@
+## R_MAKEVARS_USER overrides for building spatialGE's src/ under the
+## spatialge-dev conda environment (arm64 macOS, clang 22 + gfortran 15).
+##
+## Activate with:
+##   export R_MAKEVARS_USER=$(pwd)/dev/environment/Makevars
+## before R CMD INSTALL / devtools::load_all().
+
+CONDA_PREFIX ?= /opt/anaconda3/envs/spatialge-dev
+
+CC  = $(CONDA_PREFIX)/bin/clang
+CXX = $(CONDA_PREFIX)/bin/clang++
+CXX14 = $(CONDA_PREFIX)/bin/clang++
+FC  = $(CONDA_PREFIX)/bin/gfortran
+F77 = $(CONDA_PREFIX)/bin/gfortran
+
+## conda-forge's R build leaves CC90/CC99/CC17/CC23 blank in its own
+## Makeconf (unlike CRAN's R, which sets these to clang -std=gnuNN), so
+## any package whose configure/SystemRequirements asks for a specific C
+## standard (e.g. locfit wants C17) fails with "C17 standard requested
+## but CC17 is not defined". Fill them in from the same clang.
+CC90 = $(CONDA_PREFIX)/bin/clang -std=gnu90
+CC99 = $(CONDA_PREFIX)/bin/clang -std=gnu99
+CC17 = $(CONDA_PREFIX)/bin/clang -std=gnu17
+CC23 = $(CONDA_PREFIX)/bin/clang -std=gnu2x
+
+CPPFLAGS = -I$(CONDA_PREFIX)/include
+LDFLAGS  = -L$(CONDA_PREFIX)/lib -Wl,-rpath,$(CONDA_PREFIX)/lib
+
+## arm64 macOS clang does not support -fopenmp out of the box; the
+## geospatial/Bioc stack here does not require it, so it is left off
+## rather than pulling in an extra libomp dependency.
+SHLIB_OPENMP_CFLAGS =
+SHLIB_OPENMP_CXXFLAGS =
