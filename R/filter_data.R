@@ -72,6 +72,10 @@
 #'
 #' @importFrom magrittr %>%
 #
+# Dispatches through a fixed sequence of named filter stages (see
+# `filter_stage_*` in filter_data_stages.R), matching the order documented
+# above: samples, spots, genes (by name), genes (by regex), min/max counts.
+#
 filter_data = function(x=NULL,
                        spot_minreads=0, spot_maxreads=NULL,
                        spot_mingenes=0, spot_maxgenes=NULL,
@@ -86,190 +90,31 @@ filter_data = function(x=NULL,
                        rm_genes_expr=NULL,
                        spot_pct_expr="^MT-"){
 
-  # To prevent NOTES in R CMD check
-  . = NULL
-
   # Check than an STList was provided
   assert_stlist(x, message='Please, specify an STList to filter.', check_class=FALSE)
 
-  # Remove entire samples/tissues
-  if(!is.null(rm_tissue)){
-    # Detect if sample entered as index number or sample name
-    if(is.numeric(rm_tissue)){
-      sample_id = names(x@counts)[rm_tissue]
-    }  else if(is.character(rm_tissue)){
-      sample_id = rm_tissue
-    }
-
-    # Remove samples
-    if(all(sample_id %in% names(x@counts))){
-      x@counts = x@counts[names(x@counts)[!(names(x@counts) %in% sample_id)]]
-      x@spatial_meta = x@spatial_meta[names(x@spatial_meta)[!(names(x@spatial_meta) %in% sample_id)]]
-      if(!rlang::is_empty(x@tr_counts)){
-        x@tr_counts = x@tr_counts[names(x@tr_counts)[!(names(x@tr_counts) %in% sample_id)]]
-      }
-      if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta = x@gene_meta[names(x@gene_meta)[!(names(x@gene_meta) %in% sample_id)]]
-      }
-      if(nrow(x@sample_meta) != 0){
-        x@sample_meta = x@sample_meta[!(x@sample_meta[[1]] %in% sample_id), ]
-      }
-    } else{
-      stop('Samples in rm_tissue are not present in this STlist.')
-    }
-
-    rm(sample_id) # Clean env
-  }
+  # 1. Remove entire samples/tissues
+  x = filter_stage_samples(x, rm_tissue)
 
   # Define set of samples to work on
   samples = resolve_samples(x, samples, slot='counts', numeric_handling='plain',
                             char_transform='validate_all', post_check='none',
                             message='Samples in rm_tissue are not present in this STlist.')
 
-  # Remove spots/cells by cell IDs
-  if(!is.null(rm_spots)){
-    for(i in samples){
-      x@counts[[i]] = x@counts[[i]][, !(colnames(x@counts[[i]]) %in% rm_spots)]
-      x@spatial_meta[[i]] = x@spatial_meta[[i]][!(x@spatial_meta[[i]][['libname']] %in% rm_spots), ]
-      if(!rlang::is_empty(x@tr_counts)){
-        x@tr_counts[[i]] = x@tr_counts[[i]][, !(colnames(x@tr_counts[[i]]) %in% rm_spots)]
-      }
-    }
-  }
+  # 2. Remove spots/cells by cell IDs
+  x = filter_stage_spots(x, samples, rm_spots)
 
-  # Remove genes by name
-  if(!is.null(rm_genes)){
-    for(i in samples){
-      x@counts[[i]] = x@counts[[i]][!(rownames(x@counts[[i]]) %in% rm_genes), ]
-      if(!rlang::is_empty(x@tr_counts)){
-        x@tr_counts[[i]] = x@tr_counts[[i]][!(rownames(x@tr_counts[[i]]) %in% rm_genes), ]
-      }
-      if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta[[i]] = x@gene_meta[[i]][!(x@gene_meta[[i]][['gene']] %in% rm_genes), ]
-      }
-    }
-  }
+  # 3. Remove genes by name
+  x = filter_stage_genes(x, samples, rm_genes)
 
-  # Remove genes by regular expression
-  if(!is.null(rm_genes_expr)){
-    for(i in samples){
-      x@counts[[i]] = x@counts[[i]][!grepl(rm_genes_expr, rownames(x@counts[[i]])), ]
-      if(!rlang::is_empty(x@tr_counts)){
-        x@tr_counts[[i]] = x@tr_counts[[i]][!grepl(rm_genes_expr, rownames(x@tr_counts[[i]])), ]
-      }
-      if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta[[i]] = x@gene_meta[[i]][!grepl(rm_genes_expr, rownames(x@gene_meta[[i]])),, ]
-      }
-    }
-  }
+  # 4. Remove genes by regular expression
+  x = filter_stage_genes_expr(x, samples, rm_genes_expr)
 
-  # Filter data sets using other parameters
-  for(i in samples){
-    # Decompress counts
-    df_tmp = expandSparse(x@counts[[i]])
+  # 5. Filter data sets using other parameters (min/max counts)
+  x = filter_stage_counts(x, samples, spot_minreads, spot_maxreads, spot_mingenes, spot_maxgenes,
+                          spot_minpct, spot_maxpct, gene_minreads, gene_maxreads, gene_minspots,
+                          gene_maxspots, gene_minpct, gene_maxpct, spot_pct_expr)
 
-    # Get mask of non-zero counts
-    nonzero_df = (df_tmp != 0)
-
-    # Calculate total spot/cell counts and zero-count mask for number of genes per cell/spot
-    col_total_reads = colSums(df_tmp)
-    col_total_genes = colSums(nonzero_df)
-
-    # Calculate percentage of counts from genes matching `spot_pct_expr`
-    col_expr_reads = colSums(df_tmp[grepl(spot_pct_expr, rownames(df_tmp)), ])
-    col_expr_percent = col_expr_reads/col_total_reads
-    rm(col_expr_reads) # Clean env
-    # Force NaNs tp zero, which result from zero as denominator (i.e., zero counts in the cell)
-    col_expr_percent[is.na(col_expr_percent)] = 0
-
-    # If no maximum counts set by user, then make it the max counts of each spot/cell
-    if(is.null(spot_maxreads)){
-      spot_maxreads_tmp = max(col_total_reads)
-    } else{
-      spot_maxreads_tmp = spot_maxreads
-    }
-    if(is.null(spot_maxgenes)){
-      spot_maxgenes_tmp = max(col_total_genes)
-    } else{
-      spot_maxgenes_tmp = spot_maxgenes
-    }
-    if(is.null(spot_maxpct)){
-      spot_maxpct_tmp = 1
-    } else{
-      spot_maxpct_tmp = spot_maxpct
-    }
-
-    # Get logical mask for spot filtering
-    spot_mask = (col_total_reads >= spot_minreads & col_total_reads <= spot_maxreads_tmp) &
-      (col_total_genes >= spot_mingenes & col_total_genes <= spot_maxgenes_tmp) &
-      (col_expr_percent >= spot_minpct & col_expr_percent <= spot_maxpct_tmp)
-
-    # Calculate total counts per gene
-    row_total_reads = rowSums(df_tmp)
-
-    # Calculate percentage of non-zero spots/cells per gene
-    row_total_spots = rowSums(nonzero_df)
-    row_expr_percent = row_total_spots/ncol(df_tmp)
-    rm(nonzero_df) # Clean env
-
-    # If no maximum counts set by user, then make it the max counts of each gene
-    if(is.null(gene_maxreads)){
-      gene_maxreads_tmp = max(row_total_reads)
-    } else{
-      gene_maxreads_tmp = gene_maxreads
-    }
-    if(is.null(gene_maxspots)){
-      gene_maxspots_tmp = max(row_total_spots)
-    } else{
-      gene_maxspots_tmp = gene_maxspots
-    }
-    if(is.null(gene_maxpct)){
-      gene_maxpct_tmp = 1
-    } else{
-      gene_maxpct_tmp = gene_maxpct
-    }
-
-    # Get logical mask for gene filtering
-    gene_mask = (row_total_reads >= gene_minreads & row_total_reads <= gene_maxreads_tmp) &
-      (row_total_spots >= gene_minspots & row_total_spots <= gene_maxspots_tmp) &
-      (row_expr_percent >= gene_minpct & row_expr_percent <= gene_maxpct_tmp)
-
-    # Perform filter
-    df_tmp = df_tmp[gene_mask, spot_mask]
-
-    # Subset data in STlist
-    df_tmp = tibble::rownames_to_column(df_tmp, var='gene')
-    if(ncol(df_tmp) > 1){ # At least one spot
-      x@counts[[i]] = makeSparse(df_tmp)
-      x@spatial_meta[[i]] = x@spatial_meta[[i]][x@spatial_meta[[i]]$libname %in% colnames(x@counts[[i]]), ] %>%
-        dplyr::select(-total_counts, -total_genes) %>%
-        dplyr::left_join(., tibble::tibble(libname=colnames(x@counts[[i]]),
-                                           total_counts=Matrix::colSums(x@counts[[i]]),
-                                           total_genes=Matrix::colSums(x@counts[[i]] != 0)), by='libname')
-      if(!rlang::is_empty(x@tr_counts)){
-        x@tr_counts[[i]] = x@tr_counts[[i]][rownames(x@tr_counts[[i]]) %in% rownames(x@counts[[i]]),
-                                            colnames(x@tr_counts[[i]]) %in% colnames(x@counts[[i]])]
-      }
-      if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta[[i]] = x@gene_meta[[i]] %>%
-          dplyr::select(-gene_mean, -gene_stdevs) %>%
-          dplyr::left_join(tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(x@tr_counts[[i]])),
-                                          gene_stdevs=as.vector(apply(x@tr_counts[[i]], 1, sd)),
-                                          gene=rownames(x@tr_counts[[i]])),. , by='gene') %>%
-          dplyr::relocate(gene_mean, gene_stdevs, .after='gene')
-      }
-    } else{
-      warning(paste0('All spots from ', i, ' were removed. Removing sample from STlist...'))
-      x@counts = x@counts[!grepl(i, names(x@counts))]
-      x@spatial_meta = x@spatial_meta[!grepl(i, names(x@spatial_meta))]
-      if(!rlang::is_empty(x@tr_counts)){
-        x@tr_counts = x@tr_counts[!grepl(i, names(x@tr_counts))]
-      }
-      if(!rlang::is_empty(x@gene_meta)){
-        x@gene_meta = x@gene_meta[!grepl(i, names(x@gene_meta))]
-      }
-    }
-  }
   return(x)
 }
 
