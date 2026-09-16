@@ -282,8 +282,9 @@ if(!is.null(stgradient_setup)){
 
 ## ---- gene_interpolation_helpers.R ----
 
+interp_grid1 <- build_interp_grid(st4@spatial_meta[[sample1]])
 bench_unit("interp_krige_one_gene", function(){
-  interp_krige_one_gene(st4@tr_counts[[sample1]], st4@spatial_meta[[sample1]], "GradGene1", sample1, 0L)
+  interp_krige_one_gene(st4@tr_counts[[sample1]], st4@spatial_meta[[sample1]], "GradGene1", sample1, 0L, interp_grid1)
 }, iterations = 5)
 bench_unit("interp_one_sample", function(){
   interp_one_sample(st4@tr_counts[[sample1]], st4@spatial_meta[[sample1]], krige_genes, sample1, 0L)

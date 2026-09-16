@@ -16,11 +16,40 @@
 # @return a named list (by gene) of kriging results.
 #
 interp_one_sample = function(tr_counts_mat, spatial_meta_df, genes, sample_name, verbose){
+  # The prediction grid depends only on the sample's coordinates, not on any
+  # gene's expression, so build it once per sample instead of once per gene.
+  grid_sf = build_interp_grid(spatial_meta_df)
+
   kriging_res = list()
   for(gene in genes){
-    kriging_res[[gene]] = interp_krige_one_gene(tr_counts_mat, spatial_meta_df, gene, sample_name, verbose)
+    kriging_res[[gene]] = interp_krige_one_gene(tr_counts_mat, spatial_meta_df, gene, sample_name, verbose, grid_sf)
   }
   return(kriging_res)
+}
+
+
+##
+# @title build_interp_grid: Build the kriging prediction grid for one sample
+# @description The prediction grid used by `interp_krige_one_gene()` is
+# determined entirely by the sample's spot/cell coordinates, so it is built
+# once per sample (via `interp_one_sample()`) rather than once per gene.
+# Builds its own coordinate-only `SpatialPointsDataFrame` rather than reusing
+# a gene's, since `sp::coordinates(df) = ~xpos+ypos` mutates its argument in
+# place and must not be shared/mutated across genes.
+#
+# @param spatial_meta_df the sample's spatial metadata tibble.
+# @return an `sf` grid of prediction centers, as returned by `sf::st_make_grid()`.
+#
+build_interp_grid = function(spatial_meta_df){
+  coords_df = as.data.frame(spatial_meta_df[c('xpos', 'ypos')])
+  sp::coordinates(coords_df) = ~xpos+ypos
+
+  ny = range(sp::coordinates(coords_df)[, 'ypos'])
+  ny = length(seq(ny[1], ny[2], by=100))
+  nx = range(sp::coordinates(coords_df)[, 'xpos'])
+  nx = length(seq(nx[1], nx[2], by=100))
+
+  sf::st_make_grid(coords_df, n=c(nx, ny), what="centers")
 }
 
 
@@ -35,10 +64,11 @@ interp_one_sample = function(tr_counts_mat, spatial_meta_df, genes, sample_name,
 # @param sample_name the sample's name, used in progress messages.
 # @param verbose either logical or an integer (0, 1, or 2); values > 1 print
 # a progress message.
+# @param grid_sf the sample's prediction grid, from `build_interp_grid()`.
 # @return a list with `krige_out` (a data frame of predicted coordinates and
 # values, or NULL on error) and `success_or_not`.
 #
-interp_krige_one_gene = function(tr_counts_mat, spatial_meta_df, gene, sample_name, verbose){
+interp_krige_one_gene = function(tr_counts_mat, spatial_meta_df, gene, sample_name, verbose, grid_sf){
   # Get transformed counts
   gene_expr = data.frame(
     position=names(unlist(tr_counts_mat[rownames(tr_counts_mat) == gene, ])),
@@ -51,13 +81,6 @@ interp_krige_one_gene = function(tr_counts_mat, spatial_meta_df, gene, sample_na
   sp::coordinates(gene_geo_df) = ~xpos+ypos
 
   rm(gene_expr) # Clean env
-
-  # Create a grid with points in the middle of each coordinate
-  ny = range(sp::coordinates(gene_geo_df)[, 'ypos'])
-  ny = length(seq(ny[1], ny[2], by=100))
-  nx = range(sp::coordinates(gene_geo_df)[, 'xpos'])
-  nx = length(seq(nx[1], nx[2], by=100))
-  grid_sf = sf::st_make_grid(gene_geo_df, n=c(nx, ny), what="centers")
 
   # Give hope to users...
   if(verbose > 1L){
