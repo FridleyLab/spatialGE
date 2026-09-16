@@ -91,7 +91,7 @@ zip file, which will be unzipped into a sub-directory called `tnbc_bassiouni`:
 tryCatch({ # In case data is not available from network
   download.file(lk, destfile=paste0(visium_tmp, '/', 'tnbc_bassiouni.zip'), mode='wb')
   zip_tmp = list.files(visium_tmp, pattern='tnbc_bassiouni.zip$', full.names=TRUE)
-  unzip(zipfile=zip_tmp, exdir=thrane_tmp)
+  unzip(zipfile=zip_tmp, exdir=visium_tmp)
   net_check <<- TRUE
 }, error = function(e) {
   message("Could not download data. Are you connected to the internet?")
