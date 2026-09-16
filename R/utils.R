@@ -22,6 +22,14 @@ count_cores = function(n){
       cores = ifelse(n > 0, n, 1)
     }
   }
+  # mclapply's internal .check_ncores() stops (or warns) when more than 2
+  # processes are requested and _R_CHECK_LIMIT_CORES_ is set (R CMD check
+  # sets this) -- clamp the auto-detected count so it never trips that check
+  # on a many-core machine, independent of how many units of work there are.
+  limit_cores = tolower(Sys.getenv('_R_CHECK_LIMIT_CORES_', ''))
+  if(nzchar(limit_cores) && limit_cores != 'false' && cores > 2){
+    cores = 2
+  }
   return(cores)
 }
 

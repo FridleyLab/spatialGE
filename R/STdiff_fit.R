@@ -372,8 +372,17 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
     #   wng = warning_message
     # }
 
-    # Calculate p-value
-    res_mod = spaMM::summary.HLfit(res_mod, details=c(p_value="Wald"), verbose=F)[['beta_table']][2, 4]
+    # Calculate p-value. Only if the fit actually converged -- on error, res_mod
+    # holds the captured error message (a plain string) rather than an HLfit
+    # object, and summary.HLfit() on that would itself error, aborting this
+    # gene x cluster combination's fit taking every other combination sharing
+    # its mclapply chunk down with it (see fitme's non-spatial counterpart,
+    # spatial_de(), for the same not-'HLfit'-class guard).
+    if(any(class(res_mod) == 'HLfit')){
+      res_mod = spaMM::summary.HLfit(res_mod, details=c(p_value="Wald"), verbose=F)[['beta_table']][2, 4]
+    } else{
+      res_mod = NA_real_
+    }
 
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]] = list()
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['nonspmod']] = res_mod
