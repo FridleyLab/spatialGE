@@ -229,7 +229,7 @@ detect_input_samples = function(samples=NULL){
   # Test that input is a file path to a table (tsv, csv, or xlsx)
   if(length(samples) == 1 && file.exists(samples)){
     # Test if file path ends in 'xlsx'
-    tests_xlsx = grepl("//.xlsx$", samples)
+    tests_xlsx = grepl("\\.xlsx$", samples)
     if(tests_xlsx){
       inputtype_samples = 'samplesfile_excel'
       rm(tests_xlsx) # Clean env

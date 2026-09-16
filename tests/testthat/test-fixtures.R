@@ -17,17 +17,10 @@ testthat::test_that("list-of-data.frames + csv samples file builds a valid STlis
   testthat::expect_s4_class(st, "STlist")
 })
 
-testthat::test_that("list-of-data.frames + xlsx samples file: known detect_input_samples() bug", {
-  # detect_input_samples()'s xlsx branch matches on the regex "//.xlsx$" (two
-  # slashes), which can never match a real path ending in ".xlsx" -- so an
-  # xlsx samples file always falls through to comma/tab content-sniffing on
-  # its raw (binary) bytes and fails. Tracked for a fix in Phase 11; this test
-  # documents the current, expected failure rather than asserting success.
+testthat::test_that("list-of-data.frames + xlsx samples file builds a valid STlist", {
   f <- fixtures$list_dfs_samplesfile_xlsx
-  testthat::expect_error(
-    STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples),
-    "not comma or tab-delimited"
-  )
+  st <- STlist(rnacounts = f$rnacounts, spotcoords = f$spotcoords, samples = f$samples, cores = 1)
+  testthat::expect_s4_class(st, "STlist")
 })
 
 testthat::test_that("comma-delimited matrix files build a valid STlist", {

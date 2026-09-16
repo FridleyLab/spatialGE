@@ -153,19 +153,23 @@ detect_input_case_list_dfs = function(rnacounts, spotcoords, samples, inputtype)
         # Test if samples file (metadata) was provided.
         if(!is.null(samples)){
           if(length(samples) == 1 && file.exists(samples)){
-            # Read samples file and see which delimiter has.
-            samples_file = readLines(samples, n=2)
-            is_tab_samples = grepl("\t", samples_file[2])
-            is_comma_samples = grepl(",", samples_file[2])
-            # Determine delimiter of file.
-            if(is_tab_samples){
-              del = '\t'
-            } else if(is_comma_samples){
-              del = ','
+            if(grepl("\\.xlsx$", samples)){
+              inputtype$samples = c('samplesfile', 'xlsx')
             } else{
-              stop('Samples file is not comma or tab-delimited')
+              # Read samples file and see which delimiter has.
+              samples_file = readLines(samples, n=2)
+              is_tab_samples = grepl("\t", samples_file[2])
+              is_comma_samples = grepl(",", samples_file[2])
+              # Determine delimiter of file.
+              if(is_tab_samples){
+                del = '\t'
+              } else if(is_comma_samples){
+                del = ','
+              } else{
+                stop('Samples file is not comma or tab-delimited')
+              }
+              inputtype$samples = c('samplesfile', del)
             }
-            inputtype$samples = c('samplesfile', del)
           } else{
             inputtype$samples = 'names_from_list_or_df'
           }

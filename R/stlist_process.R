@@ -146,8 +146,12 @@ process_meta = function(samples, input_check, counts_df_list){
 
   # Get delimiter of file from input_check
   del = input_check[['samples']][2]
-  # Read file.
-  samples_df = readr::read_delim(samples, delim=del, col_types=readr::cols(), progress=F, show_col_types=F)
+  # Read file. 'xlsx' is not a delimiter -- it marks an Excel samples file.
+  if(del == 'xlsx'){
+    samples_df = readxl::read_excel(samples)
+  } else{
+    samples_df = readr::read_delim(samples, delim=del, col_types=readr::cols(), progress=F, show_col_types=F)
+  }
   # Remove leading spaces in columan names if any
   colnames(samples_df) = gsub('^ ', '', colnames(samples_df))
 
