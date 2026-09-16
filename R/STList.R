@@ -289,7 +289,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
       if(verbose){
         cat(paste("Converting counts to sparse matrices\n"))
       }
-      procLists[['counts']] = parallel::mclapply(procLists[['counts']], function(x){
+      procLists[['counts']] = sge_lapply(procLists[['counts']], function(x){
         makeSparse(x)
       })
     }
@@ -297,7 +297,7 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
     if(verbose){
       cat(paste("Converting counts to sparse matrices\n"))
     }
-    procLists[['counts']] = parallel::mclapply(procLists[['counts']], function(x){
+    procLists[['counts']] = sge_lapply(procLists[['counts']], function(x){
       makeSparse(x)
     })
   }
@@ -488,22 +488,22 @@ read_matrices_fps = function(filepaths, input_check, cores=NULL){
   }
 
   # Use parallelization to read count data if possible.
-  counts_df_list = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
+  counts_df_list = sge_lapply(seq_along(filepaths[['count_found']]), function(i){
     # Read filepaths.
     #counts_df = readr::read_delim(filepaths[['count_found']][i], delim=delrna, col_types=readr::cols(), progress=F)
     counts_df = data.table::fread(filepaths[['count_found']][i], sep=delrna)
     counts_df = as.data.frame(counts_df)
     return(counts_df)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   # Name list elements.
   names(counts_df_list) = filepaths[['sampleids']]
 
   # Use parallelization to read coordinate data if possible.
-  coords_df_list = parallel::mclapply(seq_along(filepaths[['coord_found']]), function(i){
+  coords_df_list = sge_lapply(seq_along(filepaths[['coord_found']]), function(i){
     # Read filepaths.
     coords_df = readr::read_delim(filepaths[['coord_found']][i], delim=delcoords, col_types=readr::cols(), progress=F)
     return(coords_df)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   # Name list elements.
   names(coords_df_list) = filepaths[['sampleids']]
 
@@ -621,20 +621,13 @@ read_visium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
   }
 
   # Define number of available cores to use.
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(filepaths[['count_found']]))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      raise_err(err_code='error0036')
-    }
+  cores = resolve_cores(length(filepaths[['count_found']]), cores, coerce='as_integer')
+  if(is.na(cores)){
+    raise_err(err_code='error0036')
   }
 
   # Use parallelization to read count data if possible.
-  output_temp = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
+  output_temp = sge_lapply(seq_along(filepaths[['count_found']]), function(i){
     if(length(fp_list[[i]]$counts) == 0){
       return(list())
     }
@@ -658,7 +651,7 @@ read_visium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
     }
 
     return(visium_processed)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   if(verbose){
     cat(paste("\tData read completed\n"))
   }
@@ -781,20 +774,13 @@ read_xenium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
   }
 
   # Define number of available cores to use.
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(filepaths[['count_found']]))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      raise_err(err_code='error0038')
-    }
+  cores = resolve_cores(length(filepaths[['count_found']]), cores, coerce='as_integer')
+  if(is.na(cores)){
+    raise_err(err_code='error0038')
   }
 
   # Use parallelization to read count data if possible.
-  output_temp = parallel::mclapply(seq_along(filepaths[['count_found']]), function(i){
+  output_temp = sge_lapply(seq_along(filepaths[['count_found']]), function(i){
     if(length(fp_list[[i]]$counts) == 0){
       return(list())
     }
@@ -819,7 +805,7 @@ read_xenium_outs = function(filepaths, input_rnacounts, cores=NULL, verbose=TRUE
     }
 
     return(xenium_processed)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   if(verbose){
     cat(paste("\tData read completed\n"))
   }
@@ -875,7 +861,7 @@ read_cosmx_input = function(filepaths, input_check, cores=NULL, verbose=TRUE){
   }
 
   # Use parallelization to read count data if possible.
-  output_temp = parallel::mclapply(seq_along(1:length(fp_list)), function(i){
+  output_temp = sge_lapply(seq_along(1:length(fp_list)), function(i){
     if(length(fp_list[[i]][['counts']]) == 0){
       return(list())
     }
@@ -894,7 +880,7 @@ read_cosmx_input = function(filepaths, input_check, cores=NULL, verbose=TRUE){
     }
 
     return(cosmx_processed)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
 
   if(verbose){
     cat("\tData read completed\n")

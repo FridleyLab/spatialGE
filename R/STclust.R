@@ -130,20 +130,13 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
   }
 
   # Define number of cores for parallelization of tests
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(samples))
-  } else{
-    cores = ceiling(cores)
-  }
+  cores = resolve_cores(length(samples), cores, coerce='ceiling')
 
   # Identify variable genes (Seurat's VST)
   x = calculate_vst(x=x, samples=samples, cores=cores)
 
   # Subset variable genes
-  trcounts_df = parallel::mclapply(samples, function(i){
+  trcounts_df = sge_lapply(samples, function(i){
     topgenenames_tmp = x@gene_meta[[i]] %>%
       dplyr::arrange(dplyr::desc(vst.variance.standardized)) %>%
       dplyr::slice_head(n=topgenes) %>%
@@ -155,11 +148,11 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
     trcounts_df_tmp = x@tr_counts[[i]][rownames(x@tr_counts[[i]]) %in% topgenenames_tmp, ]
 
     return(trcounts_df_tmp)
-  }, mc.cores=cores)
+  }, cores=cores)
   names(trcounts_df) = samples
 
   # Parallelize clustering
-  res_ls = parallel::mclapply(samples, function(i){
+  res_ls = sge_lapply(samples, function(i){
     # Calculate scaled expression and spatial distance matrices
     scaled_dists = calculate_dist_matrices(expr_dat=trcounts_df[[i]], coord_dat=x@spatial_meta[[i]], dist_metric=dist_metric)
 
@@ -191,7 +184,7 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
     }
 
     return(hierclusters_ls)
-  }, mc.cores=cores)
+  }, cores=cores)
   names(res_ls) = samples
 
   rm(trcounts_df) # Clean env

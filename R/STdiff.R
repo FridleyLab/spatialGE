@@ -267,17 +267,10 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   }
 
   # Define number of cores for parallelization of tests
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(unique(combo_df[['samplename']])))
-  } else{
-    cores = ceiling(cores)
-  }
+  cores = resolve_cores(length(unique(combo_df[['samplename']])), cores, coerce='ceiling')
 
   # Paralellize non-spatial tests
-  non_sp_models = parallel::mclapply(1:length(unique(combo_df[['samplename']])), function(i){
+  non_sp_models = sge_lapply(1:length(unique(combo_df[['samplename']])), function(i){
     # Get sample name
     sample_name = unique(combo_df[['samplename']])[i]
     # Subset combo_df to those of a given sample
@@ -334,7 +327,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
       rm(res_tmp, combo_clust_cl) # Clean env
     }
     return(res)
-  }, mc.cores=cores)
+  }, cores=cores)
 
   # Sometimes the mixed models option produces a warning
   # <simpleWarning in .check_y(family, y, BinomialDen): var(response) = 0, which may cause errors.>
@@ -490,7 +483,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
           dplyr::relocate(meta, .before=1) %>%
           dplyr::select(-c('orig_annot'))
 
-        sp_models[[sample_name]] = parallel::mclapply(1:length(clusters_tmp), function(i){
+        sp_models[[sample_name]] = sge_lapply(1:length(clusters_tmp), function(i){
           # Non-spatial models to update
           models_keep_tmp = models_keep %>%
             dplyr::filter(cluster_1 == clusters_tmp[i]) %>%
@@ -527,7 +520,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
           sp_mods = spatial_de(expr_dat=expr_df, non_sp_mods=non_sp_models_tmp, annot_dict=meta_dict, verb=verbose)
 
           return(sp_mods)
-        }, mc.cores=cores)
+        }, cores=cores)
         rm(models_keep, clusters_tmp) # Clean environment
       } else{
         warning(paste0('No genes to test for ',  sample_name, '. Try increasing sp_topgenes.'))

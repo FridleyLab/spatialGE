@@ -183,15 +183,14 @@ load_images = function(x=NULL, images=NULL){
 #
 create_listw_from_knn = function(x=NULL, ks=NULL){
   # Define cores available
-  #cores = count_cores(length(x@spatial_meta))
   cores = 1
 
   # Create distance matrix based on the coordinates of each sampled location.
-  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
+  listw_list = sge_lapply(seq(names(x@spatial_meta)), function(i){
     coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
     subj_listw = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k=ks, longlat=F)), style='B')
     return(subj_listw)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   names(listw_list) = names(x@spatial_meta)
   return(listw_list)
 }
@@ -204,20 +203,13 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
 #
 create_listw_from_dist = function(x=NULL, cores=NULL){
   # Define cores available
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(x@spatial_meta))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
+  cores = resolve_cores(length(x@spatial_meta), cores, coerce='as_integer')
+  if(is.na(cores)){
+    stop('Could not recognize number of cores requested')
   }
 
   # Create distance matrix based on the coordinates of each sampled location.
-  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
+  listw_list = sge_lapply(seq(names(x@spatial_meta)), function(i){
     coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
     adj = as.matrix(stats::dist(coords_mtx))
     adj = adj/max(adj)
@@ -243,7 +235,7 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
     class(subj_listw) = c("listw", "nb")
 
     return(subj_listw)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   names(listw_list) = names(x@spatial_meta)
   return(listw_list)
 }
@@ -365,7 +357,7 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
 
   if(is(x, 'STlist')){
     # Identify variable genes (Seurat's VST)
-    vst_ls = parallel::mclapply(samples, function(i){
+    vst_ls = sge_lapply(samples, function(i){
       # Find tops variable genes using Seurat approach
       # First check if VST hasn't been calculated. If not, calculate
       if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
@@ -377,7 +369,7 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
       } else{
         return(NULL)
       }
-    }, mc.cores=cores)
+    }, cores=cores)
     names(vst_ls) = samples
 
     for(i in samples){

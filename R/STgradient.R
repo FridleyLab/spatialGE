@@ -100,12 +100,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   rm(sample_rm) # Clean env
 
   # Define number of cores to use
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(samplenames))
-  }
+  cores = resolve_cores(length(samplenames), cores, coerce='none')
 
   # Define neighborhood tolerance
   if(is.null(nb_dist_thr) | !is.numeric(nb_dist_thr) | length(nb_dist_thr) != 2){
@@ -115,7 +110,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
     }
   }
 
-  results_ls = parallel::mclapply(seq(samplenames), function(i){
+  results_ls = sge_lapply(seq(samplenames), function(i){
     # Calculate euclidean distances
     coords_tmp = x@spatial_meta[[samplenames[i]]] %>%
       dplyr::select(c('libname', 'ypos', 'xpos')) %>% tibble::column_to_rownames('libname')
@@ -405,7 +400,7 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
     }
 
     return(dist_cor)
-  }, mc.cores=cores)
+  }, cores=cores)
 
   names(results_ls) = samplenames
 

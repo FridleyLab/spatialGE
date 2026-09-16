@@ -99,13 +99,13 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
 
   # Calculate gene-wise standard deviations in parallel if possible.
   cores = 1
-  x@gene_meta = parallel::mclapply(seq_along(x@tr_counts), function(i){
+  x@gene_meta = sge_lapply(seq_along(x@tr_counts), function(i){
     #gene_stdevs_df = apply(x@tr_counts[[i]], 1, sd, na.rm=T) # There shouldn't be any NAs in data transformed counts
     gene_stdevs_df = tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(x@tr_counts[[i]]))) %>%
       tibble::add_column(gene_stdevs=as.vector(apply(x@tr_counts[[i]], 1, sd))) %>%
       tibble::add_column(gene=rownames(x@tr_counts[[i]]), .before=1)
     return(gene_stdevs_df)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   # Copy names of the list
   names(x@gene_meta) = names(x@counts)
 
@@ -137,20 +137,13 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
   }
 
   # Detect usable cores
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(x@counts))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
+  cores = resolve_cores(length(x@counts), cores, coerce='as_integer')
+  if(is.na(cores)){
+    stop('Could not recognize number of cores requested')
   }
 
   # Perform log-transformation on parallel if possible.
-  log_counts = parallel::mclapply(seq_along(x@counts), function(i){
+  log_counts = sge_lapply(seq_along(x@counts), function(i){
     # Show progress
     system(sprintf('echo "%s"', paste0("Log-transforming sample ", names(x@counts)[i], "....")))
 
@@ -180,7 +173,7 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
     result_list = list(counts=df_tmp, zero_size=zero_size)
 
     return(result_list)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
 
   # Copy list names from raw counts to transformed counts
   names(log_counts) = names(x@counts)
@@ -210,20 +203,13 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
   }
 
   # Detect usable cores
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(x@counts))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
+  cores = resolve_cores(length(x@counts), cores, coerce='as_integer')
+  if(is.na(cores)){
+    stop('Could not recognize number of cores requested')
   }
 
   # Perform log-transformation on parallel if possible.
-  sct_counts = parallel::mclapply(seq_along(x@counts), function(i){
+  sct_counts = sge_lapply(seq_along(x@counts), function(i){
     # Show progress
     system(sprintf('echo "%s"', paste0("Applying SCTransform to sample ", names(x@counts)[i], "....")))
 
@@ -248,7 +234,7 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
     result_list = list(counts=df_tmp, zero_size=zero_size)
 
     return(result_list)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
 
   # Copy list names from raw counts to transformed counts
   names(sct_counts) = names(x@counts)

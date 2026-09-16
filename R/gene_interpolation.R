@@ -165,21 +165,13 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
   # }
 
   # Define cores available
-  # Define cores available ### PARALLEL
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(unique(combo[[1]])))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
+  cores = resolve_cores(length(unique(combo[[1]])), cores, coerce='as_integer')
+  if(is.na(cores)){
+    stop('Could not recognize number of cores requested')
   }
 
   # Loop through combinations of samples
-  kriging_list = parallel::mclapply(seq_along(1:length(as.vector(unique(combo[[1]])))), function(i_combo){
+  kriging_list = sge_lapply(seq_along(1:length(as.vector(unique(combo[[1]])))), function(i_combo){
     i = as.vector(unique(combo[[1]]))[i_combo]
     genes_tmp = as.vector(unlist(combo[combo[[1]] == i, 2]))
 
@@ -243,7 +235,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
     }
 
     return(kriging_res)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   #names(kriging_list) = paste(combo[[1]], combo[[2]], sep='&&')
   names(kriging_list) = as.vector(unique(combo[[1]]))
 

@@ -154,22 +154,15 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
 #
 #
 gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
-  # Define cores available ### PARALLEL
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(x@spatial_meta))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
+  # Define cores available
+  cores = resolve_cores(length(x@spatial_meta), cores, coerce='as_integer')
+  if(is.na(cores)){
+    stop('Could not recognize number of cores requested')
   }
 
   # Use method to compute autocorrelation described in tutorial of https://rspatial.org/
   # Loop through combinations of samples x genes
-  stat_list = parallel::mclapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
+  stat_list = sge_lapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
     i = unique(as.vector(unlist(combo[[1]])))[i_combo]
     genes_tmp = unique(as.vector(unlist(combo[[2]][combo[[1]] == i])))
     stat_list_tmp = list()
@@ -187,7 +180,7 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
       stat_list_tmp[[j]] = stat_est
     }
     return(stat_list_tmp)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
 
   names(stat_list) = unique(as.vector(unlist(combo[[1]])))
 
@@ -219,22 +212,15 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
 #
 #
 gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
-  # Define cores available ### PARALLEL
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(x@spatial_meta))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
+  # Define cores available
+  cores = resolve_cores(length(x@spatial_meta), cores, coerce='as_integer')
+  if(is.na(cores)){
+    stop('Could not recognize number of cores requested')
   }
 
   # Use method to compute autocorrelation described in tutorial of https://rspatial.org/
   # Loop through combinations of samples x genes
-  stat_list = parallel::mclapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
+  stat_list = sge_lapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
     i = unique(as.vector(unlist(combo[[1]])))[i_combo]
     genes_tmp = unique(as.vector(unlist(combo[[2]][combo[[1]] == i])))
     stat_list_tmp = list()
@@ -253,7 +239,7 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
       stat_list_tmp[[j]] = stat_est
     }
     return(stat_list_tmp)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
 
   names(stat_list) = unique(as.vector(unlist(combo[[1]])))
 

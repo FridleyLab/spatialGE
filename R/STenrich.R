@@ -114,16 +114,8 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
   }
 
   # Define number of cores for parallelization of tests
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(samples))
-    user_cores = F
-  } else{
-    cores = ceiling(cores)
-    user_cores = T
-  }
+  user_cores = !is.null(cores)
+  cores = resolve_cores(length(samples), cores, coerce='ceiling')
 
   # Extract spots to be used in analysis (in case analysis restricted to domain was requested)
     # Extract spot coordinates and match order of spots
@@ -180,7 +172,7 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     }
     # Define if user input number of cores, otherwise determine
     if(!user_cores){
-      cores = count_cores(nrow(combo))
+      cores = resolve_cores(nrow(combo), NULL, coerce='ceiling')
     }
     # Calculate average gene set expression
     result_df = calculate_gs_mean_exp(delayed_x, combo, pw_genes, min_genes, cores)
@@ -191,7 +183,7 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     }
     # Define if user input number of cores, otherwise determine
     if(!user_cores){
-      cores = count_cores(length(gene_sets))
+      cores = resolve_cores(length(gene_sets), NULL, coerce='ceiling')
     }
     # Calculate GSVA scores
     result_df = calculate_gs_gsva_score(delayed_x, combo, gene_sets=gene_sets, pw_genes=pw_genes, min_genes=min_genes, cores=cores)
@@ -200,9 +192,9 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
   # Find spots that highly express this pathway (mean + stdev_t*std in this case), calculate observed sum distances, and perform permutations
   # Define if user input number of cores, otherwise determine
   if(!user_cores){
-    cores = count_cores(nrow(combo))
+    cores = resolve_cores(nrow(combo), NULL, coerce='ceiling')
   }
-  pval_res = parallel::mclapply(1:nrow(combo), function(i){
+  pval_res = sge_lapply(1:nrow(combo), function(i){
     sample_tmp = as.vector(combo[i, 1])
     gs_tmp = as.vector(combo[i, 2])
     expr_vals = unlist(result_df[[sample_tmp]][gs_tmp, ])
@@ -246,7 +238,7 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     }
 
     return(res_df)
-  }, mc.cores=cores)
+  }, cores=cores)
 
   # Compile results in a single data frame
   pval_res = do.call(rbind, pval_res)
@@ -288,7 +280,7 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
 #
 calculate_gs_mean_exp = function(x=NULL, combo=NULL, pw_genes=NULL, min_genes=NULL, cores=NULL){
   # Loop through combinations of samples and gene sets
-  result_df = parallel::mclapply(1:nrow(combo), function(i){
+  result_df = sge_lapply(1:nrow(combo), function(i){
     sample_tmp = as.vector(combo[[1]][i])
     geneset_tmp = as.vector(combo[[2]][i])
     pw_genes_tmp = pw_genes[[i]]
@@ -305,7 +297,7 @@ calculate_gs_mean_exp = function(x=NULL, combo=NULL, pw_genes=NULL, min_genes=NU
     rownames(pw_avg_exp) = geneset_tmp
 
     return(pw_avg_exp)
-  }, mc.cores=cores)
+  }, cores=cores)
   names(result_df) = paste0(combo[[1]], '&&', combo[[2]])
 
   # Create dataframes per sample
@@ -344,7 +336,7 @@ calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=
     # Calculate GSVA scores for each spot or cell
     if(length(gene_sets_tmp) > 0){
       gsvapar = GSVA::gsvaParam(as.array(x[[sample_tmp]]), geneSets=gene_sets_tmp)
-      pw_gsva_exp = GSVA::gsva(gsvapar, BPPARAM=BiocParallel::MulticoreParam(workers=cores), verbose=verbose)
+      pw_gsva_exp = GSVA::gsva(gsvapar, BPPARAM=sge_bpparam(cores), verbose=verbose)
       pw_gsva_exp = as.data.frame(pw_gsva_exp)
     } else{
       pw_gsva_exp = data.frame(matrix(nrow=length(pw_genes_tmp), ncol=ncol(x[[sample_tmp]])))
