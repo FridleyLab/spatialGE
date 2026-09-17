@@ -31,7 +31,8 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           dependencies: '"hard"'
-          extra-packages: any::devtools, any::testthat
+          extra-packages: any::devtools, any::testthat, any::writexl
+          cache: always
 
       - name: Test
         run: devtools::test(stop_on_failure = TRUE)
