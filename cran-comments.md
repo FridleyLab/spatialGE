@@ -24,10 +24,21 @@ Because `fread()` loads it internally rather than spatialGE calling it by name,
 static analysis cannot see the use. Moving it to Suggests would silence the NOTE
 and reintroduce the failure.
 
-### NOTE: checking installed package size
+### NOTE: CRAN incoming feasibility / possibly invalid URL
 
-The package ships compiled code (`src/`) for the spatial-autocorrelation and
-permutation kernels.
+`https://clustrmaps.com/site/1bwt8` in README.md is a visitor-counter badge and
+currently returns an error. It predates this release. It is not a documentation
+or code link and can be removed if preferred.
+
+The remainder of this NOTE is the maintainer line plus the incoming-feasibility
+check, which could not run in the local environment because the network blocks
+access to the CRAN and Bioconductor package indexes.
+
+### WARNING: 'qpdf' is needed for checks on size reduction of PDFs
+
+Environmental, not a package property: `qpdf` is not installed on the machine that
+ran the check. It is present on CRAN's check machines, so this does not reproduce
+there.
 
 ## Downstream dependencies
 

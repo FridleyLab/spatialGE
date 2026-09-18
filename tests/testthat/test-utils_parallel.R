@@ -100,11 +100,17 @@ testthat::test_that("SThet produces identical results through PSOCK and fork", {
   st <- transform_data(st, method = "log", cores = 1)
   genes <- c("Gene1", "GradGene1", "DomainGeneA")
 
-  forked <- SThet(st, genes = genes, method = "moran", cores = 3, verbose = FALSE)
+  ## cores = 2, not 3. R CMD check --as-cran sets _R_CHECK_LIMIT_CORES_, which
+  ## makes parallel:::.check_ncores() ERROR above two simultaneous processes.
+  ## count_cores() clamps its AUTO-DETECTED value under that variable but
+  ## deliberately leaves an explicit cores= alone (fidelity rule 12), so passing 3
+  ## here failed the check -- in the test, not the package. Two workers still
+  ## exercise real forking and real PSOCK dispatch, which is all this needs.
+  forked <- SThet(st, genes = genes, method = "moran", cores = 2, verbose = FALSE)
 
   psock <- withr::with_options(
     list(spatialGE.psock = TRUE),
-    SThet(st, genes = genes, method = "moran", cores = 3, verbose = FALSE))
+    SThet(st, genes = genes, method = "moran", cores = 2, verbose = FALSE))
 
   ## End-to-end equality on a real analysis, not just on a toy closure: this is
   ## what demonstrates that the sliced payloads serialize correctly, which is the
