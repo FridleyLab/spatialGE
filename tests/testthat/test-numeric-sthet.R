@@ -131,6 +131,38 @@ testthat::test_that("SThet writes only the requested statistic and leaves the ot
   testthat::expect_false(is.na(row$geary_c))
 })
 
+testthat::test_that("SThet tolerates non-contiguous spatial_meta row names", {
+  st <- sthet_fixture()
+
+  ## @spatial_meta is a plain data.frame, not a tibble, so row-subsetting it
+  ## with base `[` leaves row names like 1, 5, 9, ... behind, and
+  ## tibble::column_to_rownames() then aborts with "`.data` must be a data frame
+  ## without row names". Both listw builders in R/utils.R hit that, so any
+  ## STlist whose spatial_meta had been row-subset by base `[` -- an ordinary
+  ## thing for a caller to do -- made SThet() fail with an error naming neither
+  ## SThet nor the real cause. This is the same footgun that made STenrich()'s
+  ## domain= path unreachable through 1.2.2.
+  st@spatial_meta[["alpha"]] <- st@spatial_meta[["alpha"]][
+    seq(1, nrow(st@spatial_meta[["alpha"]]), by = 2), , drop = FALSE]
+  keep <- st@spatial_meta[["alpha"]][["libname"]]
+  st@counts[["alpha"]] <- st@counts[["alpha"]][, keep, drop = FALSE]
+  st@tr_counts[["alpha"]] <- st@tr_counts[["alpha"]][, keep, drop = FALSE]
+
+  testthat::expect_false(identical(rownames(st@spatial_meta[["alpha"]]),
+                                   as.character(seq_along(keep))))
+
+  testthat::expect_no_error(
+    sh <- SThet(st, genes = c("GradGene1"), method = "moran", cores = 1, verbose = FALSE)
+  )
+  gm <- get_gene_meta(sh, sthet_only = TRUE)
+  testthat::expect_true(any(!is.na(gm$moran_i)))
+
+  ## The kNN builder shares the defect and the fix.
+  testthat::expect_no_error(
+    SThet(st, genes = c("GradGene1"), method = "moran", k = 4, cores = 1, verbose = FALSE)
+  )
+})
+
 testthat::test_that("SThet is invariant to spot order for the default weighting", {
   st <- sthet_fixture()
   genes <- c("GradGene1", "DomainGeneA")

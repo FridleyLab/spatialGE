@@ -193,7 +193,10 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
 
   # Create distance matrix based on the coordinates of each sampled location.
   listw_list = sge_lapply(seq(names(x@spatial_meta)), function(i){
-    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
+    # See the note in create_listw_from_dist() below on remove_rownames().
+    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>%
+                             tibble::remove_rownames() %>%
+                             tibble::column_to_rownames('libname'))
     subj_listw = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k=ks, longlat=F)), style='B')
     return(subj_listw)
   }, cores=cores, preschedule=F)
@@ -216,7 +219,15 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
 
   # Create distance matrix based on the coordinates of each sampled location.
   listw_list = sge_lapply(seq(names(x@spatial_meta)), function(i){
-    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
+    # remove_rownames() before column_to_rownames(): @spatial_meta is a plain
+    # data.frame, so any caller that row-subset it with base `[` leaves
+    # non-contiguous row names behind, which column_to_rownames() rejects with
+    # "`.data` must be a data frame without row names." Row names are not used
+    # here -- adj's dimnames are overwritten from libname below -- so this is
+    # output-neutral. Same footgun documented for STenrich()'s domain= path.
+    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>%
+                             tibble::remove_rownames() %>%
+                             tibble::column_to_rownames('libname'))
     adj = as.matrix(stats::dist(coords_mtx))
     adj = adj/max(adj)
     diag(adj) = NA

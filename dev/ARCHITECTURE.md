@@ -30,10 +30,22 @@ unreachable while the unrestricted branch worked fine, because only the
 restricted branch subsets rows. `dplyr` verbs (`filter`, joins) reset row names
 and are safe; `dplyr::select()` and base `[` do **not**. If you row-subset
 `spatial_meta` and then hand it to `column_to_rownames()`, insert
-`tibble::remove_rownames()` first. Two other call sites
-(`R/STgradient.R`'s `stgradient_dists_one_sample`, `R/STclust.R`'s
-`calculate_dist_matrices`) are only safe today because their callers pass the
-whole, unsubset frame via `sample_spatial_meta()`.
+`tibble::remove_rownames()` first.
+
+Four call sites beyond `STenrich()` reach `column_to_rownames()` from
+`spatial_meta`. Two are now defended outright: `create_listw_from_dist()` and
+`create_listw_from_knn()` (`R/utils.R`) call `remove_rownames()` first, which is
+output-neutral there because both overwrite the resulting dimnames from
+`libname` anyway. Before that, **any** STlist whose `spatial_meta` had been
+row-subset with base `[` made `SThet()` fail outright -- both weightings, with
+an error naming neither `SThet` nor the real cause. Pinned by
+`tests/testthat/test-numeric-sthet.R`.
+
+The remaining two (`R/STgradient.R`'s `stgradient_dists_one_sample`,
+`R/STclust.R`'s `calculate_dist_matrices`) are still only safe because their
+callers happen to pass the whole, unsubset frame via `sample_spatial_meta()`.
+That is an invariant nothing enforces, so treat it as load-bearing when
+touching either caller.
 
 Internal, non-exported accessors for the sample-major slots live in
 `R/utils_accessors.R` (`sample_counts()`, `sample_spatial_meta()`,
