@@ -2,6 +2,47 @@
 
 ## Behavior changes
 
+* **Requesting a gene, annotation or reference domain that does not exist is now
+  an error rather than a silent no-op.** `SThet(genes=)`, `STgradient(annot=)`,
+  `STgradient(ref=)` and `gene_interpolation(genes=)` previously accepted a name
+  matching nothing and returned without complaint, so a typo looked like a run
+  that legitimately found nothing. The rule is now: error when *nothing* matches,
+  and message naming what was dropped when only some does. Code that relied on the
+  no-op will now stop; that reliance was almost certainly accidental.
+
+* **`STenrich()` now requires `annot` and `domain` together.** Domain-restricted
+  mode was guarded by `!is.null(annot) & !is.null(domain)`, so supplying one
+  without the other skipped the entire block: the **unrestricted** analysis ran and
+  returned results a caller would reasonably read as domain-restricted, with
+  nothing downstream able to detect the discrepancy. Supplying one alone is now an
+  error. If you have results from 1.2.x produced by passing `annot` without
+  `domain`, they are not domain-restricted and are worth regenerating.
+
+* **`SThet()`'s default (`k=NULL`) statistics moved by ~2e-15.** The
+  distance-weighted complete graph is no longer materialized as a `listw`; Moran's
+  I and Geary's C are computed directly from the coordinates in C++. `Szero` is
+  bit-identical, and the residual difference is summation order inside the
+  weighted dot product -- four orders of magnitude below the ~2e-2 spot-order
+  sensitivity already documented for `SThet(k=)`. The reason for the change is
+  capacity: the old `listw` needed 1.2 GB for a single 4,096-spot sample and about
+  181 GB extrapolated to 50,000 cells, i.e. it could not run on Xenium or CosMx
+  data at all. It now completes in ~39 s using ~100 KB. `@misc$sthet$listws` is no
+  longer populated on this path; `SThet(k=)` still builds a real `spdep` object.
+
+* **`gene_stdevs` in `@gene_meta` moved by ~1e-16.** Per-gene standard deviations
+  are computed without densifying the matrix, which changes the summation order.
+  Nothing downstream consumes `gene_stdevs` -- `topgenes` selection uses
+  `vst.variance.standardized` -- and cluster assignments, all `vst.*` columns and
+  `@tr_counts` were verified bit-identical.
+
+* **A Seurat object's platform is no longer assumed to be Visium.** `STlist()`
+  hardcoded `@misc$platform = 'visium'` for any Seurat input; it is now inferred
+  from the image class. This matters because `platform` selects `STgradient()`'s
+  default `nb_dist_thr` and branches in `plot_image()` and
+  `STplot_interpolation()`, so importing an imaging-based (Xenium/CosMx) Seurat
+  object previously produced results computed with Visium-appropriate distance
+  thresholds.
+
 * `pseudobulk_heatmap()` displays a different set of genes, because it was
   selecting the wrong ones. The heatmap keeps the `hm_display_genes` most
   variable genes, ranked by coefficient of variation, but the CV was computed
@@ -73,6 +114,35 @@
 
 ## New features
 
+* **Parallelism on Windows.** `resolve_cores()` returned `1L` unconditionally on
+  Windows and `sge_lapply()` forwarded only to `parallel::mclapply`, which has no
+  `fork()` there -- so the package was entirely serial. A non-forking (PSOCK)
+  backend is now used on Windows, and can be forced anywhere with
+  `options(spatialGE.psock=TRUE)`. `mclapply` remains the default where `fork()`
+  exists. The `spatialGE.cores`/`SPATIALGE_CORES` override is also now consulted
+  before any platform decision; it was previously ignored on Windows.
+
+* **Seurat v5 support, and conversion in both directions.** Seurat input was v4
+  only: v5 stores counts in an `Assay5`'s layers, so the old access returned
+  `NULL`, and v5's `VisiumV2`/`FOV` images carry no `@coordinates` frame. Both are
+  handled now, the assay defaults to `DefaultAssay()` rather than a hardcoded
+  `'Spatial'`, and the import is sparse-to-sparse instead of densifying every gene
+  by every cell across all slices up front. `as_Seurat()` is new and provides the
+  reverse conversion.
+
+* **Optional on-disk storage.** `STlist_to_disk(x, root)` moves count matrices
+  into per-sample parquet files so data larger than memory can be held and read in
+  gene-subset slices; `STlist_to_memory()` reverses it, exactly. Opt-in and off by
+  default -- an STlist built the normal way is unchanged. `is_backed()` and
+  `validate_store()` support it. Note this buys capacity, not speed: aggregates
+  still compute in memory, so a backed STlist is currently slower on those paths.
+
+* **Large-data performance.** Several operations no longer densify sparse
+  matrices. Measured on a 200-gene x 50,000-cell synthetic sample: `filter_data()`
+  27x faster, per-gene standard deviations 42x, and log transformation 33x
+  (bit-identical output).
+
+
 * Set the environment variable `SPATIALGE_CORES`, or the option
   `spatialGE.cores`, to force every parallelized call site to run serially and
   in-process without editing any code. Intended for profiling (`profvis` cannot
@@ -81,6 +151,45 @@
   This is a development aid and is deliberately not part of the documented API.
 
 ## Bug fixes
+
+* `pseudobulk_samples()` no longer fails on a gene whose pseudobulk total is
+  constant across samples. Such a gene produced an all-`NaN` column after scaling
+  and `prcomp()` rejected it outright, so any dataset containing an all-zero gene
+  -- routine after a permissive `filter_data()` -- could not be analysed. Those
+  genes are now dropped with a warning.
+
+* `SThet()` no longer fails when `@spatial_meta` has been row-subset with base
+  `[`. Both spatial-weight builders fed the frame to
+  `tibble::column_to_rownames()`, which rejects non-contiguous row names, so the
+  call died with an error naming neither `SThet` nor the cause. This is the same
+  defect that made `STenrich()`'s `domain=` path unreachable through 1.2.2, in two
+  call sites that fix did not cover.
+
+* `STenrich()` no longer crashes on a gene set with exactly one gene present.
+  Subsetting dropped the matrix to a dimensionless vector, which
+  `DelayedMatrixStats::colMeans2()` rejects -- even though `min_genes=1` explicitly
+  permits single-gene sets.
+
+* `Seurat_FindVariableFeatures()` no longer fails on any input that is not already
+  a `dgCMatrix`. It called `as.sparse()`, which is `SeuratObject::as.sparse()` and
+  was never imported, so the call had been unresolvable since the code was
+  vendored -- masked because every caller happened to pass a `dgCMatrix`, and
+  because the name was listed in `utils::globalVariables()`, suppressing the check
+  NOTE that would have caught it.
+
+* `STlist()` accepts a Seurat object with `samples=NULL`. The sample-name parsing
+  tested an argument derived from `samples` before reaching the Seurat branch, so
+  the normal way to call it raised "argument is of length zero".
+
+* `filter_data()` can now produce a sample with exactly one surviving spot. The
+  dense intermediate collapsed to a vector at one column, which then broke
+  row-name handling.
+
+* `transform_data()`, `SThet()`, `STenrich()` and `gene_interpolation()` report
+  invalid input as spatialGE errors naming the function and argument, instead of
+  surfacing internal failures such as `object 'tr_results' not found` or
+  `attempt to select less than one element in get1index`.
+
 
 * `STenrich(annot=, domain=)` now works. Domain-restricted gene set testing was
   announced in 1.2.1 but never functioned: restricting to a domain subsets the
