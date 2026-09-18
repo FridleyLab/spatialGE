@@ -95,6 +95,87 @@ fixture_base_data <- function() {
   list(samples = samples, genes = genes, grid = grid, counts = counts_list, coords = coords_list)
 }
 
+## ---- pseudobulk fixture ---------------------------------------------------
+## pseudobulk_samples() hard-requires >= 4 samples (R/pseudobulk_samples.R:61),
+## and the standard fixture has 3 -- so pseudobulk_samples(),
+## pseudobulk_dim_plot() and pseudobulk_heatmap() all captured only an error
+## string, leaving 3 of the 24 exports with no output coverage at all. That is
+## the blind spot the inverted-CV gene ranking survived two releases in.
+##
+## Deliberately a SEPARATE generator rather than a parameterization of
+## fixture_base_data(): touching that function's RNG draw order or sample list
+## would move every existing golden value, burying this addition in an
+## unreviewable diff. Nothing here feeds the 3-sample pipeline.
+##
+## 6 samples, not 4: 4 exactly is the guard boundary, and pseudobulk's UMAP
+## branch switches behavior at nrow <= 4 (line 138), so 6 exercises the
+## non-degenerate path in both. Two groups of 3, with a group effect large
+## enough that PC1 separates them -- otherwise PC1 is noise and any assertion
+## about the PCA is fragile.
+FIXTURE_PBULK_SEED <- 20260116
+
+fixture_pbulk_sample_names <- function() {
+  c("pbA1", "pbA2", "pbA3", "pbB1", "pbB2", "pbB3")
+}
+
+fixture_pbulk_groups <- function() {
+  c(pbA1 = "groupA", pbA2 = "groupA", pbA3 = "groupA",
+    pbB1 = "groupB", pbB2 = "groupB", pbB3 = "groupB")
+}
+
+## Genes carrying the between-group signal. Held to a fixed, named slice so the
+## group effect is reproducible and independent of gene count.
+fixture_pbulk_group_genes <- function() {
+  c(paste0("Gene", seq_len(40)), "DomainGeneA", "DomainGeneB")
+}
+
+fixture_pbulk_base_data <- function() {
+  set.seed(FIXTURE_PBULK_SEED)
+  samples <- fixture_pbulk_sample_names()
+  groups <- fixture_pbulk_groups()
+  genes <- fixture_gene_names()
+  grid <- fixture_spot_grid()
+  n_spots <- nrow(grid)
+  group_genes <- fixture_pbulk_group_genes()
+
+  counts_list <- list()
+  coords_list <- list()
+
+  for (s in samples) {
+    barcodes <- paste0(s, "_spot", sprintf("%03d", seq_len(n_spots)))
+    mat <- fixture_counts_matrix(genes, grid)
+
+    ## groupB carries a 3x lift on the signal genes, so those genes dominate
+    ## the pseudobulk variance ranking and PC1 splits the two groups.
+    if (groups[[s]] == "groupB") {
+      gi <- which(genes %in% group_genes)
+      mat[gi, ] <- mat[gi, ] * 3L
+    }
+
+    colnames(mat) <- barcodes
+    counts_list[[s]] <- data.frame(gene = genes, mat, check.names = FALSE, stringsAsFactors = FALSE)
+    coords_list[[s]] <- data.frame(libname = barcodes, ypos = grid$ypos, xpos = grid$xpos, stringsAsFactors = FALSE)
+  }
+
+  list(samples = samples, groups = groups, genes = genes, grid = grid,
+       counts = counts_list, coords = coords_list)
+}
+
+## Writes the samples file carrying the group column, so
+## pseudobulk_dim_plot(plot_meta='group') has something real to colour by --
+## the argument is otherwise never exercised.
+fixture_write_pbulk <- function(base, dir) {
+  dir.create(dir, showWarnings = FALSE, recursive = TRUE)
+  samples_df <- data.frame(
+    sample = base$samples,
+    group = unname(base$groups[base$samples]),
+    stringsAsFactors = FALSE
+  )
+  fp <- file.path(dir, "samples.csv")
+  utils::write.csv(samples_df, fp, row.names = FALSE, quote = FALSE)
+  list(rnacounts = base$counts, spotcoords = base$coords, samples = fp)
+}
+
 ## ---- format writers -------------------------------------------------------
 ## Each returns a list with (a subset of) rnacounts/spotcoords/samples ready
 ## to hand straight to STlist().
@@ -382,6 +463,8 @@ fixture_materialize_all <- function(root) {
     xenium_mex = fixture_write_xenium_mex(base, file.path(root, "xenium_mex")),
     cosmx = fixture_write_cosmx(base, file.path(root, "cosmx")),
     visium_h5 = fixture_write_visium_h5(base, file.path(root, "visium_h5")),
-    xenium_h5 = fixture_write_xenium_h5(base, file.path(root, "xenium_h5"))
+    xenium_h5 = fixture_write_xenium_h5(base, file.path(root, "xenium_h5")),
+    ## 6-sample variant, only for the pseudobulk_* family (>= 4 samples).
+    pbulk = fixture_write_pbulk(fixture_pbulk_base_data(), file.path(root, "pbulk"))
   )
 }

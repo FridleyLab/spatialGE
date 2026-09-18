@@ -114,14 +114,41 @@ bl_pipeline <- function(cores, verbose = FALSE){
     STplot_interpolation(st5, genes = krige_genes)
   }, results, cores)
 
+  ## The pseudobulk family runs on its own 6-sample fixture, because
+  ## pseudobulk_samples() requires >= 4 samples and st5 has 3. Threading the
+  ## 3-sample STlist through here captured an error string for all three
+  ## functions, so their real output -- including the gene ranking that
+  ## pseudobulk_heatmap() displays -- had no baseline coverage.
+  ##
+  ## calc_umap stays FALSE: uwot::umap is unseeded and multithreaded (fidelity
+  ## rule 1), so it is not reproducible and cannot be baselined.
+  pb_base <- fixture_pbulk_base_data()
+  pb_fx <- fixture_write_pbulk(pb_base, file.path(tempdir(), paste0("bl-pbulk-cores", cores)))
+
+  results <- bl_capture("pseudobulk_STlist", {
+    STlist(rnacounts = pb_fx$rnacounts, spotcoords = pb_fx$spotcoords,
+           samples = pb_fx$samples, cores = cores, verbose = verbose)
+  }, results, cores)
+  pb_st <- results[["pseudobulk_STlist"]]$value
+
+  ## ZeroGene/ConstGene are dropped here to work around a real, separate bug:
+  ## pseudobulk_samples() dies on any gene whose pseudobulk value is constant
+  ## across samples. vargenes keeps every gene when max_var_genes >= n_genes,
+  ## scale() then yields an all-NaN column for a zero-sd gene, and prcomp()
+  ## fails with "cannot rescale a constant/zero column to unit variance".
+  ## Unlike the sctransform case above this IS a spatialGE bug, not an upstream
+  ## limitation -- a gene with identical totals across samples is legitimate
+  ## input. Fixed in the following commit; this rm_genes call comes back out
+  ## there, which is what proves the fix.
   results <- bl_capture("pseudobulk_samples", {
-    pseudobulk_samples(st5, calc_umap = FALSE)
+    pb_tr <- transform_data(pb_st, method = "log", cores = cores)
+    pseudobulk_samples(filter_data(pb_tr, rm_genes = c("ZeroGene", "ConstGene")), calc_umap = FALSE)
   }, results, cores)
 
   pb_ok <- results[["pseudobulk_samples"]]$ok
   results <- bl_capture("pseudobulk_dim_plot", {
     if(!pb_ok) stop("pseudobulk_samples did not succeed")
-    pseudobulk_dim_plot(results[["pseudobulk_samples"]]$value)
+    pseudobulk_dim_plot(results[["pseudobulk_samples"]]$value, plot_meta = "group")
   }, results, cores)
 
   results <- bl_capture("pseudobulk_heatmap", {
