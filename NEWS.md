@@ -24,17 +24,52 @@
   contained a coordinate sort that silently had no effect, so through 1.2.2
   spots simply retained whatever order they appeared in in the input files --
   meaning two files describing the same tissue with rows in a different order
-  produced differently-ordered `STlist`s. The sort now applies, ordering by
-  `xpos` then `ypos`, so ordering depends on the coordinates themselves rather
-  than on input file layout.
+  produced differently-ordered `STlist`s. The sort now applies, so ordering
+  depends on the coordinates themselves rather than on input file layout.
 
-  No function signatures, arguments, or return types changed, and no expression
-  values changed -- every count, transformed count, and gene-level statistic is
-  identical once reordered. What changes is order: the column order of
-  `@counts`/`@tr_counts`, the row order of `@spatial_meta`, and therefore the row
-  order of results built from them. Code that addresses spots by `libname` is
-  unaffected; code that indexes them positionally, or that depends on how ties
-  break in an `adj_p_value`-sorted result, may need updating.
+  Note what it sorts by: the **third column of the coordinate data**, whichever
+  that is, not `xpos` specifically. With the usual `libname`, `ypos`, `xpos`
+  column order that means `xpos`, and because the sort is stable the result reads
+  as `xpos` then `ypos`. Supply the coordinate columns in a different order and
+  the sort key changes with them.
+
+  No function signatures, arguments, or return types changed. Counts, transformed
+  counts, and the `vst.*` gene-level statistics are bit-identical once matched by
+  name. What changes for them is order: the column order of `@counts`/`@tr_counts`,
+  the row order of `@spatial_meta`, and therefore the row order of results built
+  from them. Code that addresses spots by `libname` is unaffected; code that indexes
+  them positionally, or that depends on how ties break in an `adj_p_value`-sorted
+  result, may need updating.
+
+  Four results are **not** merely reordered, because they depend on spot order by
+  construction rather than by layout. All four behaved this way in 1.2.x too --
+  there, the order came from your input file, so the same tissue supplied with rows
+  in a different order gave different numbers. Ordering is now determined by the
+  coordinates, which removes that file-layout dependence, but the underlying
+  sensitivity remains and is worth knowing about:
+
+  - `STenrich()` p-values. The permutation null is drawn over spot *positions*, so
+    a fixed `seed` selects a different random subset when the spots are in a
+    different order. The observed statistic is unaffected; only the null, and
+    therefore `p_value`/`adj_p_value`, move.
+  - `SThet(k = )` Moran's I. With `k` given, neighbours come from a k-nearest
+    neighbour graph, and on a regular grid the k-th distance is tied between
+    several spots; the tie is broken by position. On our test data Moran's I moves
+    by up to 0.02 -- large enough to matter. `SThet()` without `k` uses a
+    distance-based weight list and is unaffected (agreement to ~1e-15).
+  - `STgradient(distsumm = 'avg')` Spearman correlations. Averaging each spot's
+    distances to the reference domain produces exact ties on a regular grid, and a
+    change in summation order of ~1e-16 is enough to flip one, which flips a rank.
+    Correlations move by up to 0.004. `distsumm = 'min'` does not create the same
+    ties.
+  - `plot_counts()` density curves, which plot a seeded random `distrib_subset` of
+    spots selected by position. Cosmetic, but the curve is not identical. The
+    point jitter in `distribution_plots(plot_type = 'violin')` behaves the same way.
+
+  If you need a value that does not depend on spot order at all, prefer
+  `SThet()` without `k` and `STgradient(distsumm = 'min')`, and raise `reps` in
+  `STenrich()` so the permutation estimate is less sensitive to which subset is
+  drawn.
 
 ## New features
 
@@ -61,8 +96,21 @@
   "Could not run example. Are you connected to the internet?", misattributing a
   code defect to the network, while `R CMD check` still reported
   `checking examples ... OK`.
+* `STgradient()` no longer leaks state between genes. `pval_warn` was only assigned
+  inside a branch that requires more than one spot in the fitted range, so a gene
+  that fell below that threshold left the previous gene's value in place. Affects
+  the `pval_comment` column only.
 * `.github/` is no longer shipped inside the package tarball (added to
   `.Rbuildignore`).
+
+## Minor
+
+* The error raised when an argument that should be an `STlist` is `NULL` or of the
+  wrong type now reads `cannot get a slot (...) from an object of type ...` rather
+  than ``no applicable method for `@` applied to an object of class ...``, because
+  the shared argument-resolution helper reads slots via `methods::slot()`. Both
+  messages are raw R errors and neither is informative; nothing is caught or
+  handled differently.
 
 # spatialGE 1.2.2
 

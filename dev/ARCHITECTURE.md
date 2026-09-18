@@ -287,3 +287,48 @@ changes output rather than erroring:
     user-supplied `cores=` is left alone. Baseline capture and comparison
     must run with this env var set identically on both sides, or diffs
     against golden are spurious rather than real.
+13. **Four code paths compute a value that depends on spot *order*, not just on
+    spot content.** Established by `dev/xver/30_order_probe.R`, which permutes
+    spot order inside a single build and re-runs -- so these are properties of
+    the algorithms, not of any refactor, and they were equally true in 1.2.2.
+    Magnitudes measured on the standard fixture:
+
+    | Path | Mechanism | Moves by |
+    |---|---|---|
+    | `STenrich` `p_value`/`adj_p_value` | `computeSubsampleSums` draws `Rcpp::sample()` over row *positions* of `coords_mat`, so a fixed `seed` picks different spots | full p-value resolution |
+    | `SThet(k=)` `moran_i` | `knearneigh` breaks tied k-th distances by position; a regular grid is saturated with such ties | ~2e-2 |
+    | `STgradient(distsumm='avg')` Spearman | averaged distances tie exactly; a ~1e-16 summation-order change flips a tie, which flips a rank | ~4e-3 |
+    | `plot_counts()` density | `set.seed(subset_seed)` then `df[sample(1:nrow(df), ...), ]` -- again positions | visibly |
+
+    Consequences for this repo: (a) do not treat a diff in these fields as a
+    regression without running the order probe first; (b) `SThet()` without `k`
+    and `STgradient(distsumm='min')` are the order-insensitive variants
+    (agreement ~1e-15), so prefer them in any new fixture-based test that needs
+    a stable number; (c) `@counts`, `@tr_counts` and the `vst.*` statistics are
+    genuinely bit-identical under reordering when matched by name, so a diff
+    there *is* real.
+
+## Cross-version comparison harness
+
+`dev/xver/` (untracked, not part of the package) compares an installed `main`
+against an installed `alex-refactor` over 17 scenarios and classifies every
+differing leaf path. It exists because `tests/golden/` can only ever compare this
+tree against *itself*: the baseline was captured from the same working tree before
+the `R/` edits, so it is blind to anything already baked into that capture, and it
+reaches only one input format, one parameter set per function, three samples, and
+no warnings.
+
+Read `dev/xver/REPORT.md` for results and `dev/xver/README.md` for the design.
+Two findings there are load-bearing for anyone extending `dev/baseline/`:
+
+- **`bl_compare_stlist()` compares only 2 of the 10 `@misc` keys** the package
+  writes (`sthet$listws` and `gene_krige`). `scaled_pbulk_mtx` -- the direct input
+  to the `pseudobulk_heatmap` gene ranking -- and `sp_images`, the entire output of
+  `load_images()`, are never compared. Extend it if you rely on `@misc` fidelity.
+- **`pseudobulk_heatmap()` returns a `HeatmapList`** (it ends in
+  `ComplexHeatmap::draw()`), so the displayed matrix is at
+  `@ht_list[[1]]@matrix`, not `@matrix`. `bl_compare()` has no branch for it and
+  falls through to `waldo`, where `normalize_for_baseline()` -- which recurses into
+  lists but not S4 slots -- leaves grobs and environments to be compared raw. That
+  comparison is noise, and it is part of why the inverted-CV bug went unnoticed
+  for two releases.
