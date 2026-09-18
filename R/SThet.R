@@ -113,6 +113,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
 
     rm(subsetgenes, notgenes) # Clean env
 
+
     # Add columns in gene meta data if not already present
     if(!('moran_i' %in% colnames(x@gene_meta[[i]]))){
       x@gene_meta[[i]][['moran_i']] = NA
@@ -120,6 +121,14 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
     if(!('geary_c' %in% colnames(x@gene_meta[[i]]))){
       x@gene_meta[[i]][['geary_c']] = NA
     }
+  }
+
+  # An empty combo means none of the requested genes exist in any sample -- the
+  # per-sample messages above have already named them. Previously SThet returned
+  # the STlist untouched, so a typo'd gene name looked like a run that simply
+  # found nothing.
+  if(nrow(combo) == 0){
+    raise_err(err_code='error0048')
   }
 
   # Check whether or not a list of weights have been created

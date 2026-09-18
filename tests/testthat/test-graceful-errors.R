@@ -107,6 +107,72 @@ testthat::test_that("gene_interpolation reports absent genes and fails clearly w
   testthat::expect_false("NoSuchGene" %in% names(res@gene_krige))
 })
 
+testthat::test_that("SThet errors when no requested gene exists, warns when some do", {
+  st <- ge_fixture()
+
+  ## Used to return the STlist untouched, so a typo'd gene name looked like a run
+  ## that legitimately found nothing.
+  testthat::expect_error(SThet(st, genes = "NoSuchGene", cores = 1, verbose = FALSE),
+                         "spatialGE exception.*SThet.*None of the requested genes")
+
+  ## Partially valid: proceeds, naming what was dropped.
+  testthat::expect_message(
+    res <- SThet(st, genes = c("Gene1", "NoSuchGene"), cores = 1, verbose = FALSE),
+    "NoSuchGene.*Not present")
+  gm <- get_gene_meta(res, sthet_only = TRUE)
+  testthat::expect_true(any(gm$gene == "Gene1"))
+})
+
+testthat::test_that("STgradient errors on an annot or ref that matches nothing", {
+  st <- ge_fixture()
+  sc <- STclust(st, ws = 0.025, ks = "dtc", deepSplit = FALSE, topgenes = 100,
+                cores = 1, verbose = FALSE)
+  annot <- "stclust_spw0.025_dsplFalse"
+
+  testthat::expect_error(
+    STgradient(sc, annot = "NoSuchCol", ref = "1", cores = 1, verbose = FALSE),
+    "spatialGE exception.*STgradient.*annot")
+
+  testthat::expect_error(
+    STgradient(sc, annot = annot, ref = "NoSuchRef", cores = 1, verbose = FALSE),
+    "spatialGE exception.*STgradient.*ref")
+
+  ## The valid combination still runs.
+  testthat::expect_no_error(
+    STgradient(sc, annot = annot, ref = "1", topgenes = 10, distsumm = "min",
+               cores = 1, verbose = FALSE))
+})
+
+testthat::test_that("STenrich requires annot and domain together", {
+  st <- ge_fixture()
+  sc <- STclust(st, ws = 0.025, ks = "dtc", deepSplit = FALSE, topgenes = 100,
+                cores = 1, verbose = FALSE)
+  sets <- list(gradient = c("GradGene1", "GradGene2", "GradGene3"))
+  annot <- "stclust_spw0.025_dsplFalse"
+
+  ## Domain-restricted mode requires both. Supplying one silently skipped the
+  ## whole block, so the unrestricted analysis ran and the caller would
+  ## reasonably read the result as domain-restricted. Nothing downstream could
+  ## detect it, since neither argument is consulted again.
+  testthat::expect_error(
+    STenrich(sc, gene_sets = sets, annot = annot, min_units = 1, min_genes = 1,
+             reps = 10, cores = 1, verbose = FALSE),
+    "spatialGE exception.*STenrich.*annot and domain")
+
+  testthat::expect_error(
+    STenrich(sc, gene_sets = sets, domain = "1", min_units = 1, min_genes = 1,
+             reps = 10, cores = 1, verbose = FALSE),
+    "annot and domain")
+
+  ## Both supplied, and neither supplied, are both legitimate.
+  testthat::expect_no_error(
+    STenrich(sc, gene_sets = sets, annot = annot, domain = "1", min_units = 1,
+             min_genes = 1, reps = 10, cores = 1, verbose = FALSE))
+  testthat::expect_no_error(
+    STenrich(sc, gene_sets = sets, min_units = 1, min_genes = 1, reps = 10,
+             cores = 1, verbose = FALSE))
+})
+
 testthat::test_that("no user-facing failure leaks an internal variable name", {
   st <- ge_fixture()
   stu <- ge_fixture(transformed = FALSE)

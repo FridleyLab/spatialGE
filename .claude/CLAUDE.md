@@ -85,10 +85,22 @@ not need converting -- it already names the argument and the fix. The rule is
 about *internal* errors escaping, not about the `raise_err()` mechanism as such.
 
 **Silently accepting invalid input also violates this**, and is worse than an
-error because the caller believes it worked. Known open cases, not yet changed
-because doing so is a breaking behavior change: `SThet(genes=)`,
-`STgradient(annot=)`, `STgradient(ref=)` and `STenrich(annot=)` all accept a
-name that matches nothing and return without complaint.
+error because the caller believes it worked. The rule adopted is **error when
+nothing matches, warn when only some does**:
+
+| function | matched nothing | matched some |
+|---|---|---|
+| `SThet(genes=)` | `error0048` | message naming absent genes, proceed |
+| `STgradient(annot=)` | `error0049` | message per sample, proceed on the rest |
+| `STgradient(ref=)` | `error0050` | message per sample, proceed on the rest |
+| `gene_interpolation(genes=)` | `error0046` | message naming absent genes, proceed |
+| `STenrich(annot=`/`domain=)` | `error0051` | n/a -- both or neither |
+
+`STenrich`'s case was different in kind and worse: domain-restricted mode tests
+`!is.null(annot) & !is.null(domain)`, so supplying one without the other skipped
+the entire block. The unrestricted analysis ran and returned results a caller
+would reasonably read as domain-restricted, with nothing downstream able to
+detect it because neither argument is consulted again.
 
 ## Verification
 

@@ -79,15 +79,30 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
   samplenames = samplenames[ !(samplenames %in% sample_rm) ]
   rm(sample_rm) # Clean env
 
+  # Dropping every sample means `annot` matched nothing anywhere -- almost always
+  # a typo'd column name. Previously STgradient returned an empty result without
+  # complaint, so a misspelling looked like a successful run that simply found
+  # nothing.
+  if(length(samplenames) == 0){
+    raise_err(err_code='error0049')
+  }
+
   # Remove samples that do not have the requested reference cluster
   sample_rm = c()
   for(i in samplenames){
     if(sum(x@spatial_meta[[i]][[annot]] == ref) < 1){
       sample_rm = append(sample_rm, i)
+      message(paste0('The domain specified in `ref` is not present in ', i, '\n'))
     }
   }
   samplenames = samplenames[ !(samplenames %in% sample_rm) ]
   rm(sample_rm) # Clean env
+
+  # Same for `ref`: absent from every sample is an error, absent from some is a
+  # message above and the run continues on the rest.
+  if(length(samplenames) == 0){
+    raise_err(err_code='error0050')
+  }
 
   # Define number of cores to use
   cores = resolve_cores(length(samplenames), cores, coerce='none')

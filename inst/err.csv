@@ -37,3 +37,7 @@ error0044,'SThet: Could not find normalized counts. Please use transform_data() 
 error0045,'STenrich: gene_sets must be a non-empty, named list of gene vectors.'
 error0046,'gene_interpolation: None of the requested genes are present in the transformed counts.'
 error0047,'SThet: k must be smaller than the number of spots/cells in every sample.'
+error0048,'SThet: None of the requested genes are present in the transformed counts of any sample.'
+error0049,'STgradient: The column specified in annot is not present in any of the requested samples.'
+error0050,'STgradient: The domain specified in ref is not present in the annot column of any requested sample.'
+error0051,'STenrich: annot and domain must be supplied together. One without the other is ignored.'

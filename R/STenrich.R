@@ -77,6 +77,15 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
 
   # Check if user request analysis within a specific domain(s)
   # Select spots/cells from specific domain(s)
+  # Domain-restricted mode requires BOTH annot and domain. Supplying only one
+  # silently skipped the whole block below, so STenrich(annot='typo') -- or a
+  # correct annot with domain forgotten -- ran the unrestricted analysis and
+  # reported results the caller would reasonably read as domain-restricted.
+  # Nothing downstream could detect it, since neither argument is consulted again.
+  if(xor(is.null(annot), is.null(domain))){
+    raise_err(err_code='error0051')
+  }
+
   tissue_spots = NULL
   sample_rm = c() # Remove samples if annotation or domain(s) are not present
   if(!is.null(annot) & !is.null(domain)){
