@@ -90,7 +90,7 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
     if(!is.null(tr_results[[i]][['zero_size']])){
       zero_size = tr_results[[i]][['zero_size']]
       x@counts[[i]] = x@counts[[i]][, -zero_size]
-      libnames_nonzero = colnames(x@counts[[i]])
+      libnames_nonzero = sample_cells(x, i, 'counts')
       x@spatial_meta[[i]] = x@spatial_meta[[i]] %>%
         dplyr::filter(libname %in% libnames_nonzero)
       rm(zero_size, libnames_nonzero) # Clean environment

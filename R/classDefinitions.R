@@ -114,7 +114,7 @@ setMethod(f="dim", signature="STlist",
           definition=function(x){
             dim_res = list()
             for(i in seq(x@counts)){
-              dim_res[[i]] = c(base::nrow(x@counts[[i]]), base::ncol(x@counts[[i]]))
+              dim_res[[i]] = sample_dim(x, i, 'counts')
             }
             names(dim_res) = names(x@counts)
             return(dim_res)

@@ -132,7 +132,7 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     sample_tmp = as.vector(combo[i, 1])
     gs_tmp = as.vector(combo[i, 2])
     pw_genes_tmp = unique(gene_sets[[gs_tmp]])
-    pw_genes_tmp = intersect(pw_genes_tmp, rownames(x@tr_counts[[sample_tmp]]))
+    pw_genes_tmp = intersect(pw_genes_tmp, sample_genes(x, sample_tmp, 'tr_counts'))
 
     return(pw_genes_tmp)
   })

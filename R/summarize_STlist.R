@@ -59,8 +59,8 @@ summarize_STlist = function(x=NULL){
 
     # Make a row with stats
     df_row_tmp = tibble::tibble(sample_name=i,
-                                spotscells=ncol(x@counts[[i]]),
-                                genes=nrow(x@counts[[i]]),
+                                spotscells=sample_n_cells(x, i, 'counts'),
+                                genes=sample_n_genes(x, i, 'counts'),
                                 min_counts_per_spotcell=min_counts_spot,
                                 mean_counts_per_spotcell=mean_counts_spot,
                                 max_counts_per_spotcell=max_counts_spot,

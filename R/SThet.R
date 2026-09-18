@@ -81,11 +81,11 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
   combo = tibble::tibble()
   for(i in samples){
     # Check if gene names are in the data set
-    subsetgenes = genes[genes %in% rownames(x@tr_counts[[i]])]
+    subsetgenes = genes[genes %in% sample_genes(x, i, 'tr_counts')]
     combo = dplyr::bind_rows(combo, expand.grid(i, subsetgenes))
 
     # Get genes not present.
-    notgenes = genes[!(genes %in% rownames(x@tr_counts[[i]]))]
+    notgenes = genes[!(genes %in% sample_genes(x, i, 'tr_counts'))]
 
     if(!rlang::is_empty(notgenes)){
       message(paste0(paste(notgenes, collapse=', '), ": Not present in the transformed counts for sample ", i), ".\n")

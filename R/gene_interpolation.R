@@ -130,7 +130,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
   # Generate combination of sample x gene to for.
   combo = tibble::tibble()
   for(i in samples){
-    subsetgenes_mask = genes %in% rownames(x@tr_counts[[i]])
+    subsetgenes_mask = genes %in% sample_genes(x, i, 'tr_counts')
     subsetgenes = genes[subsetgenes_mask]
     combo = dplyr::bind_rows(combo, expand.grid(i, subsetgenes))
 

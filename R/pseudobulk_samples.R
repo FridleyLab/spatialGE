@@ -69,7 +69,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
 
   #Loop through count matrices, get gene-wise sums, and collate samples
   bulkcounts_tmp = lapply(1:length(x@counts), function(i){
-    bulk_expr = data.frame(V1=Matrix::rowSums(x@counts[[i]]), gene=rownames(x@counts[[i]]))
+    bulk_expr = data.frame(V1=Matrix::rowSums(sample_counts(x, i)), gene=sample_genes(x, i, 'counts'))
     rownames(bulk_expr) = NULL
     colnames(bulk_expr)[1] = names(x@counts)[i]
     return(bulk_expr)

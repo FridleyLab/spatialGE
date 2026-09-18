@@ -155,7 +155,7 @@ stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, anno
       # Add group dummy column (in case of mixed models was requested)
       # spatial_de() only ever reads genes in non_sp_models_tmp, which is always
       # restricted to models_keep's genes, so subset before decompressing.
-      expr_df = expandSparse(x@tr_counts[[sample_name]][ rownames(x@tr_counts[[sample_name]]) %in% unique(models_keep[['gene']]), , drop=FALSE])
+      expr_df = expandSparse(sample_tr_counts(x, sample_name)[ sample_genes(x, sample_name, 'tr_counts') %in% unique(models_keep[['gene']]), , drop=FALSE])
       expr_df = t(expr_df) %>%
         as.data.frame() %>%
         tibble::rownames_to_column(var='libname') %>%
