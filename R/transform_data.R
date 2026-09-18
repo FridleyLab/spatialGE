@@ -109,8 +109,10 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
 
   # Calculate gene-wise standard deviations in parallel if possible.
   cores = resolve_cores(length(x@tr_counts), cores, coerce='as_integer')
-  x@gene_meta = sge_lapply(seq_along(x@tr_counts), function(i){
-    gene_meta_one_sample(sample_tr_counts(x, i))
+  # X is the list of transformed matrices itself, so the closure captures
+  # nothing at all.
+  x@gene_meta = sge_lapply(x@tr_counts, function(tr_mat){
+    gene_meta_one_sample(tr_mat)
   }, cores=cores, preschedule=F)
   # Copy names of the list
   names(x@gene_meta) = names(x@counts)
@@ -147,8 +149,17 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
   }
 
   # Perform log-transformation on parallel if possible.
-  log_counts = sge_lapply(seq_along(x@counts), function(i){
-    log_transf_one_sample(sample_counts(x, i), names(x@counts)[i], scale_f)
+  #
+  # The payload is built OUTSIDE the call and passed as X, so the closure
+  # captures only scale_f rather than the whole STlist. See the note on
+  # sge_lapply payloads in R/utils_parallel.R for what this does and does not
+  # buy under forking.
+  payloads = Map(function(counts_mat, sample_name){
+    list(counts=counts_mat, name=sample_name)
+  }, x@counts, names(x@counts))
+
+  log_counts = sge_lapply(payloads, function(p){
+    log_transf_one_sample(p$counts, p$name, scale_f)
   }, cores=cores, preschedule=F)
 
   # Copy list names from raw counts to transformed counts
@@ -182,9 +193,14 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
     stop('Could not recognize number of cores requested')
   }
 
-  # Perform log-transformation on parallel if possible.
-  sct_counts = sge_lapply(seq_along(x@counts), function(i){
-    sct_transf_one_sample(sample_counts(x, i), names(x@counts)[i], sct_n_regr_genes, sct_min_cells)
+  # Payload built outside the call so the closure captures only the two scalar
+  # parameters. See R/utils_parallel.R on what this buys.
+  payloads = Map(function(counts_mat, sample_name){
+    list(counts=counts_mat, name=sample_name)
+  }, x@counts, names(x@counts))
+
+  sct_counts = sge_lapply(payloads, function(p){
+    sct_transf_one_sample(p$counts, p$name, sct_n_regr_genes, sct_min_cells)
   }, cores=cores, preschedule=F)
 
   # Copy list names from raw counts to transformed counts

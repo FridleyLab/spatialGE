@@ -52,7 +52,16 @@ rss_tree_kb <- function(root_pid){
     if(length(children) == 0) break
     keep <- c(keep, children)
   }
-  sum(rss[pid %in% keep], na.rm = TRUE)
+  sel <- pid %in% keep
+  ## Both are reported because the SUM is badly misleading under fork and the MAX
+  ## is not. A forked child shares the parent's pages copy-on-write and `ps`
+  ## charges those pages to every process, so the sum counts the ~1.35 GB of
+  ## loaded packages once per worker -- which is where an apparent "+5 GB for 4
+  ## workers" comes from even when almost nothing was really allocated. The max
+  ## over single processes is the honest proxy for what one worker costs.
+  c(sum = sum(rss[sel], na.rm = TRUE),
+    max = if(any(sel)) max(rss[sel], na.rm = TRUE) else NA_real_,
+    n = sum(sel))
 }
 
 ## Runs `expr` in a FRESH Rscript child and samples that child's process tree.
@@ -76,20 +85,27 @@ rss_peak <- function(expr_text, setup_text = "", interval = 0.02, reps = 3){
     "}))"
   ), script)
 
-  peaks <- numeric(reps)
+  peak_sum <- numeric(reps); peak_max <- numeric(reps); peak_n <- numeric(reps)
   for(r in seq_len(reps)){
     p <- processx_like_spawn(script)
-    peak <- 0
+    ps_ <- 0; pm <- 0; pn <- 0
     repeat {
       alive <- is.na(p$get_exit_status())
       cur <- rss_tree_kb(p$get_pid())
-      if(!is.na(cur)) peak <- max(peak, cur)
+      if(!is.na(cur[["sum"]])){
+        ps_ <- max(ps_, cur[["sum"]])
+        pm <- max(pm, cur[["max"]], na.rm = TRUE)
+        pn <- max(pn, cur[["n"]])
+      }
       if(!alive) break
       Sys.sleep(interval)
     }
-    peaks[r] <- peak
+    peak_sum[r] <- ps_; peak_max[r] <- pm; peak_n[r] <- pn
   }
-  list(peak_mb = max(peaks) / 1024, all_mb = peaks / 1024)
+  list(peak_mb = max(peak_sum) / 1024,
+       peak_proc_mb = max(peak_max) / 1024,
+       max_procs = max(peak_n),
+       all_mb = peak_sum / 1024)
 }
 
 ## Minimal spawn wrapper so this works without taking a processx dependency.
@@ -120,18 +136,22 @@ processx_like_spawn <- function(script){
 ## fork cost -- peak at N cores minus peak at 1 core -- which is the number
 ## Phase 2 exists to reduce.
 rss_report <- function(steps, cores_list = c(1, 4), reps = 3){
-  floor_mb <- rss_peak("invisible(NULL)", reps = reps)$peak_mb
-  cat(sprintf("floor (package load only): %.0f MB -- subtracted from every figure below\n\n", floor_mb))
-  cat(sprintf("%-26s %6s %12s %12s\n", "step", "cores", "above_floor", "fork_cost"))
+  fl <- rss_peak("invisible(NULL)", reps = reps)
+  floor_mb <- fl$peak_mb
+  cat(sprintf("floor (package load only): %.0f MB\n", floor_mb))
+  cat("tree_sum  = summed RSS over parent + children, MINUS floor. Inflated by\n")
+  cat("            copy-on-write double counting: shared pages are charged to\n")
+  cat("            every process, so this grows ~floor per extra worker even when\n")
+  cat("            nothing is really allocated. Do NOT read it as memory used.\n")
+  cat("worst_proc = peak RSS of the single largest process. The honest proxy for\n")
+  cat("            what one worker actually costs.\n\n")
+  cat(sprintf("%-26s %6s %10s %12s %6s\n", "step", "cores", "tree_sum", "worst_proc", "procs"))
 
   for(nm in names(steps)){
-    base1 <- NA_real_
     for(cores in cores_list){
       res <- rss_peak(sprintf(steps[[nm]], cores), reps = reps)
-      above <- res$peak_mb - floor_mb
-      if(cores == 1) base1 <- above
-      cat(sprintf("%-26s %6d %12.1f %12s\n", nm, cores, above,
-                  if(cores == 1) "-" else sprintf("%+.1f", above - base1)))
+      cat(sprintf("%-26s %6d %10.1f %12.1f %6d\n", nm, cores,
+                  res$peak_mb - floor_mb, res$peak_proc_mb, res$max_procs))
     }
   }
   invisible(floor_mb)

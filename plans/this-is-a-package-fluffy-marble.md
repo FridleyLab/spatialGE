@@ -204,8 +204,51 @@ rule 7; the per-site `preschedule` value per rule 4; and the three `<<-` sites
 enclosing frames per rule 6. `STenrich()` re-derives `cores` from three different
 unit counts in one call — do not collapse it (rule 5).
 
-Measure and report peak RSS on the Xenium-like fixture before and after; that
-number is the deliverable.
+### As executed — the stated deliverable was not achievable, and why
+
+Measured with `dev/profiling/rss_peak.R`, `transform_data` over 4 samples,
+before and after slicing `transform_data`'s three dispatch sites:
+
+| preset | fork cost before | fork cost after |
+|---|---|---|
+| visium | +1619.5 MB | +1618.8 MB |
+| xenium | +5022.8 MB | +5098.5 MB |
+
+**Payload slicing does not reduce fork memory, and cannot.** Under `fork()` the
+child inherits the parent's entire address space regardless of what the closure
+captures; closure contents govern *serialization*, not forking. So the original
+framing of this phase — "cuts COW pressure" — was wrong.
+
+Worse, the metric was wrong too. Summed RSS charges copy-on-write shared pages to
+every process, so the ~1.35 GB of loaded packages is counted once per worker:
+that is the entire source of the apparent "+5 GB for 4 workers". Measuring the
+largest single process instead:
+
+| preset | cores | tree_sum (misleading) | worst single process |
+|---|---|---|---|
+| visium | 1 | 299.1 MB | 1651.9 MB |
+| visium | 4 | 1950.3 MB | 1661.7 MB |
+| xenium | 1 | 384.5 MB | 1737.3 MB |
+| xenium | 4 | 5396.8 MB | 1769.9 MB |
+
+No process grows meaningfully with core count. **There is no per-worker
+environment duplication under fork on this workload** — the effect is real in
+what a memory monitor displays, but the mechanism is shared-page accounting, not
+copying.
+
+Three consequences, which reshape the rest of the plan:
+
+1. The genuine lever on memory is per-worker *allocation*, not closure contents.
+   That is what the Phase 1 densification removals addressed (27x, 42x, 33x), and
+   it is where further wins live.
+2. Phase 2 is retained purely as the **prerequisite for Phase 3**. Its benefit is
+   deferred, not present. Under a non-forking backend, `X` elements and the
+   closure environment are both serialized per task, so an un-sliced call site
+   would ship the entire STlist per worker — turning today's free fork into a real
+   copy. Slicing first is what makes Phase 3 viable instead of a regression.
+3. For Windows, where there is no fork at all, this is not optional: a
+   non-forking backend is the only way to get parallelism, and slicing is what
+   makes it affordable.
 
 ---
 
