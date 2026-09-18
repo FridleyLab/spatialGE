@@ -36,14 +36,19 @@ sge_cores_override = function(){
 resolve_cores = function(n, cores=NULL, coerce=c('as_integer', 'ceiling', 'none')){
   coerce = match.arg(coerce)
 
-  if(.Platform$OS.type == 'windows'){
-    return(1L)
-  }
-
+  # The override is consulted FIRST, before any platform decision. It used to sit
+  # after a `return(1L)` for Windows, so options(spatialGE.cores=) and
+  # SPATIALGE_CORES were silently ignored there -- a developer aid that did not
+  # work on the one platform where the parallel behavior differs most.
   override = sge_cores_override()
   if(!is.null(override)){
     return(override)
   }
+
+  # Windows has no fork(), so mclapply falls back to serial. It is no longer
+  # forced to 1 core here, because sge_lapply() now has a non-forking path for it
+  # (see sge_use_psock below). Returning 1L unconditionally made the whole package
+  # serial on Windows regardless of what the user asked for.
 
   if(is.null(cores)){
     return(count_cores(n))
@@ -70,11 +75,94 @@ resolve_cores = function(n, cores=NULL, coerce=c('as_integer', 'ceiling', 'none'
 # default (i.e. mc.cores is simply not passed).
 # @param preschedule passed through as mc.preschedule.
 #
+##
+# @title sge_use_psock
+# @description Whether sge_lapply() should take its non-forking (PSOCK) path.
+# TRUE on Windows, where fork() does not exist and mclapply silently degrades to
+# serial. Overridable with options(spatialGE.psock=TRUE) so the path is testable
+# on Unix -- PSOCK works everywhere, it is just not the better choice where fork
+# is available.
+#
+sge_use_psock = function(){
+  opt = getOption('spatialGE.psock', NULL)
+  if(!is.null(opt)){
+    return(isTRUE(opt))
+  }
+  .Platform$OS.type == 'windows'
+}
+
+
+##
+# @title sge_lapply_psock
+# @description The non-forking backend. Creates a PSOCK cluster, loads spatialGE
+# in each worker, and parLapply()s over X.
+#
+# WHY THIS IS NOT JUST mclapply WITH A DIFFERENT NAME
+#
+# Forking shares the parent's memory copy-on-write, so a worker gets the whole
+# session for free. PSOCK workers are fresh R processes: every element of X and
+# everything FUN's environment reaches is SERIALIZED and sent per task. That makes
+# the payload-slicing work load-bearing here rather than cosmetic -- a call site
+# whose closure still captured the whole STlist would ship it to every worker,
+# turning a free fork into a real copy. It is also why this path is used only
+# where fork is unavailable.
+#
+# Workers need the package. Under an installed spatialGE, library() suffices;
+# under devtools/pkgload during development the package is not installed, so the
+# loaded namespace's path is passed through and pkgload is used instead. Without
+# that, FUN's references to package internals fail on the worker with
+# "could not find function".
+#
+sge_lapply_psock = function(X, FUN, ..., cores){
+  cores = max(1L, as.integer(cores))
+  if(cores < 2 || length(X) < 2){
+    return(lapply(X=X, FUN=FUN, ...))
+  }
+
+  pkg_lib = tryCatch(getNamespaceInfo('spatialGE', 'path'), error=function(e) NULL)
+
+  # Detecting a development load: pkgload/devtools place a .__DEVTOOLS__ object in
+  # the namespace, which is a dependency-free marker. Testing for a DESCRIPTION
+  # file does NOT work -- a dev-loaded package's namespace path is the source
+  # directory, which has one, so that check reports "installed" and the worker
+  # then fails with "there is no package called 'spatialGE'".
+  is_dev = !is.null(tryCatch(
+    get0('.__DEVTOOLS__', envir=asNamespace('spatialGE'), inherits=FALSE),
+    error=function(e) NULL))
+
+  cl = parallel::makePSOCKcluster(cores)
+  on.exit(parallel::stopCluster(cl), add=TRUE)
+
+  parallel::clusterExport(cl, varlist=c('pkg_lib', 'is_dev'), envir=environment())
+  parallel::clusterEvalQ(cl, {
+    if(is_dev){
+      # Development load: the package is not installed, so reproduce the
+      # in-development namespace on the worker from the source path.
+      suppressMessages(pkgload::load_all(pkg_lib, quiet=TRUE, helpers=FALSE))
+    } else{
+      suppressMessages(library('spatialGE'))
+    }
+    NULL
+  })
+
+  parallel::parLapply(cl=cl, X=X, fun=FUN, ...)
+}
+
+
 sge_lapply = function(X, FUN, ..., cores=NULL, preschedule=TRUE){
   override = sge_cores_override()
   if(!is.null(override)){
     cores = override
   }
+
+  if(sge_use_psock()){
+    # preschedule has no PSOCK analogue: parLapply chunks X evenly and there is
+    # no per-element-fork mode to mirror preschedule=FALSE. Deliberately ignored
+    # rather than faked, and fidelity rule 4 (per-call-site preschedule semantics)
+    # therefore does not carry over to this backend.
+    return(sge_lapply_psock(X=X, FUN=FUN, ..., cores=if(is.null(cores)) 1L else cores))
+  }
+
   if(is.null(cores)){
     parallel::mclapply(X=X, FUN=FUN, ..., mc.preschedule=preschedule)
   } else{

@@ -101,6 +101,7 @@ Suggests:
     tidyverse,
     testthat (>= 3.0.0),
     waldo,
+    withr,
     writexl
 VignetteBuilder:
 	knitr
