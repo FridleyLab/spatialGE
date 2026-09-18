@@ -280,7 +280,7 @@ sct_transf_one_sample = function(counts_mat, sample_name, sct_n_regr_genes, sct_
 #
 gene_meta_one_sample = function(tr_counts_mat){
   gene_stdevs_df = tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(tr_counts_mat))) %>%
-    tibble::add_column(gene_stdevs=as.vector(apply(tr_counts_mat, 1, sd))) %>%
+    tibble::add_column(gene_stdevs=as.vector(sparse_row_sds(tr_counts_mat))) %>%
     tibble::add_column(gene=rownames(tr_counts_mat), .before=1)
   return(gene_stdevs_df)
 }

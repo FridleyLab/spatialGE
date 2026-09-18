@@ -220,7 +220,7 @@ filter_stage_counts = function(x, samples, spot_minreads, spot_maxreads, spot_mi
         x@gene_meta[[i]] = x@gene_meta[[i]] %>%
           dplyr::select(-gene_mean, -gene_stdevs) %>%
           dplyr::left_join(tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(x@tr_counts[[i]])),
-                                          gene_stdevs=as.vector(apply(x@tr_counts[[i]], 1, sd)),
+                                          gene_stdevs=as.vector(sparse_row_sds(sample_tr_counts(x, i))),
                                           gene=sample_genes(x, i, 'tr_counts')),. , by='gene') %>%
           dplyr::relocate(gene_mean, gene_stdevs, .after='gene')
       }
