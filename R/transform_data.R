@@ -211,24 +211,53 @@ log_transf_one_sample = function(counts_mat, sample_name, scale_f){
   # Show progress
   system(sprintf('echo "%s"', paste0("Log-transforming sample ", sample_name, "....")))
 
-  df_tmp = as.matrix(counts_mat)
+  # Runs entirely on the sparse matrix. This used to open with
+  # as.matrix(counts_mat) and stay dense through sweep(), the scale_f multiply
+  # and log1p -- three full dense genes x cells allocations -- after which
+  # transform_data() called makeSparse() to convert the result back. So the path
+  # was sparse -> dense -> sparse, per sample and, under mclapply, per fork.
+  #
+  # It is safe because log1p(0) == 0 exactly, so the transform maps structural
+  # zeros to structural zeros and sparsity is preserved rather than destroyed and
+  # rebuilt.
+  df_tmp = counts_mat
+  if(!inherits(df_tmp, 'dgCMatrix')){
+    df_tmp = methods::as(methods::as(methods::as(df_tmp, 'dMatrix'), 'generalMatrix'), 'CsparseMatrix')
+  }
+
   # Calculate (spot/cell) library sizes.
-  libsizes = colSums(df_tmp)
+  libsizes = Matrix::colSums(df_tmp)
   # Check that there are not zero-count spot/cells
   zero_size = NULL
   if(any(libsizes == 0)){
     zero_size = as.vector(which(libsizes == 0))
-    df_tmp = df_tmp[, -zero_size]
+    df_tmp = df_tmp[, -zero_size, drop=FALSE]
     system(sprintf('echo "%s"', paste0(length(zero_size), " spots/cells with zero counts will be removed from sample ", sample_name, " and from the entire STlist.")))
     libsizes = libsizes[libsizes != 0]
   }
 
-  # Divide each count value by their respective column (spot) normalization factor.
-  df_tmp = sweep(df_tmp, 2, libsizes, '/')
-  # Then multiply by scaling factor
-  df_tmp = df_tmp * scale_f
-  # Apply log transformation to count data.
-  df_tmp = log1p(df_tmp)
+  # Divide by the column's library size, scale, then log-transform -- in that
+  # order, matching the dense sweep()/multiply/log1p sequence exactly, so the
+  # stored values are bit-identical rather than merely close.
+  #
+  # @p holds the column boundaries of a CSC matrix, so diff(@p) is the number of
+  # stored entries per column and rep.int() expands that into the column index of
+  # each entry in @x. One pass over the non-zeros, no dense intermediate.
+  # unname() is load-bearing: Matrix::colSums() returns a vector named by
+  # colnames, so libsizes[col_of_entry] would carry those names into @x, and a
+  # dgCMatrix's @x must be an unnamed numeric vector. The values are unaffected,
+  # which is exactly why this needed the golden gate to catch -- comparing
+  # as.matrix() of both sides reports them as identical.
+  if(length(df_tmp@x) > 0){
+    col_of_entry = rep.int(seq_len(ncol(df_tmp)), diff(df_tmp@p))
+    df_tmp@x = log1p(df_tmp@x / unname(libsizes)[col_of_entry] * scale_f)
+  }
+
+  # drop0() so the result matches what the previous dense -> makeSparse() route
+  # produced: that path dropped every zero on conversion, whereas operating in
+  # place would carry an explicitly stored zero through as an explicit
+  # log1p(0) == 0. A no-op unless @counts already held explicit zeros.
+  df_tmp = Matrix::drop0(df_tmp)
 
   result_list = list(counts=df_tmp, zero_size=zero_size)
 

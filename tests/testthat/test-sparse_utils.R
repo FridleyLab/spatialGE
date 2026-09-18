@@ -117,3 +117,35 @@ testthat::test_that("gene_stdevs in @gene_meta is produced by sparse_row_sds", {
                            tolerance = 0, label = paste("gene_stdevs wiring", s))
   }
 })
+
+testthat::test_that("log_transf_one_sample returns a well-formed dgCMatrix", {
+  set.seed(20260115)
+  M <- matrix(as.double(rpois(200, 3)), nrow = 20,
+              dimnames = list(paste0("g", 1:20), paste0("c", 1:10)))
+  M[M < 2] <- 0
+  m <- methods::as(Matrix::Matrix(M, sparse = TRUE), "CsparseMatrix")
+
+  res <- log_transf_one_sample(m, "s1", 10000)$counts
+
+  testthat::expect_s4_class(res, "dgCMatrix")
+
+  ## @x must be an UNNAMED numeric vector. Matrix::colSums() returns a vector
+  ## named by colnames, so scaling by libsizes[col] silently propagates those
+  ## names into @x -- values stay correct, so an as.matrix() comparison reports
+  ## the two as identical and only a slot-level check catches it.
+  testthat::expect_null(names(res@x))
+  testthat::expect_type(res@x, "double")
+
+  ## Sparsity preserved, not destroyed and rebuilt: log1p(0) == 0, so the stored
+  ## pattern must be unchanged.
+  testthat::expect_equal(length(res@x), length(m@x))
+  testthat::expect_equal(res@i, m@i)
+  testthat::expect_equal(res@p, m@p)
+  testthat::expect_identical(dimnames(res), dimnames(m))
+
+  ## And bit-identical to the dense sweep/multiply/log1p sequence it replaced.
+  d <- as.matrix(m)
+  l <- colSums(d)
+  expected <- log1p(sweep(d, 2, l, "/") * 10000)
+  testthat::expect_identical(as.matrix(res), expected)
+})
