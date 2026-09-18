@@ -50,6 +50,40 @@ testthat::test_that("Seurat_FindVariableFeatures accepts a dense Matrix and a da
   testthat::expect_equal(from_df, from_sparse, tolerance = 1e-12)
 })
 
+testthat::test_that("Seurat_FindVariableFeatures coerces to a general double CSC matrix", {
+  ## The C++ takes Eigen::SparseMatrix<double>, so the coercion must land on
+  ## dgCMatrix specifically -- not lgCMatrix and not dsCMatrix. A plain
+  ## as(x, 'CsparseMatrix') preserves logical and symmetric structure, which is
+  ## why SeuratObject::as.sparse() routes through dMatrix then generalMatrix, and
+  ## why this reproduces both steps.
+  ## Matrices are 20 rows, not a handful: stats::loess with span=0.3 raises
+  ## "span is too small" on a couple of points, which would mask the coercion
+  ## behavior under test.
+  M <- sfvf_dense()
+
+  logical_sparse <- methods::as(Matrix::Matrix(M > 0, sparse = TRUE), "CsparseMatrix")
+  testthat::expect_true(inherits(logical_sparse, "lgCMatrix"))
+  testthat::expect_no_error(Seurat_FindVariableFeatures(logical_sparse))
+
+  set.seed(20260115)
+  A <- matrix(as.double(rpois(400, 4)), nrow = 20)
+  S <- A + t(A)                                    # force exact symmetry
+  dimnames(S) <- list(paste0("g", 1:20), paste0("g", 1:20))
+  sym <- methods::as(methods::as(S, "dMatrix"), "symmetricMatrix")
+  testthat::expect_false(inherits(sym, "generalMatrix"))
+  testthat::expect_no_error(Seurat_FindVariableFeatures(sym))
+
+  ## Integer input must become double rather than failing inside RcppEigen.
+  ## Drawn at random rather than patterned: rep(1:10, 20) fills column-major and
+  ## makes every ROW constant, which leaves loess with zero non-constant rows and
+  ## fails with "invalid 'x'" for reasons unrelated to the coercion.
+  set.seed(20260116)
+  int_mat <- matrix(as.integer(rpois(200, 4)), nrow = 20,
+                    dimnames = list(paste0("g", 1:20), NULL))
+  testthat::expect_type(int_mat[1, 1], "integer")
+  testthat::expect_no_error(Seurat_FindVariableFeatures(int_mat))
+})
+
 testthat::test_that("Seurat_FindVariableFeatures leaves an existing dgCMatrix untouched", {
   m <- methods::as(sfvf_dense(), "CsparseMatrix")
 
