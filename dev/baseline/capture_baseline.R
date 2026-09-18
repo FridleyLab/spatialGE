@@ -10,6 +10,7 @@
 devtools::load_all(".", quiet = TRUE)
 source("inst/testdata/make_fixtures.R")
 source("dev/baseline/pipeline.R")
+source("dev/baseline/compare_baseline.R")
 
 golden_dir <- "tests/golden"
 dir.create(golden_dir, showWarnings = FALSE, recursive = TRUE)
@@ -19,7 +20,10 @@ for(cores in c(1, 3)){
   results <- bl_pipeline(cores, verbose = FALSE)
   for(name in names(results)){
     fp <- file.path(golden_dir, sprintf("%s__cores%d.rds", name, cores))
-    saveRDS(results[[name]], fp, version = 3)
+    ## Store the reduced form -- exactly what bl_compare() compares. ggplot and
+    ## HeatmapList objects serialize orders of magnitude larger than their
+    ## comparable signature (see bl_reduce() in compare_baseline.R).
+    saveRDS(bl_reduce(results[[name]]), fp, version = 3)
     ok <- results[[name]]$ok
     message(sprintf("  %-24s %s", name, if(ok) "captured" else paste("captured error:", results[[name]]$value)))
   }

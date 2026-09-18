@@ -319,16 +319,43 @@ reaches only one input format, one parameter set per function, three samples, an
 no warnings.
 
 Read `dev/xver/REPORT.md` for results and `dev/xver/README.md` for the design.
-Two findings there are load-bearing for anyone extending `dev/baseline/`:
+Two findings there were load-bearing for `dev/baseline/`, and both are now
+addressed -- recorded because the reasoning still constrains any extension:
 
-- **`bl_compare_stlist()` compares only 2 of the 10 `@misc` keys** the package
-  writes (`sthet$listws` and `gene_krige`). `scaled_pbulk_mtx` -- the direct input
-  to the `pseudobulk_heatmap` gene ranking -- and `sp_images`, the entire output of
-  `load_images()`, are never compared. Extend it if you rely on `@misc` fidelity.
+- **`bl_compare_stlist()` used to compare only 2 of the 10 `@misc` keys**
+  (`sthet$listws` and `gene_krige`), so a change to `scaled_pbulk_mtx` -- the
+  direct input to the `pseudobulk_heatmap` gene ranking -- or to `sp_images`, the
+  entire output of `load_images()`, was invisible. All ten are compared now, and a
+  `misc_uncompared_keys` guard fails the gate when a key appears with no
+  comparison branch -- so adding a `@misc` key without also adding it here and to
+  the census above is an error rather than a silent hole.
 - **`pseudobulk_heatmap()` returns a `HeatmapList`** (it ends in
   `ComplexHeatmap::draw()`), so the displayed matrix is at
-  `@ht_list[[1]]@matrix`, not `@matrix`. `bl_compare()` has no branch for it and
-  falls through to `waldo`, where `normalize_for_baseline()` -- which recurses into
-  lists but not S4 slots -- leaves grobs and environments to be compared raw. That
-  comparison is noise, and it is part of why the inverted-CV bug went unnoticed
-  for two releases.
+  `@ht_list[[1]]@matrix`, not `@matrix`. `bl_compare()` now has a
+  `bl_compare_heatmap_signature()` branch comparing that matrix plus the
+  dendrogram-determined row/column order, rather than falling through to `waldo`
+  on grobs and environments -- noise that is part of why the inverted-CV bug went
+  unnoticed for two releases. That branch is currently **unreachable on the
+  standard fixture**: `pseudobulk_samples()` requires >= 4 samples and the fixture
+  has 3, so all three `pseudobulk_*` steps capture an error string instead of
+  output.
+
+**The golden gate is same-machine, same-toolchain, and bit-exact**
+(`tolerance = NULL` throughout). The pipeline reaches BLAS/LAPACK via `prcomp`,
+`stats::loess`, `gstat` kriging, `spaMM::fitme` and `uwot::umap`, so results
+differ in the low bits across BLAS implementations and across version bumps in
+those dependencies. That is why `tests/golden/` is gitignored rather than
+committed, and why the gate must not run on a CI runner whose platform differs
+from the one that ran `capture_baseline.R` -- it would fail on float noise, and
+the only way to green it would be loosening the tolerance, which removes the
+drift detection that is the entire point. The platform-portable net is the
+committed `tests/testthat/test-numeric-*.R` tier, asserting literal values at
+explicit tolerances.
+
+Captured results are stored **reduced**: `bl_reduce()` replaces each `ggplot` and
+`HeatmapList` with exactly the signature `bl_compare()` compares, taking the
+baseline from 13.9 MB to 4.0 MB. The reduction is idempotent and applied to both
+sides, so a golden file captured before it existed still compares correctly. The
+tradeoff -- widening a signature function requires re-running
+`capture_baseline.R`, because a reduced file cannot answer a question its
+signature does not already capture.

@@ -3,6 +3,25 @@
 ## it compares attribute order and environment identity, which differ across
 ## otherwise-equivalent runs. waldo::compare(tolerance = NULL) gives an exact
 ## structural diff instead.
+##
+## SCOPE OF THIS GATE -- read before wiring it into CI.
+##
+## Comparison here is bit-exact (tolerance = NULL everywhere). The pipeline
+## routes through prcomp (LAPACK), stats::loess, gstat kriging, spaMM::fitme
+## and uwot::umap, all of which reach BLAS/LAPACK, so results differ in the
+## low bits across BLAS implementations (macOS Accelerate vs Linux
+## OpenBLAS/reference) and across package-version bumps in those
+## dependencies. That makes this a SAME-MACHINE, SAME-TOOLCHAIN gate: it
+## answers "did my edit change the numbers on this box", which is precisely
+## the question a refactor needs answered, and it is why tests/golden/ is
+## gitignored rather than committed.
+##
+## Do not enable it on a CI runner of a different platform than the one that
+## ran capture_baseline.R -- it will fail on float noise and the only way to
+## green it is loosening the tolerance, which destroys the drift detection
+## that is the whole point. The platform-portable net is the committed
+## tests/testthat/test-numeric-*.R tier, which asserts against literal values
+## at explicit, stated tolerances.
 
 ## Recursively strips call/terms/srcref attributes (which capture the call
 ## site and change whenever code moves, even with no behavior change) and
@@ -78,19 +97,77 @@ bl_compare_sp <- function(a, b){
 ## Re-seeding immediately before each build makes the comparison
 ## deterministic without touching the pipeline's own RNG usage.
 bl_compare_ggplot_signature <- function(p){
+  if(inherits(p, "bl_ggplot_sig")) return(p)
   set.seed(20260115)
   built <- ggplot2::ggplot_build(p)
-  list(
+  structure(list(
     data = lapply(built$data, as.data.frame),
     labels = p$labels,
     scale_limits = lapply(p$scales$scales, function(s) s$get_limits()),
     scale_classes = lapply(p$scales$scales, function(s) class(s)),
     layer_geoms = vapply(p$layers, function(l) class(l$geom)[1], character(1))
-  )
+  ), class = "bl_ggplot_sig")
 }
 
 bl_compare_ggplot <- function(a, b){
   waldo::compare(bl_compare_ggplot_signature(a), bl_compare_ggplot_signature(b), tolerance = NULL)
+}
+
+## ComplexHeatmap: pseudobulk_heatmap() ends in ComplexHeatmap::draw(), so it
+## returns a HeatmapList and the displayed matrix is at @ht_list[[1]]@matrix,
+## NOT @matrix. Without this branch the object falls through to raw waldo,
+## where normalize_for_baseline() -- which recurses into lists but not S4
+## slots -- leaves grobs and environments to be compared as-is. That
+## comparison is pure noise, and it is part of why the inverted-CV gene
+## ranking went unnoticed for two releases. Compare the matrix that is drawn,
+## plus the dendrogram-determined row/column order, which is what the ranking
+## actually controls.
+bl_compare_heatmap_signature <- function(h){
+  if(inherits(h, "bl_heatmap_sig")) return(h)
+  ht <- h@ht_list[[1]]
+  structure(list(
+    matrix = as.matrix(ht@matrix),
+    row_order = ComplexHeatmap::row_order(h),
+    column_order = ComplexHeatmap::column_order(h),
+    matrix_dimnames = dimnames(ht@matrix)
+  ), class = "bl_heatmap_sig")
+}
+
+bl_compare_heatmap <- function(a, b){
+  waldo::compare(bl_compare_heatmap_signature(a), bl_compare_heatmap_signature(b), tolerance = NULL)
+}
+
+## Reduces a captured result to exactly the form bl_compare() will compare,
+## so capture_baseline.R stores that instead of the full object. ggplot and
+## HeatmapList objects serialize enormously (a single STplot_interpolation
+## result is 1.5 MB) while their comparable signature is ~2 KB; reducing at
+## capture time takes the whole baseline from 13.9 MB to 3.1 MB and makes both
+## capture and comparison faster.
+##
+## Idempotent, so it is safe to apply to either side: bl_compare() reduces
+## both, which means a golden file captured before this existed still compares
+## correctly against a freshly reduced result, and the cores1-vs-cores3 test
+## can compare two already-reduced files.
+##
+## Tradeoff: a reduced golden file cannot answer a question the signature does
+## not already capture. Widening bl_compare_ggplot_signature() therefore
+## requires re-running capture_baseline.R rather than just re-comparing.
+bl_reduce_value <- function(v){
+  if(inherits(v, "ggplot")) return(bl_compare_ggplot_signature(v))
+  if(is(v, "HeatmapList")) return(bl_compare_heatmap_signature(v))
+  if(is.list(v) && !is.object(v) && length(v) > 0){
+    if(all(vapply(v, function(e) inherits(e, "ggplot") || inherits(e, "bl_ggplot_sig"), logical(1)))){
+      return(lapply(v, bl_compare_ggplot_signature))
+    }
+  }
+  v
+}
+
+bl_reduce <- function(captured){
+  if(!is.list(captured) || !("ok" %in% names(captured))) return(captured)
+  if(!isTRUE(captured$ok)) return(captured)
+  captured$value <- bl_reduce_value(captured$value)
+  captured
 }
 
 ## STlist: walk slots in a fixed order so a diff always names the slot, not
@@ -146,6 +223,43 @@ bl_compare_stlist <- function(a, b){
     if(length(d_listws) > 0) diffs$misc_sthet_listws <- d_listws
   }
 
+  ## scaled_pbulk_mtx is the direct input to pseudobulk_heatmap()'s gene
+  ## ranking and sp_images is the entire output of load_images(); neither was
+  ## compared before, so a change in either was invisible to this gate. Both
+  ## are small on the fixture (a genes x samples matrix, and 20x20x3 numeric
+  ## arrays), so compare them outright rather than by signature.
+  plain_misc <- c("scaled_pbulk_mtx", "pbulk_pca", "pbulk_pca_var", "pbulk_umap",
+                  "sp_images", "platform", "transform", "image_scaling")
+  for(key in plain_misc){
+    ka <- a@misc[[key]]
+    kb <- b@misc[[key]]
+    if(is.null(ka) && is.null(kb)) next
+    d_key <- waldo::compare(normalize_for_baseline(ka), normalize_for_baseline(kb), tolerance = NULL)
+    if(length(d_key) > 0) diffs[[paste0("misc_", key)]] <- d_key
+  }
+
+  ## @misc$sthet holds the listw/nb objects (compared structurally above,
+  ## since waldo on a listw diffs its call attribute) plus other entries.
+  ## Compare those others rather than letting the listws stand in for the
+  ## whole key.
+  a_sthet_rest <- a@misc$sthet[setdiff(names(a@misc$sthet), "listws")]
+  b_sthet_rest <- b@misc$sthet[setdiff(names(b@misc$sthet), "listws")]
+  if(length(a_sthet_rest) > 0 || length(b_sthet_rest) > 0){
+    d_rest <- waldo::compare(normalize_for_baseline(a_sthet_rest), normalize_for_baseline(b_sthet_rest), tolerance = NULL)
+    if(length(d_rest) > 0) diffs$misc_sthet_other <- d_rest
+  }
+
+  ## Guard against a new @misc key being added without baseline coverage: the
+  ## census in dev/ARCHITECTURE.md is the contract, and this gate silently
+  ## ignoring a key is how scaled_pbulk_mtx went two releases uncompared.
+  uncompared <- setdiff(union(names(a@misc), names(b@misc)),
+                        c(plain_misc, "sthet", "gene_krige"))
+  if(length(uncompared) > 0){
+    diffs$misc_uncompared_keys <- sprintf(
+      "@misc keys with no baseline coverage: %s -- add them to compare_baseline.R and to the census in dev/ARCHITECTURE.md",
+      paste(uncompared, collapse = ", "))
+  }
+
   d_krige <- waldo::compare(normalize_for_baseline(a@gene_krige), normalize_for_baseline(b@gene_krige), tolerance = NULL)
   if(length(d_krige) > 0) diffs$gene_krige <- d_krige
 
@@ -167,9 +281,18 @@ bl_compare <- function(golden, fresh){
     return(if(length(d) > 0) d else NULL)
   }
 
-  a <- golden$value
-  b <- fresh$value
-  d <- if(is(a, "STlist")){
+  ## Reduce both sides so a golden file captured either before or after
+  ## bl_reduce() existed compares identically, and so the cores1-vs-cores3
+  ## test can hand two already-reduced files straight through.
+  a <- bl_reduce_value(golden$value)
+  b <- bl_reduce_value(fresh$value)
+  d <- if(inherits(a, "bl_ggplot_sig") || inherits(b, "bl_ggplot_sig")){
+    bl_compare_ggplot(a, b)
+  } else if(inherits(a, "bl_heatmap_sig") || inherits(b, "bl_heatmap_sig")){
+    bl_compare_heatmap(a, b)
+  } else if(is.list(a) && length(a) > 0 && all(vapply(a, function(e) inherits(e, "bl_ggplot_sig"), logical(1)))){
+    Filter(length, Map(bl_compare_ggplot, a, b))
+  } else if(is(a, "STlist")){
     bl_compare_stlist(a, b)
   } else if(is(a, "dgCMatrix")){
     bl_compare_dgCMatrix(a, b)
@@ -179,10 +302,6 @@ bl_compare <- function(golden, fresh){
     bl_compare_sp(a, b)
   } else if(inherits(a, "listw")){
     bl_compare_listw(a, b)
-  } else if(inherits(a, "ggplot")){
-    bl_compare_ggplot(a, b)
-  } else if(is.list(a) && length(a) > 0 && all(vapply(a, function(e) inherits(e, "ggplot"), logical(1)))){
-    Filter(length, Map(bl_compare_ggplot, a, b))
   } else{
     waldo::compare(normalize_for_baseline(a), normalize_for_baseline(b), tolerance = NULL)
   }
