@@ -152,13 +152,21 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
     raise_err(err_code='error0033')
   }
 
-  # Parse sample names
+  # Parse sample names.
+  #
+  # Both branches that derive names from `rnacounts` itself are tested BEFORE any
+  # branch that inspects `input_samples`. The seurat case used to sit after
+  # `input_samples == 'sample_names'`, and detect_input_samples(NULL) returns a
+  # zero-length value, so `if(logical(0))` raised "argument is of length zero"
+  # before the seurat branch was ever reached. Seurat input with samples=NULL --
+  # the normal way to call it -- therefore could not work at all, which is why
+  # dev/xver/REPORT.md records this path as never exercised.
   if(input_rnacounts == 'list_dfs'){
     sample_names = names(rnacounts)
-  } else if(input_samples == 'sample_names'){
-    sample_names = samples
   } else if(input_rnacounts == 'seurat'){
     sample_names = names(rnacounts@images)
+  } else if(input_samples == 'sample_names'){
+    sample_names = samples
   } else {
     if(input_samples == 'samplesfile_excel'){
       samples_df = readxl::read_excel(samples)
@@ -209,7 +217,12 @@ STlist = function(rnacounts=NULL, spotcoords=NULL, samples=NULL, cores=NULL, ver
     }
     pre_lists = read_seurat(rnacounts)
     img_obj = pre_lists[['images']]
-    platform = 'visium' # FUTURE DEVELOPMENT: CANT ASSUME IT'S VISIUM... MAYBE SHOULD USE INFO FROM SEURAT OBJECT TO IDENTIFY TECH
+    # Infer the platform from the image class rather than assuming Visium.
+    # VisiumV1 (v4) and VisiumV2 (v5) are Visium; an FOV is imaging-based
+    # (Xenium/CosMx), and @misc$platform drives nb_dist_thr in STgradient plus
+    # branches in plot_image and STplot_interpolation, so guessing wrong changes
+    # results rather than just labels.
+    platform = seurat_platform(rnacounts)
   }
 
 

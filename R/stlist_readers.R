@@ -41,28 +41,118 @@ read_list_dfs = function(rnacounts, spotcoords){
 # @param rnacounts, a seurat object with spatial slot
 # @return return_lists a list with two lists within (one with counts, one with coordinates)
 #
-read_seurat = function(rnacounts){
-  # Create list to be returned
-  return_lists = list()
-  return_lists[['counts']] = list()
-  return_lists[['coords']] = list()
-  # Find assays within Seurat object
+read_seurat = function(rnacounts, assay=NULL){
+  if(!requireNamespace('SeuratObject', quietly=TRUE)){
+    raise_err(err_code='error0052')
+  }
+
+  # Assay name. Previously hardcoded to 'Spatial', so an object whose spatial
+  # assay is named anything else -- 'SCT' after SCTransform, 'RNA' for several
+  # pipelines, a custom name -- silently produced NULL counts.
+  if(is.null(assay)){
+    assay = SeuratObject::DefaultAssay(rnacounts)
+  }
+  if(!(assay %in% names(rnacounts@assays))){
+    raise_err(err_code='error0053')
+  }
+
+  # Counts, sparse to sparse.
+  #
+  # v5 stores an Assay5 whose data lives in @layers, so the v4 access
+  # rnacounts@assays$Spatial@counts returns NULL there -- the whole reason this
+  # function did not work on v5. LayerData() is the version-agnostic accessor and
+  # is available in SeuratObject >= 5.
+  #
+  # Also note what is NOT done here any more: the previous implementation called
+  # as.data.frame() on the full matrix up front, densifying every gene x every
+  # cell across ALL slices before subsetting to one. For a multi-slice Visium
+  # object that is the largest allocation in the import path, and it happened
+  # before a single slice was looked at.
+  counts_mtx = tryCatch(
+    SeuratObject::LayerData(rnacounts, assay=assay, layer='counts'),
+    error=function(e) NULL)
+  if(is.null(counts_mtx) || prod(dim(counts_mtx)) == 0){
+    # v4 objects, and v5 objects whose counts layer is absent but data is present.
+    counts_mtx = tryCatch(
+      SeuratObject::GetAssayData(rnacounts, assay=assay, slot='counts'),
+      error=function(e) NULL)
+  }
+  if(is.null(counts_mtx) || prod(dim(counts_mtx)) == 0){
+    raise_err(err_code='error0054')
+  }
+  if(!inherits(counts_mtx, 'dgCMatrix')){
+    counts_mtx = methods::as(methods::as(methods::as(counts_mtx, 'dMatrix'),
+                                        'generalMatrix'), 'CsparseMatrix')
+  }
+
+  return_lists = list(counts=list(), coords=list(), images=list())
+
   slices = names(rnacounts@images)
-  counts_mtx = as.data.frame(rnacounts@assays$Spatial@counts)
-  # Extract counts and coordinates from each assay
+  if(length(slices) == 0){
+    raise_err(err_code='error0055')
+  }
+
   for(i in slices){
-    spots = rownames(rnacounts@images[[i]]@coordinates)
-    return_lists[['coords']][[i]] = rnacounts@images[[i]]@coordinates[, c('imagerow', 'imagecol')]
-    return_lists[['coords']][[i]] = tibble::rownames_to_column(return_lists[['coords']][[i]], var='libname')
-    return_lists[['coords']][[i]] = tibble::as_tibble(return_lists[['coords']][[i]])
+    img = rnacounts@images[[i]]
+    coords_df = seurat_image_coords(img)
+    spots = intersect(coords_df[['libname']], colnames(counts_mtx))
+    if(length(spots) == 0) next
 
-    return_lists[['counts']][[i]] = counts_mtx[, colnames(counts_mtx) %in% spots]
-    return_lists[['counts']][[i]] = tibble::rownames_to_column(return_lists[['counts']][[i]], var='gene')
-    return_lists[['counts']][[i]] = tibble::as_tibble(return_lists[['counts']][[i]])
+    coords_df = coords_df[match(spots, coords_df[['libname']]), , drop=FALSE]
+    return_lists[['coords']][[i]] = tibble::as_tibble(coords_df)
 
-    return_lists[['images']][[i]] = rnacounts@images[[i]]@image
+    # Subset first, densify once, and only for this slice's spots.
+    return_lists[['counts']][[i]] = tibble::as_tibble(
+      tibble::rownames_to_column(
+        expandSparse(counts_mtx[, spots, drop=FALSE]), var='gene'))
+
+    if(.hasSlot(img, 'image')) return_lists[['images']][[i]] = img@image
+  }
+
+  if(length(return_lists[['counts']]) == 0){
+    raise_err(err_code='error0056')
   }
   return(return_lists)
+}
+
+
+##
+# seurat_image_coords: Extracts spot/cell coordinates from one Seurat image
+# object, across the layouts v4 and v5 use.
+#
+# v4 VisiumV1 carries a @coordinates data.frame with imagerow/imagecol. v5
+# VisiumV2 and FOV instead hold a @boundaries list of Centroids/Segmentation
+# objects, for which SeuratObject::GetTissueCoordinates() is the accessor. The
+# returned column names differ between those paths ('x'/'y' vs
+# 'imagerow'/'imagecol'), so they are normalized here rather than at the call
+# site.
+#
+# @param img one element of a Seurat object's @images.
+# @return a data.frame with libname, ypos, xpos.
+#
+seurat_image_coords = function(img){
+  if(.hasSlot(img, 'coordinates') && is.data.frame(img@coordinates) &&
+     all(c('imagerow', 'imagecol') %in% colnames(img@coordinates))){
+    d = img@coordinates[, c('imagerow', 'imagecol'), drop=FALSE]
+    return(data.frame(libname=rownames(d), ypos=d[['imagerow']], xpos=d[['imagecol']],
+                      stringsAsFactors=FALSE))
+  }
+
+  tc = tryCatch(SeuratObject::GetTissueCoordinates(img), error=function(e) NULL)
+  if(is.null(tc)){
+    raise_err(err_code='error0057')
+  }
+  tc = as.data.frame(tc)
+
+  # GetTissueCoordinates() returns x/y, and may carry the barcode either in a
+  # 'cell' column (v5 Centroids) or in the row names.
+  libname = if('cell' %in% colnames(tc)) as.character(tc[['cell']]) else rownames(tc)
+  ycol = if('y' %in% colnames(tc)) 'y' else 'imagerow'
+  xcol = if('x' %in% colnames(tc)) 'x' else 'imagecol'
+  if(!all(c(ycol, xcol) %in% colnames(tc))){
+    raise_err(err_code='error0057')
+  }
+  data.frame(libname=libname, ypos=tc[[ycol]], xpos=tc[[xcol]], stringsAsFactors=FALSE)
 }
 
 ##
@@ -574,4 +664,132 @@ read_cosmx_input = function(filepaths, input_check, cores=NULL, verbose=TRUE){
 
   rm(fp_list) # Clean environment
   return(return_lists)
+}
+
+
+##
+# seurat_platform: Infers the spatialGE platform label from a Seurat object's
+# image classes.
+#
+# STlist() previously hardcoded 'visium' for any Seurat input, with a comment
+# admitting it could not assume that. @misc$platform is not cosmetic: it selects
+# STgradient's default nb_dist_thr (c(0.75, 1.25) for visium against c(0.25, 3)
+# otherwise) and branches in plot_image() and STplot_interpolation(), so a wrong
+# label changes numbers, not just metadata.
+#
+# @param obj a Seurat object.
+# @return one of 'visium' or 'xenium'.
+#
+seurat_platform = function(obj){
+  classes = vapply(obj@images, function(im) class(im)[1], character(1))
+  if(length(classes) == 0) return('visium')
+  # VisiumV1 (Seurat v4) and VisiumV2 (v5) are spot-based arrays. FOV is v5's
+  # imaging-based container, used for Xenium and CosMx.
+  if(any(grepl('^Visium', classes))) return('visium')
+  if(any(classes == 'FOV' | grepl('Xenium|CosMx|Fov', classes))) return('xenium')
+  'visium'
+}
+
+
+##
+#' @title as_Seurat: Convert an STlist to a Seurat object
+#' @description Converts an STlist into a Seurat (v5) object, one image/slice per
+#' sample, so spatialGE results can be taken into Seurat-based workflows.
+#' @details
+#' Each sample in the STlist becomes one FOV in the returned object, named after
+#' the sample. Raw counts go to the `counts` layer and, when `transform_data()`
+#' has been run, transformed counts go to the `data` layer. Spot-level columns
+#' from `@spatial_meta` -- including `STclust` cluster assignments -- are carried
+#' into `@meta.data`, prefixed by sample where a merge would otherwise collide.
+#'
+#' Cell names are prefixed with the sample name (`<sample>_<libname>`) because
+#' spot barcodes are only unique within a sample in the general case, and a merged
+#' Seurat object requires globally unique cell names.
+#'
+#' @param x an STlist
+#' @param assay the assay name to create. Default `'Spatial'`
+#' @param samples the samples to include. If NULL (default), all samples
+#' @return a Seurat object
+#'
+#' @export
+#
+as_Seurat = function(x=NULL, assay='Spatial', samples=NULL){
+  assert_stlist(x)
+  if(!requireNamespace('SeuratObject', quietly=TRUE)){
+    raise_err(err_code='error0052')
+  }
+  samples = resolve_samples(x, samples, slot='counts', numeric_handling='na_omit',
+                            char_transform='exact', post_check='any_in',
+                            message='None of the requested samples are present in the STlist.')
+
+  has_tr = !rlang::is_empty(x@tr_counts)
+
+  # Prefix cell names with the sample. Spot barcodes are unique only within a
+  # sample -- the fixture's own barcodes are, but Visium barcodes repeat across
+  # sections -- and a merged Seurat object requires globally unique names.
+  prefix_cols = function(m, s){
+    colnames(m) = paste0(s, '_', colnames(m))
+    m
+  }
+
+  counts_list = lapply(samples, function(s) prefix_cols(sample_counts(x, s), s))
+  names(counts_list) = samples
+
+  # Genes present in every requested sample. Seurat needs one matrix, so genes
+  # absent from a sample cannot simply be dropped for that sample only; taking the
+  # intersection is reported rather than silently applied.
+  gene_sets = lapply(samples, function(s) sample_genes(x, s, 'counts'))
+  common_genes = Reduce(intersect, gene_sets)
+  if(length(common_genes) == 0){
+    raise_err(err_code='error0058')
+  }
+  dropped = length(Reduce(union, gene_sets)) - length(common_genes)
+  if(dropped > 0){
+    message(paste0('as_Seurat: ', dropped,
+                    ' gene(s) not shared by every requested sample were dropped.\n'))
+  }
+
+  merged_counts = do.call(cbind, lapply(counts_list, function(m) m[common_genes, , drop=FALSE]))
+
+  obj = SeuratObject::CreateSeuratObject(counts=merged_counts, assay=assay)
+
+  if(has_tr){
+    tr_list = lapply(samples, function(s){
+      m = prefix_cols(sample_tr_counts(x, s), s)
+      # Transformed counts can hold fewer genes than raw -- sct drops low-expression
+      # genes -- so align to the merged gene set, filling absent rows with zero.
+      out = Matrix::Matrix(0, nrow=length(common_genes), ncol=ncol(m), sparse=TRUE,
+                           dimnames=list(common_genes, colnames(m)))
+      shared = intersect(common_genes, rownames(m))
+      out[shared, ] = m[shared, , drop=FALSE]
+      out
+    })
+    merged_tr = do.call(cbind, tr_list)
+    SeuratObject::LayerData(obj, assay=assay, layer='data') = merged_tr
+  }
+
+  # Spot-level metadata.
+  meta = do.call(rbind, lapply(samples, function(s){
+    d = sample_spatial_meta(x, s)
+    d = tibble::remove_rownames(as.data.frame(d))
+    d[['sample_name']] = s
+    rownames(d) = paste0(s, '_', d[['libname']])
+    d
+  }))
+  meta = meta[colnames(obj), , drop=FALSE]
+  obj = SeuratObject::AddMetaData(obj, metadata=meta)
+
+  # One FOV per sample, so each keeps its own coordinate frame rather than being
+  # overlaid in a single space.
+  for(s in samples){
+    d = sample_spatial_meta(x, s)
+    cents = SeuratObject::CreateCentroids(data.frame(
+      x = as.numeric(d[['xpos']]),
+      y = as.numeric(d[['ypos']]),
+      cell = paste0(s, '_', d[['libname']]),
+      stringsAsFactors = FALSE))
+    obj[[s]] = SeuratObject::CreateFOV(cents, type='centroids', assay=assay)
+  }
+
+  return(obj)
 }
