@@ -77,7 +77,7 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
       if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
         x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
       }
-      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+      x@gene_meta[[i]] = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
         tibble::rownames_to_column(var='gene') %>%
         dplyr::select('gene', 'vst.variance.standardized') %>%
         dplyr::left_join(x@gene_meta[[i]], ., by='gene')

@@ -80,7 +80,7 @@ plot_counts = function(x=NULL, samples=NULL, data_type='tr', plot_type='density'
   df_tmp = list()
   for(i in samples){
     if(data_type == 'tr'){
-      df_tmp[[i]] = as.matrix(x@tr_counts[[i]]) %>%
+      df_tmp[[i]] = as.matrix(sample_tr_counts(x, i)) %>%
         as.data.frame() %>%
         tidyr::pivot_longer(cols=dplyr::everything(.), names_to='libname', values_to='expr_values') %>%
         tibble::add_column(sample_name=i)
@@ -91,7 +91,7 @@ plot_counts = function(x=NULL, samples=NULL, data_type='tr', plot_type='density'
       p_title = 'Normalized expression distribution'
       ax_title = 'Normalized expression'
     } else{
-      df_tmp[[i]] = as.matrix(x@counts[[i]]) %>%
+      df_tmp[[i]] = as.matrix(sample_counts(x, i)) %>%
         as.data.frame() %>%
         tidyr::pivot_longer(cols=dplyr::everything(.), names_to='libname', values_to='expr_values') %>%
         tibble::add_column(sample_name=i)

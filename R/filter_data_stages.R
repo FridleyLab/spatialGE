@@ -237,8 +237,8 @@ filter_stage_counts = function(x, samples, spot_minreads, spot_maxreads, spot_mi
       x@spatial_meta[[i]] = x@spatial_meta[[i]][x@spatial_meta[[i]]$libname %in% sample_cells(x, i, 'counts'), ] %>%
         dplyr::select(-total_counts, -total_genes) %>%
         dplyr::left_join(., tibble::tibble(libname=sample_cells(x, i, 'counts'),
-                                           total_counts=Matrix::colSums(x@counts[[i]]),
-                                           total_genes=Matrix::colSums(x@counts[[i]] != 0)), by='libname')
+                                           total_counts=Matrix::colSums(sample_counts(x, i)),
+                                           total_genes=Matrix::colSums(sample_counts(x, i) != 0)), by='libname')
       if(!rlang::is_empty(x@tr_counts)){
         x@tr_counts[[i]] = sample_tr_counts(x, i)[sample_genes(x, i, 'tr_counts') %in% sample_genes(x, i, 'counts'),
                                                 sample_cells(x, i, 'tr_counts') %in% sample_cells(x, i, 'counts')]
@@ -246,7 +246,7 @@ filter_stage_counts = function(x, samples, spot_minreads, spot_maxreads, spot_mi
       if(!rlang::is_empty(x@gene_meta)){
         x@gene_meta[[i]] = x@gene_meta[[i]] %>%
           dplyr::select(-gene_mean, -gene_stdevs) %>%
-          dplyr::left_join(tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(x@tr_counts[[i]])),
+          dplyr::left_join(tibble::tibble(gene_mean=as.vector(Matrix::rowMeans(sample_tr_counts(x, i))),
                                           gene_stdevs=as.vector(sparse_row_sds(sample_tr_counts(x, i))),
                                           gene=sample_genes(x, i, 'tr_counts')),. , by='gene') %>%
           dplyr::relocate(gene_mean, gene_stdevs, .after='gene')

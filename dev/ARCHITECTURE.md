@@ -71,6 +71,69 @@ without touching every caller again.
 
 Adding a new `misc` key is fine, but add a row here in the same commit.
 
+`store` is written by `STlist_to_disk()` and read by `validate_store()` /
+`STlist_to_memory()` (`R/store_parquet.R`). It holds `root`, `sample_order`,
+`schema_ver` and `portable`.
+
+## Optional on-disk backing (parquet COO)
+
+**Opt-in, reversible, and off by default.** `STlist_to_disk(x, root)` replaces
+each `@counts`/`@tr_counts` element with an `sge_manifest` describing a parquet
+file; `STlist_to_memory(x)` reverses it. Every other slot is untouched. Nothing
+changes for an STlist built the normal way.
+
+It works because all matrix reads go through `R/utils_accessors.R`:
+`sample_counts()`/`sample_tr_counts()` materialize a manifest on demand (and
+forward `genes=` so a subset read touches only the row groups it needs), while
+`sample_dim()`/`sample_genes()`/`sample_cells()` answer from the manifest with
+zero I/O. That split is the whole reason the accessor layer was widened before
+the store existed — `base::nrow()` returns `NULL` on a manifest rather than
+erroring, so an unrouted dim read would have silently produced `NULL`.
+
+Layout: one file per sample per slot, schema
+`(gene_idx int32, cell_idx int32, value double)`, **sorted by
+`(gene_idx, cell_idx)`**. Sorting by gene gives row-group min/max statistics so
+`filter(gene_idx %in% ...)` prunes whole row groups — the dominant access pattern
+here. Including `cell_idx` makes a per-gene aggregate visit values in the order
+`Matrix::rowMeans` walks a row, which is what would let an arrow-side aggregate
+agree bit-for-bit. Ordering comes free from `Matrix::t()` rather than an explicit
+sort: a transposed `dgCMatrix` has the original genes as its columns.
+
+**The manifest is the only authority for dimensions, dimnames and order.** COO
+omits structural zeros, so an all-zero gene has *no rows at all* — and
+`filter_data()`'s defaults are all `>= 0`, so such genes are retained and real.
+Reconstructing dimnames from the data would silently shrink and reorder the
+matrix, which fidelity rule 13(c) makes a genuine regression. Pinned by a test.
+
+Constraints honored, each for a specific reason:
+
+- **Sample names are never used as paths.** `store_id` is `<index>-<hash>`.
+  Fidelity rule 11 documents that real names contain `"`, `$`, backticks and
+  backslashes; paths add `/`, `:`, leading dots, macOS NFC/NFD, the 255-byte
+  component limit, and case-insensitive collision on APFS.
+- **Writes go to a temp file then rename**, so a reader never sees a partial
+  parquet file.
+- **`arrow`'s own CPU thread pool is clamped** by `sge_clamp_arrow_threads()`
+  under `_R_CHECK_LIMIT_CORES_` and by the `spatialGE.cores` override. It sizes
+  itself from `detectCores()` independently of anything here, so it is otherwise a
+  second unguarded source of threads (fidelity rule 12).
+- **No arrow handle is ever stored in the object or crossed over a fork.** Only
+  paths are held; a handle is opened per read.
+- **`portable` is FALSE for a store under `tempdir()`.** A backed STlist is not
+  self-contained — `saveRDS()` records paths — so the flag marks an object that
+  cannot survive the session.
+
+**What this buys and does not buy.** It buys capacity: an STlist larger than RAM
+can be held and read in gene-subset slices, and the in-R footprint of the fixture
+drops from 888 KB to 72 KB. It does **not** yet speed up the aggregate paths —
+`colSums`/`rowMeans`-style work still materializes and computes in memory rather
+than pushing down into arrow queries. That is follow-on work, and until it lands
+a backed STlist is slower than an in-memory one on those paths.
+
+Parity is the property under test: `tests/testthat/test-store_parquet.R` runs
+`SThet`, `STclust` and `summarize_STlist` both ways and asserts identical
+results, and round-trips every matrix asserting `identical()`.
+
 ## Call graph / file layout
 
 Post Phase-8 split, each analysis family is `entry -> prepare -> compute ->

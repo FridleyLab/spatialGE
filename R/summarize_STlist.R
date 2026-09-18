@@ -46,16 +46,23 @@ summarize_STlist = function(x=NULL){
 
   # Get statistics per sample
   df_tmp = lapply(names(x@counts), function(i){
-    total_counts = sum(x@counts[[i]])
+    # Read the matrix once, via the accessor, and compute each column sum once.
+    # This previously touched x@counts[[i]] five times and recomputed
+    # Matrix::colSums() three times over for mean/min/max -- wasted work in
+    # memory, and three separate file reads once the slot holds a manifest.
+    mtx_tmp = sample_counts(x, i)
+    col_counts = Matrix::colSums(mtx_tmp)
+    col_genes = Matrix::colSums(mtx_tmp > 0)
+
+    total_counts = sum(mtx_tmp)
     # Count stats
-    mean_counts_spot = mean(Matrix::colSums(x@counts[[i]]), na.rm=T)
-    min_counts_spot = min(Matrix::colSums(x@counts[[i]]))
-    max_counts_spot = max(Matrix::colSums(x@counts[[i]]))
+    mean_counts_spot = mean(col_counts, na.rm=T)
+    min_counts_spot = min(col_counts)
+    max_counts_spot = max(col_counts)
     # Gene stats (non-zero counts)
-    mtx_mask = x@counts[[i]] > 0
-    mean_genes_spot = mean(Matrix::colSums(mtx_mask))
-    min_genes_spot = min(Matrix::colSums(mtx_mask))
-    max_genes_spot = max(Matrix::colSums(mtx_mask))
+    mean_genes_spot = mean(col_genes)
+    min_genes_spot = min(col_genes)
+    max_genes_spot = max(col_genes)
 
     # Make a row with stats
     df_row_tmp = tibble::tibble(sample_name=i,

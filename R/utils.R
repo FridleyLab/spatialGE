@@ -385,7 +385,7 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
       # Find tops variable genes using Seurat approach
       # First check if VST hasn't been calculated. If not, calculate
       if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
-        vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+        vst_tmp = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
           tibble::rownames_to_column(var='gene') %>%
           dplyr::select('gene', 'vst.variance.standardized') %>%
           dplyr::left_join(x@gene_meta[[i]], ., by='gene')
@@ -403,7 +403,7 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
     }
     return(x)
   } else{
-    #vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+    #vst_tmp = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
     vst_tmp = Seurat_FindVariableFeatures(x) %>%
       tibble::rownames_to_column(var='gene') %>%
       dplyr::select('gene', 'vst.variance.standardized')

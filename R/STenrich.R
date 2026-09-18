@@ -164,7 +164,7 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
 
   # Convert expression data to delayed matrix
   delayed_x = lapply(samples, function(i){
-    mtx_tmp = x@tr_counts[[i]]
+    mtx_tmp = sample_tr_counts(x, i)
     if(length(tissue_spots) > 0){
       mtx_tmp = mtx_tmp[, tissue_spots[[i]]]
     }

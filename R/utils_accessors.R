@@ -11,9 +11,26 @@
 # @param x an STlist.
 # @param sample a sample name or numeric index into the slot.
 #
-sample_counts = function(x, sample) x@counts[[sample]]
+# When the optional parquet backing is in use (see R/store_parquet.R) a slot
+# element is an sge_manifest rather than a dgCMatrix, so the two matrix accessors
+# materialize on demand. `genes=` is forwarded to the store so a gene-subset read
+# touches only the row groups it needs; in memory it is an ordinary subset. This is
+# the whole reason the accessor layer exists.
+sample_counts = function(x, sample, genes=NULL){
+  m = x@counts[[sample]]
+  if(is_sge_manifest(m)) return(sge_store_materialize(m, genes=genes))
+  if(is.null(genes)) return(m)
+  m[rownames(m) %in% genes, , drop=FALSE]
+}
+
+sample_tr_counts = function(x, sample, genes=NULL){
+  m = x@tr_counts[[sample]]
+  if(is_sge_manifest(m)) return(sge_store_materialize(m, genes=genes))
+  if(is.null(genes)) return(m)
+  m[rownames(m) %in% genes, , drop=FALSE]
+}
+
 sample_spatial_meta = function(x, sample) x@spatial_meta[[sample]]
-sample_tr_counts = function(x, sample) x@tr_counts[[sample]]
 sample_gene_meta = function(x, sample) x@gene_meta[[sample]]
 
 
@@ -52,21 +69,31 @@ sample_slot_mtx = function(x, sample, slot=c('counts', 'tr_counts')){
 
 sample_dim = function(x, sample, slot=c('counts', 'tr_counts')){
   m = sample_slot_mtx(x, sample, slot)
+  # A manifest answers this with zero I/O -- base::nrow() would return NULL on it.
+  if(is_sge_manifest(m)) return(manifest_dim(m))
   c(base::nrow(m), base::ncol(m))
 }
 
 sample_n_genes = function(x, sample, slot=c('counts', 'tr_counts')){
-  base::nrow(sample_slot_mtx(x, sample, slot))
+  m = sample_slot_mtx(x, sample, slot)
+  if(is_sge_manifest(m)) return(manifest_dim(m)[1])
+  base::nrow(m)
 }
 
 sample_n_cells = function(x, sample, slot=c('counts', 'tr_counts')){
-  base::ncol(sample_slot_mtx(x, sample, slot))
+  m = sample_slot_mtx(x, sample, slot)
+  if(is_sge_manifest(m)) return(manifest_dim(m)[2])
+  base::ncol(m)
 }
 
 sample_genes = function(x, sample, slot=c('counts', 'tr_counts')){
-  base::rownames(sample_slot_mtx(x, sample, slot))
+  m = sample_slot_mtx(x, sample, slot)
+  if(is_sge_manifest(m)) return(manifest_genes(m))
+  base::rownames(m)
 }
 
 sample_cells = function(x, sample, slot=c('counts', 'tr_counts')){
-  base::colnames(sample_slot_mtx(x, sample, slot))
+  m = sample_slot_mtx(x, sample, slot)
+  if(is_sge_manifest(m)) return(manifest_cells(m))
+  base::colnames(m)
 }
