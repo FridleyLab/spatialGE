@@ -1,9 +1,21 @@
-## Minimal CI: runs the synthetic-fixture test tier (tests/testthat, backed by
-## inst/testdata/make_fixtures.R) on every push/PR. Golden-baseline comparisons
-## are not run here -- they require a locally captured tests/golden/*.rds
-## baseline (dev/baseline/capture_baseline.R) that is gitignored and never
-## ships, and are gated behind SPATIALGE_GOLDEN=true, which this workflow does
-## not set.
+## CI: runs the committed test tier on Linux, macOS and Windows.
+##
+## Windows is in the matrix because it is the only platform where the parallel
+## backend differs: there is no fork(), so sge_lapply() takes its PSOCK path
+## (R/utils_parallel.R). That path can be exercised anywhere with
+## options(spatialGE.psock=TRUE) and is, in tests/testthat/test-utils_parallel.R --
+## but Windows path handling, and the shell that the inline
+## system(sprintf('echo ...')) worker progress messages invoke, can only be
+## verified on Windows itself.
+##
+## Golden-baseline comparisons are deliberately NOT run here. They are bit-exact
+## (waldo tolerance = NULL) and the pipeline reaches BLAS/LAPACK through prcomp,
+## loess, gstat, spaMM and uwot, so results differ in the low bits across BLAS
+## implementations. tests/golden/ is captured locally, is gitignored, and the gate
+## is a same-machine/same-toolchain tool -- see the header of
+## dev/baseline/compare_baseline.R. The platform-portable net is the
+## tests/testthat/test-numeric-*.R tier, which asserts literal values at explicit
+## tolerances and runs by default.
 
 on:
   push:
@@ -15,7 +27,17 @@ name: test
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.os }} (R ${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: ubuntu-latest,  r: '4.5.3'}
+          - {os: macos-latest,   r: '4.5.3'}
+          - {os: windows-latest, r: '4.5.3'}
+
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
@@ -25,15 +47,25 @@ jobs:
 
       - uses: r-lib/actions/setup-r@v2
         with:
-          r-version: '4.5.3'
+          r-version: ${{ matrix.config.r }}
           use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           dependencies: '"hard"'
-          extra-packages: any::devtools, any::testthat, any::writexl
+          extra-packages: any::devtools, any::testthat, any::writexl, any::withr
           cache: always
 
       - name: Test
         run: devtools::test(stop_on_failure = TRUE)
+        shell: Rscript {0}
+
+      # Runs the whole suite a second time with every parallelized call site
+      # forced onto the non-forking backend. On Windows that is already the
+      # default, so this step matters on Linux and macOS: it is what stops a
+      # fork-only assumption from creeping back in unnoticed between Windows runs.
+      - name: Test (non-forking backend)
+        run: |
+          options(spatialGE.psock = TRUE)
+          devtools::test(stop_on_failure = TRUE)
         shell: Rscript {0}
