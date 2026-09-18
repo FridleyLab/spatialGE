@@ -131,18 +131,13 @@ bl_pipeline <- function(cores, verbose = FALSE){
   }, results, cores)
   pb_st <- results[["pseudobulk_STlist"]]$value
 
-  ## ZeroGene/ConstGene are dropped here to work around a real, separate bug:
-  ## pseudobulk_samples() dies on any gene whose pseudobulk value is constant
-  ## across samples. vargenes keeps every gene when max_var_genes >= n_genes,
-  ## scale() then yields an all-NaN column for a zero-sd gene, and prcomp()
-  ## fails with "cannot rescale a constant/zero column to unit variance".
-  ## Unlike the sctransform case above this IS a spatialGE bug, not an upstream
-  ## limitation -- a gene with identical totals across samples is legitimate
-  ## input. Fixed in the following commit; this rm_genes call comes back out
-  ## there, which is what proves the fix.
+  ## ZeroGene and ConstGene stay in deliberately: both have an identical
+  ## pseudobulk total in every sample, which used to kill prcomp(). They are the
+  ## fixture's standing regression case for that, so this step must not filter
+  ## them out.
   results <- bl_capture("pseudobulk_samples", {
     pb_tr <- transform_data(pb_st, method = "log", cores = cores)
-    pseudobulk_samples(filter_data(pb_tr, rm_genes = c("ZeroGene", "ConstGene")), calc_umap = FALSE)
+    pseudobulk_samples(pb_tr, calc_umap = FALSE)
   }, results, cores)
 
   pb_ok <- results[["pseudobulk_samples"]]$ok

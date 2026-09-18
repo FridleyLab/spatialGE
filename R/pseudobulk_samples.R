@@ -111,7 +111,25 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
   rm(min_genes_pseudobulk) # Clean env
 
   # Get variable genes and subset
-  vargenes = sort(apply(tr_df, 2, sd), decreasing=T)
+  gene_sds = apply(tr_df, 2, sd)
+
+  # A gene whose pseudobulk total is identical across every sample carries no
+  # between-sample signal, and scale() maps its zero-sd column to all-NaN,
+  # which prcomp() then rejects outright ('cannot rescale a constant/zero
+  # column to unit variance'). Such genes are legitimate input -- an all-zero
+  # gene, or one saturating the same value everywhere -- so drop them instead
+  # of failing. Only reachable when max_var_genes >= the available gene count,
+  # since otherwise the descending sort pushes them past the cutoff anyway.
+  keep_sd = is.finite(gene_sds) & gene_sds > 0
+  if(any(!keep_sd)){
+    warning(paste0('Dropped ', sum(!keep_sd), ' gene(s) with zero variance across samples before the pseudobulk PCA.'))
+    gene_sds = gene_sds[keep_sd]
+  }
+  if(length(gene_sds) < 2){
+    raise_err(err_code='error0042')
+  }
+
+  vargenes = sort(gene_sds, decreasing=T)
   vargenes = as.vector(na.omit(names(vargenes[1:max_var_genes])))
   tr_df = tr_df[, match(vargenes, colnames(tr_df))]
   tr_df = scale(tr_df)
