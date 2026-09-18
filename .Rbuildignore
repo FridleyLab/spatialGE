@@ -17,3 +17,4 @@
 ^vignettes/img/spatial_gradients\.png$
 ^vignettes/img/diagram_stenrich\.png$
 ^vignettes/img/smi_dir_structure\.png$
+^cran-comments\.md$
