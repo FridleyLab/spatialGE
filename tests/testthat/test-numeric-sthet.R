@@ -199,3 +199,80 @@ testthat::test_that("SThet is invariant to spot order for the default weighting"
                            tolerance = 1e-10, label = paste("order-invariant", k))
   }
 })
+
+testthat::test_that("computeMoranGeary reproduces spdep over the complete graph", {
+  ## The C++ path replaced create_listw_from_dist() + per-gene spdep calls. This
+  ## builds the old listw explicitly and asserts agreement, so the equivalence is
+  ## pinned in the repository rather than resting on a one-off check.
+  ##
+  ## Agreement is ~1e-15 relative, not bit-identical: S0 IS bit-identical (the C++
+  ## accumulates it in one continuous long double in spdep's own visit order), and
+  ## the residue is summation order inside lag.listw's dot product. 1e-15 is four
+  ## orders of magnitude below the order sensitivities fidelity rule 13 documents
+  ## for this statistic family.
+  set.seed(42)
+  n <- 200
+  side <- ceiling(sqrt(n))
+  g <- expand.grid(xpos = seq_len(side), ypos = seq_len(side))[seq_len(n), ]
+  coords <- as.matrix(g[, c("ypos", "xpos")])
+  rownames(coords) <- paste0("s", seq_len(n))
+
+  G <- 4
+  expr <- matrix(as.double(rpois(G * n, 4)), nrow = G,
+                 dimnames = list(paste0("g", 1:G), rownames(coords)))
+
+  ## Rebuild the old complete-graph listw exactly as create_listw_from_dist did.
+  adj <- as.matrix(stats::dist(coords))
+  adj <- adj / max(adj)
+  diag(adj) <- NA
+  dimnames(adj) <- list(rownames(coords), rownames(coords))
+  nb <- list(); wt <- list()
+  for(id in seq_len(nrow(adj))){
+    idx <- seq_len(nrow(adj))
+    nb[[id]] <- idx[-id]; names(nb[[id]]) <- idx[-id]
+    wt[[id]] <- 1 / (as.vector(adj[id, ])[-id])
+  }
+  class(nb) <- "nb"
+  lw <- list(style = "B", neighbours = nb, weights = wt)
+  class(lw) <- c("listw", "nb")
+
+  ref_i <- vapply(seq_len(G), function(k)
+    spdep::moran(expr[k, ], lw, n = n, S0 = spdep::Szero(lw))$I, numeric(1))
+  ref_c <- vapply(seq_len(G), function(k)
+    spdep::geary(expr[k, ], lw, n = n, n1 = n - 1, S0 = spdep::Szero(lw))$C, numeric(1))
+
+  zt <- t(sweep(expr, 1, rowMeans(expr), "-"))
+  res <- computeMoranGeary(coords, zt, TRUE, TRUE)
+
+  testthat::expect_equal(res$S0, spdep::Szero(lw), tolerance = 0)
+  testthat::expect_equal(res$moran, ref_i, tolerance = 1e-12)
+  testthat::expect_equal(res$geary, ref_c, tolerance = 1e-12)
+})
+
+testthat::test_that("computeMoranGeary behaves on random and degenerate input", {
+  set.seed(7)
+  n <- 400
+  side <- ceiling(sqrt(n))
+  g <- expand.grid(xpos = seq_len(side), ypos = seq_len(side))[seq_len(n), ]
+  coords <- as.matrix(g[, c("ypos", "xpos")])
+
+  ## Spatially unstructured data: Moran's I near 0 and Geary's C near 1 are the
+  ## theoretical expectations, and are what caught nothing being transposed.
+  zt <- matrix(rnorm(n * 3), nrow = n)
+  zt <- sweep(zt, 2, colMeans(zt), "-")
+  res <- computeMoranGeary(coords, zt, TRUE, TRUE)
+  testthat::expect_true(all(abs(res$moran) < 0.05))
+  testthat::expect_true(all(abs(res$geary - 1) < 0.05))
+
+  ## A constant gene has z == 0 throughout, so zz == 0 and both statistics are
+  ## 0/0. spdep returns NaN there; so must this, or SThet would silently write a
+  ## fabricated number into @gene_meta.
+  zt0 <- cbind(zt[, 1], rep(0, n))
+  res0 <- computeMoranGeary(coords, zt0, TRUE, TRUE)
+  testthat::expect_true(is.nan(res0$moran[2]))
+  testthat::expect_true(is.nan(res0$geary[2]))
+  testthat::expect_false(is.nan(res0$moran[1]))
+
+  ## Guard the input contract rather than letting a transposed matrix through.
+  testthat::expect_error(computeMoranGeary(coords, t(zt), TRUE, TRUE), "one row per spot")
+})

@@ -144,7 +144,14 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
         stop("If using k nearest-neighbors, please input a positive integer for k.")
       }
     } else{
-      x@misc[['sthet']][['listws']] = create_listw_from_dist(x, cores=cores)
+      # No listw for the default distance weighting. create_listw_from_dist()
+      # built a complete graph -- every spot neighbouring every other -- as an R
+      # list of named vectors: 1216.8 MB for a single 4,096-spot sample, and
+      # ~181 GB extrapolated to 50,000 cells. computeMoranGeary() derives the
+      # same statistics from the coordinates directly, so the graph is never
+      # needed. @misc$sthet$listws therefore stays unset on this path; nothing
+      # outside SThet() reads it.
+      x@misc[['sthet']][['listws']] = NULL
     }
   }
 
@@ -189,7 +196,9 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   stat_list = sge_lapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
     i = unique(as.vector(unlist(combo[[1]])))[i_combo]
     genes_tmp = unique(as.vector(unlist(combo[[2]][combo[[1]] == i])))
-    sthet_stat_one_sample(sample_tr_counts(x, i), genes_tmp, x@misc[['sthet']][['listws']][[i]], method='moran')
+    sthet_stat_one_sample(sample_tr_counts(x, i), genes_tmp,
+                          x@misc[['sthet']][['listws']][[i]], method='moran',
+                          coords_mat=sthet_coords_matrix(sample_spatial_meta(x, i)))
   }, cores=cores, preschedule=F)
 
   names(stat_list) = unique(as.vector(unlist(combo[[1]])))
@@ -233,7 +242,9 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   stat_list = sge_lapply(seq_along(1:length(unique(as.vector(unlist(combo[[1]]))))), function(i_combo){
     i = unique(as.vector(unlist(combo[[1]])))[i_combo]
     genes_tmp = unique(as.vector(unlist(combo[[2]][combo[[1]] == i])))
-    sthet_stat_one_sample(sample_tr_counts(x, i), genes_tmp, x@misc[['sthet']][['listws']][[i]], method='geary')
+    sthet_stat_one_sample(sample_tr_counts(x, i), genes_tmp,
+                          x@misc[['sthet']][['listws']][[i]], method='geary',
+                          coords_mat=sthet_coords_matrix(sample_spatial_meta(x, i)))
   }, cores=cores, preschedule=F)
 
   names(stat_list) = unique(as.vector(unlist(combo[[1]])))
@@ -271,8 +282,68 @@ gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
 # @param method one of 'moran' or 'geary'.
 # @return a named list (by gene) of `spdep::moran`/`spdep::geary` result objects.
 #
-sthet_stat_one_sample = function(tr_counts_mat, genes, listw, method=c('moran', 'geary')){
+##
+# @title sthet_coords_matrix
+# @description Builds the coordinate matrix SThet's statistics are computed over,
+# in the same form and column order create_listw_from_dist() used --
+# ypos then xpos, row-named by libname -- so distances are identical to what the
+# listw path produced.
+#
+# remove_rownames() first: @spatial_meta is a plain data.frame, so a caller that
+# row-subset it with base `[` leaves non-contiguous row names that
+# column_to_rownames() rejects. See the slot-contract note in dev/ARCHITECTURE.md.
+#
+# @param spatial_meta_df one sample's @spatial_meta.
+# @return a numeric matrix, spots in rows.
+#
+sthet_coords_matrix = function(spatial_meta_df){
+  as.matrix(spatial_meta_df[, c('libname', 'ypos', 'xpos')] %>%
+              tibble::remove_rownames() %>%
+              tibble::column_to_rownames('libname'))
+}
+
+
+sthet_stat_one_sample = function(tr_counts_mat, genes, listw, method=c('moran', 'geary'),
+                                  coords_mat=NULL){
   method = match.arg(method)
+
+  # Default (k=NULL) path: no listw was built, so compute over the implicit
+  # complete graph in C++. create_listw_from_dist() materialized that graph as an
+  # R list of named vectors -- 1216.8 MB for one 4,096-spot sample, and roughly
+  # 181 GB extrapolated to 50,000 cells, i.e. not runnable. computeMoranGeary()
+  # needs O(n) memory instead, and does every gene in one pass over the distances
+  # rather than one spdep call per gene.
+  #
+  # Returns the same shape as the spdep branch -- a gene-named list of lists with
+  # $I/$C and $K -- so both callers stay unchanged.
+  if(is.null(listw)){
+    if(is.null(coords_mat)){
+      stop('sthet_stat_one_sample: coords_mat is required when listw is NULL.')
+    }
+    # Same spot ordering the spdep branch relies on: coordinates in
+    # @spatial_meta row order, expression in @tr_counts column order. The
+    # previous implementation made exactly this assumption, since listw
+    # neighbours were indexed by spatial_meta row while gene_expr came from
+    # tr_counts columns.
+    expr_sub = tr_counts_mat[genes, , drop=FALSE]
+    expr_sub = as.matrix(expr_sub)
+    zt = t(sweep(expr_sub, 1, rowMeans(expr_sub), '-'))
+
+    res = computeMoranGeary(coords_mat, zt,
+                            want_moran = (method == 'moran'),
+                            want_geary = (method == 'geary'))
+
+    stat_list_tmp = list()
+    for(gi in seq_along(genes)){
+      if(method == 'moran'){
+        stat_list_tmp[[genes[gi]]] = list(I=res[['moran']][gi], K=res[['K']][gi])
+      } else{
+        stat_list_tmp[[genes[gi]]] = list(C=res[['geary']][gi], K=res[['K']][gi])
+      }
+    }
+    return(stat_list_tmp)
+  }
+
   stat_list_tmp = list()
   for(j in genes){
     # Extract expression data for a given gene.

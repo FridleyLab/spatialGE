@@ -13,3 +13,7 @@ computeSubsampleSums <- function(coords, n_subsample, n_samples) {
     .Call('_spatialGE_computeSubsampleSums', PACKAGE = 'spatialGE', coords, n_subsample, n_samples)
 }
 
+computeMoranGeary <- function(coords, zt, want_moran, want_geary) {
+    .Call('_spatialGE_computeMoranGeary', PACKAGE = 'spatialGE', coords, zt, want_moran, want_geary)
+}
+

@@ -48,11 +48,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// computeMoranGeary
+Rcpp::List computeMoranGeary(const Rcpp::NumericMatrix& coords, const Rcpp::NumericMatrix& zt, bool want_moran, bool want_geary);
+RcppExport SEXP _spatialGE_computeMoranGeary(SEXP coordsSEXP, SEXP ztSEXP, SEXP want_moranSEXP, SEXP want_gearySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type zt(ztSEXP);
+    Rcpp::traits::input_parameter< bool >::type want_moran(want_moranSEXP);
+    Rcpp::traits::input_parameter< bool >::type want_geary(want_gearySEXP);
+    rcpp_result_gen = Rcpp::wrap(computeMoranGeary(coords, zt, want_moran, want_geary));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_spatialGE_SparseRowVar2", (DL_FUNC) &_spatialGE_SparseRowVar2, 2},
     {"_spatialGE_SparseRowVarStd", (DL_FUNC) &_spatialGE_SparseRowVarStd, 4},
     {"_spatialGE_computeSubsampleSums", (DL_FUNC) &_spatialGE_computeSubsampleSums, 3},
+    {"_spatialGE_computeMoranGeary", (DL_FUNC) &_spatialGE_computeMoranGeary, 4},
     {NULL, NULL, 0}
 };
 
