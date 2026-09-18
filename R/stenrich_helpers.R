@@ -20,8 +20,13 @@
 stenrich_score_one_combo = function(delayed_mat, pw_genes_combo, geneset_name, min_genes){
   # Test if genes in data set are enough
   if(length(pw_genes_combo) >= min_genes){
-    # Calculate average expression of genes within pathway for each spot/cell
-    expr_subset = delayed_mat[pw_genes_combo, ]
+    # Calculate average expression of genes within pathway for each spot/cell.
+    # drop=FALSE is load-bearing: a gene set with exactly one gene present
+    # otherwise subsets to a dimensionless vector, and colMeans2() rejects it
+    # with "Argument 'dim.' must be an integer vector of length two". min_genes=1
+    # explicitly permits single-gene sets, so that path was reachable and always
+    # failed. No effect when two or more genes are present.
+    expr_subset = delayed_mat[pw_genes_combo, , drop=FALSE]
     pw_avg_exp = DelayedMatrixStats::colMeans2(expr_subset)
   } else{
     pw_avg_exp = rep(NA, ncol(delayed_mat))
