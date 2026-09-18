@@ -135,12 +135,17 @@ fixture_scale_stlist <- function(preset = "visium", n_samples = 2L){
     d
   })
 
+  ## gene_meta and tr_counts are both left EMPTY, matching what STlist() produces
+  ## before transform_data(). Populating gene_meta while leaving tr_counts empty
+  ## is a state STlist() never produces, and filter_stage_counts() crashes on it:
+  ## its gene_meta branch reads Matrix::rowMeans(x@tr_counts[[i]]) guarded only by
+  ## is_empty(x@gene_meta), never checking tr_counts. Not worth "fixing" in R/ --
+  ## the state is unreachable through the public API -- but a fixture must not
+  ## manufacture it either.
   methods::new("STlist",
                counts = counts,
                spatial_meta = spatial_meta,
-               gene_meta = stats::setNames(
-                 lapply(counts, function(m) tibble::tibble(gene = rownames(m))),
-                 names(counts)),
+               gene_meta = list(),
                sample_meta = tibble::tibble(sample_name = names(counts)),
                tr_counts = list(),
                gene_krige = list(),

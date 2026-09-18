@@ -131,18 +131,36 @@ filter_stage_counts = function(x, samples, spot_minreads, spot_maxreads, spot_mi
   . = NULL
 
   for(i in samples){
-    # Decompress counts
-    df_tmp = expandSparse(x@counts[[i]])
+    # Every aggregate below runs on the sparse matrix directly.
+    #
+    # This used to open with expandSparse(x@counts[[i]]) -- a full dense
+    # data.frame -- and then build `nonzero_df`, a SECOND full dense logical
+    # matrix, so peak footprint was genes x cells x (8 + 4) bytes per sample and,
+    # under mclapply, per fork. That is ~200 MB for a 200 x 50000 Xenium sample.
+    # Every consumer before the filter is a row or column aggregate, so none of
+    # the densification was needed.
+    #
+    # Exact rather than approximate: @counts holds integer-valued counts, every
+    # aggregate here is a sum of them, values sit far below 2^53 so double
+    # arithmetic is exact, and skipping stored zeros cannot change a sum
+    # (x + 0 == x). Confirmed by the golden gate passing with no regeneration.
+    mtx_tmp = sample_counts(x, i)
 
-    # Get mask of non-zero counts
-    nonzero_df = (df_tmp != 0)
+    # Non-zero mask stays sparse: dgCMatrix != 0 yields an lgCMatrix, not a
+    # dense logical matrix. Note Matrix::colSums on an lgCMatrix returns integer
+    # where base colSums on a dense logical matrix returns double -- harmless
+    # here, since col_total_genes/row_total_spots only feed comparisons and
+    # max(), and neither is stored in the output (contrast
+    # stlist_process.R's deliberate as.double(), where the type IS contract).
+    nonzero_tmp = (mtx_tmp != 0)
 
     # Calculate total spot/cell counts and zero-count mask for number of genes per cell/spot
-    col_total_reads = colSums(df_tmp)
-    col_total_genes = colSums(nonzero_df)
+    col_total_reads = Matrix::colSums(mtx_tmp)
+    col_total_genes = Matrix::colSums(nonzero_tmp)
 
-    # Calculate percentage of counts from genes matching `spot_pct_expr`
-    col_expr_reads = colSums(df_tmp[grepl(spot_pct_expr, rownames(df_tmp)), ])
+    # Calculate percentage of counts from genes matching `spot_pct_expr`.
+    # Logical mask, never character indexing, per fidelity rule 9.
+    col_expr_reads = Matrix::colSums(mtx_tmp[grepl(spot_pct_expr, rownames(mtx_tmp)), , drop=FALSE])
     col_expr_percent = col_expr_reads/col_total_reads
     rm(col_expr_reads) # Clean env
     # Force NaNs tp zero, which result from zero as denominator (i.e., zero counts in the cell)
@@ -171,12 +189,12 @@ filter_stage_counts = function(x, samples, spot_minreads, spot_maxreads, spot_mi
       (col_expr_percent >= spot_minpct & col_expr_percent <= spot_maxpct_tmp)
 
     # Calculate total counts per gene
-    row_total_reads = rowSums(df_tmp)
+    row_total_reads = Matrix::rowSums(mtx_tmp)
 
     # Calculate percentage of non-zero spots/cells per gene
-    row_total_spots = rowSums(nonzero_df)
-    row_expr_percent = row_total_spots/ncol(df_tmp)
-    rm(nonzero_df) # Clean env
+    row_total_spots = Matrix::rowSums(nonzero_tmp)
+    row_expr_percent = row_total_spots/ncol(mtx_tmp)
+    rm(nonzero_tmp) # Clean env
 
     # If no maximum counts set by user, then make it the max counts of each gene
     if(is.null(gene_maxreads)){
@@ -200,13 +218,22 @@ filter_stage_counts = function(x, samples, spot_minreads, spot_maxreads, spot_mi
       (row_total_spots >= gene_minspots & row_total_spots <= gene_maxspots_tmp) &
       (row_expr_percent >= gene_minpct & row_expr_percent <= gene_maxpct_tmp)
 
-    # Perform filter
-    df_tmp = df_tmp[gene_mask, spot_mask]
+    # Perform filter. drop=FALSE matters: the previous data.frame version
+    # collapsed to a vector when exactly one spot survived, which then broke
+    # rownames_to_column() -- so filter_data() could not produce a single-spot
+    # sample at all. Staying sparse removes that edge case rather than
+    # preserving it.
+    mtx_tmp = mtx_tmp[gene_mask, spot_mask, drop=FALSE]
 
-    # Subset data in STlist
-    df_tmp = tibble::rownames_to_column(df_tmp, var='gene')
-    if(ncol(df_tmp) > 1){ # At least one spot
-      x@counts[[i]] = makeSparse(df_tmp)
+    # Subset data in STlist. Already a dgCMatrix, so no makeSparse() round trip
+    # through a dense matrix. The previous path went sparse -> dense -> data.frame
+    # -> as.matrix -> sparse, which also meant a duplicate gene name raised an
+    # incidental error from data.frame(); that error is gone now. It was never a
+    # designed check (fidelity rule 9 records it as incidental), and @counts
+    # tolerates duplicate rownames, but it does mean duplicate genes now pass
+    # through here silently.
+    if(ncol(mtx_tmp) > 0){ # At least one spot
+      x@counts[[i]] = mtx_tmp
       x@spatial_meta[[i]] = x@spatial_meta[[i]][x@spatial_meta[[i]]$libname %in% sample_cells(x, i, 'counts'), ] %>%
         dplyr::select(-total_counts, -total_genes) %>%
         dplyr::left_join(., tibble::tibble(libname=sample_cells(x, i, 'counts'),
