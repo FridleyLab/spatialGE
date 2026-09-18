@@ -63,6 +63,16 @@
 #
 transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL){
 
+  # Test if an STList has been input.
+  assert_stlist(x)
+
+  # Reject an unrecognized method up front. Without this the if/else below falls
+  # through without assigning tr_results, and the failure surfaces 10 lines later
+  # as 'object tr_results not found' -- an internal name the caller cannot act on.
+  if(!is.character(method) || length(method) != 1 || !(method %in% c('log', 'sct'))){
+    raise_err(err_code='error0043')
+  }
+
   # Detect transformation method
   # if(method == 'voom'){
   #   stop('voom normalization has been deprecated. Please use "log" or "sct".')

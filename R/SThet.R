@@ -68,6 +68,15 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
     cat(paste0('SThet started.\n'))
   }
 
+  # Test if an STList has been input.
+  assert_stlist(x)
+
+  # SThet reads @tr_counts exclusively. Without this check, an untransformed
+  # STlist reached resolve_samples() with an empty slot and failed inside tibble
+  # with "Can't extract columns past the end" -- an error that names neither
+  # SThet nor transform_data.
+  assert_transformed(x, err_code='error0044')
+
   # Select sample names if NULL or if number entered
   samples = resolve_samples(x, samples, slot='tr_counts', numeric_handling='plain',
                             char_transform='none', post_check='none')
@@ -75,6 +84,17 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
   # Check that genes have been input
   if(is.null(genes)){
     stop('Please enter one or more genes to calculate statistics.')
+  }
+
+  # k is handed to spdep::knearneigh(), which requires k < the number of points.
+  # Checked here rather than left to spdep so the message names SThet and the
+  # offending argument instead of surfacing as "knearneigh: fewer data points
+  # than k" from inside a worker.
+  if(!is.null(k)){
+    min_units = min(vapply(samples, function(s) sample_n_cells(x, s, 'tr_counts'), numeric(1)))
+    if(!is.numeric(k) || length(k) != 1 || is.na(k) || k < 1 || k >= min_units){
+      raise_err(err_code='error0047')
+    }
   }
 
   # Generate combination of sample x gene to for.

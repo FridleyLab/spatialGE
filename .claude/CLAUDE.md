@@ -49,6 +49,47 @@ Rscript -e 'cat(curlGetHeaders("https://github.com/FridleyLab/spatialGE_Data/raw
   `NAMESPACE` and bury the real diff. If an `.Rd` genuinely needs to change,
   hand-edit it and say so in the commit message.
 
+## Failing gracefully (package-wide requirement)
+
+**Every user-reachable failure must be an informative spatialGE error. An
+internal error from `Matrix`, `dplyr`, `tibble`, `spdep`, `gstat` or base leaking
+out to the caller is a bug, not an acceptable outcome.**
+
+The bar: the message names the function and the offending argument, and tells the
+caller what to do. These all failed it and were fixed:
+
+| was | now |
+|---|---|
+| `object 'tr_results' not found` | `transform_data: Unrecognized method. Please use one of: log, sct.` |
+| `attempt to select less than one element in get1index` | `STenrich: gene_sets must be a non-empty, named list of gene vectors.` |
+| `object 'xpos' not found` | `gene_interpolation: None of the requested genes are present...` |
+| `Can't extract columns past the end` | `SThet: Could not find normalized counts. Please use transform_data()...` |
+| `knearneigh: fewer data points than k` | `SThet: k must be smaller than the number of spots/cells...` |
+
+How to add one:
+
+1. Append a row to `inst/err.csv` (`errorNNNN,'function: message.'`, next free
+   code). Single-quoted, since `raise_err()` reads it with `quote="'"`.
+2. Call `raise_err(err_code='errorNNNN')` as early as the condition is
+   detectable -- validate at the entry point, not where the value is finally
+   consumed. Most of the cases above failed many lines downstream of the bad
+   input, which is why the messages named internals.
+3. Add a case to `tests/testthat/test-graceful-errors.R`, including the specific
+   leaked string in the `leaked` vector of the last test so the class cannot
+   regress.
+4. Prefer `assert_stlist()` / `assert_transformed()` / `resolve_samples()`
+   (`R/utils_validate.R`) over a hand-rolled check where one fits.
+
+Plain `stop('Please select a spatial weight between 0 and 1.')` is fine and does
+not need converting -- it already names the argument and the fix. The rule is
+about *internal* errors escaping, not about the `raise_err()` mechanism as such.
+
+**Silently accepting invalid input also violates this**, and is worse than an
+error because the caller believes it worked. Known open cases, not yet changed
+because doing so is a breaking behavior change: `SThet(genes=)`,
+`STgradient(annot=)`, `STgradient(ref=)` and `STenrich(annot=)` all accept a
+name that matches nothing and return without complaint.
+
 ## Verification
 
 Per commit:

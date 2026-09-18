@@ -104,6 +104,21 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
     genes = unique(genes)
   }
 
+  # Drop requested genes that are absent, and fail clearly if none survive.
+  # Previously an entirely absent gene set built empty kriging entries here and
+  # then failed much later inside the gstat formula with "object 'xpos' not
+  # found" -- an error that points at neither the gene nor this function.
+  present = Reduce(union, lapply(samples, function(s) sample_genes(x, s, 'tr_counts')))
+  missing_genes = setdiff(genes, present)
+  if(length(missing_genes) > 0){
+    message(paste0(paste(missing_genes, collapse=', '),
+                    ': Not present in the transformed counts. Skipping.\n'))
+  }
+  genes = intersect(genes, present)
+  if(length(genes) == 0){
+    raise_err(err_code='error0046')
+  }
+
   # Test if list with kriging exists for each gene. If not create it.
   for(gene in genes){
     if(is.null(x@gene_krige[[gene]]) && rlang::is_empty(x@gene_krige[[gene]])){

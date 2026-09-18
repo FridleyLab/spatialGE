@@ -32,3 +32,8 @@ error0039,'STlist -> read_xenium_outs: Could not recognize the file containing c
 error0040,'STlist -> read_xenium_outs: Could not find cell_id, y_centroid, and x_centroid in coordinates file.'
 error0041,'STgradient: None of the requested samples are present in the STlist.'
 error0042,'pseudobulk_samples: Fewer than two genes vary across samples. Cannot compute a PCA.'
+error0043,'transform_data: Unrecognized method. Please use one of: log, sct.'
+error0044,'SThet: Could not find normalized counts. Please use transform_data() before using SThet.'
+error0045,'STenrich: gene_sets must be a non-empty, named list of gene vectors.'
+error0046,'gene_interpolation: None of the requested genes are present in the transformed counts.'
+error0047,'SThet: k must be smaller than the number of spots/cells in every sample.'

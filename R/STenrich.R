@@ -56,6 +56,15 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
     cat("Running STenrich...\n")
   }
 
+  # gene_sets must be a non-empty NAMED list. An empty list produced a zero-row
+  # `combo` from expand.grid() and then failed downstream with "attempt to select
+  # less than one element in get1index"; an unnamed list produces gene_set=NA
+  # rows that silently test nothing.
+  if(!is.list(gene_sets) || length(gene_sets) == 0 ||
+     is.null(names(gene_sets)) || any(!nzchar(names(gene_sets))) || anyNA(names(gene_sets))){
+    raise_err(err_code='error0045')
+  }
+
   reps = as.integer(reps)
   num_sds = as.double(num_sds)
   min_units = as.integer(min_units)
