@@ -55,7 +55,7 @@
 pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
 
   # Test if an STList has been input.
-  assert_stlist(x, err_code='error0018')
+  x = assert_stlist(x, err_code='error0018')
 
   # Stop function if only one sample provided.
   if(length(x@counts) < 4){
@@ -226,6 +226,9 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
 #'
 pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='pca', pcx=1, pcy=2, ptsize=5){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # Prepare meta data
   meta_df = prepare_pseudobulk_meta(x, plot_meta) %>%
     tibble::rownames_to_column('pca_labs')
@@ -345,6 +348,9 @@ pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='p
 #' @export pseudobulk_heatmap
 #'
 pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_display_genes=30){
+
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
   # Prepare meta data
   meta_df = prepare_pseudobulk_meta(x, plot_meta)
 

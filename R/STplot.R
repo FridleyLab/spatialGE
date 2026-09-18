@@ -69,6 +69,9 @@
 #
 STplot = function(x, samples=NULL, genes=NULL, plot_meta=NULL, ks='dtc', ws=NULL, deepSplit=NULL, color_pal=NULL, data_type='tr', ptsize=NULL, txsize=NULL){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # Check if data set is Visium to flip y axis (may consider remove this in the future)
   visium = F
   if(x@misc[['platform']] == 'visium'){

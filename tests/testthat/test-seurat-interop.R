@@ -145,3 +145,41 @@ testthat::test_that("as_Seurat output is usable by the rest of the package", {
   gm <- get_gene_meta(sh, sthet_only = TRUE)
   testthat::expect_true(any(is.finite(gm$moran_i)))
 })
+
+testthat::test_that("every STlist entry point accepts a Seurat object", {
+  testthat::skip_if_not_installed("SeuratObject")
+
+  set.seed(3)
+  n <- 60; G <- 40
+  cts <- Matrix::Matrix(matrix(rpois(G * n, 4), nrow = G,
+                              dimnames = list(paste0("Gene", 1:G), paste0("c", 1:n))),
+                        sparse = TRUE)
+  obj <- SeuratObject::CreateSeuratObject(counts = cts, assay = "Spatial")
+  obj[["s1"]] <- SeuratObject::CreateFOV(
+    SeuratObject::CreateCentroids(data.frame(x = rep(1:10, 6), y = rep(1:6, each = 10),
+                                             cell = paste0("c", 1:n))),
+    type = "centroids", assay = "Spatial")
+
+  ## Coercion happens in assert_stlist(), so it reaches every function that
+  ## validates -- which, after this change, is all of them.
+  testthat::expect_no_error(suppressWarnings(tissue_names(obj)))
+  testthat::expect_no_error(suppressWarnings(spatial_metadata(obj)))
+  testthat::expect_no_error(suppressWarnings(summarize_STlist(obj)))
+
+  ## And a real chain works starting from a Seurat object rather than an STlist.
+  tr <- suppressWarnings(transform_data(obj, method = "log", cores = 1))
+  testthat::expect_s4_class(tr, "STlist")
+  sh <- SThet(tr, genes = c("Gene1", "Gene2"), method = "moran", cores = 1, verbose = FALSE)
+  testthat::expect_true(any(is.finite(get_gene_meta(sh, sthet_only = TRUE)$moran_i)))
+})
+
+testthat::test_that("functions that previously skipped validation now reject bad input", {
+  ## Eleven exported functions had no STlist check at all, so a wrong argument
+  ## surfaced as whatever internal error came first. They validate now.
+  for(fn in c("STgradient", "STenrich", "STdiff", "gene_interpolation", "STplot",
+              "plot_counts", "plot_image", "distribution_plots", "spatial_metadata",
+              "tissue_names")){
+    f <- get(fn, envir = asNamespace("spatialGE"))
+    testthat::expect_error(f(42), "STlist", label = paste(fn, "rejects a non-STlist"))
+  }
+})

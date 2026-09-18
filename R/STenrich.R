@@ -46,6 +46,9 @@ STenrich = function(x=NULL, samples=NULL, gene_sets=NULL, score_type='avg', reps
                     annot=NULL, domain=NULL, num_sds=1, min_units=20, min_genes=5,
                     pval_adj_method='BH', seed=12345, cores=NULL, verbose=TRUE){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # To prevent NOTES in R CMD check
   . = NULL
 

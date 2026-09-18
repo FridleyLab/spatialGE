@@ -64,7 +64,7 @@
 transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL){
 
   # Test if an STList has been input.
-  assert_stlist(x)
+  x = assert_stlist(x)
 
   # Reject an unrecognized method up front. Without this the if/else below falls
   # through without assigning tr_results, and the failure surfaces 10 lines later

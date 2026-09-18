@@ -19,6 +19,9 @@
 #
 plot_image = function(x=NULL, samples=NULL){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # Define which samples to plot
   samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='plain',
                             char_transform='none', post_check='grep',

@@ -64,6 +64,9 @@ plot_counts = function(x=NULL, samples=NULL, data_type='tr', plot_type='density'
                        color_pal='okabeito', cvalpha=0.5, distrib_subset=0.5,
                        subset_seed=12345){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # To prevent NOTES in R CMD check
   . = NULL
 

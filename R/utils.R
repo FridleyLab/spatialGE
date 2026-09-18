@@ -45,6 +45,9 @@ count_cores = function(n){
 #
 #
 spatial_metadata = function(x){
+
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
   meta_res = list()
   for(i in seq(x@spatial_meta)){
     meta_res[[i]] = base::colnames(x@spatial_meta[[i]][, -c(1:3)])
@@ -67,6 +70,9 @@ spatial_metadata = function(x){
 #
 #
 tissue_names = function(x){
+
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
   sample_res = names(x@counts)
 
   return(sample_res)
@@ -142,7 +148,7 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 #
 load_images = function(x=NULL, images=NULL){
   # Test if an STList has been input.
-  assert_stlist(x)
+  x = assert_stlist(x)
 
   if(is.null(images)){
     stop("Please, provide a vector with images file paths.")
@@ -308,7 +314,7 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
 #
 get_gene_meta = function(x=NULL, sthet_only=FALSE){
   # Test if an STList has been input.
-  assert_stlist(x)
+  x = assert_stlist(x)
   # Test is gene_meta is empty (no normalization performed on STlist)
   if(rlang::is_empty(x@gene_meta)){
     stop('No gene-level metadata available in this STlist.')

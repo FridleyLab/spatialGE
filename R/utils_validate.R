@@ -14,6 +14,23 @@
 #
 assert_stlist = function(x, message='The input must be a STlist.', err_code=NULL,
                           check_null=TRUE, check_class=TRUE){
+  # Accept a Seurat object anywhere an STlist is accepted, by coercing here.
+  #
+  # This is the "dispatch, then coerce at the boundary" decision from the plan's
+  # Phase 7, implemented at the single validation helper rather than as 22 S4
+  # generics. The reason is that the bodies read slots directly, so a genuine
+  # Seurat method would mean maintaining two implementations of everything; and
+  # since every entry point has to validate its input anyway, the validation
+  # helper is already the boundary. An S4 layer whose methods only coerced would
+  # add indirection without adding behavior.
+  #
+  # Consequence worth knowing: coercion runs STlist() on every call, so calling
+  # several functions in sequence on the same Seurat object re-imports it each
+  # time. Convert once with STlist(rnacounts=<seurat>) for any real workflow.
+  if(!is.null(x) && !is(x, 'STlist') && inherits(x, 'Seurat')){
+    x = STlist(rnacounts=x, verbose=FALSE)
+  }
+
   failed = (check_null && is.null(x)) || (check_class && !is(x, 'STlist'))
   if(failed){
     if(!is.null(err_code)){
@@ -22,6 +39,10 @@ assert_stlist = function(x, message='The input must be a STlist.', err_code=NULL
       stop(message)
     }
   }
+
+  # Returned so call sites can pick up the coerced object: `x = assert_stlist(x)`.
+  # Invisible, so the pre-existing statement-form calls stay silent.
+  invisible(x)
 }
 
 

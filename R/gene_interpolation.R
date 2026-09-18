@@ -62,6 +62,9 @@
 #
 gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores=NULL, verbose=TRUE){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # To prevent NOTES in R CMD check
   . = NULL
 

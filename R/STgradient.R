@@ -54,6 +54,9 @@ STgradient = function(x=NULL, samples=NULL, topgenes=2000, annot=NULL, ref=NULL,
                       out_rm=FALSE, limit=NULL, distsumm='min', min_nb=3, robust=TRUE,
                       nb_dist_thr=NULL, log_dist=FALSE, cores=NULL, verbose=TRUE){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # To prevent NOTES in R CMD check
   . = NULL
 

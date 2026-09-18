@@ -104,7 +104,7 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
   }
 
   # Test if an STList has been input.
-  assert_stlist(x)
+  x = assert_stlist(x)
 
   # Check data has been normalized. Otherwise raise error
   assert_transformed(x, err_code='error0007')

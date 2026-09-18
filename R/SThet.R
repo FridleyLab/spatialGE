@@ -69,7 +69,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
   }
 
   # Test if an STList has been input.
-  assert_stlist(x)
+  x = assert_stlist(x)
 
   # SThet reads @tr_counts exclusively. Without this check, an untransformed
   # STlist reached resolve_samples() with an empty slot and failed inside tibble

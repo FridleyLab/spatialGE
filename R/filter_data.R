@@ -91,7 +91,7 @@ filter_data = function(x=NULL,
                        spot_pct_expr="^MT-"){
 
   # Check than an STList was provided
-  assert_stlist(x, message='Please, specify an STList to filter.', check_class=FALSE)
+  x = assert_stlist(x, message='Please, specify an STList to filter.', check_class=FALSE)
 
   # 1. Remove entire samples/tissues
   x = filter_stage_samples(x, rm_tissue)
