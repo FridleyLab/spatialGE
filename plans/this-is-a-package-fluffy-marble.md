@@ -135,9 +135,43 @@ Then convert reads by category — the classification is complete and lands in
 | (C) whole-matrix materialization | 16 | explicit `materialize()`; unavoidable |
 
 Sequence the commits (D) → (B) → (A) → (C), smallest blast radius first.
-`resolve_samples()` (`R/utils_validate.R:83`) reaches slots by literal name
-string via `methods::slot()` and serves 7 call sites; rewrite it against
-`sample_order` here, because Phase 7 cannot dispatch through it otherwise.
+
+### As executed — three scope corrections
+
+**(D) is 22 sites, not 76.** 34 of the 76 are `names(x@counts)` /
+`names(x@tr_counts)`, which need no change: the slot stays a named list in user
+order with one manifest per sample, so `names()` keeps working while
+`nrow(x@counts[[i]])` does not. Converting them would have been churn that buried
+the 22 that actually break. Done in `3279e6c`.
+
+**Setters dropped.** `sample_counts(x, s) <- v` expands to
+``x <- `sample_counts<-`(x, s, v)``. R mutates in place only when an object's
+reference count is 1, and routing a slot write through an extra function frame
+risks defeating that — turning a free mutation into a full copy of a sample's
+matrix. That is 44 sites of churn for a real performance risk, and Phase 5 does
+not need it: writes only require interception in `filter_data` and
+`transform_data`, which can call the store writer directly. A uniform setter
+layer would solve a 2-site problem in 44 places.
+
+**The `resolve_samples()` rewrite is unnecessary.** The original justification
+was that Phase 7 could not dispatch through `methods::slot(x, slot)`. That holds
+only for genuine dual implementations, which Phase 7 rejects in favour of
+coercing at the boundary — under that design every internal only ever sees an
+STlist, so the string-keyed slot lookup is never reached with a Seurat object.
+It also survives Phase 5 untouched, since `names(x@counts)` works on a list of
+manifests. Left alone, with its 20 tests pinning the deliberately-divergent
+behaviour of its 14 callers.
+
+### Also landed here (measured, not planned)
+
+Densification removals found while converting the (A) sites. Each is its own
+commit with a before/after measurement:
+
+| change | scale | speedup | output |
+|---|---|---|---|
+| `filter_data` full densification removed | 200×50k | 27× | neutral (integer sums exact) |
+| `apply(m, 1, sd)` → `sparse_row_sds()` | 200×50k | 42× | moved `gene_stdevs` at 1e-16 |
+| log transform sparse end to end | 200×50k | 33× | bit-identical |
 
 ---
 
