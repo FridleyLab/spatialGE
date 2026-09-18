@@ -1,5 +1,23 @@
 # Phase 9 profiling findings
 
+> **STATUS: historical record of the pre-Phase-10 state. The line numbers are
+> stale.**
+>
+> All six "Phase 10 targets" below have shipped (`f2e414a`, `74e5935`,
+> `96bf081`, `8090078`, `1ca7962`, `330a69d`), so every `file:line` here points
+> at code that has since moved -- the duplicate `cor.test` is cited at
+> `R/STgradient.R:433` and following, but `spearman_cor_safe()` now exists at
+> `R/STgradient.R:399`. Read this for the reasoning and the measured numbers,
+> not as a current map.
+>
+> **It also has a blind spot worth naming, because it is why this file missed
+> the package's worst scaling defect.** Every measurement here was taken on the
+> standard fixture: 3 samples, 120 spots, ~200 genes. At that size a quadratic
+> term is invisible. `create_listw_from_dist()` -- `SThet()`'s *default*
+> weighting -- builds a complete graph, and had no benchmark and no test
+> coverage at all. See "Scaling defects invisible at fixture size" at the end of
+> this file.
+
 Generated from three complementary tools, all run against the synthetic
 fixture (`inst/testdata/make_fixtures.R`):
 
@@ -251,6 +269,48 @@ nothing to subset to. Not a target.
   its peers, consistent with the full-matrix `expandSparse()` call inside
   it (target #2 above) triggering repeated large allocations.
 
+## Scaling defects invisible at fixture size
+
+Everything above was measured at 120 spots. These were not, and could not have
+been -- they need `inst/testdata/make_scale_fixtures.R`, whose presets bracket
+the range where quadratic terms dominate (`small` 120, `visium` 4096, `xenium`
+50000).
+
+### `create_listw_from_dist()` builds a complete graph
+
+`R/utils.R:210`. Measured, single sample, `cores=1`:
+
+| preset | spots | wall (s) | `listw` size |
+|---|---:|---:|---:|
+| small | 120 | 0.00 | 1.1 MB |
+| visium | 4096 | 2.67 | **1216.8 MB** |
+
+1.2 GB for one sample at 4,096 spots -- 1,100x the memory for 34x the spots.
+Worse than quadratic because the loop attaches **character names** to every
+neighbour vector (`names(neighbours[[id]]) = idx[...]`), and computes membership
+via `rownames(adj) %in% rownames(adj)[id]`, an O(n) string comparison inside an
+O(n) loop. The result is a graph in which every spot neighbours every other.
+
+Three things make this the top priority rather than a curiosity:
+
+1. **It is the default.** `SThet(k=NULL)` takes this path (`R/SThet.R:118`).
+2. **The documentation steers users onto it.** Fidelity rule 13(b) recommends
+   `SThet()` without `k` for order-insensitivity, which is correct about
+   stability and unaware of the cost.
+3. **Extrapolation rules out real data.** At the `xenium` preset (50,000 cells)
+   the same formula gives roughly 181 GB, so it cannot run at all -- that preset
+   is a post-fix target, not a before/after comparison.
+
+`sthet_stat_one_sample()` (`R/SThet.R:245`) then loops genes in R, calling
+`spdep::moran`/`geary` once per gene against that graph. Replacing both halves
+with one compiled all-genes pass over the coordinates avoids materializing the
+graph entirely. Before claiming a speedup, confirm whether `spdep::moran`/`geary`
+are themselves compiled -- it determines whether the win is the construction
+alone or both halves.
+
+Note `create_listw_from_knn()` (`R/utils.R:192`) hardcodes `cores = 1`, so its
+`sge_lapply` never forks regardless of what the caller requests.
+
 ## Reproducing
 
 ```sh
@@ -261,4 +321,15 @@ Rscript dev/profiling/coverage.R         # writes dev/profiling/out/coverage.txt
 ```
 
 All four scripts are run from the package root and write into the
-gitignored `dev/profiling/out/`.
+gitignored `dev/profiling/out/`. All four require
+`options(spatialGE.cores=1)` or `SPATIALGE_CORES=1`, or every profile bottoms
+out in `mclapply`.
+
+The scale measurements above are reproduced with:
+
+```sh
+Rscript -e 'devtools::load_all(); source("inst/testdata/make_scale_fixtures.R")'
+```
+
+then building an STlist per preset via `fixture_scale_stlist(preset=)` and timing
+the unit directly.

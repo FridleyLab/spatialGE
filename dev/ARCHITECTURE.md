@@ -132,12 +132,16 @@ Setting either forces every parallelized call site serial and in-process, with
 no source edits -- this is what makes `profvis()` see past `mclapply` into the
 named units above.
 
-Three call sites are **deliberately not** routed through `resolve_cores` /
-`sge_lapply` (fidelity rule 3): `R/stlist_readers.R`'s two `mclapply` calls
-that pass no `mc.cores` at all (so they always use
-`getOption("mc.cores", 2L)`). Routing them through `resolve_cores` would
-change the fork count and which samples share a chunk -- a real behavior
-change, not a refactor.
+All five `sge_lapply` call sites in `R/stlist_readers.R` (lines 129, 136, 299,
+470, 558) pass `cores=cores` and `preschedule=F`, with `STlist()` resolving
+`cores` once at `R/STList.R:145` and threading it down. An earlier version of
+this document claimed two of them passed no `mc.cores` and therefore fell
+through to `getOption("mc.cores", 2L)`; that stopped being true with the "Fix
+cores being silently ignored in STList.R and transform_data.R" change, and
+fidelity rule 3 below is corrected accordingly. `read_matrices_fps()` and
+`read_cosmx_input()` still never call `resolve_cores()` themselves, so a direct
+call with `cores=NULL` would fall through to `mclapply`'s own default -- but
+`STlist()` never does that.
 
 ## Naming conventions
 
@@ -248,8 +252,11 @@ changes output rather than erroring:
    `class(res_mod) == 'HLfit'` before calling `summary.HLfit()`, but the
    underlying asymmetry itself is inherent to `mclapply` and is not something
    to "fix" — design fixture data so every fit converges instead.
-3. **`stlist_readers.R`'s two `mclapply` calls take no `mc.cores`, on
-   purpose** -- see the parallelism-model section above.
+3. **CORRECTED (was: "`stlist_readers.R`'s two `mclapply` calls take no
+   `mc.cores`, on purpose").** All five reader call sites pass `cores=cores`
+   today; `STlist()` resolves it once at `R/STList.R:145`. The rule as written
+   would have argued against a change that had already landed -- see the
+   parallelism-model section above for what is actually true.
 4. **`mc.preschedule` is per-call-site and never standardized.**
    `preschedule=FALSE` has a third set of semantics (per-element
    `mcparallel`, errors confined to one element, plus a `child.res[[1]]`
@@ -285,10 +292,15 @@ changes output rather than erroring:
    `check.names=FALSE` is load-bearing throughout.
 10. **Timing output (the `cat`ted `difftime` timers) is inherently
     non-reproducible.** Compare return values only in any regression check.
-11. **`sge_worker_msg` keeps `system(sprintf('echo "%s"', msg))` verbatim.**
-    Shell-interpolates `"`, `$`, backticks, `\` -- real sample names can
-    contain these. Also writes to *process* stdout, which `capture.output`
-    cannot see from inside a fork -- don't build any harness around stdout
+11. **The worker progress messages are 18 inline `system(sprintf('echo "%s"',
+    msg))` calls, not a helper.** There is no `sge_worker_msg` function -- an
+    earlier version of this document named one that never existed. They sit
+    inline in `transform_data.R`, `STclust.R`, `STdiff_fit.R`,
+    `stenrich_helpers.R`, `gene_interpolation_helpers.R` and
+    `stlist_readers.R`. Each shell-interpolates `"`, `$`, backticks, `\` --
+    real sample names can contain these. Also writes to *process* stdout, which
+    `capture.output` cannot see from inside a fork -- don't build any harness
+    around stdout
     for this.
 12. **`_R_CHECK_LIMIT_CORES_` makes `.check_ncores()` `stop()`/`warn()` when
     more than 2 cores are requested.** R CMD check sets this on CRAN's check
