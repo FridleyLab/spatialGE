@@ -29,11 +29,24 @@ Seurat_FindVariableFeatures = function(object=NULL){
   loess.span=0.3
   clip.max='auto'
 
-  if (!inherits(x=object, 'Matrix')) {
-    object <- as(object = as.matrix(x = object), Class = 'Matrix')
-  }
-  if (!inherits(x = object, what = 'dgCMatrix')) {
-    object <- as.sparse(x = object)
+  # Coerce to dgCMatrix in one step. SparseRowVar2()/SparseRowVarStd() take an
+  # Eigen::SparseMatrix<double>, so RcppEigen needs the i/p/x slots of a real
+  # CSC matrix -- a dense Matrix (dgeMatrix) is not acceptable.
+  #
+  # This replaces two branches that could not work together. The first coerced a
+  # non-Matrix input with as(as.matrix(object), 'Matrix'), which yields a
+  # *dgeMatrix*; the second then saw a non-dgCMatrix and called as.sparse(),
+  # which does not exist anywhere in this package or its imports. So any input
+  # that was not already a dgCMatrix failed with 'could not find function
+  # "as.sparse"'. It went unnoticed because every current caller happens to pass
+  # a dgCMatrix, and because 'as.sparse' was listed in utils::globalVariables()
+  # in R/globals.R, which suppressed the R CMD check NOTE that would have found
+  # it.
+  if(!inherits(x=object, what='dgCMatrix')){
+    if(!inherits(x=object, what='Matrix')){
+      object <- as.matrix(x = object)
+    }
+    object <- methods::as(object, 'CsparseMatrix')
   }
   if (selection.method == "vst") {
     if (clip.max == 'auto') {

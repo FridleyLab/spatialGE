@@ -1,4 +1,4 @@
-utils::globalVariables(c('.', 'CenterX_local_px', 'CenterY_local_px', 'adj_p_val', 'as.sparse', 'avg_log2fc',
+utils::globalVariables(c('.', 'CenterX_local_px', 'CenterY_local_px', 'adj_p_val', 'avg_log2fc',
                          'barcode', 'cell_ID', 'cell_id', 'cluster_1', 'cluster_2', 'coded_annot', 'comments',
                          'comments_spatial', 'contains', 'counts', 'dist2ref', 'dtype', 'emsb', 'exp_adj_p_val',
                          'exp_p_val', 'expr_values', 'exprval', 'feat_n', 'fov', 'geary', 'geary_c', 'gene', 'gene_mean',
