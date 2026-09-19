@@ -273,54 +273,39 @@ stgradient_one_sample = function(counts_mat, tr_counts_mat, spatial_meta_df, sam
 #
 stgradient_dists_one_sample = function(spatial_meta_df, annot, ref, exclude, distsumm, nb_dist_thr, min_nb, limit){
 
-  # Calculate euclidean distances
-  coords_tmp = spatial_meta_df %>%
-    dplyr::select(c('libname', 'ypos', 'xpos')) %>% tibble::column_to_rownames('libname')
-  dist_tmp = as.matrix(stats::dist(coords_tmp, method='euclidean'))
-  rm(coords_tmp) # Clean env
+  # Spots in the different categories (ref, nonref, excl), as 1-based row
+  # positions into spatial_meta_df (and therefore into the coordinate matrix).
+  ref_pos = which(spatial_meta_df[[annot]] == ref)
+  nonref_pos = which(!(spatial_meta_df[[annot]] %in% c(ref, exclude)))
+  nonref_tmp = spatial_meta_df[['libname']][nonref_pos]
 
-  # Save spots in the different categories (ref, nonref, excl)
-  ref_tmp = spatial_meta_df[['libname']][spatial_meta_df[[annot]] == ref]
-  nonref_tmp = spatial_meta_df[['libname']][!(spatial_meta_df[[annot]] %in% c(ref, exclude))]
-
-  # Identify spots to be removed from reference if not enough neighbors
-  # Get minimum distance among all spots within a sample (for Visium would be approximately the same for any sample)
-  min_sample = min(as.data.frame(dist_tmp[lower.tri(dist_tmp)]))
-  # Get distances among reference spots
-  dists_ref_tmp = dist_tmp[ref_tmp, ref_tmp, drop=F]
-
-  # Get number of neighbors within minimum distance
-  # NOTE: When dealing with other technologies like SMI, will need to be more flexible with
-  # minimum distances as not an array of equally distant spots. In this case, allowed a "buffer"
-  # of a quarter of the minimum distance
-  nbs = colSums(dists_ref_tmp >= min_sample * nb_dist_thr[1] & dists_ref_tmp <= min_sample * nb_dist_thr[2])
-  if(sum(nbs >= min_nb) < 1){ # At least 1 cluster of spots to continue with analysis
-    nbs_keep = c()
-  } else{
-    nbs_keep = names(nbs)[nbs >= min_nb] # Save spots to be kept (enough neighbors)
-  }
-  rm(nbs, dists_ref_tmp) # Clean environment
-
-  # Get summarized distances from the reference for each spot in the non-reference
-  # Select spots in analysis (non reference in rows, reference in columns)
-  dists_nonref_tmp = as.data.frame(dist_tmp[nonref_tmp, ref_tmp, drop=F])
-  # Remove columns corresponding to spots without enough neighbors
-  dists_nonref_tmp = dists_nonref_tmp[, colnames(dists_nonref_tmp) %in% nbs_keep, drop=F]
+  # Distances are computed in C++ without materializing the n x n matrix. The R
+  # version built as.matrix(stats::dist(coords)) -- ~128 MB at 4,096 spots and
+  # ~20 GB at 50,000 cells, so STgradient could not run on Xenium/CosMx data at
+  # all. computeGradientDists() returns min_sample, the number of kept reference
+  # spots, and each non-reference spot's min/mean distance to them, in O(n)
+  # memory. Values are bit-identical to the matrix path (see the C++ header).
+  # This also drops the column_to_rownames() call that made the function safe
+  # only when its caller passed an unsubset frame.
+  coords_mat = as.matrix(spatial_meta_df[, c('ypos', 'xpos')])
+  storage.mode(coords_mat) = 'double'
+  dist_res = computeGradientDists(coords_mat,
+                                  as.integer(ref_pos - 1L),
+                                  as.integer(nonref_pos - 1L),
+                                  as.double(nb_dist_thr[1]), as.double(nb_dist_thr[2]),
+                                  as.integer(min_nb),
+                                  distsumm == 'avg')
 
   # Check that distances are available for the comparison
   # Number of rows larger than 1, because cannot compute variable genes with a single non-reference spot
-  if(nrow(dists_nonref_tmp) > 1 & ncol(dists_nonref_tmp) > 0){
-    if(distsumm == 'avg'){ # Summarize non-reference spots using minimun or mean distance
-      dists_summ_tmp = tibble::tibble(barcode=rownames(dists_nonref_tmp),
-                                      dist2ref=apply(dists_nonref_tmp, 1, mean))
-    } else{
-      dists_summ_tmp = tibble::tibble(barcode=rownames(dists_nonref_tmp),
-                                      dist2ref=apply(dists_nonref_tmp, 1, min))
-    }
+  if(length(nonref_tmp) > 1 & dist_res[['n_kept']] > 0){
+    # The old apply(df, 1, mean|min) returned a barcode-named vector and
+    # tibble::tibble kept those names on the column; preserve that exactly.
+    dists_summ_tmp = tibble::tibble(barcode=nonref_tmp,
+                                    dist2ref=stats::setNames(dist_res[['dist2ref']], nonref_tmp))
   } else{
     dists_summ_tmp = tibble::tibble()
   }
-  rm(dists_nonref_tmp) # Clean environment
 
   # Remove distances if outside user-specified limit
   if(!is.null(limit) & nrow(dists_summ_tmp) > 1){

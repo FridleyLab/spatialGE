@@ -128,3 +128,53 @@ testthat::test_that("STgradient distsumm='min' is invariant to spot order", {
                            tolerance = 1e-10, label = paste("order-invariant", g))
   }
 })
+
+testthat::test_that("stgradient_dists_one_sample matches the matrix-based reference", {
+  ## Equivalence guard for the item-1b rewrite. The distance step used to build
+  ## as.matrix(stats::dist(coords)) -- ~934 MB of allocation at 4,096 spots and
+  ## ~20 GB at 50,000 cells -- and read min_sample, the kept-reference set, and
+  ## each non-reference spot's min/mean distance out of it. computeGradientDists()
+  ## computes the same three things in O(n) memory; this asserts bit-identity to
+  ## the matrix path for BOTH distsumm values, including the barcode names the
+  ## old apply(df, 1, ...) left on the column.
+  sc <- stgradient_fixture()
+  annot <- STG_ANNOT
+
+  old_dists <- function(spatial_meta_df, annot, ref, exclude, distsumm, nb_dist_thr, min_nb){
+    coords_tmp <- spatial_meta_df %>% dplyr::select(c("libname", "ypos", "xpos")) %>%
+      tibble::column_to_rownames("libname")
+    dist_tmp <- as.matrix(stats::dist(coords_tmp, method = "euclidean"))
+    ref_tmp <- spatial_meta_df[["libname"]][spatial_meta_df[[annot]] == ref]
+    nonref_tmp <- spatial_meta_df[["libname"]][!(spatial_meta_df[[annot]] %in% c(ref, exclude))]
+    min_sample <- min(as.data.frame(dist_tmp[lower.tri(dist_tmp)]))
+    dists_ref_tmp <- dist_tmp[ref_tmp, ref_tmp, drop = FALSE]
+    nbs <- colSums(dists_ref_tmp >= min_sample * nb_dist_thr[1] &
+                     dists_ref_tmp <= min_sample * nb_dist_thr[2])
+    nbs_keep <- if(sum(nbs >= min_nb) < 1) c() else names(nbs)[nbs >= min_nb]
+    dists_nonref_tmp <- as.data.frame(dist_tmp[nonref_tmp, ref_tmp, drop = FALSE])
+    dists_nonref_tmp <- dists_nonref_tmp[, colnames(dists_nonref_tmp) %in% nbs_keep, drop = FALSE]
+    if(nrow(dists_nonref_tmp) > 1 & ncol(dists_nonref_tmp) > 0){
+      if(distsumm == "avg"){
+        tibble::tibble(barcode = rownames(dists_nonref_tmp),
+                       dist2ref = apply(dists_nonref_tmp, 1, mean))
+      } else {
+        tibble::tibble(barcode = rownames(dists_nonref_tmp),
+                       dist2ref = apply(dists_nonref_tmp, 1, min))
+      }
+    } else tibble::tibble()
+  }
+
+  n_checked <- 0
+  for(s in names(sc@spatial_meta)){
+    sm <- sc@spatial_meta[[s]]
+    for(r in unique(sm[[annot]])){
+      for(ds in c("min", "avg")){
+        old <- old_dists(sm, annot, r, NULL, ds, c(0.75, 1.25), 3)
+        new <- stgradient_dists_one_sample(sm, annot, r, NULL, ds, c(0.75, 1.25), 3, NULL)
+        testthat::expect_identical(new, old, label = paste(s, r, ds))
+        n_checked <- n_checked + 1
+      }
+    }
+  }
+  testthat::expect_gt(n_checked, 6)
+})

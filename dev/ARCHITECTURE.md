@@ -41,11 +41,14 @@ row-subset with base `[` made `SThet()` fail outright -- both weightings, with
 an error naming neither `SThet` nor the real cause. Pinned by
 `tests/testthat/test-numeric-sthet.R`.
 
-The remaining two (`R/STgradient.R`'s `stgradient_dists_one_sample`,
-`R/STclust.R`'s `calculate_dist_matrices`) are still only safe because their
-callers happen to pass the whole, unsubset frame via `sample_spatial_meta()`.
-That is an invariant nothing enforces, so treat it as load-bearing when
-touching either caller.
+`stgradient_dists_one_sample()` no longer reaches `column_to_rownames()`
+at all: the item-1b rewrite takes row positions with `which()` and hands the
+coordinate matrix to C++, so it is safe on a row-subset frame now.
+
+The remaining one (`R/STclust.R`'s `calculate_dist_matrices`) is still only
+safe because its caller happens to pass the whole, unsubset frame via
+`sample_spatial_meta()`. That is an invariant nothing enforces, so treat it as
+load-bearing when touching that caller.
 
 Internal, non-exported accessors for the sample-major slots live in
 `R/utils_accessors.R` (`sample_counts()`, `sample_spatial_meta()`,

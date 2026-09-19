@@ -142,6 +142,16 @@
   27x faster, per-gene standard deviations 42x, and log transformation 33x
   (bit-identical output).
 
+* **`STgradient()`'s distance step no longer materializes the n x n distance
+  matrix.** `stgradient_dists_one_sample()` built `as.matrix(stats::dist(coords))`
+  -- 934 MB allocated at 4,096 spots and about 20 GB at 50,000 cells, so the
+  function could not run on Xenium or CosMx data at all. The distances are now
+  computed in C++ in O(n) memory. Output is bit-identical for both
+  `distsumm='min'` and `distsumm='avg'` (the latter reproduces R's two-pass
+  corrected `mean()`), so no results change; measured 1.6x faster and about
+  3,100x less allocation at 4,096 spots, and 50,000 cells now completes instead
+  of failing to allocate.
+
 
 * Set the environment variable `SPATIALGE_CORES`, or the option
   `spatialGE.cores`, to force every parallelized call site to run serially and

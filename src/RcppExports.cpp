@@ -11,6 +11,22 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// computeGradientDists
+Rcpp::List computeGradientDists(const Rcpp::NumericMatrix& coords, const Rcpp::IntegerVector& ref_idx, const Rcpp::IntegerVector& nonref_idx, double thr_low, double thr_high, int min_nb, bool want_mean);
+RcppExport SEXP _spatialGE_computeGradientDists(SEXP coordsSEXP, SEXP ref_idxSEXP, SEXP nonref_idxSEXP, SEXP thr_lowSEXP, SEXP thr_highSEXP, SEXP min_nbSEXP, SEXP want_meanSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< const Rcpp::NumericMatrix& >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type ref_idx(ref_idxSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector& >::type nonref_idx(nonref_idxSEXP);
+    Rcpp::traits::input_parameter< double >::type thr_low(thr_lowSEXP);
+    Rcpp::traits::input_parameter< double >::type thr_high(thr_highSEXP);
+    Rcpp::traits::input_parameter< int >::type min_nb(min_nbSEXP);
+    Rcpp::traits::input_parameter< bool >::type want_mean(want_meanSEXP);
+    rcpp_result_gen = Rcpp::wrap(computeGradientDists(coords, ref_idx, nonref_idx, thr_low, thr_high, min_nb, want_mean));
+    return rcpp_result_gen;
+END_RCPP
+}
 // SparseRowVar2
 NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, NumericVector mu);
 RcppExport SEXP _spatialGE_SparseRowVar2(SEXP matSEXP, SEXP muSEXP) {
@@ -63,6 +79,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_spatialGE_computeGradientDists", (DL_FUNC) &_spatialGE_computeGradientDists, 7},
     {"_spatialGE_SparseRowVar2", (DL_FUNC) &_spatialGE_SparseRowVar2, 2},
     {"_spatialGE_SparseRowVarStd", (DL_FUNC) &_spatialGE_SparseRowVarStd, 4},
     {"_spatialGE_computeSubsampleSums", (DL_FUNC) &_spatialGE_computeSubsampleSums, 3},
