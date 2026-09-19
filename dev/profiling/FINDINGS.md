@@ -268,6 +268,18 @@ nothing to subset to. Not a target.
   marked DEFERRED for this reason -- the actionable part of that item is
   `stdiff_mean_test()` only. Revisit only with a dedicated investigation;
   chunking/downsampling guidance is the likely first step.
+- **`calculate_weighted_dist()` allocates 3x per weight, but is left as-is.**
+  `Reduce('+', Map('*', ...))` (`R/STclust.R`) builds two scaled n x n copies
+  plus their sum per weight: measured 1.12 GB allocated for 3 weights at 4,096
+  spots (384 MB per weight vs the 128 MB matrix size), against 643 MB for
+  `calculate_dist_matrices()` itself. A C++ elementwise fusion was implemented
+  and measured at 3x less allocation, but it was reverted: clang contracted
+  `wa*a + wb*b` into an FMA, moving the result by 1 ULP and breaking the
+  bit-exact golden gate, and it was slower in the dev (`-O0`) build. The plan's
+  "lower-triangle vector per weight" formulation is also not available, because
+  `get_hier_clusters_dtc()` passes the full matrix to
+  `dynamicTreeCut::cutreeDynamic(distM=)`. Revisit only with
+  `-ffp-contract=off` and an optimized build.
 - **`sct_transf_one_sample`** (`bench_units.csv`): median 0.60s/call,
   32.9MB/call -- an order of magnitude slower than every other per-sample
   transform (`log_transf_one_sample` is 8.7ms). Expected, since SCTransform

@@ -290,7 +290,16 @@ calculate_weighted_dist = function(scaled_dists=NULL, ws=NULL){
     weight_ls = c(weight_g, weight_d)
     dmxs = list(scaled_dists[[1]], scaled_dists[[2]])
 
-    # Apply weight element-wise
+    # Apply weight element-wise.
+    # NOTE: this allocates three n x n matrices per weight -- two scaled copies
+    # plus the sum, 384 MB per weight at 4,096 spots where only the result is
+    # needed. A C++ elementwise fusion was implemented and measured (3x less
+    # allocation) but reverted: the compiler contracted wa*a + wb*b into an FMA,
+    # moving the result by 1 ULP and failing the bit-exact golden gate, and it
+    # was not faster in the dev build. The plan's lower-triangle formulation is
+    # not possible here anyway because get_hier_clusters_dtc() passes the full
+    # matrix to dynamicTreeCut::cutreeDynamic(distM=). Revisit only with
+    # -ffp-contract=off and an optimized build if the allocation matters.
     weight_mtx = Reduce('+', Map('*', dmxs, weight_ls))
 
     return(weight_mtx)

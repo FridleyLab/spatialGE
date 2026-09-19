@@ -322,10 +322,16 @@ possibly achievable in pure R. The 753 ms / 8 GCs figure predates the
 caller-side `expandSparse()` subsetting (`74e5935`); re-measure before investing.
 
 **3. `calculate_dist_matrices()` / `calculate_weighted_dist()` (`R/STclust.R:258-300`).**
-`wordspace::dist.matrix` and `hclust` are already compiled, but
-`Reduce('+', Map('*', dmxs, weight_ls))` allocates ~(2+2W)·n² doubles. Fuse
-scale-and-weight into one C++ pass writing a lower-triangle vector per weight.
-Output-neutral.
+**MEASURED, NOT IMPLEMENTED** (see `dev/profiling/FINDINGS.md` and the note at
+`calculate_weighted_dist()`). `Reduce('+', Map('*', dmxs, weight_ls))`
+allocates three n x n matrices per weight (two scaled copies plus the sum) --
+measured 384 MB per weight at 4,096 spots. Two corrections to the plan: the
+"lower-triangle vector per weight" formulation is not possible, because
+`get_hier_clusters_dtc()` passes the full matrix to
+`dynamicTreeCut::cutreeDynamic(distM=)`; and a C++ elementwise fusion, while
+3x lighter on allocation, is not bit-identical (clang contracts `wa*a + wb*b`
+into an FMA, 1 ULP off) and was slower in the dev build. Revisit only with
+`-ffp-contract=off` and an optimized build.
 
 **4. `stenrich_score_one_combo()` (`R/stenrich_helpers.R:30`).**
 `data.frame(as.list(pw_avg_exp))` builds one column *per cell* — a 100,000-column
