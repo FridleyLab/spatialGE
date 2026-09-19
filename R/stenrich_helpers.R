@@ -12,10 +12,16 @@
 # @param delayed_mat the sample's (possibly domain-subset) `DelayedArray` of
 # transformed counts.
 # @param pw_genes_combo the gene set's genes present in this sample's data.
-# @param geneset_name the gene set's name, used as the returned row name.
+# @param geneset_name the gene set's name. Retained for call-site
+# compatibility; the caller (`calculate_gs_mean_exp()`) names the row from the
+# combination table, so it is not used here.
 # @param min_genes the minimum number of present genes required to compute
 # an average (otherwise all spots/cells get NA).
-# @return a one-row data frame of per-spot/cell average expression.
+# @return a named numeric vector of per-spot/cell average expression, named by
+# the sample's spot/cell barcodes. A plain vector rather than a one-row data
+# frame: constructing a one-column-per-cell data frame here was O(cells)
+# name-validation per sample x gene-set combination, which is pathological at
+# CosMx/Xenium width (tens of thousands of columns).
 #
 stenrich_score_one_combo = function(delayed_mat, pw_genes_combo, geneset_name, min_genes){
   # Test if genes in data set are enough
@@ -32,9 +38,6 @@ stenrich_score_one_combo = function(delayed_mat, pw_genes_combo, geneset_name, m
     pw_avg_exp = rep(NA, ncol(delayed_mat))
     names(pw_avg_exp) = colnames(delayed_mat)
   }
-  pw_avg_exp = data.frame(as.list(pw_avg_exp), check.names=F)
-  rownames(pw_avg_exp) = geneset_name
-
   return(pw_avg_exp)
 }
 
@@ -103,7 +106,10 @@ stenrich_perm_one_combo = function(expr_vals, coords_mat, sample_name, gene_set_
 # calculate_gs_mean_exp
 # The function calculates the average expression of genes in a gene set for a group of cells or spots
 # The function works on an STlist and works by calculating average on a combination of samples and gene sets
-# Returns a named list of data frames
+# Returns a named list, one matrix per sample (rows = gene sets, columns = spots/cells).
+# Matrices rather than data frames: `do.call(rbind, ...)` over the helpers'
+# named numeric vectors gives the same values, row names and column names
+# without building a one-column-per-cell data frame per combination.
 #
 calculate_gs_mean_exp = function(x=NULL, combo=NULL, pw_genes=NULL, min_genes=NULL, cores=NULL){
   # Loop through combinations of samples and gene sets
@@ -114,7 +120,7 @@ calculate_gs_mean_exp = function(x=NULL, combo=NULL, pw_genes=NULL, min_genes=NU
   }, cores=cores)
   names(result_df) = paste0(combo[[1]], '&&', combo[[2]])
 
-  # Create dataframes per sample
+  # Create one matrix per sample (rows = gene sets, columns = spots/cells)
   result_df = lapply(1:length(unique(combo[[1]])), function(i){
     sample_tmp = unique(combo[[1]])[i]
     idx = which(combo[[1]] == sample_tmp)
@@ -160,15 +166,18 @@ calculate_gs_gsva_score = function(x=NULL, combo=NULL, gene_sets=NULL, pw_genes=
 
     # Add rows with NA to mimic output from "average expression" approach
     if(length(gene_sets_tmp) != length(gene_sets)){
-      pw_gsva_exp_list = lapply(names(gene_sets), function(j){
+      # Named list: for the NA filler rows below, `do.call(rbind, ...)` takes
+      # row names from the list names (a named numeric vector carries cell
+      # barcodes as *column* names, not a row name). With the names present the
+      # result is identical to building a one-row data frame per missing set,
+      # without a 10k-100k-column data frame per set.
+      pw_gsva_exp_list = setNames(lapply(names(gene_sets), function(j){
         if(j %in% rownames(pw_gsva_exp)){
           return(pw_gsva_exp[j, , drop=F])
         } else{
-          df_tmp = as.data.frame(as.list(setNames(rep(NA, ncol(pw_gsva_exp)), colnames(pw_gsva_exp))), check.names=F)
-          rownames(df_tmp) = j
-          return(df_tmp)
+          return(setNames(rep(NA, ncol(pw_gsva_exp)), colnames(pw_gsva_exp)))
         }
-      })
+      }), names(gene_sets))
       pw_gsva_exp = do.call(rbind, pw_gsva_exp_list)
     }
 

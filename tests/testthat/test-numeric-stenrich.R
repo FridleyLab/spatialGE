@@ -181,3 +181,58 @@ testthat::test_that("STenrich matches pinned p-values for the fixture's spot ord
   pin("domainAB",     0.06, 0.08)
   pin("flat",         0.37, 0.37)
 })
+
+testthat::test_that("calculate_gs_mean_exp returns matrices equivalent to the old per-cell data.frame path", {
+  ## Equivalence guard for the item-4 rewrite. stenrich_score_one_combo() now
+  ## returns a named numeric vector and calculate_gs_mean_exp() rbinds those into
+  ## a matrix, instead of building a one-column-per-cell data.frame per
+  ## sample x gene-set combination. This reconstructs the OLD construction from
+  ## the new vector return and asserts the two agree on values and dimnames, so
+  ## the data.frame -> matrix internal change cannot move a value or a name.
+  sc = stenrich_fixture()
+  samples = names(sc@counts)
+  sets = list(
+    gradient   = c("GradGene1", "GradGene2", "GradGene3"),
+    solo       = c("DomainGeneA"),
+    gs_special = c("GradGene1", "Gene$special")
+  )
+  min_genes = 1L
+
+  combo = expand.grid(sample_name = samples, gene_set = names(sets),
+                      stringsAsFactors = FALSE)
+  pw_genes = lapply(seq_len(nrow(combo)), function(i){
+    intersect(unique(sets[[combo[i, 2]]]), rownames(sc@tr_counts[[combo[i, 1]]]))
+  })
+  delayed_x = lapply(samples, function(s) DelayedArray::DelayedArray(sc@tr_counts[[s]]))
+  names(delayed_x) = samples
+
+  new_res = calculate_gs_mean_exp(delayed_x, combo, pw_genes, min_genes, cores = 1)
+
+  old_res = lapply(samples, function(s){
+    idx = which(combo[[1]] == s)
+    dfs = lapply(idx, function(i){
+      v = stenrich_score_one_combo(delayed_x[[s]], pw_genes[[i]],
+                                   as.vector(combo[[2]][i]), min_genes)
+      df = data.frame(as.list(v), check.names = FALSE)
+      rownames(df) = as.vector(combo[[2]][i])
+      df
+    })
+    names(dfs) = paste0(s, "&&", combo[[2]][idx])
+    out = do.call(rbind, dfs)
+    rownames(out) = gsub(paste0("^", s, "&&"), "", rownames(out))
+    out
+  })
+  names(old_res) = samples
+
+  for(s in samples){
+    testthat::expect_true(is.matrix(new_res[[s]]), label = paste("matrix", s))
+    testthat::expect_identical(dim(new_res[[s]]), dim(old_res[[s]]), label = paste("dim", s))
+    testthat::expect_identical(rownames(new_res[[s]]), rownames(old_res[[s]]), label = paste("rownames", s))
+    testthat::expect_identical(colnames(new_res[[s]]), colnames(old_res[[s]]), label = paste("colnames", s))
+    testthat::expect_equal(unname(new_res[[s]]), unname(as.matrix(old_res[[s]])),
+                           tolerance = 0, label = paste("values", s))
+  }
+
+  ## The special-character set name survives both paths identically.
+  testthat::expect_true("gs_special" %in% rownames(new_res[[samples[1]]]))
+})
