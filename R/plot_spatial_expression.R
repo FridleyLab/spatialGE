@@ -72,9 +72,7 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
       #   dplyr::left_join(x@spatial_meta[[i]] %>%
       #                      dplyr::select(libname, xpos, ypos), ., by='libname')
 
-      counts[[i]] = expandSparse(counts[[i]][rownames(counts[[i]]) %in% genes, , drop=FALSE]) %>%
-        t() %>%
-        as.data.frame() %>%
+      counts[[i]] = expandSparse(counts[[i]][rownames(counts[[i]]) %in% genes, , drop=FALSE], transpose=TRUE) %>%
         tibble::rownames_to_column(var='libname') %>%
         dplyr::left_join(x@spatial_meta[[i]] %>%
                            dplyr::select(libname, xpos, ypos), ., by='libname')

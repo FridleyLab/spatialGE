@@ -382,13 +382,11 @@ stgradient_expr_one_sample = function(counts_mat, tr_counts_mat, spatial_meta_df
     # Get transformed gene expression data (will be used for the correlations with distance)
     # Matrices will contain only the non-reference spots (as defined by non-NA value in distance)
     if(length(vargenes) > 0){
-      vargenes_mat = expandSparse(tr_counts_mat[ rownames(tr_counts_mat) %in% vargenes, , drop=FALSE])
+      vargenes_mat = expandSparse(tr_counts_mat[ rownames(tr_counts_mat) %in% vargenes, , drop=FALSE], transpose=TRUE)
       vargenes_expr = vargenes_mat %>%
-        t() %>%
-        as.data.frame() %>%
         tibble::rownames_to_column(var='barcode') %>%
         dplyr::left_join(dists_summ_tmp, ., by='barcode') %>%
-        dplyr::filter(barcode %in% colnames(vargenes_mat)) %>%
+        dplyr::filter(barcode %in% rownames(vargenes_mat)) %>%
         dplyr::right_join(spatial_meta_df %>%
                             tibble::rownames_to_column(var='barcode') %>%
                             dplyr::select(barcode=libname, ypos, xpos), ., by='barcode') %>%

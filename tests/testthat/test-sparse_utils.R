@@ -149,3 +149,22 @@ testthat::test_that("log_transf_one_sample returns a well-formed dgCMatrix", {
   expected <- log1p(sweep(d, 2, l, "/") * 10000)
   testthat::expect_identical(as.matrix(res), expected)
 })
+
+testthat::test_that("expandSparse(transpose=TRUE) is identical to transpose-then-frame", {
+  ## Equivalence guard for the item-5 rewrite: the transposing callers used to do
+  ## expandSparse(m) %>% t() %>% as.data.frame(), which densified, framed,
+  ## transposed the frame, and framed again. transpose=TRUE densifies the sparse
+  ## transpose once and must return the same data frame, names included.
+  set.seed(20260115)
+  M <- matrix(as.double(rpois(5 * 4, 3)), nrow = 5,
+              dimnames = list(c("Gene1", "Gene$special", "Gene3", "Gene4", "Gene5"),
+                              c("cellA", "cellB", "cell C", "cellD")))
+  m <- methods::as(Matrix::Matrix(M, sparse = TRUE), "CsparseMatrix")
+
+  old_way <- as.data.frame(t(data.frame(as.matrix(m), check.names = FALSE)))
+  new_way <- expandSparse(m, transpose = TRUE)
+  testthat::expect_identical(new_way, old_way)
+
+  ## The default path is unchanged.
+  testthat::expect_identical(expandSparse(m), data.frame(as.matrix(m), check.names = FALSE))
+})

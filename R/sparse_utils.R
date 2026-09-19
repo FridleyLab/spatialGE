@@ -36,10 +36,19 @@ makeSparse = function(dataframe){
 # expandSparse: takes a sparsed matrix and returns a dataframe
 # @param sparsedMatrix, a sparse matrix made from the Matrix
 # package
+# @param transpose if TRUE, return the transpose (spots/cells in rows, genes in
+# columns) by densifying the sparse transpose directly. Callers that previously
+# did `expandSparse(m) %>% t() %>% as.data.frame()` get the same data frame from
+# one densification instead of three full-size copies. Verified `identical()`
+# to that sequence, including special row/column names.
 # @return a data frame
 #
-expandSparse = function(sparsedMatrix){
-  NonSparse = data.frame(as.matrix(sparsedMatrix), check.names=F)
+expandSparse = function(sparsedMatrix, transpose=FALSE){
+  if(transpose){
+    NonSparse = data.frame(as.matrix(Matrix::t(sparsedMatrix)), check.names=F)
+  } else{
+    NonSparse = data.frame(as.matrix(sparsedMatrix), check.names=F)
+  }
   return(NonSparse)
 }
 
