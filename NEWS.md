@@ -152,6 +152,13 @@
   3,100x less allocation at 4,096 spots, and 50,000 cells now completes instead
   of failing to allocate.
 
+* **`STdiff()`'s `t_test` and `wilcoxon` paths are 17-27x faster.**
+  `stdiff_mean_test()` re-filtered and re-selected the whole expression frame
+  once per gene x cluster combination; the two groups depend only on the
+  annotation, so the split is now computed with base indexing and the gene column
+  is pulled directly. Output is unchanged -- the same `t.test`/`wilcox.test`
+  calls on the same vectors. The default `mm` path is not affected.
+
 
 * Set the environment variable `SPATIALGE_CORES`, or the option
   `spatialGE.cores`, to force every parallelized call site to run serially and

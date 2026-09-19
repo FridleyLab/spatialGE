@@ -108,3 +108,38 @@ testthat::test_that("STdiff returns the documented column contract", {
   testthat::expect_type(d$ttest_p_val, "double")
   testthat::expect_type(d$adj_p_val, "double")
 })
+
+testthat::test_that("STdiff wilcoxon matches the t_test log-fold-change contract", {
+  ## The wilcoxon path shares stdiff_mean_test() with t_test. It was uncovered
+  ## before the item-2 rewrite, which replaced the per-combination dplyr passes
+  ## with base indexing; the two paths must agree on avg_log2fc exactly (same
+  ## group means) and both must produce a bounded, direction-independent p-value.
+  ## STclust()'s internal joins emit dplyr many-to-many warnings on this
+  ## fixture, and wilcox.test warns "cannot compute exact p-value with ties";
+  ## neither is what this test is about.
+  sc <- suppressWarnings(stdiff_fixture())
+  res_t <- suppressWarnings(STdiff(sc, w = 0.025, k = "dtc", deepSplit = FALSE, topgenes = 20,
+                                   test_type = "t_test", cores = 1))
+  res_w <- suppressWarnings(STdiff(sc, w = 0.025, k = "dtc", deepSplit = FALSE, topgenes = 20,
+                                   test_type = "wilcoxon", cores = 1))
+
+  dt <- res_t[[1]]; dw <- res_w[[1]]
+  key_t <- paste(dt$sample, dt$gene, dt$cluster_1)
+  key_w <- paste(dw$sample, dw$gene, dw$cluster_1)
+  testthat::expect_setequal(key_t, key_w)
+
+  m <- match(key_t, key_w)
+  testthat::expect_equal(dt$avg_log2fc, dw$avg_log2fc[m], tolerance = 1e-12,
+                         label = "same log-fold-change")
+  testthat::expect_true(all(dw$wilcoxon_p_val >= 0 & dw$wilcoxon_p_val <= 1))
+  testthat::expect_true(all(dw$adj_p_val >= dw$wilcoxon_p_val - 1e-12))
+
+  ## Two-sided wilcoxon is direction-independent, like the t-test.
+  a <- dw[dw$sample == "alpha", ]
+  two_way <- Filter(function(g) nrow(g) == 2, split(a, a$gene))
+  testthat::expect_gt(length(two_way), 5)
+  for(g in two_way){
+    testthat::expect_equal(g$wilcoxon_p_val[1], g$wilcoxon_p_val[2], tolerance = 1e-12,
+                           label = paste("symmetric wilcoxon p", g$gene[1]))
+  }
+})
