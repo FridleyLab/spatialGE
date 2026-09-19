@@ -311,10 +311,15 @@ the reference set never allocates n×n. A fixed summation order also removes the
 that is an output change, so it is its own commit.
 
 **2. `non_spatial_de()` / `stdiff_mean_test()` (`R/STdiff_fit.R:325-397,480-526`).**
-`for(i in 1:nrow(combo))` with 4–5 separate dplyr passes per combination; the
-statistic itself is trivial arithmetic. 753 ms and 8 GCs per unit. Vectorize the
-Welch t-test / rank-sum over the whole gene × cluster matrix. Likely the largest
-win on the non-`mm` path and possibly achievable in pure R.
+**PARTIALLY DEFERRED** (see `dev/profiling/FINDINGS.md`, "Other hot spots
+observed"). `non_spatial_de()` is a `spaMM::fitme` mixed-model fit per gene x
+cluster, not trivial arithmetic; its cost is spaMM's own RcppEigen internals, so
+there is no local vectorization lever and no bit-exact rewrite short of a
+research task. The actionable part is `stdiff_mean_test()` (the non-default
+`t_test`/`wilcoxon` path): `for(i in 1:nrow(combo))` with 4–5 separate dplyr
+passes per combination, vectorizable over the whole gene × cluster matrix and
+possibly achievable in pure R. The 753 ms / 8 GCs figure predates the
+caller-side `expandSparse()` subsetting (`74e5935`); re-measure before investing.
 
 **3. `calculate_dist_matrices()` / `calculate_weighted_dist()` (`R/STclust.R:258-300`).**
 `wordspace::dist.matrix` and `hclust` are already compiled, but

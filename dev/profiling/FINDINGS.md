@@ -258,6 +258,16 @@ nothing to subset to. Not a target.
   particular (27GB for one cluster on a tiny fixture) suggests spaMM's
   internal matrices scale poorly and may need chunking/downsampling
   guidance in documentation even if the algorithm itself isn't changed.
+- **The whole `spaMM::fitme` family is DEFERRED, not scheduled.** Both
+  `spatial_de()`/`stdiff_spatial_one_cluster()` (above) and its non-spatial
+  counterpart `non_spatial_de()` (`R/STdiff_fit.R:325`) run one `spaMM::fitme`
+  per gene x cluster. The cost lives inside spaMM's own RcppEigen internals, not
+  in spatialGE's R loops, so there is no local dplyr/vectorization lever; and
+  reproducing spaMM's numeric output exactly is a research task rather than a
+  refactor. Phase 4 item 2 of `plans/this-is-a-package-fluffy-marble.md` is
+  marked DEFERRED for this reason -- the actionable part of that item is
+  `stdiff_mean_test()` only. Revisit only with a dedicated investigation;
+  chunking/downsampling guidance is the likely first step.
 - **`sct_transf_one_sample`** (`bench_units.csv`): median 0.60s/call,
   32.9MB/call -- an order of magnitude slower than every other per-sample
   transform (`log_transf_one_sample` is 8.7ms). Expected, since SCTransform
