@@ -41,7 +41,7 @@ Imports:
 	DelayedArray,
 	DelayedMatrixStats,
 	dynamicTreeCut,
-	dplyr,
+	dplyr (>= 1.1.0),
 	EBImage,
 	ggforce,
 	ggplot2,

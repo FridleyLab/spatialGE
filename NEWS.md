@@ -238,6 +238,14 @@
   messages are raw R errors and neither is informative; nothing is caught or
   handled differently.
 
+* `STdiff()` no longer emits dplyr's "Detected an unexpected many-to-many
+  relationship" warning under dplyr 1.1 and later. The gene x annotation table it
+  builds is deliberately many-to-many -- every gene of a sample combines with every
+  annotation of that sample -- but it was declared with the deprecated
+  `multiple='all'`, which newer dplyr checks separately from `relationship=` and
+  therefore ignores. The join now declares `relationship='many-to-many'`. The
+  joined rows, and every result built from them, are unchanged.
+
 # spatialGE 1.2.2
 
 # spatialGE 1.2.1

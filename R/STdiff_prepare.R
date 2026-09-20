@@ -57,8 +57,12 @@ stdiff_build_combo_table = function(x, samples, annot, topgenes, clusters, pairw
     rm(genes_tmp) # Clean env
   }
 
-  # Merge sample names, genes, and annotations in the same data frame
-  gene_and_meta = dplyr::full_join(genes, metas, by='samplename', multiple='all')
+  # Merge sample names, genes, and annotations in the same data frame.
+  # This is deliberately many-to-many: every gene of a sample must combine with
+  # every annotation of that sample to form the gene x cluster combinations
+  # tested below. Declaring it silences dplyr's relationship warning, which
+  # `multiple='all'` does not (multiple and relationship are separate checks).
+  gene_and_meta = dplyr::full_join(genes, metas, by='samplename', relationship='many-to-many')
   rm(genes, metas) # Clean env
 
   # Create "dictionary" with coded annotations (to avoid potentially problematic characters)
