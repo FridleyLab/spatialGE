@@ -137,6 +137,12 @@ testthat::test_that("stgradient_dists_one_sample matches the matrix-based refere
   ## computes the same three things in O(n) memory; this asserts bit-identity to
   ## the matrix path for BOTH distsumm values, including the barcode names the
   ## old apply(df, 1, ...) left on the column.
+  ##
+  ## The assertion is deliberately exact and it IS platform-sensitive: R's mean()
+  ## accumulates in LDOUBLE, so `distsumm='avg'` only matches if the C++ does
+  ## too. A plain `double` accumulator passes on arm64 (long double == double)
+  ## and fails by one ULP on x86-64 Linux/Windows. If this ever fails on the
+  ## 'avg' cases alone, fix gradient_helpers.cpp rather than relaxing this.
   sc <- stgradient_fixture()
   annot <- STG_ANNOT
 

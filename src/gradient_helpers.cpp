@@ -23,9 +23,13 @@
 // The euclidean distance is sqrt(sum over dimensions of (a-b)^2), the same
 // formula and accumulation order stats::dist uses, so values are bit-identical.
 // The mean reproduces R's real_mean() (summary.c) exactly: a two-pass
-// corrected mean (sum, divide, add sum-of-residuals/n), not a one-pass sum.
-// That is what makes distsumm='avg' bit-identical -- a one-pass long-double
-// sum disagrees by ~3.6e-15 relative.
+// corrected mean (sum, divide, add sum-of-residuals/n), not a one-pass sum,
+// with BOTH accumulators held in LDOUBLE. The accumulator width is
+// load-bearing, not incidental: R's real_mean() accumulates in LDOUBLE,
+// which is `long double` -- 80-bit on x86-64 but only 8 bytes (== double) on
+// arm64. A plain `double` here therefore agrees with R bit-for-bit on macOS
+// and disagrees by one ULP on Linux/Windows, which is exactly how this first
+// shipped. `long double` matches R on both.
 
 #include <Rcpp.h>
 #include <cmath>
@@ -100,25 +104,28 @@ Rcpp::List computeGradientDists(const Rcpp::NumericMatrix& coords,
   Rcpp::NumericVector dist2ref(nnonref, NA_REAL);
   if (nnonref > 1 && !kept.empty()) {
     const std::size_t nk = kept.size();
-    const double dn = (double) nk;
+    // LDOUBLE, not double -- see BIT-FIDELITY above. R divides by the integer
+    // n converted to LDOUBLE, so match that rather than dividing by a double.
+    const long double dn = (long double) nk;
     for (int i = 0; i < nnonref; ++i) {
       if (want_mean) {
         // R's mean() (real_mean() in R's summary.c) is a TWO-PASS corrected
         // mean, not sum/n: it sums, divides, then adds the sum of residuals
         // divided by n. Reproducing that here is what keeps distsumm='avg'
         // bit-identical; a one-pass long-double sum does not agree (measured
-        // 3.6e-15 relative disagreement on the fixture).
-        double s = 0.0;
+        // 3.6e-15 relative disagreement on the fixture). Both accumulators are
+        // LDOUBLE because R's are -- a double `s`/`t` is one ULP off on x86-64.
+        long double s = 0.0L;
         for (std::size_t m = 0; m < nk; ++m) {
           s += euclid(coords, nonref_idx[i], ref_idx[kept[m]]);
         }
         s /= dn;
-        double t = 0.0;
+        long double t = 0.0L;
         for (std::size_t m = 0; m < nk; ++m) {
           t += euclid(coords, nonref_idx[i], ref_idx[kept[m]]) - s;
         }
         s += t / dn;
-        dist2ref[i] = s;
+        dist2ref[i] = (double) s;
       } else {
         double mn = R_PosInf;
         for (std::size_t m = 0; m < nk; ++m) {
