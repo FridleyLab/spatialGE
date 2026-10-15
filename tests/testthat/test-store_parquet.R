@@ -202,6 +202,45 @@ testthat::test_that("STplot(genes=) works on a backed STlist and matches in memo
   testthat::expect_true(all(grepl("None of the requested genes are available for sample", w)))
 })
 
+testthat::test_that("distribution_plots(genes=) works on a backed STlist and matches in memory", {
+  st <- store_fixture()
+  bk <- backed_fixture(st)
+  genes <- c("Gene1", "GradGene1")
+
+  ## gene_plots() read the whole slot and tested rownames(expr_tmp[[i]]), so on a
+  ## backed object EVERY gene was reported absent in EVERY sample. Quieter than
+  ## the STplot case and worse for it: the function returned normally, having
+  ## messaged its way to an empty df_tmp, and the plots it handed back failed only
+  ## when something tried to print them.
+  a <- distribution_plots(st, genes = genes, data_type = "tr")
+  b <- testthat::expect_no_message(distribution_plots(bk, genes = genes, data_type = "tr"))
+
+  testthat::expect_identical(names(b), names(a))
+  for(nm in names(a)){
+    testthat::expect_identical(built_data(b[[nm]]), built_data(a[[nm]]),
+                               label = paste("distribution_plots panel", nm))
+  }
+
+  ## The raw slot takes the other branch of the data_type switch.
+  testthat::expect_identical(
+    built_data(distribution_plots(bk, genes = "Gene1", data_type = "raw")[["Gene1"]]),
+    built_data(distribution_plots(st, genes = "Gene1", data_type = "raw")[["Gene1"]]))
+
+  ## plot_meta= together with genes= routes through cluster_gene_plots() instead,
+  ## which carried its own copy of the same unrouted read.
+  sc <- STclust(st, ws = 0.025, ks = "dtc", deepSplit = FALSE, topgenes = 100,
+                cores = 1, verbose = FALSE)
+  sb <- backed_fixture(sc, "clust")
+  col <- "stclust_spw0.025_dsplFalse"
+  testthat::expect_identical(
+    built_data(distribution_plots(sb, plot_meta = col, genes = "Gene1", plot_type = "box")[["Gene1"]]),
+    built_data(distribution_plots(sc, plot_meta = col, genes = "Gene1", plot_type = "box")[["Gene1"]]))
+
+  ## A gene that genuinely is absent must still message and skip the sample.
+  testthat::expect_message(distribution_plots(bk, genes = "NoSuchGene"),
+                           "does not contain NoSuchGene")
+})
+
 testthat::test_that("validate_store detects a missing or altered file", {
   st <- store_fixture()
   bk <- backed_fixture(st)

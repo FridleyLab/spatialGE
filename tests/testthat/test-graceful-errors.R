@@ -173,6 +173,28 @@ testthat::test_that("STenrich requires annot and domain together", {
              cores = 1, verbose = FALSE))
 })
 
+testthat::test_that("the on-disk backing never reports a present gene as absent", {
+  ## The other half of the rule: silently accepting bad state, or silently
+  ## answering nothing, is worse than an error because the caller believes it
+  ## worked. All three defects this pins were that half rather than the error
+  ## half -- show()/summary() printed blank dimensions, distribution_plots()
+  ## messaged every gene as absent and then returned plots that failed only when
+  ## printed, and STplot() stopped with "Data was not found in the specified
+  ## slot" about data that was right there.
+  ##
+  ## A manifest answers rownames()/nrow() with NULL rather than erroring, so any
+  ## read that leaves the accessors in R/utils_accessors.R fails this way by
+  ## default. That is why this is a class guard and not three separate tests.
+  st <- ge_fixture()
+  bk <- STlist_to_disk(st, file.path(tempdir(), paste0("sge-ge-", as.integer(runif(1, 1, 1e6)))),
+                       overwrite = TRUE)
+
+  testthat::expect_no_warning(STplot(bk, genes = "Gene1"))
+  testthat::expect_no_message(distribution_plots(bk, genes = "Gene1"))
+  testthat::expect_false(any(grepl("( ROIs|spots|cells x  genes)",
+                                   capture.output(methods::show(bk)), fixed = TRUE)))
+})
+
 testthat::test_that("no user-facing failure leaks an internal variable name", {
   st <- ge_fixture()
   stu <- ge_fixture(transformed = FALSE)
