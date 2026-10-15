@@ -86,3 +86,4 @@ error0093,'resolve_cores: could not recognize the requested number of cores. Use
 error0094,'transform_data(method="sct"): SCTransform failed for sample %s (%d genes x %d spots/cells, min_cells=%d). Lower sct_n_regr_genes, or use method="log". Underlying error: %s'
 error0095,'STlist subsetting (x[i]): unknown sample name(s): %s. Available samples: %s.'
 error0096,'STlist subsetting (x[i]): i must select samples by name, position or logical vector. Subsetting is one-dimensional: an STlist holds several spatial arrays, each with its own genes and spots.'
+error0097,'STgradient: only %d gene(s) in this distance range have non-zero variance, which is too few to rank genes by variability (at least 4 are needed). Provide genes explicitly instead of relying on topgenes, or widen the distance range.'

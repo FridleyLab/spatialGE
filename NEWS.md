@@ -4,15 +4,35 @@
 
 * **`transform_data()` now populates `vst.variance.standardized` in
   `@gene_meta`.** Previously the column was added only as a side effect of
-  whichever analysis ran first (`STclust()`, `gene_interpolation()`), so the "top
-  variable genes" visible through `get_gene_meta()` -- and those a downstream
-  function would select for its default `topgenes` -- depended on call order.
-  This was observable rather than cosmetic: ranking by `gene_stdevs` and by VST
-  agree on only 6 of the top 20 genes. `transform_data()` now computes VST for
-  both `method='log'` and `method='sct'`, through the same `calculate_vst()`
-  helper that `STclust()` uses, so every caller sees one definition. Code that
-  inspected `colnames(get_gene_meta(x))` will see one additional column, and
-  code that counted on `STclust()` being what created it no longer needs to.
+  whichever analysis ran first, so whether `get_gene_meta()` showed it depended
+  on call order, and `gene_interpolation()`/`STplot_interpolation()` dropped any
+  existing column and recomputed it. `transform_data()` now computes it for both
+  `method='log'` and `method='sct'`, through the same `calculate_vst()` helper
+  `STclust()` uses, so every caller sees one definition. Code that inspected
+  `colnames(get_gene_meta(x))` will see one additional column, and code that
+  counted on `STclust()` being what created it no longer needs to.
+
+  Note this does not change which genes any function *selects*: `STclust()`,
+  `STgradient()`, `gene_interpolation()` and `STdiff()` already computed VST
+  themselves before ranking, so their `topgenes` choices were consistent before
+  this change too. (An earlier draft of this entry claimed otherwise, and also
+  cited a top-20 overlap between `gene_stdevs` and VST rankings of 6; measured
+  across the eight Visium samples of the `tnbc_bassiouni` set it is 7-13.) What
+  changed is where the column comes from, not what downstream functions do with
+  it.
+
+* **`transform_data()` no longer fails on a sample with very few variable
+  genes.** Because of the change above, `transform_data()` began fitting the
+  variance-mean loess that `vst.variance.standardized` requires. That fit needs
+  at least 4 genes with non-zero variance, and below it `stats::loess` stops
+  with `span is too small` -- so normalizing a very small or low-complexity
+  STlist aborted, where in 1.2.2 it had succeeded. The count that matters is of
+  *non-constant* genes, so a matrix with many genes of which only a few vary hit
+  it as well. Such a sample now gets a warning naming it, and is left without
+  the column rather than failing; `calculate_vst()` only computes when the column
+  is absent, so a later analysis retries instead of inheriting a wrong value.
+  Functions that rank genes by variability still raise an error on such a sample,
+  since there is no ranking to return.
 
 * **`dim()` on an `STlist` now obeys the base R contract.** It returns
   `c(n_genes, n_spots)` as an integer vector when the object holds exactly one

@@ -484,7 +484,12 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
       # Find tops variable genes using Seurat approach
       # First check if VST hasn't been calculated. If not, calculate
       if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
-        vst_tmp = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
+        vst_raw = Seurat_FindVariableFeatures(sample_counts(x, i))
+        # Too few non-constant genes for the loess fit. Reported as NA rather
+        # than warned here: this runs inside a fork, where a warning() is not
+        # reliably delivered to the caller, so the parent loop below emits it.
+        if(is.null(vst_raw)) return(NA)
+        vst_tmp = vst_raw %>%
           tibble::rownames_to_column(var='gene') %>%
           dplyr::select('gene', 'vst.variance.standardized') %>%
           dplyr::left_join(x@gene_meta[[i]], ., by='gene')
@@ -496,14 +501,32 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
     names(vst_ls) = samples
 
     for(i in samples){
-      if(!is.null(vst_ls[[i]])){
+      if(identical(vst_ls[[i]], NA)){
+        # Leave @gene_meta without the column rather than failing: the caller
+        # asked for a transformation, and gene_mean/gene_stdevs are still there.
+        # calculate_vst() only computes when the column is absent, so whichever
+        # analysis next needs it will retry rather than inherit a wrong value.
+        warning(paste0('Sample ', i, ' has fewer than 4 genes with non-zero variance, ',
+                       'which is too few to fit the variance-mean trend. ',
+                       'Skipping vst.variance.standardized for this sample; ',
+                       'functions selecting genes by variability (topgenes) will not work on it.'))
+      } else if(!is.null(vst_ls[[i]])){
         x@gene_meta[[i]] = vst_ls[[i]]
       }
     }
     return(x)
   } else{
     #vst_tmp = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
-    vst_tmp = Seurat_FindVariableFeatures(x) %>%
+    vst_raw = Seurat_FindVariableFeatures(x)
+    # The matrix form exists to rank genes by variability for a caller's
+    # `topgenes`. If the trend cannot be fit there is no ranking to return, so
+    # this is an error rather than a skip (error when nothing matches, warn when
+    # only some does). The message names STgradient because that is the only
+    # caller of this branch; a second caller should add its own code.
+    if(is.null(vst_raw)){
+      raise_err(err_code='error0097', samplename=NULL, nrow(x))
+    }
+    vst_tmp = vst_raw %>%
       tibble::rownames_to_column(var='gene') %>%
       dplyr::select('gene', 'vst.variance.standardized')
     return(vst_tmp)
