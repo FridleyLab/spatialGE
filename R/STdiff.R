@@ -84,13 +84,13 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   # Check that at least two clusters have been specified if pairwise
   if(pairwise & !is.null(clusters)){
     if(length(clusters) < 2){
-      stop('If pairwise tests requested, at least two clusters are required.')
+      raise_err(err_code='error0075')
     }
   }
 
   # Stop function if topgenes and sp_topgenes are not valid
   if((round(topgenes, 0) <= 0) | (sp_topgenes < 0 | sp_topgenes > 1)){
-    stop('topgenes or sp_topgenes contain invalid values.')
+    raise_err(err_code='error0076')
   }
 
   # Define samples using names (convert indexes to names if necessary)
@@ -103,13 +103,13 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
     # If annot=NULL, must specify w and k
     if(!is.null(w) & !is.null(k)){
       if(length(w) != 1 | length(k) != 1){
-        stop('Please specify a single value for w and a single value for k.')
+        raise_err(err_code='error0077')
       }
       # Construct column name from w and k
       annot = paste0('stclust_spw', as.character(w))
       if(k == 'dtc'){
         if(is.null(deepSplit)){
-          stop('If k=\"dtc\", then specify deepSplit.')
+          raise_err(err_code='error0078')
         } else if(is.logical(deepSplit)){
           if(deepSplit){
             annot = paste0(annot, '_dsplTrue')
@@ -121,18 +121,18 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
         }
       } else{
         if(!is.numeric(k)){
-          stop('Specify a valid k value.')
+          raise_err(err_code='error0079')
         }
         annot = paste0(annot, '_k', as.character(k))
       }
     } else{
-      stop('If no specific annotation is specified, please specify both w and k (STclust parameters).')
+      raise_err(err_code='error0080')
     }
   } else{
     if(length(annot) == 0){
-      stop('If w and k are not specified, one annotation column from @spatial_meta should be specified.')
+      raise_err(err_code='error0081')
     } else if(length(annot) > 1){
-      stop('Only one annotation column from @spatial_meta can be tested at a time. ')
+      raise_err(err_code='error0082')
     }
   }
 
@@ -146,11 +146,28 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
       }
     }
     if(length(samples_tmp) == 0){
-      stop('No samples left to test. Are the requested annotations/clusters present in at least one sample?')
+      raise_err(err_code='error0083')
     }
   }
   samples = samples_tmp
   rm(samples_tmp) # Clean env
+
+  # Validate the annotation's type and number of groups before anything is fit.
+  # STdiff treats the column as group labels and joins on it internally, so a
+  # numeric column (a perfectly ordinary metadata column such as total_counts)
+  # previously surfaced only much later, from dplyr:
+  #   Can't join `x$orig_annot` with `y$orig_annot` due to incompatible types.
+  #   i `x$orig_annot` is a <double>
+  # which names neither STdiff nor the argument to change.
+  for(i in samples){
+    annot_vals = x@spatial_meta[[i]][[annot]]
+    if(is.numeric(annot_vals)){
+      raise_err(err_code='error0070', samplename=i)
+    }
+    if(length(unique(stats::na.omit(as.character(annot_vals)))) < 2){
+      raise_err(err_code='error0071', samplename=i)
+    }
+  }
 
   # Calculate standardized variance for all samples (regardless if sample is not in requested test)
   x = stdiff_ensure_vst(x)

@@ -28,6 +28,8 @@ Description: Visualization and analysis of spatially resolved transcriptomics da
 	differential expression analysis using spatial mixed models.
 License: MIT + file LICENSE
 Copyright: inst/COPYRIGHT
+URL: https://github.com/FridleyLab/spatialGE, https://fridleylab.github.io/spatialGE/
+BugReports: https://github.com/FridleyLab/spatialGE/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)

@@ -199,3 +199,53 @@ testthat::test_that("no user-facing failure leaks an internal variable name", {
     testthat::expect_match(msg, "spatialGE exception")
   }
 })
+
+testthat::test_that("STdiff rejects a numeric annotation with an actionable message", {
+  ## `annot` is documented as "a column name ... containing the groups/clusters
+  ## to test", but a perfectly ordinary numeric metadata column (total_counts,
+  ## survival_months) used to surface only much later, from dplyr:
+  ##   Can't join `x$orig_annot` with `y$orig_annot` due to incompatible types.
+  ##   i `x$orig_annot` is a <double>
+  ## which names neither STdiff nor the argument to change.
+  st <- ge_fixture()
+  acol <- "num_annot"
+  for (s in names(st@spatial_meta)) {
+    st@spatial_meta[[s]][[acol]] <- seq_len(nrow(st@spatial_meta[[s]]))
+  }
+
+  testthat::expect_error(
+    STdiff(st, annot = acol, topgenes = 5, test_type = "t_test",
+           cores = 1, verbose = FALSE),
+    "spatialGE exception.*STdiff.*character or factor"
+  )
+})
+
+testthat::test_that("STdiff rejects an annotation with a single group", {
+  st <- ge_fixture()
+  acol <- "one_group"
+  for (s in names(st@spatial_meta)) {
+    st@spatial_meta[[s]][[acol]] <- "only"
+  }
+
+  testthat::expect_error(
+    STdiff(st, annot = acol, topgenes = 5, test_type = "t_test",
+           cores = 1, verbose = FALSE),
+    "spatialGE exception.*STdiff.*at least two distinct groups"
+  )
+})
+
+testthat::test_that("STdiff still accepts a character annotation", {
+  ## The guard above must not reject the normal case.
+  st <- ge_fixture()
+  acol <- "char_annot"
+  for (s in names(st@spatial_meta)) {
+    st@spatial_meta[[s]][[acol]] <- rep(c("a", "b"), length.out = nrow(st@spatial_meta[[s]]))
+  }
+
+  res <- suppressWarnings(
+    STdiff(st, annot = acol, topgenes = 5, test_type = "t_test",
+           cores = 1, verbose = FALSE)
+  )
+
+  testthat::expect_true(is.list(res))
+})

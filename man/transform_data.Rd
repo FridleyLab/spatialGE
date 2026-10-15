@@ -33,7 +33,10 @@ If NULL, the function uses half of the available cores at a maximum. The paralle
 uses \code{parallel::mclapply} and works only in Unix systems.}
 }
 \value{
-x an updated STlist with transformed counts.
+x an updated STlist with transformed counts. \code{gene_meta} gains
+\code{vst.variance.standardized} (Seurat's standardized variance, computed from the
+raw counts) alongside \code{gene_mean} and \code{gene_stdevs}, so that "top variable
+gene" selection is the same whichever function runs first.
 }
 \description{
 Applies data transformation methods to spatial transcriptomics

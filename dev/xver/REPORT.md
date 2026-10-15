@@ -235,3 +235,121 @@ produced *false* alarms rather than false clean:
 5. The 5-sample pseudobulk fixture died on the fixture's deliberate zero-variance
    genes before reaching the heatmap, which is why delta 9 first showed as
    `MISSING_EXPECTED`.
+
+---
+
+# Re-verification at HEAD, after the Tier 1 fixes
+
+The sweep above is pinned to `98097bc`, which by then was **54 commits ahead of
+`main` but 36 behind HEAD**. Those 36 include output-affecting work — the SThet
+C++ rewrite (`e631ddb`), the sparse end-to-end log transform (`8af5346`), the
+sparse row-SD (`6913444`), `filter_data()`'s de-densification (`958fbff`),
+the `Seurat_FindVariableFeatures()` input fix (`a9ee265`) and the LDOUBLE
+correction in `STgradient()`'s distance mean (`0998e7e`) — so the headline above
+did not cover the tree that would actually ship. This section does.
+
+## Method
+
+- Compared `main` (`849c174`, v1.2.2) against **HEAD plus the Tier 1 working-tree
+  changes** (v2.0.0).
+- Data: `melanoma_thrane`, 4 samples (293 / 383 / 256 / 248 spots x ~16k genes).
+- Pipeline: `STlist` -> `filter_data()` (defaults) -> `transform_data(method='log')`
+  -> `SThet(genes=<5>, method=c('moran','geary'))` -> `STclust(ws=0.025, ks='dtc',
+  deepSplit=FALSE)` -> `STenrich(score_type='avg', reps=200)`, unrestricted and
+  with `annot=`+`domain=` -> `STgradient(topgenes=100)` ->
+  `STdiff(test_type='t_test', topgenes=50)` -> `gene_interpolation()`.
+- Cluster partitions were compared as *partitions*: each spot's label keyed by
+  `libname`, so a relabelling cannot hide as an order difference.
+
+**Build note (environment, not the package).** A fresh `R CMD INSTALL` of either
+version fails here: conda clang 22 and the Xcode SDK's libc++ headers disagree
+(`"remove_reference not implemented!"`), and neither `R_MAKEVARS_USER` nor a
+package-level `src/Makevars` resolves it cleanly. Both versions were therefore
+loaded with `pkgload::load_all(compile=FALSE)` against the same compiled helpers.
+That is sound **for this comparison** because `SparseRowVar2` and
+`SparseRowVarStd` — the only C++ entry points main's R code calls, confirmed by
+grep over `main`'s `R/`) are **byte-identical** in source between the two
+versions (`git diff main HEAD -- src/seurat_helpers.cpp
+src/spatialge_helpers.cpp` is empty), and v2.0.0's shared object exports them with
+unchanged signatures.
+
+## Result: no regression
+
+| Artifact | Verdict |
+|---|---|
+| `STlist` construction (per-sample dims) | identical |
+| `filter_data()` output | identical |
+| Transformed counts (sum and non-zero count per sample) | **bit-identical** (`tolerance = 0`) |
+| `spatial_meta`, `sample_meta` | **bit-identical** |
+| Cluster partitions (per-spot labels, all 4 samples) | **exactly identical** |
+| `STenrich`, unrestricted and with `annot=`+`domain=` | identical |
+| `STgradient()` (4 samples) | identical |
+| `STdiff(test_type='t_test')` (4 samples) | identical |
+| Kriging gene names; `@misc` key sets | identical |
+
+Differences, all accounted for:
+
+| Difference | Magnitude / cause |
+|---|---|
+| `@gene_meta` gains `vst.variance.standardized` | **intended** (Tier 1 fix) |
+| `@gene_meta` Moran's I | max abs delta **5.0e-16** |
+| `@gene_meta` Geary's C | max abs delta **1.4e-14** |
+
+The Moran/Geary deltas are the ~2e-15 effect NEWS already documents for
+`SThet()`'s default statistics; they remain below the 2.9e-14 floor this report
+measured earlier.
+
+## Intended, user-visible deltas introduced by the Tier 1 fixes
+
+These are deliberate and should be listed in NEWS rather than treated as drift:
+
+1. **`@gene_meta$vst.variance.standardized` is now populated by
+   `transform_data()`**, for both `method='log'` and `method='sct'`. Before, the
+   column appeared only as a side effect of whichever analysis ran first
+   (`STclust()`, `gene_interpolation()`), so the "top variable genes" a caller
+   could see -- and those a downstream function would select -- depended on call
+   order. `gene_stdevs` and VST rank the top-20 genes differently (only 6
+   overlap), so this was observable, not cosmetic.
+2. **`dim()` on an `STlist` now obeys the base contract.** It returns
+   `c(n_genes, n_spots)` for a single-sample object and `NULL` for a multi-sample
+   one, instead of a named list. This removes the `R CMD check` note and makes
+   `nrow()`/`ncol()` well defined. Nothing in the package called it.
+3. **`STlist` gained `setValidity()`**, so a malformed object (sample-key
+   mismatch, spot count disagreeing with `spatial_meta`, unnamed matrices) is now
+   rejected at construction instead of failing later.
+
+## Also confirmed while re-checking
+
+- **No exported function was removed** between 1.2.2 and HEAD: `NAMESPACE` goes
+  from 24 to 29 exports, all additions (`as_Seurat`, `STlist_to_disk`,
+  `STlist_to_memory`, `is_backed`, `validate_store`).
+- The public signatures of the shared API (`STlist`, `SThet`, `filter_data`,
+  `transform_data`) are **unchanged** between the two versions.
+- Both platform readers work on the project's own public data: Visium/TNBC (8
+  samples, `dgCMatrix`, e.g. 23755 x 1949) and CosMx/SMI (6 FOV-split samples,
+  980 genes x ~3.3-5.3k cells), with `platform` detected as `visium` / `cosmx`
+  respectively and the downstream pipeline running on both.
+
+## Re-check after Tier 2 and Tier 3
+
+The comparison above was re-run once more, against HEAD with the full Tier 2
+(error-handling consistency, centralised cores validation, docs/packaging) and
+Tier 3 (STlist subsetting/`length()`, plus the `@gene_krige` validity fix) work
+applied. **The verdict table is unchanged, item for item**:
+
+- still identical: `STlist`, dims, `filter_data()` output, transformed-count sums
+  (**bit-identical**), cluster partitions, `STenrich` (with and without
+  annotation+domain), `STgradient`, `STdiff`;
+- still differing for the same two reasons as before: `@gene_meta` gains
+  `vst.variance.standardized`, and Moran's I / Geary's C carry float noise
+  (max abs delta 5.0e-16 / 1.4e-14).
+
+That is the expected result, and it is worth stating why rather than just
+asserting "no change": none of the Tier 2/3 edits touch a numeric path. They
+change which *error* is raised and in what words, centralise an argument check,
+add documentation, add S4 methods (`length`, `[`) that previously did not exist
+or errored, and correct a validity predicate. The one edit with real behavior is
+the `@gene_krige` fix, and it only affects whether `validObject()` accepts an
+object that was already built correctly.
+
+

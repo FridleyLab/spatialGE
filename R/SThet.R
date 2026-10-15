@@ -83,7 +83,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
 
   # Check that genes have been input
   if(is.null(genes)){
-    stop('Please enter one or more genes to calculate statistics.')
+    raise_err(err_code='error0084')
   }
 
   # k is handed to spdep::knearneigh(), which requires k < the number of points.
@@ -141,7 +141,7 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
       if(!is.na(k) & k > 0){
         x@misc[['sthet']][['listws']] = create_listw_from_knn(x, ks=k)
       } else{
-        stop("If using k nearest-neighbors, please input a positive integer for k.")
+        raise_err(err_code='error0085')
       }
     } else{
       # No listw for the default distance weighting. create_listw_from_dist()
@@ -187,9 +187,6 @@ SThet = function(x=NULL, genes=NULL, samples=NULL, method='moran', k=NULL, overw
 gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   # Define cores available
   cores = resolve_cores(length(x@spatial_meta), cores, coerce='as_integer')
-  if(is.na(cores)){
-    stop('Could not recognize number of cores requested')
-  }
 
   # Use method to compute autocorrelation described in tutorial of https://rspatial.org/
   # Loop through combinations of samples x genes
@@ -233,9 +230,6 @@ gene_moran_i_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
 gene_geary_c_notest = function(x=NULL, combo=NULL, overwrite=T, cores=NULL){
   # Define cores available
   cores = resolve_cores(length(x@spatial_meta), cores, coerce='as_integer')
-  if(is.na(cores)){
-    stop('Could not recognize number of cores requested')
-  }
 
   # Use method to compute autocorrelation described in tutorial of https://rspatial.org/
   # Loop through combinations of samples x genes

@@ -16,6 +16,15 @@
 #' 4. Genes matching `rm_genes_expr`
 #' 5. Min and max counts
 #'
+#' Note that every count threshold defaults to `0` (and the `*_max*` thresholds
+#' to `NULL`, meaning no upper bound). A call that supplies none of them, and no
+#' `rm_*` argument either, therefore returns the STlist unchanged. Set at least
+#' one threshold to actually filter; with `verbose=TRUE` the function says so
+#' rather than returning silently.
+#'
+#' Filtering is sequential and single-threaded, so unlike the analysis functions
+#' there is no `cores` argument.
+#'
 #' @param x an STlist
 #' @param spot_minreads the minimum number of total reads for a spot to be retained
 #' @param spot_maxreads the maximum number of total reads for a spot to be retained
@@ -35,6 +44,8 @@
 #' @param rm_genes vector of gene names to remove from STlist. Removes genes in `x@counts`, `x@tr_counts`, and `x@gene_meta`
 #' @param rm_genes_expr a regular expression that matches genes to remove. Removes genes in `x@counts`, `x@tr_counts`, and `x@gene_meta`
 #' @param spot_pct_expr a expression to use with `spot_minpct` and `spot_maxpct`. By default '^MT-'.
+#' @param verbose logical, if `TRUE` reports how many samples, spots/cells and
+#' genes were removed (and says explicitly when nothing was filtered).
 #' @return an STlist containing the filtered data
 #'
 #' @examples
@@ -88,10 +99,15 @@ filter_data = function(x=NULL,
                        rm_spots=NULL,
                        rm_genes=NULL,
                        rm_genes_expr=NULL,
-                       spot_pct_expr="^MT-"){
+                       spot_pct_expr="^MT-",
+                       verbose=TRUE){
 
   # Check than an STList was provided
   x = assert_stlist(x, message='Please, specify an STList to filter.', check_class=FALSE)
+
+  # Record the starting dimensions so the effect of this call can be reported,
+  # and so a no-op call is visible instead of silent.
+  dims_before = lapply(x@counts, dim)
 
   # 1. Remove entire samples/tissues
   x = filter_stage_samples(x, rm_tissue)
@@ -114,6 +130,25 @@ filter_data = function(x=NULL,
   x = filter_stage_counts(x, samples, spot_minreads, spot_maxreads, spot_mingenes, spot_maxgenes,
                           spot_minpct, spot_maxpct, gene_minreads, gene_maxreads, gene_minspots,
                           gene_maxspots, gene_minpct, gene_maxpct, spot_pct_expr)
+
+  if(verbose){
+    shared = intersect(names(dims_before), names(x@counts))
+    samples_rm = length(setdiff(names(dims_before), names(x@counts)))
+    spots_rm = sum(vapply(shared, function(s) dims_before[[s]][2] - ncol(x@counts[[s]]), numeric(1)))
+    genes_rm = sum(vapply(shared, function(s) dims_before[[s]][1] - nrow(x@counts[[s]]), numeric(1)))
+
+    if(samples_rm == 0 && spots_rm == 0 && genes_rm == 0){
+      # Every threshold defaults to 0 and no rm_* argument was given, so this is
+      # a pass-through. Say so: previously it looked like filtering had happened.
+      message(paste0("filter_data: nothing was filtered. All count thresholds default to 0 ",
+                     "(and the *_max* thresholds to NULL), so this call returned the STlist ",
+                     "unchanged. Set at least one of spot_minreads, spot_mingenes, gene_minreads ",
+                     "or gene_minspots (and/or the matching *_max*/*_minpct*) to filter."))
+    } else{
+      message(sprintf("filter_data: removed %d sample(s), %d spot(s)/cell(s) and %d gene(s).",
+                      samples_rm, spots_rm, genes_rm))
+    }
+  }
 
   return(x)
 }

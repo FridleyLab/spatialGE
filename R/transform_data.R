@@ -23,7 +23,10 @@
 #' @param cores integer indicating the number of cores to use during parallelization.
 #' If NULL, the function uses half of the available cores at a maximum. The parallelization
 #' uses `parallel::mclapply` and works only in Unix systems.
-#' @return x an updated STlist with transformed counts.
+#' @return x an updated STlist with transformed counts. `gene_meta` gains
+#' `vst.variance.standardized` (Seurat's standardized variance, computed from the
+#' raw counts) alongside `gene_mean` and `gene_stdevs`, so that "top variable
+#' gene" selection is the same whichever function runs first.
 #'
 #' @examples
 #' \donttest{
@@ -117,6 +120,15 @@ transform_data = function(x=NULL, method='log', scale_f=10000, sct_n_regr_genes=
   # Copy names of the list
   names(x@gene_meta) = names(x@counts)
 
+  # Populate the standardized variance (VST) column here, rather than leaving it
+  # to whichever analysis happens to run first. Previously `gene_meta` held only
+  # gene_mean/gene_stdevs after transform_data(), and VST appeared later -- added
+  # as a side effect of STclust()/gene_interpolation(). So the "top variable
+  # genes" a user could see (get_gene_meta) and the ones a downstream function
+  # would pick depended on call order. calculate_vst() is idempotent and
+  # left-joins onto the columns set above, so this only adds a column.
+  x = calculate_vst(x=x, samples=names(x@counts), cores=cores)
+
   return(x)
 }
 
@@ -144,9 +156,6 @@ log_transf = function(x=NULL, scale_f=NULL, cores=NULL){
 
   # Detect usable cores
   cores = resolve_cores(length(x@counts), cores, coerce='as_integer')
-  if(is.na(cores)){
-    stop('Could not recognize number of cores requested')
-  }
 
   # Perform log-transformation on parallel if possible.
   #
@@ -189,9 +198,6 @@ sct_transf = function(x=NULL, sct_n_regr_genes=3000, sct_min_cells=5, cores=NULL
 
   # Detect usable cores
   cores = resolve_cores(length(x@counts), cores, coerce='as_integer')
-  if(is.na(cores)){
-    stop('Could not recognize number of cores requested')
-  }
 
   # Payload built outside the call so the closure captures only the two scalar
   # parameters. See R/utils_parallel.R on what this buys.
@@ -312,9 +318,18 @@ sct_transf_one_sample = function(counts_mat, sample_name, sct_n_regr_genes, sct_
     libsizes = libsizes[libsizes != 0]
   }
 
-  # Apply SCTransform
-  df_tmp = sctransform::vst(df_tmp, n_genes=sct_n_regr_genes, min_cells=sct_min_cells,
-                            return_corrected_umi=T, verbosity=0)
+  # Apply SCTransform. sctransform's own failure on a small or degenerate sample
+  # surfaces as an opaque "missing value where TRUE/FALSE needed" (after a
+  # "Caught simpleError. Canceling all iterations"), which names neither the
+  # sample nor the function, so translate it.
+  df_tmp = tryCatch(
+    sctransform::vst(df_tmp, n_genes=sct_n_regr_genes, min_cells=sct_min_cells,
+                     return_corrected_umi=T, verbosity=0),
+    error = function(e){
+      raise_err(err_code='error0094', samplename=NULL,
+                sample_name, nrow(df_tmp), ncol(df_tmp), sct_min_cells,
+                conditionMessage(e))
+    })
   # log transform the corrected UMI counts from SCTransform
   df_tmp = log1p(df_tmp[['umi_corrected']])
 

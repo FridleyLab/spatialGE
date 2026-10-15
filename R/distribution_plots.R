@@ -53,7 +53,7 @@ distribution_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
     plist = gene_plots(x=x, genes=genes, samples=samples, data_type=data_type,
                        plot_type=plot_type, color_pal=color_pal, ptsize=ptsize, ptalpha=ptalpha)
   } else {
-    stop('Specify a spot/cell meta data variable or a gene to plot.')
+    raise_err(err_code='error0089')
   }
 
   return(plist)
@@ -214,7 +214,7 @@ cluster_gene_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
     }
   }
   if(length(samples) < 1){
-    stop('All samples skipped.')
+    raise_err(err_code='error0090')
   }
 
   # Check plot type

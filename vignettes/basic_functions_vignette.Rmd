@@ -282,7 +282,7 @@ The `SThet` function calculates the Moran's I statsitic (or Geary's C) to measur
 p <- compare_SThet(tnbc, 
                    samplemeta='overall_survival_days', 
                    color_by='patient_id',
-                   gene=c('NDRG1', 'IGKC'), 
+                   genes=c('NDRG1', 'IGKC'), 
                    color_pal='muted',
                    ptsize=3)
 

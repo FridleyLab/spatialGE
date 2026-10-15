@@ -2,17 +2,35 @@
 % Please edit documentation in R/classDefinitions.R
 \name{dim,STlist-method}
 \alias{dim,STlist-method}
-\title{dim: Prints the dimensions of count arrays within an STList object.}
+\title{dim: Dimensions of the count array in an STList object.}
 \usage{
 \S4method{dim}{STlist}(x)
 }
 \arguments{
-\item{x}{an STList object to show summary from.}
+\item{x}{an STList object.}
 }
 \description{
-Returns the number of genes and spots for each array within an STList object
+Returns the number of genes (rows) and spots/cells (columns)
+observed in an STList object.
 }
 \details{
-This function takes an STList and prints the number of genes (rows) and spots (columns) of
-each spatial array within that object.
+An \code{STlist} is a container for one or more spatial arrays, and different
+samples may have different numbers of genes. \code{dim()} therefore has a single
+well-defined answer only when the object holds exactly one sample; in that
+case it returns \code{c(n_genes, n_spots)} as an integer vector, like any other
+matrix-like object.
+
+For a multi-sample STlist \code{dim()} returns \code{NULL} (the base R convention for
+"no dimensions"), because there is no single gene x spot shape to report. Use
+\code{\link[=summarize_STlist]{summarize_STlist()}} for a per-sample table of dimensions, or \code{\link[=tissue_names]{tissue_names()}}
+to iterate samples.
+
+Previously this method returned a \emph{named list} of per-sample dimensions, which
+violated the base \code{dim()} contract: it made \code{\link[=nrow]{nrow()}}/\code{\link[=ncol]{ncol()}} meaningless, and
+\verb{R CMD check} reported it as "dim() returns class 'list'".
+}
+\value{
+An integer vector \code{c(n_genes, n_spots)} when the object holds exactly
+one sample; \code{NULL} for a multi-sample object, where there is no single gene x
+spot shape to report.
 }

@@ -26,12 +26,21 @@ sge_cores_override = function(){
 # replacing the boilerplate that used to be duplicated at every such site:
 # force 1 core on Windows, auto-detect via count_cores(n) when the user did
 # not request a specific number, otherwise coerce whatever the user passed.
+#
+# Validation of an unusable `cores` value lives here too. It used to be the
+# caller's job and was done inconsistently: of the 17 call sites, some raised
+# error0032, others error0036, five raised an uncatalogued bare stop(), and
+# transform_data()'s gene_meta path did not check at all -- so `cores='abc'`
+# there became NA and was handed straight to sge_lapply(). Resolving it in one
+# place makes the behavior uniform and removes six copies of the same guard.
+#
 # @param n size of the work unit, passed to count_cores() when cores=NULL.
-# @param cores user-requested cores, or NULL to auto-detect.
-# @param coerce how to coerce a user-supplied cores: 'as_integer' (may
-# produce NA -- the caller is responsible for checking and raising, as
-# before), 'ceiling', or 'none' (used as-is, no coercion).
-# @return an integer (or NA if coerce='as_integer' could not parse cores).
+# @param cores user-requested cores, or NULL to auto-detect. A value that
+# cannot be resolved raises error0093.
+# @param coerce how to coerce a user-supplied cores: 'as_integer', 'ceiling',
+# or 'none' (used as-is, no coercion).
+# @return the resolved core count. The caller's coercion is preserved: a
+# non-integral value survives for coerce='ceiling'/'none'.
 #
 resolve_cores = function(n, cores=NULL, coerce=c('as_integer', 'ceiling', 'none')){
   coerce = match.arg(coerce)
@@ -42,7 +51,7 @@ resolve_cores = function(n, cores=NULL, coerce=c('as_integer', 'ceiling', 'none'
   # work on the one platform where the parallel behavior differs most.
   override = sge_cores_override()
   if(!is.null(override)){
-    return(override)
+    return(check_resolved_cores(override))
   }
 
   # Windows has no fork(), so mclapply falls back to serial. It is no longer
@@ -51,13 +60,44 @@ resolve_cores = function(n, cores=NULL, coerce=c('as_integer', 'ceiling', 'none'
   # serial on Windows regardless of what the user asked for.
 
   if(is.null(cores)){
-    return(count_cores(n))
+    return(check_resolved_cores(count_cores(n)))
   }
 
-  switch(coerce,
+  # suppressWarnings: as.integer('abc') warns "NAs introduced by coercion" and
+  # then the check below raises a catalogued error that actually explains what to
+  # do. Leaving the warning in place printed both.
+  resolved = suppressWarnings(switch(coerce,
         as_integer=as.integer(cores),
         ceiling=ceiling(cores),
-        none=cores)
+        none=cores))
+
+  check_resolved_cores(resolved)
+}
+
+
+##
+# @title check_resolved_cores
+# @description Single guard for the result of cores resolution: it must be one
+# finite, positive number. Kept separate so every return path in resolve_cores()
+# passes through it.
+#
+# Validates only -- the value is returned unchanged. coerce='ceiling' and
+# 'none' deliberately preserve a non-integral value (2.5 stays 2.5), and
+# as.integer() here would silently truncate it to 2, breaking the fidelity rule
+# that non-mclapply consumers depend on. This is also why validation cannot live
+# in sge_lapply(): it never sees these call sites.
+#
+# @param resolved the candidate core count.
+# @return `resolved`, unchanged, if usable; otherwise raises error0093.
+#
+check_resolved_cores = function(resolved){
+  ok = length(resolved) == 1 && !is.na(resolved) &&
+       is.finite(suppressWarnings(as.numeric(resolved))) &&
+       suppressWarnings(as.numeric(resolved)) >= 1
+  if(!ok){
+    raise_err(err_code='error0093')
+  }
+  resolved
 }
 
 

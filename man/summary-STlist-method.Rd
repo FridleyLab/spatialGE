@@ -16,3 +16,7 @@ Prints overview/summary of STList oject.
 This function takes an STList and prints a the number of spatial arrays in that
 object and other information about the object.
 }
+\value{
+Invisibly returns \code{NULL}. Called for the side effect of printing an
+overview: the number of spatial arrays, their dimensions and a sample count.
+}
