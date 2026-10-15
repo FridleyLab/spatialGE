@@ -706,10 +706,16 @@ seurat_platform = function(obj){
 #' spot barcodes are only unique within a sample in the general case, and a merged
 #' Seurat object requires globally unique cell names.
 #'
+#' Genes not shared by every requested sample are dropped, with a message
+#' reporting how many, since Seurat holds a single matrix across all cells.
+#'
 #' @param x an STlist
 #' @param assay the assay name to create. Default `'Spatial'`
 #' @param samples the samples to include. If NULL (default), all samples
 #' @return a Seurat object
+#'
+#' @seealso [STlist()] accepts a Seurat object as `rnacounts`, so the conversion
+#' round-trips.
 #'
 #' @export
 #

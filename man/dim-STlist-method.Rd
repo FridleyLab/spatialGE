@@ -9,6 +9,11 @@
 \arguments{
 \item{x}{an STList object.}
 }
+\value{
+An integer vector \code{c(n_genes, n_spots)} when the object holds exactly
+one sample; \code{NULL} for a multi-sample object, where there is no single gene x
+spot shape to report.
+}
 \description{
 Returns the number of genes (rows) and spots/cells (columns)
 observed in an STList object.
@@ -28,9 +33,4 @@ to iterate samples.
 Previously this method returned a \emph{named list} of per-sample dimensions, which
 violated the base \code{dim()} contract: it made \code{\link[=nrow]{nrow()}}/\code{\link[=ncol]{ncol()}} meaningless, and
 \verb{R CMD check} reported it as "dim() returns class 'list'".
-}
-\value{
-An integer vector \code{c(n_genes, n_spots)} when the object holds exactly
-one sample; \code{NULL} for a multi-sample object, where there is no single gene x
-spot shape to report.
 }

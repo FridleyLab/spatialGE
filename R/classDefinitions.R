@@ -271,6 +271,8 @@ setMethod("length", signature="STlist",
 #'
 #' @param x an STList object.
 #' @param i sample names, positions or a logical vector selecting spatial arrays.
+#' @param j not used. Subsetting is one-dimensional, so supplying `j` is an
+#' error rather than a second index.
 #' @param ... unused; present for compatibility with the `[` generic.
 #' @param drop unused. Subsetting an STlist always returns an STlist, never a
 #' bare matrix: dropping to the underlying counts would discard the metadata that
@@ -357,6 +359,22 @@ setMethod("[", signature(x="STlist", i="ANY", j="missing"),
 #' @title [[: Not supported for STList objects.
 #' @description Raises an informative error. Subsetting an STlist is
 #' one-dimensional and returns another STlist; use `x[i]`.
+#'
+#' @param x an STList object.
+#' @param i not used; any value raises an error.
+#' @param j not used; any value raises an error.
+#' @param ... not used; any value raises an error.
+#'
+#' @return Never returns: always raises an error naming `x[i]` as the supported
+#' form.
+#'
+# setMethod() trims trailing ANYs from a signature, so this registers as
+# '[[,STlist-method' however the signature is written -- confirmed with
+# findMethods(), which reports the siglist as "STlist" for [[ and
+# "STlist#ANY#ANY#ANY" for [. R CMD check derives the \alias it wants from that
+# registered siglist, while roxygen2 writes the generic's full arity, so the
+# short form has to be declared explicitly or the method reads as undocumented.
+#' @aliases [[,STlist-method
 #
 setMethod("[[", signature(x="STlist"),
           definition=function(x, i, ...){
@@ -371,6 +389,16 @@ setMethod("[[", signature(x="STlist"),
 #' arrays, each with its own gene and spot sets, so there is no shared second
 #' dimension to index; select samples with `x[i]` and then address genes or spots
 #' through that sample's slots.
+#'
+#' @param x an STList object.
+#' @param i sample selection. Valid on its own via `x[i]`, but not together
+#' with `j`.
+#' @param j not used; supplying it is what makes this an error.
+#' @param ... not used.
+#' @param drop not used.
+#'
+#' @return Never returns: always raises an error naming `x[i]` as the supported
+#' form.
 #
 setMethod("[", signature(x="STlist", i="ANY", j="ANY"),
           definition=function(x, i, j, ..., drop=TRUE){

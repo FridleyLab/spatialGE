@@ -95,6 +95,14 @@ tissue_names = function(x){
 #' @importFrom methods as is new
 #' @importFrom grDevices colorRampPalette
 #
+# .hasSlot is declared here rather than beside its two uses in
+# R/stlist_readers.R because roxygen2 >= 8 drops an @importFrom whose symbol it
+# cannot see being called -- and those are conditional calls on a Seurat object,
+# which is in Suggests. Without the import, reading a Seurat image slot fails on
+# a minimal install. A CI step greps NAMESPACE for it, so a future document()
+# run cannot silently remove it again.
+#' @importFrom methods .hasSlot
+#
 #
 color_parse = function(color_pal=NULL, n_cats=NULL){
   # Get color palette and number of colors needed.

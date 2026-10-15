@@ -22,19 +22,19 @@ sample, so spatialGE results can be taken into Seurat-based workflows.
 }
 \details{
 Each sample in the STlist becomes one FOV in the returned object, named after
-the sample. Raw counts go to the \code{counts} layer and, when
-\code{transform_data()} has been run, transformed counts go to the \code{data}
-layer. Spot-level columns from \code{@spatial_meta} -- including \code{STclust}
-cluster assignments -- are carried into \code{@meta.data}.
+the sample. Raw counts go to the \code{counts} layer and, when \code{transform_data()}
+has been run, transformed counts go to the \code{data} layer. Spot-level columns
+from \verb{@spatial_meta} -- including \code{STclust} cluster assignments -- are carried
+into \verb{@meta.data}, prefixed by sample where a merge would otherwise collide.
 
-Cell names are prefixed with the sample name (\code{<sample>_<libname>}) because
+Cell names are prefixed with the sample name (\verb{<sample>_<libname>}) because
 spot barcodes are only unique within a sample in the general case, and a merged
 Seurat object requires globally unique cell names.
 
-Genes not shared by every requested sample are dropped, with a message reporting
-how many, since Seurat holds a single matrix across all cells.
+Genes not shared by every requested sample are dropped, with a message
+reporting how many, since Seurat holds a single matrix across all cells.
 }
 \seealso{
-\code{\link{STlist}} accepts a Seurat object as \code{rnacounts}, so the
-conversion round-trips.
+\code{\link[=STlist]{STlist()}} accepts a Seurat object as \code{rnacounts}, so the conversion
+round-trips.
 }

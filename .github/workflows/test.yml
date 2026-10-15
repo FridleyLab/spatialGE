@@ -84,12 +84,16 @@ jobs:
       # newer roxygen therefore removes the import and breaks that path at
       # runtime, with no error until a sample with images is read. Guard it.
       - name: NAMESPACE import guard
+        # Asks R's own namespace parser instead of grepping. The previous version
+        # matched the literal line `importFrom(methods,.hasSlot)` that roxygen2 7
+        # wrote; roxygen2 8 writes multi-symbol imports one symbol per line, so
+        # the grep began failing on a NAMESPACE that was in fact correct.
         run: |
-          if ! grep -q '^importFrom(methods,\.hasSlot)$' NAMESPACE; then
-            echo "NAMESPACE no longer imports methods::.hasSlot."
-            echo "R/stlist_readers.R uses it, and roxygen2 >= 8 drops the import."
-            exit 1
-          fi
+          Rscript -e 'nd <- parseNamespaceFile("spatialGE", "..", mustExist = TRUE);
+            ok <- any(vapply(nd$imports, function(i)
+              is.list(i) && identical(i[[1]], "methods") && ".hasSlot" %in% i[[2]],
+              logical(1)));
+            if (!ok) stop("NAMESPACE no longer imports methods::.hasSlot. R/stlist_readers.R calls it on a Seurat image slot; that call is conditional, so the import can be dropped with no other symptom.")'
         shell: bash
 
   ## The `test` job above installs Imports only, which is deliberate: the committed

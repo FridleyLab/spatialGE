@@ -44,10 +44,29 @@ Rscript -e 'cat(curlGetHeaders("https://github.com/FridleyLab/spatialGE_Data/raw
   and regenerates `tests/golden/` (via `dev/baseline/capture_baseline.R`) in
   the same commit -- see the "Regression / baseline workflow" section of
   `dev/ARCHITECTURE.md`.
-- Do not run `devtools::document()`. Installed roxygen2 is newer than
-  `RoxygenNote` in `DESCRIPTION`; regenerating would churn all of `man/` and
-  `NAMESPACE` and bury the real diff. If an `.Rd` genuinely needs to change,
-  hand-edit it and say so in the commit message.
+- `devtools::document()` is now safe to run, and is the way to change an `.Rd`.
+  It previously was not: several `.Rd` files had been hand-edited beyond their
+  roxygen sources, so regenerating *deleted* documented behavior -- the
+  `@details` and `@seealso` of `STlist_to_disk`, `STlist_to_memory`, `is_backed`,
+  `validate_store` and `as_Seurat`. Those paragraphs now live in the roxygen
+  blocks, so a regeneration round-trips. Do not hand-edit an `.Rd` any more:
+  that is what created the divergence.
+
+  Two things a `document()` run must not undo, both checked by CI:
+
+  - **`importFrom(methods, .hasSlot)`.** `R/stlist_readers.R` calls it on a
+    Seurat image slot. The call is conditional and `SeuratObject` is only in
+    Suggests, so roxygen can drop the import with no other symptom. It is
+    declared on `color_parse()` in `R/utils.R` for that reason.
+  - **`S3method(base::print, sge_manifest)`.** A bare `@export` on
+    `print.sge_manifest` makes roxygen2 >= 8 emit `export(print.sge_manifest)`
+    instead, which leaves `print()` on a manifest undispatched unless the
+    package happens to be attached. The tag is `@exportS3Method base::print`.
+
+  roxygen2 8 also replaced `RoxygenNote` with `Config/roxygen2/version` in
+  `DESCRIPTION`, and writes multi-symbol imports one per line. The second broke
+  the first version of the `.hasSlot` CI guard, which grepped for the
+  single-line form; it now asks `parseNamespaceFile()` instead.
 
 ## Failing gracefully (package-wide requirement)
 
