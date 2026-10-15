@@ -1,0 +1,321 @@
+---
+title: "On-disk STlists: working with data sets larger than memory"
+date: '`r format(Sys.Date())`'
+output: rmarkdown::html_vignette
+bibliography: vignette_references.bib
+vignette: >
+  %\VignetteIndexEntry{spatialge_tutorial_ondisk}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r vig_settings, include=F}
+knitr::opts_chunk$set(
+  collapse=TRUE,
+  comment="#>",
+  fig.width=8, fig.height=5
+)
+options(rmarkdown.html_vignette.check_title=F)
+```
+
+An STlist stores the gene expression counts of all samples in the study at the same time. This is what allows functions such as `SThet` and `compare_SThet` to compare samples, but it also means that the memory required by an STlist grows with the number of samples and the number of spots or cells in each one. A few Visium samples are easily handled in a laptop. Several dozen samples, or a CosMx experiment with hundreds of thousands of cells, may not be, and the analysis then ends before it starts, when the object is created.
+
+For those cases, the ***`spatialGE`*** package provides the option of keeping the counts on disk instead of in memory. The function `STlist_to_disk` writes the count matrices to [parquet](https://parquet.apache.org) files, leaving in the STlist a small description of each file. The counts are then read back as the analysis functions request them, a few genes at a time. The function `STlist_to_memory` reverses the process. The rest of the object (spot coordinates, spot-level annotations, sample meta data, and the results of any analysis) is not affected and remains in memory.
+
+Note that this option is turned off by default. An STlist created in the usual way behaves exactly as described in the other tutorials, and none of what follows is required to use `spatialGE`.
+
+It is also important to be clear about what this option provides. It makes it possible to hold and analyze a data set that would not fit in memory. It does not make the analysis faster. The functions still bring counts into memory in order to compute on them, so an on-disk STlist is somewhat slower than an in-memory one, the difference being that the counts are not all in memory at once. Users whose data sets fit comfortably in memory are better off leaving them there.
+
+## Spatially-resolved expression of triple negative breast cancer tumor biopsies
+
+To follow the same data used in the [basic functionality tutorial](https://fridleylab.github.io/spatialGE/articles/basic_functions_vignette.html), we use the Visium data set from @bassiouni_2023, which includes triple negative breast cancer biopsies. Eight samples from four patients are used here. The data is available at our [spatialGE_Data GitHub repository](https://github.com/FridleyLab/spatialGE_Data), and will be pulled from there during this tutorial.
+
+Load the `spatialGE` package:
+
+```{r load_spatialge, message=F}
+library('spatialGE')
+```
+
+As in the other tutorials, the data will be deposited in a temporary directory:
+
+```{r data_download1}
+lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/tnbc_bassiouni.zip?download='
+```
+
+```{r temp_dir}
+visium_tmp = tempdir()
+unlink(visium_tmp, recursive=TRUE)
+dir.create(visium_tmp)
+```
+
+```{r data_download2}
+tryCatch({ # In case data is not available from network
+  download.file(lk, destfile=paste0(visium_tmp, '/', 'tnbc_bassiouni.zip'), mode='wb')
+  zip_tmp = list.files(visium_tmp, pattern='tnbc_bassiouni.zip$', full.names=TRUE)
+  unzip(zipfile=zip_tmp, exdir=visium_tmp)
+  net_check <<- TRUE
+}, error = function(e) {
+  message("Could not download data. Are you connected to the internet?")
+  net_check <<- FALSE
+})
+```
+
+```{r data_fpaths, eval=net_check}
+visium_folders <- list.dirs(paste0(visium_tmp, '/tnbc_bassiouni'), full.names=TRUE, recursive=FALSE)
+clin_file <- list.files(paste0(visium_tmp, '/tnbc_bassiouni'), full.names=TRUE, recursive=FALSE, pattern='clinical')
+```
+
+## Preparing the STlist before moving it to disk
+
+The STlist is created in the usual way, and the quality control and normalization steps are run while the counts are still in memory:
+
+```{r create_stlist, warning=F, eval=net_check}
+tnbc <- STlist(rnacounts=visium_folders, samples=clin_file, cores=2)
+
+tnbc <- filter_data(tnbc, spot_minreads=5000, spot_mingenes=1000, spot_maxreads=150000)
+
+tnbc <- transform_data(tnbc, method='log', cores=2)
+```
+
+The order of these steps matters. The functions `filter_data` and `transform_data` do not simply read the count matrices, they rewrite them: `filter_data` removes spots and genes, and `transform_data` adds an entirely new matrix of normalized values. Both are therefore run before the counts are moved to disk.
+
+In other words, an on-disk STlist is better thought of as a prepared data set that analyses are run on, rather than as an object that is still being assembled. If a filtering threshold has to be reconsidered later, the object can be brought back into memory with `STlist_to_memory` (shown near the end of this tutorial), modified there, and written out again.
+
+## Moving the counts to disk
+
+The function `STlist_to_disk` takes the STlist and a directory to write into. The directory is created if it does not exist:
+
+```{r to_disk, eval=net_check}
+store_dir <- paste0(visium_tmp, '/tnbc_store')
+
+tnbc_disk <- STlist_to_disk(tnbc, root=store_dir)
+```
+
+The result is an STlist like any other, except that its two count slots now point at files. The function `is_backed` reports which of the two forms an object is in:
+
+```{r is_backed_chunk, eval=net_check}
+is_backed(tnbc_disk)
+is_backed(tnbc)
+```
+
+Printing the object works as before, and so does `summarize_STlist`. Neither of them needs to read the counts, because the number of genes and spots per sample is recorded when the store is written:
+
+```{r call_stlist, eval=net_check}
+tnbc_disk
+```
+
+```{r count_stats, eval=net_check}
+summarize_STlist(tnbc_disk)
+```
+
+## What is stored on disk
+
+Looking at what was written is useful, since the files are ordinary parquet and can be read with other tools if needed.
+
+Each sample gets a sub-directory containing one file per populated slot, so eight samples with raw and normalized counts result in sixteen files:
+
+```{r store_files, eval=net_check}
+head(list.files(store_dir, recursive=TRUE), 4)
+
+length(list.files(store_dir, recursive=TRUE))
+```
+
+Note that the sub-directory names are not the sample names. Sample names are allowed to contain characters that file paths are not, so a position and a short hash are used instead, and the readable name is kept inside the file description rather than in the path.
+
+That description is what now sits in the counts slot in place of a matrix. Printing it gives a one-line summary and the path to the file:
+
+```{r manifest_print, eval=net_check}
+tnbc_disk@counts[['sample_094c']]
+```
+
+The slot `@misc` records where the store is and in which order the samples were written:
+
+```{r store_misc, eval=net_check}
+tnbc_disk@misc[['store']]
+```
+
+The files themselves hold the counts in "long" (also called triplet, or COO) form rather than as a rectangular matrix. Every non-zero value is one row, giving the gene, the spot, and the value:
+
+```{r read_parquet, eval=net_check}
+head(arrow::read_parquet(tnbc_disk@counts[['sample_094c']]$path), 4)
+```
+
+There are two reasons for this layout. Counts from these platforms are mostly zeros, and the long form stores only the values that are present, which is the same reason an STlist uses sparse matrices in memory. The rows are also sorted by gene, so that the values belonging to one gene are together in the file rather than spread throughout it.
+
+Note that `gene_idx` and `cell_idx` are positions rather than names. The gene and spot names are kept in the file description, which is the only place they are recorded. The reason is that a gene with a count of zero in every spot of a sample has no rows at all in the long form, so a gene list rebuilt from the contents of the file would be missing it. Genes like that are not unusual, and the default settings of `filter_data` do not remove them.
+
+## How much memory is saved
+
+The clearest way to see the effect is to compare the size of the count slots before and after:
+
+```{r mem_before, eval=net_check}
+format(object.size(tnbc@counts) + object.size(tnbc@tr_counts), units='MB')
+```
+
+```{r mem_after, eval=net_check}
+format(object.size(tnbc_disk@counts) + object.size(tnbc_disk@tr_counts), units='MB')
+```
+
+For these eight samples, the count matrices go from roughly 1.4 GB to about 25 MB, since what is left in the object is eight short descriptions instead of sixteen matrices. The counts themselves have of course not disappeared. They are on disk, where the store occupies a few hundred megabytes:
+
+```{r store_size, eval=net_check}
+round(sum(file.info(list.files(store_dir, recursive=TRUE, full.names=TRUE))$size) / 1024^2, 1)
+```
+
+The reduction applies to the count matrices only. The spot coordinates and annotations in `@spatial_meta`, the per-gene statistics in `@gene_meta`, and whatever is stored in `@misc` all remain in memory, and in a large study these are not negligible either. This is easier to see by comparing the size of the whole object instead of only the count slots:
+
+```{r mem_whole, eval=net_check}
+format(object.size(tnbc), units='MB')
+format(object.size(tnbc_disk), units='MB')
+```
+
+## Analyses on an on-disk STlist
+
+Analysis functions are called exactly as they would be on an in-memory STlist. The counts are read from the files when each function asks for them, and the results are the same.
+
+```{r sthet_chunk, eval=net_check}
+tnbc_disk <- SThet(tnbc_disk, genes=c('NDRG1', 'IGKC'), method='moran', cores=2)
+
+get_gene_meta(tnbc_disk, sthet_only=TRUE)
+```
+
+Since this is the property the whole mechanism depends on, it is worth verifying rather than assuming. Running the same analysis on the in-memory object returns identical statistics:
+
+```{r sthet_compare, eval=net_check}
+tnbc <- SThet(tnbc, genes=c('NDRG1', 'IGKC'), method='moran', cores=2)
+
+identical(get_gene_meta(tnbc_disk, sthet_only=TRUE)$moran_i,
+          get_gene_meta(tnbc, sthet_only=TRUE)$moran_i)
+```
+
+Quilt plots of gene expression are produced in the same way as well:
+
+```{r genequilt_chunk, fig.align='center', eval=net_check}
+quilts1 <- STplot(tnbc_disk,
+                  genes=c('NDRG1', 'IGKC'),
+                  samples='sample_094c',
+                  color_pal='BuRd',
+                  ptsize=0.8)
+
+ggpubr::ggarrange(plotlist=quilts1, nrow=1, ncol=2, legend='bottom')
+```
+
+The distribution of expression of a gene across samples is obtained in the same way too:
+
+```{r dstr_chunk, fig.align='center', eval=net_check}
+dp <- distribution_plots(tnbc_disk, genes='NDRG1')
+dp[['NDRG1']]
+```
+
+And so is the spatially-informed clustering of `STclust`:
+
+```{r clust_chunk, warning=F, message=F, eval=net_check}
+tnbc_disk <- STclust(tnbc_disk, ks='dtc', ws=c(0, 0.025), cores=2)
+
+cluster_p <- STplot(tnbc_disk, samples='sample_094c', ws=0.025, color_pal='highcontrast')
+cluster_p[[1]]
+```
+
+What this costs is time. Every read of a count matrix now involves the file system, so a function that reads the counts several times pays that cost several times. The difference is noticeable even with a data set of this size:
+
+```{r timing_chunk, eval=net_check}
+system.time(SThet(tnbc, genes='NDRG1', method='moran', cores=2))['elapsed']
+
+system.time(SThet(tnbc_disk, genes='NDRG1', method='moran', cores=2))['elapsed']
+```
+
+A difference of a few fold is typical, and it is the trade mentioned at the beginning of this tutorial. The analysis becomes possible on data that would not otherwise fit in memory, but it takes longer to run.
+
+## Checking a store, and bringing it back
+
+The store is a directory of files, and the STlist only holds paths to them. The function `validate_store` checks that the arrangement is still intact, reading only the file headers:
+
+```{r validate_chunk, eval=net_check}
+validate_store(tnbc_disk)
+```
+
+Nothing is printed, which is the intended result: the function returns `TRUE` invisibly when everything checks out, and stops with a message when it does not. It confirms that every file is where its description says it is and has not changed since it was written, that the samples are still in the recorded order, and that the transformed counts remain a subset of the raw counts. Passing `deep=TRUE` additionally reads the data to check the stored positions, which is slower but more thorough:
+
+```{r validate_deep, eval=net_check}
+validate_store(tnbc_disk, deep=TRUE)
+```
+
+It is useful to see what the function reports when something is in fact wrong. In the following block, a path is changed to a file that does not exist, which is what a deleted or relocated store looks like from within the STlist:
+
+```{r validate_broken, eval=net_check}
+broken <- tnbc_disk
+broken@counts[['sample_094c']][['path']] <- paste0(visium_tmp, '/gone.parquet')
+
+try(validate_store(broken))
+```
+
+That is the same error any analysis would raise on the first read of that sample, only reported up front and naming the likely cause instead of surfacing from somewhere inside `arrow`.
+
+When a store is no longer needed, or when the object has to be reshaped again, `STlist_to_memory` reads every matrix back:
+
+```{r to_memory, eval=net_check}
+tnbc_back <- STlist_to_memory(tnbc_disk)
+
+is_backed(tnbc_back)
+```
+
+The round trip is exact rather than approximate. The long form stores the values themselves, and the dimensions and names come from the file description, so nothing is estimated on the way back:
+
+```{r round_trip, eval=net_check}
+identical(tnbc_back@counts, tnbc@counts)
+```
+
+## Things to keep in mind
+
+Because the counts are now files rather than part of the object, there are a few consequences that are better known in advance.
+
+**The object is not self-contained.** Saving an on-disk STlist with `saveRDS` stores the paths, not the counts. If that object is loaded in a session where the store has been moved or deleted, the first function that tries to read counts will fail, and `validate_store` reports the problem up front. There is currently no way to point an existing object at a store in a new location, so the store should be written somewhere it can remain.
+
+**A store under `tempdir()` will not survive the session.** The examples here write to a temporary directory, which is appropriate for a tutorial but not for an actual analysis. The store records whether it was written to a location that can outlive the session:
+
+```{r portable_chunk, eval=net_check}
+tnbc_disk@misc[['store']][['portable']]
+```
+
+The value is `FALSE` here because `store_dir` is inside `tempdir()`. For an analysis that is meant to be kept, users should provide `STlist_to_disk` with a directory of their own, keeping in mind that the directory has become part of the data.
+
+**The object has to be prepared first.** As described above, `filter_data` and `transform_data` rewrite the count matrices, so they are run before `STlist_to_disk`. The same applies to subsetting an STlist by sample with `x[i]`. In those cases, the object is brought back into memory, modified there, and written out again if the result is to be kept.
+
+**Writing a store does not remove the original.** `STlist_to_disk` returns a new STlist and leaves the one it was given untouched, which is why both `tnbc` and `tnbc_disk` are used throughout this tutorial. That is convenient for comparison, but keeping both of them defeats the purpose. In practice, the in-memory object is removed once the store has been written.
+
+<details>
+
+<summary>**Can the parquet files be read with something other than `spatialGE`?**</summary>
+
+Yes, and that is part of the reason for using this format. The files are ordinary parquet with three columns, so they can be read by anything that reads parquet (`arrow` in R, `pyarrow` or `pandas` in Python, or `duckdb` in either language).
+
+The one thing to carry across is that `gene_idx` and `cell_idx` are positions rather than names, counting from 1. The names are held in the STlist, in the description that replaced each matrix:
+
+```{r external_read, eval=net_check}
+mft <- tnbc_disk@counts[['sample_094c']]
+
+head(mft$genes, 3)
+head(mft$cells, 3)
+```
+
+So a value with `gene_idx` 1 refers to `mft$genes[1]`, and a `cell_idx` of 1 to `mft$cells[1]`. Reading the files without that mapping gives the right numbers attached to the wrong labels, which is worse than an error, so it is worth getting right. Writing the two vectors out alongside the data is usually enough:
+
+```{r external_write, eval=net_check}
+head(data.frame(gene_idx=seq_along(mft$genes), gene=mft$genes), 3)
+```
+
+</details>
+
+## References
+
+<div id="refs"></div>
+
+<details>
+
+<summary>**Session Info**</summary>
+
+```{r}
+sessionInfo()
+```
+
+</details>

@@ -14,6 +14,7 @@
 ^vignettes/spatial_differential_expression\.Rmd$
 ^vignettes/spatial_enrichment_gradients_smi\.Rmd$
 ^vignettes/troubleshooting\.Rmd$
+^vignettes/ondisk_stlists\.Rmd$
 ^vignettes/img/spatial_gradients\.png$
 ^vignettes/img/diagram_stenrich\.png$
 ^vignettes/img/smi_dir_structure\.png$
