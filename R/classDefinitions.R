@@ -47,12 +47,12 @@ setMethod("show", signature="STlist",
               counter = 1
               while(counter < 11){
                 i = names(object@counts)[counter]
-                cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+                cat(paste0('\t', i, " (", sample_n_cells(object, i, 'counts'), ' ROIs|spots|cells x ', sample_n_genes(object, i, 'counts'), ' genes)\n'))
                 counter = counter + 1
               }
             } else{
               for(i in names(object@counts)){
-                cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+                cat(paste0('\t', i, " (", sample_n_cells(object, i, 'counts'), ' ROIs|spots|cells x ', sample_n_genes(object, i, 'counts'), ' genes)\n'))
               }
             }
             if(length(names(object@counts)) > 10){
@@ -87,12 +87,12 @@ setMethod("summary", signature="STlist",
               counter = 1
               while(counter < 11){
                 i = names(object@counts)[counter]
-                cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+                cat(paste0('\t', i, " (", sample_n_cells(object, i, 'counts'), ' ROIs|spots|cells x ', sample_n_genes(object, i, 'counts'), ' genes)\n'))
                 counter = counter + 1
               }
             } else{
               for(i in names(object@counts)){
-                cat(paste0('\t', i, " (", ncol(object@counts[[i]]), ' ROIs|spots|cells x ', nrow(object@counts[[i]]), ' genes)\n'))
+                cat(paste0('\t', i, " (", sample_n_cells(object, i, 'counts'), ' ROIs|spots|cells x ', sample_n_genes(object, i, 'counts'), ' genes)\n'))
               }
             }
             if(length(names(object@counts)) > 10){

@@ -131,6 +131,26 @@ testthat::test_that("analyses give identical results backed and in memory", {
   testthat::expect_identical(summarize_STlist(bk), summarize_STlist(st))
 })
 
+testthat::test_that("show() and summary() report real dimensions when backed", {
+  st <- store_fixture()
+  bk <- backed_fixture(st)
+
+  ## Printing the object is the first thing anyone does with it, and this was the
+  ## silent-wrong-answer case rather than an error: nrow()/ncol() return NULL on a
+  ## manifest and paste0() renders a zero-length argument as "", so an unrouted
+  ## dim read printed "alpha ( ROIs|spots|cells x  genes)" with no warning at all.
+  testthat::expect_identical(capture.output(methods::show(bk)),
+                             capture.output(methods::show(st)))
+  testthat::expect_identical(capture.output(summary(bk)),
+                             capture.output(summary(st)))
+
+  ## ...and the numbers are the real ones, which an identity check alone would not
+  ## catch -- two blank renderings are also identical to each other.
+  expected <- sprintf("\talpha (%d ROIs|spots|cells x %d genes)",
+                      ncol(st@counts[["alpha"]]), nrow(st@counts[["alpha"]]))
+  testthat::expect_true(any(capture.output(methods::show(bk)) == expected))
+})
+
 testthat::test_that("validate_store detects a missing or altered file", {
   st <- store_fixture()
   bk <- backed_fixture(st)

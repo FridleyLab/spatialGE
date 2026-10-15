@@ -30,6 +30,16 @@ sample_tr_counts = function(x, sample, genes=NULL){
   m[rownames(m) %in% genes, , drop=FALSE]
 }
 
+# The materializing counterpart to sample_slot_mtx() below: resolves the slot by
+# name and returns values, so a call site that already branches on the plotting
+# functions' `data_type` ('tr'/'raw') does not branch a second time on which of
+# the two accessors above to call. `genes=` is forwarded, so the subset is built
+# at its final size rather than taken off a fully materialized matrix.
+sample_slot_counts = function(x, sample, slot=c('counts', 'tr_counts'), genes=NULL){
+  slot = match.arg(slot)
+  if(slot == 'counts') sample_counts(x, sample, genes=genes) else sample_tr_counts(x, sample, genes=genes)
+}
+
 sample_spatial_meta = function(x, sample) x@spatial_meta[[sample]]
 sample_gene_meta = function(x, sample) x@gene_meta[[sample]]
 
