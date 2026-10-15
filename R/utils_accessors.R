@@ -13,9 +13,11 @@
 #
 # When the optional parquet backing is in use (see R/store_parquet.R) a slot
 # element is an sge_manifest rather than a dgCMatrix, so the two matrix accessors
-# materialize on demand. `genes=` is forwarded to the store so a gene-subset read
-# touches only the row groups it needs; in memory it is an ordinary subset. This is
-# the whole reason the accessor layer exists.
+# materialize on demand. `genes=` is forwarded to the store, which builds the
+# subset at its final size rather than materializing the whole matrix and masking
+# it; in memory it is an ordinary subset. Note the forward saves allocation, not
+# I/O -- the store reads the whole parquet file either way. This is the whole
+# reason the accessor layer exists.
 sample_counts = function(x, sample, genes=NULL){
   m = x@counts[[sample]]
   if(is_sge_manifest(m)) return(sge_store_materialize(m, genes=genes))

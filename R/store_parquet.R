@@ -13,12 +13,19 @@
 # One parquet file per sample per slot, schema (gene_idx int32, cell_idx int32,
 # value double), sorted by (gene_idx, cell_idx).
 #
-# Sorting by gene gives parquet row-group min/max statistics on gene_idx, so
-# filter(gene_idx %in% ...) prunes whole row groups without reading them -- which
-# is the dominant access pattern in this package (STdiff, STgradient, STenrich and
-# the gene plots all want ~100 genes by all spots). Physically hive-partitioning by
-# gene would give finer pruning but create tens of thousands of tiny files, which
-# arrow handles badly.
+# Sorting by gene gives parquet row-group min/max statistics on gene_idx, which is
+# what a reader would need in order to skip whole row groups for
+# filter(gene_idx %in% ...) -- the dominant access pattern in this package
+# (STdiff, STgradient, STenrich and the gene plots all want ~100 genes by all
+# spots). Physically hive-partitioning by gene would give finer granularity but
+# create tens of thousands of tiny files, which arrow handles badly.
+#
+# NOTE that nothing currently exploits those statistics: sge_store_materialize()
+# below reads with arrow::read_parquet() and filters the resulting Table, so a
+# gene-subset read still performs whole-file I/O and only the returned matrix is
+# smaller. Skipping row groups would need arrow::open_dataset() (or a row-group
+# selection through ParquetFileReader). So the sort key is correctness and
+# future-proofing today, not a measured speedup -- do not describe it as one.
 #
 # Including cell_idx in the sort key is not cosmetic. It makes a per-gene
 # group_by/sum visit values in the same order Matrix::rowMeans walks a row, which

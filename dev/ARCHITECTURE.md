@@ -87,7 +87,8 @@ changes for an STlist built the normal way.
 
 It works because all matrix reads go through `R/utils_accessors.R`:
 `sample_counts()`/`sample_tr_counts()` materialize a manifest on demand (and
-forward `genes=` so a subset read touches only the row groups it needs), while
+forward `genes=` so the subset is built at its final size instead of being
+masked off a fully materialized matrix), while
 `sample_dim()`/`sample_genes()`/`sample_cells()` answer from the manifest with
 zero I/O. That split is the whole reason the accessor layer was widened before
 the store existed — `base::nrow()` returns `NULL` on a manifest rather than
@@ -95,9 +96,16 @@ erroring, so an unrouted dim read would have silently produced `NULL`.
 
 Layout: one file per sample per slot, schema
 `(gene_idx int32, cell_idx int32, value double)`, **sorted by
-`(gene_idx, cell_idx)`**. Sorting by gene gives row-group min/max statistics so
-`filter(gene_idx %in% ...)` prunes whole row groups — the dominant access pattern
-here. Including `cell_idx` makes a per-gene aggregate visit values in the order
+`(gene_idx, cell_idx)`**. Sorting by gene gives row-group min/max statistics,
+which is what a reader *would* need to skip whole row groups for
+`filter(gene_idx %in% ...)` — the dominant access pattern here. **Nothing
+exploits them yet:** `sge_store_materialize()` reads via
+`arrow::read_parquet()` and filters the resulting Table, so a gene-subset read
+still does whole-file I/O and only the returned matrix shrinks. Row-group
+skipping would need `arrow::open_dataset()`. Treat the sort key as a
+correctness and future-proofing property, not a measured speedup — and do not
+repeat the pruning claim in user-facing docs.
+Including `cell_idx` makes a per-gene aggregate visit values in the order
 `Matrix::rowMeans` walks a row, which is what would let an arrow-side aggregate
 agree bit-for-bit. Ordering comes free from `Matrix::t()` rather than an explicit
 sort: a transposed `dgCMatrix` has the original genes as its columns.
