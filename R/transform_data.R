@@ -28,6 +28,11 @@
 #' raw counts) alongside `gene_mean` and `gene_stdevs`, so that "top variable
 #' gene" selection is the same whichever function runs first.
 #'
+#' That column requires fitting a variance-mean trend across genes, which needs
+#' at least four genes of non-zero variance. A sample with fewer is left without
+#' it and warned about by name, rather than failing the transformation; functions
+#' that rank genes by variability will not work on such a sample.
+#'
 #' @examples
 #' \donttest{
 #' # Using included melanoma example (Thrane et al.)
