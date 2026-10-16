@@ -357,9 +357,19 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
 #' have been calculated. The output is a data frame with data from all samples in the
 #' STlist
 #'
+#' Columns should be selected by name rather than by position. Which columns are
+#' present depends on what has been run (`moran_i`/`geary_c` appear only after
+#' `SThet()`), and their order changed in 2.0.0: `transform_data()` now adds
+#' `vst.variance.standardized` itself, so that column precedes `moran_i` and
+#' `geary_c` where in 1.2.2 it was appended after them by whichever analysis ran
+#' first.
+#'
 #' @param x an STlist
 #' @param sthet_only logical, return only genes with spatial statistics
-#' @return a data frame with gene-level data
+#' @return a data frame with gene-level data. `sample` and `gene` identify the
+#' row; `gene_mean` and `gene_stdevs` come from `transform_data()`, as does
+#' `vst.variance.standardized`; `moran_i` and `geary_c` are present only once
+#' `SThet()` has run. Address them by name, not position.
 #'
 #' @examples
 #' \donttest{

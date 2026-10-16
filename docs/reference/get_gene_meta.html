@@ -92,7 +92,10 @@
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>a data frame with gene-level data</p>
+    <p>a data frame with gene-level data. <code>sample</code> and <code>gene</code> identify the
+row; <code>gene_mean</code> and <code>gene_stdevs</code> come from <code><a href="transform_data.html">transform_data()</a></code>, as does
+<code>vst.variance.standardized</code>; <code>moran_i</code> and <code>geary_c</code> are present only once
+<code><a href="SThet.html">SThet()</a></code> has run. Address them by name, not position.</p>
     </div>
     <div id="details">
     <h2>Details</h2>
@@ -100,6 +103,12 @@
 only to those genes for which spatial statistics (Moran's I or Geary's C, see <code>SThet</code>)
 have been calculated. The output is a data frame with data from all samples in the
 STlist</p>
+<p>Columns should be selected by name rather than by position. Which columns are
+present depends on what has been run (<code>moran_i</code>/<code>geary_c</code> appear only after
+<code><a href="SThet.html">SThet()</a></code>), and their order changed in 2.0.0: <code><a href="transform_data.html">transform_data()</a></code> now adds
+<code>vst.variance.standardized</code> itself, so that column precedes <code>moran_i</code> and
+<code>geary_c</code> where in 1.2.2 it was appended after them by whichever analysis ran
+first.</p>
     </div>
 
     <div id="ref-examples">

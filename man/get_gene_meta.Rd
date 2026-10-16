@@ -12,7 +12,10 @@ get_gene_meta(x = NULL, sthet_only = FALSE)
 \item{sthet_only}{logical, return only genes with spatial statistics}
 }
 \value{
-a data frame with gene-level data
+a data frame with gene-level data. \code{sample} and \code{gene} identify the
+row; \code{gene_mean} and \code{gene_stdevs} come from \code{transform_data()}, as does
+\code{vst.variance.standardized}; \code{moran_i} and \code{geary_c} are present only once
+\code{SThet()} has run. Address them by name, not position.
 }
 \description{
 Extracts gene-level metadata and spatial statistics (if already computed)
@@ -22,6 +25,13 @@ This function extracts data from the \code{x@gene_meta} slot, optionally subsett
 only to those genes for which spatial statistics (Moran's I or Geary's C, see \code{SThet})
 have been calculated. The output is a data frame with data from all samples in the
 STlist
+
+Columns should be selected by name rather than by position. Which columns are
+present depends on what has been run (\code{moran_i}/\code{geary_c} appear only after
+\code{SThet()}), and their order changed in 2.0.0: \code{transform_data()} now adds
+\code{vst.variance.standardized} itself, so that column precedes \code{moran_i} and
+\code{geary_c} where in 1.2.2 it was appended after them by whichever analysis ran
+first.
 }
 \examples{
 \donttest{

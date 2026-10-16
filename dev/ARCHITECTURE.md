@@ -359,6 +359,18 @@ changes output rather than erroring:
    `bind_rows` accumulation (starting from an empty `tibble()`, with a column
    that's logical `NA` in some rows and double in others) are all real
    contract, not incidental.
+
+   This rule has already been broken once, which is why it is worth reading
+   twice. Moving `vst.variance.standardized` into `transform_data()` changed the
+   column *order* of `get_gene_meta()`: VST used to be appended last by whichever
+   analysis ran first, and now precedes `moran_i`/`geary_c`. Same seven columns,
+   same contents, different positions. Nothing in the test suite or the golden
+   gate noticed — `bl_compare()` compares columns by name — and it surfaced only
+   from `dev/xver/`, which compares `colnames` as an ordered vector. It is now in
+   `NEWS.md` and recorded as `undoc_gene_meta_col_order` in
+   `dev/xver/classify.R`. **The lesson for the next change: a column added
+   anywhere other than the end moves every column after it, and the only gate
+   here that can see that is the cross-version harness.**
 9. **`expandSparse` subsetting must use a logical mask, not character
    indexing** (`m[genes, ]` reorders to `genes`' order instead of the matrix's
    own row order). `data.frame()` also errors on duplicate row names, so

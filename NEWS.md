@@ -21,6 +21,21 @@
   changed is where the column comes from, not what downstream functions do with
   it.
 
+  **It does change column order**, which matters if you index by position.
+  Because `transform_data()` now adds the column before `SThet()` appends its
+  statistics, `get_gene_meta()` returns
+
+  ```
+  1.2.2:  sample, gene, gene_mean, gene_stdevs, moran_i, geary_c, vst.variance.standardized
+  2.0.0:  sample, gene, gene_mean, gene_stdevs, vst.variance.standardized, moran_i, geary_c
+  ```
+
+  The same seven columns with the same contents, in a different order: VST used
+  to arrive last, appended by whichever analysis ran first, and now sits ahead of
+  `moran_i`/`geary_c`. Code selecting by name is unaffected; code using
+  `[[5]]`, `[, 5:7]` or `tail(colnames(...), 1)` will pick a different column.
+  Select by name.
+
 * **`transform_data()` no longer fails on a sample with very few variable
   genes.** Because of the change above, `transform_data()` began fitting the
   variance-mean loess that `vst.variance.standardized` requires. That fit needs
