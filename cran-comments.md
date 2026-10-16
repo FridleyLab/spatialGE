@@ -7,38 +7,56 @@
 
 ## R CMD check results
 
-0 ERRORs. The NOTEs below are expected; the reasoning for each is given so a
+0 ERRORs, 0 WARNINGs, 3 NOTEs. All three are properties of the machine that ran
+the check rather than of the package, and the reasoning is given for each so a
 reviewer does not have to reconstruct it.
 
-### NOTE: Namespace in Imports field not imported from: 'R.utils'
+Four findings present in earlier drafts of this file have been fixed rather than
+explained, and are recorded here only because a reviewer comparing submissions
+may look for them:
 
-This is a false positive and the dependency is load-bearing.
+* *Undocumented S4 methods* (`[`, `[[`, `length` on `STlist`) -- these are now
+  documented, along with the `@param` entries for the generics' full argument
+  lists.
+* *Namespace in Imports field not imported from: 'R.utils'* -- `R.utils` is a
+  **runtime** dependency of `data.table::fread()`, which loads it to decompress
+  the gzipped `features`/`barcodes`/`matrix` files Cell Ranger always emits.
+  `fread()` loads it internally rather than spatialGE calling it, so static
+  analysis could not see the use. It is now named in an `@importFrom` beside
+  those `fread()` calls. It is not moved to Suggests: a minimal install then
+  cannot read standard 10x MEX output at all.
+* *'qpdf' is needed for checks on size reduction of PDFs* -- `qpdf` is now
+  installed on the machine that runs the check.
+* *Possibly invalid URL `https://clustrmaps.com/site/1bwt8`* -- a visitor-counter
+  badge, now commented out in README.md.
 
-`R.utils` is a **runtime** dependency of `data.table::fread()`, which requires it
-to decompress `.gz` input read directly from a path. `import_visium()` and
-`import_xenium()` call `fread()` on the gzipped `features`/`barcodes`/`matrix`
-files that Cell Ranger and Xenium Ranger always produce, so with `R.utils` only in
-Suggests a minimal install cannot read standard 10x MEX output at all.
+### NOTE: CRAN incoming feasibility
 
-Because `fread()` loads it internally rather than spatialGE calling it by name,
-static analysis cannot see the use. Moving it to Suggests would silence the NOTE
-and reintroduce the failure.
+Two parts. The maintainer line is expected.
 
-### NOTE: CRAN incoming feasibility / possibly invalid URL
+The URL reported as possibly invalid is
+`https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger`,
+cited in the Space Ranger reference of `basic_functions_vignette.Rmd`. 10x
+Genomics appears to have retired the `support.10xgenomics.com` host: it returns
+403 to any client, including a browser user agent, and issues no redirect. The
+current location is `https://www.10xgenomics.com/support/software/space-ranger`,
+which could not be confirmed from the submitting network because 10x rate-limits
+it (HTTP 429).
 
-`https://clustrmaps.com/site/1bwt8` in README.md is a visitor-counter badge and
-currently returns an error. It predates this release. It is not a documentation
-or code link and can be removed if preferred.
+The incoming-feasibility check itself could not run locally, because the network
+blocks the CRAN and Bioconductor package indexes.
 
-The remainder of this NOTE is the maintainer line plus the incoming-feasibility
-check, which could not run in the local environment because the network blocks
-access to the CRAN and Bioconductor package indexes.
+### NOTE: checking for future file timestamps -- unable to verify current time
 
-### WARNING: 'qpdf' is needed for checks on size reduction of PDFs
+Environmental. The check contacts an external time service to compare file
+timestamps, and the submitting network blocks it. No file in the tarball carries
+a future timestamp.
 
-Environmental, not a package property: `qpdf` is not installed on the machine that
-ran the check. It is present on CRAN's check machines, so this does not reproduce
-there.
+### NOTE: checking HTML version of manual
+
+Environmental: `HTML Tidy` on the machine that ran the check is older than the
+version R requires for HTML validation, so that validation is skipped rather
+than failed.
 
 ## Downstream dependencies
 
