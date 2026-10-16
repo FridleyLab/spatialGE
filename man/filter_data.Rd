@@ -38,9 +38,12 @@ filter_data(
 
 \item{spot_maxgenes}{the maximum number of non-zero counts for a spot to be retained}
 
-\item{spot_minpct}{the minimum percentage of counts for features defined by \code{spot_pct_expr} for a spot to be retained.}
+\item{spot_minpct}{the minimum proportion of counts for features defined by
+\code{spot_pct_expr} for a spot to be retained. A \strong{proportion between 0 and 1},
+not a percentage: use 0.1 for 10\%}
 
-\item{spot_maxpct}{the maximum percentage of counts for features defined by \code{spot_pct_expr} for a spot to be retained.}
+\item{spot_maxpct}{the maximum proportion of counts for features defined by
+\code{spot_pct_expr} for a spot to be retained. A proportion between 0 and 1}
 
 \item{gene_minreads}{the minimum number of total reads for a gene to be retained}
 
@@ -50,9 +53,12 @@ filter_data(
 
 \item{gene_maxspots}{the maximum number of spots with non-zero counts for a gene to be retained}
 
-\item{gene_minpct}{the minimum percentage of spots with non-zero counts for a gene to be retained}
+\item{gene_minpct}{the minimum proportion of spots with non-zero counts for a
+gene to be retained. A \strong{proportion between 0 and 1}, not a percentage: use
+0.1 for 10\%. A value above 1 removes every gene}
 
-\item{gene_maxpct}{the maximum percentage of spots with non-zero counts for a gene to be retained}
+\item{gene_maxpct}{the maximum proportion of spots with non-zero counts for a
+gene to be retained. A proportion between 0 and 1}
 
 \item{samples}{samples (as in \code{names(x@counts)}) to perform filtering.}
 

@@ -358,7 +358,19 @@ xv_s13 <- function(){
   out$s13_filter_spot_minreads <- xv_capture(filter_data(st, spot_minreads = 50), seed = XV_SEED)
   out$s13_filter_spot_maxreads <- xv_capture(filter_data(st, spot_maxreads = 900), seed = XV_SEED)
   out$s13_filter_gene_minspots <- xv_capture(filter_data(st, gene_minspots = 5), seed = XV_SEED)
-  out$s13_filter_gene_minpct   <- xv_capture(filter_data(st, gene_minpct = 10), seed = XV_SEED)
+  ## gene_minpct is a PROPORTION in [0,1], not a percentage. This step passed 10
+  ## for "10%", which removed all 200 genes, so it never exercised the pct stage
+  ## at all -- it errored on both versions and read as "no difference". 0.1 is the
+  ## value it was always meant to be.
+  out$s13_filter_gene_minpct   <- xv_capture(filter_data(st, gene_minpct = 0.1), seed = XV_SEED)
+
+  ## ...and keep the out-of-range value as its own step, because what it exposed
+  ## is worth asserting cross-version: any threshold that removes every gene used
+  ## to surface dplyr's "Join columns in `x` must be present in the data" from the
+  ## @gene_meta rejoin, on BOTH versions. alex now raises error0098 naming the
+  ## sample and the proportion scale. Declared in XV_ERROR_PATH.
+  out$s13_filter_gene_minpct_all_removed <- xv_capture(
+    filter_data(st, gene_minpct = 10), seed = XV_SEED)
   out$s13_filter_spot_mingenes <- xv_capture(filter_data(st, spot_mingenes = 20), seed = XV_SEED)
 
   ## STgradient: the non-default statistic and outlier/robust branches.

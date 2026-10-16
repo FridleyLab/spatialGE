@@ -70,3 +70,41 @@ testthat::test_that("filter_data(verbose=FALSE) is silent", {
   testthat::expect_silent(suppressWarnings(filter_data(st, verbose = FALSE)))
 })
 
+
+testthat::test_that("filter_data() errors informatively when a threshold removes every gene", {
+  ## A 0-row dgCMatrix carries rownames = NULL rather than character(0), so
+  ## sample_genes() returns NULL, tibble() silently DROPS the `gene` column it is
+  ## handed, and the @gene_meta left_join(by='gene') failed with dplyr's "Join
+  ## columns in `x` must be present in the data" -- naming neither filter_data
+  ## nor the threshold responsible. Present in 1.2.2 too; found by dev/xver,
+  ## which flagged s13_filter_gene_minpct as erroring on BOTH versions.
+  ##
+  ## Transformed, because that is the state the failure was found in: the join
+  ## that broke is the @gene_meta one, which only runs once transform_data() has
+  ## populated gene_mean/gene_stdevs.
+  st <- suppressWarnings(suppressMessages(
+    transform_data(.fd_fixture(), method = "log", cores = 1)))
+
+  ## Reachable from ordinary arguments, not just absurd ones.
+  for (args in list(list(gene_minreads = 1e9), list(gene_minspots = 1e6),
+                    list(gene_minpct = 10))) {
+    msg <- tryCatch({
+      do.call(filter_data, c(list(st), args, list(verbose = FALSE))); NA_character_
+    }, error = function(e) conditionMessage(e))
+
+    testthat::expect_false(is.na(msg), label = paste("expected an error for", names(args)))
+    testthat::expect_match(msg, "spatialGE exception")
+    testthat::expect_match(msg, "removed every gene")
+    ## The dplyr internal must not be what the caller sees.
+    testthat::expect_false(grepl("Join columns", msg, fixed = TRUE))
+  }
+
+  ## gene_minpct is a proportion in [0,1], so the message says so -- passing 10
+  ## for "10%" is the mistake the old documentation invited.
+  pct_msg <- tryCatch(filter_data(st, gene_minpct = 10, verbose = FALSE),
+                      error = function(e) conditionMessage(e))
+  testthat::expect_match(pct_msg, "proportions between 0 and 1")
+
+  ## ...and a valid proportion still filters rather than erroring.
+  testthat::expect_no_error(filter_data(st, gene_minpct = 0.1, verbose = FALSE))
+})

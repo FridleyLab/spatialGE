@@ -79,13 +79,31 @@ XV_EXPECT <- list(
        rationale = "cores=NULL with rnacounts=NULL raised 'argument is of length zero'."),
 
   ## ---- delta 13: STgradient's pval_warn state leak ----------------------
+  ## RESOLVED as unreachable-from-here, and verified elsewhere instead. This
+  ## reported NOT_OBSERVED for three consecutive runs, which is the inverse check
+  ## doing its job. The resolution is not to delete the record but to record why
+  ## the integration route cannot reach it, and where the fix IS pinned.
+  ##
+  ## pval_warn is set only when cor.test(method='spearman') warns specifically
+  ## about a zero standard deviation, i.e. when an input vector is constant. The
+  ## only gene still constant after library-size normalisation is ZeroGene --
+  ## ConstGene is not, because dividing a constant count by a varying library size
+  ## gives sd 0.0389. And ZeroGene never reaches the correlation: the robust
+  ## regression fails on it first, so its row carries 'rob_regr_no_convergence'.
+  ## No fixture-based scenario can therefore produce 'zero_st_deviation' through
+  ## STgradient(), whatever topgenes or robust setting is used.
+  ##
+  ## Verified directly instead, in tests/testthat/test-numeric-stgradient.R:
+  ## "spearman_cor_safe() flags a zero-standard-deviation correlation" asserts the
+  ## zero-SD branch, the ties branch (which must NOT be labelled zero-SD), and the
+  ## clean branch.
   list(id = "fix13_pval_warn", commit = "f05c855", delta = 13,
        scenario = "S8", path = "^S8/s8_gradient",
        class = "EXPECTED_FIX", optional = TRUE,
-       rationale = paste("pval_warn is now initialised to NA up front rather than only inside",
-                         "if(nrow(df_gene_range) > 1). Reachable only when a gene's",
-                         "post-filter sample size is <= 1; if main does not error here the",
-                         "delta is unreachable and stays unverified.")),
+       rationale = paste("pval_warn is initialised to NA up front and set only on cor.test's",
+                         "zero-standard-deviation warning. Not reachable through STgradient()",
+                         "from the fixture (see the comment above); pinned by a unit test on",
+                         "spearman_cor_safe() instead.")),
 
   ## ---- order-induced value changes --------------------------------------
   ## These are NOT order-only and NOT regressions. STenrich's permutation null is
@@ -362,6 +380,29 @@ XV_EXPECT <- list(
                          "erroring. On the real Visium data this is a warning rather than the",
                          "hard failure main produced.")),
 
+  ## ---- filter_data() removing every gene leaked a dplyr error -----------
+  ## Found by this harness: s13_filter_gene_minpct errored on BOTH versions, which
+  ## the vacuous-coverage report surfaced once the intentional error-path steps
+  ## were declared away. A 0-row dgCMatrix carries rownames = NULL rather than
+  ## character(0), so sample_genes() returns NULL, tibble() DROPS the `gene`
+  ## column it is handed, and the @gene_meta left_join(by='gene') fails with
+  ## "Join columns in `x` must be present in the data" -- naming neither
+  ## filter_data nor the threshold. Reachable from ordinary arguments
+  ## (gene_minreads=1e9, gene_minspots=1e6) as well as from the pct scale
+  ## confusion, and present in 1.2.2, so this is a long-standing crash rather
+  ## than a refactor regression.
+  list(id = "fix18_filter_all_genes_removed", commit = NA, delta = NA,
+       scenario = "S13", path = "^S13/s13_filter_gene_minpct_all_removed/",
+       class = "EXPECTED_FIX",
+       main_pattern = "Join columns",
+       alex_pattern = "removed every gene",
+       rationale = paste("filter_data() now raises error0098, naming the sample and stating",
+                         "that the pct thresholds are proportions in [0,1] rather than",
+                         "percentages -- which is the mistake the old @param text invited by",
+                         "calling them percentages. Pinned in",
+                         "tests/testthat/test-filter_data.R and guarded by the leaked vector",
+                         "in test-graceful-errors.R.")),
+
   ## ---- declared non-comparable ------------------------------------------
   list(id = "noncomparable_krige_call", commit = NA, delta = NA,
        scenario = NA, path = "gene_krige/.*/(call|fields)$",
@@ -396,4 +437,46 @@ xv_match_expect <- function(path, scenario, main_val = NULL, alex_val = NULL){
     return(rec)
   }
   NULL
+}
+
+
+## ---------------------------------------------------------------------------
+## Steps that are SUPPOSED to error on both versions.
+##
+## A step erroring identically on both sides compares only an error string, and
+## the vacuous-coverage report counts that as debt. But most of those steps exist
+## precisely to assert that bad input errors -- the error IS the output being
+## compared -- so an undifferentiated count buries the ones that matter. The
+## first run of this table reported 86 such steps; 85 were intentional and 1 was
+## a live crash in filter_data() (see below), which is exactly the signal the
+## count was drowning.
+##
+## Declaring the intentional ones means an UNDECLARED error-on-both step is now
+## a finding rather than a line in a list of 86. Add to this only when the step's
+## purpose is to assert an error, and say why.
+XV_ERROR_PATH <- c(
+  ## S6, S7: the bad-input sweeps. Every step passes no argument, NULL, or a
+  ## wrong-typed object to an exported function and asserts it errors.
+  "^S6/s6_(null_rnacounts|null_both|null_spotcoords|no_args)$",
+  "^S7/s7_[A-Za-z_]+_(noargs|null|wrong)$",
+
+  ## S14: the samples= resolution sweep. For the plotting functions both versions
+  ## error on a name that matches nothing, a substring, or an out-of-range index.
+  ## (SThet is NOT here: main returned fabricated results, which is fix15.)
+  "^S14/s14_(plot_counts|plot_image|STplot|distribution)_(substring|missing_name|out_of_range)$",
+
+  ## S1: a samples file whose own columns point at per-sample counts/coords
+  ## paths, with no rnacounts/spotcoords given. This format has never been
+  ## supported -- process_sample_names_from_file() was dead code and was removed
+  ## in Phase 4 -- and tests/testthat/test-fixtures.R pins that STlist() rejects
+  ## it. Erroring on both versions is the correct outcome.
+  "^S1/STlist_samplesfile_matrices$",
+
+  ## S13: deliberately out-of-range gene_minpct, kept as a step to assert that a
+  ## filter removing every gene errors informatively rather than leaking dplyr.
+  "^S13/s13_filter_gene_minpct_all_removed$"
+)
+
+xv_is_error_path <- function(step_id){
+  any(vapply(XV_ERROR_PATH, function(p) grepl(p, step_id, perl = TRUE), logical(1)))
 }

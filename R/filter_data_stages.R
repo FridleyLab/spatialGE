@@ -225,6 +225,23 @@ filter_stage_counts = function(x, samples, spot_minreads, spot_maxreads, spot_mi
     # preserving it.
     mtx_tmp = mtx_tmp[gene_mask, spot_mask, drop=FALSE]
 
+    # Removing every gene has to be caught here, before the slot writes below.
+    # A 0-row dgCMatrix carries rownames = NULL rather than character(0), so
+    # sample_genes() returns NULL, tibble() then DROPS the `gene` column it is
+    # given (tibble(a=1, gene=NULL) has one column), and the @gene_meta
+    # left_join(by='gene') a few lines down fails with dplyr's "Join columns in
+    # `x` must be present in the data" -- an internal message naming neither
+    # filter_data nor the threshold responsible.
+    #
+    # Reachable from ordinary arguments, not just absurd ones: gene_minreads=1e9
+    # and gene_minspots=1e6 do it, and so does gene_minpct=10, because the pct
+    # thresholds are proportions in [0,1] while the documentation called them
+    # percentages. Present in 1.2.2 as well, so this is a long-standing crash
+    # rather than a refactor regression.
+    if(nrow(mtx_tmp) == 0){
+      raise_err(err_code='error0098', samplename=NULL, i)
+    }
+
     # Subset data in STlist. Already a dgCMatrix, so no makeSparse() round trip
     # through a dense matrix. The previous path went sparse -> dense -> data.frame
     # -> as.matrix -> sparse, which also meant a duplicate gene name raised an

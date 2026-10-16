@@ -202,7 +202,11 @@ testthat::test_that("no user-facing failure leaks an internal variable name", {
   ## A guard against regressions of the whole class: these are the specific
   ## internal names that used to escape. None may reappear in any message.
   leaked <- c("tr_results", "get1index", "xpos", "knearneigh",
-              "Can't extract columns past the end")
+              "Can't extract columns past the end",
+              ## filter_data() with any threshold that removes every gene used to
+              ## surface this from dplyr, via a 0-row dgCMatrix whose rownames are
+              ## NULL rather than character(0). Reachable in 1.2.2 too.
+              "Join columns in")
 
   attempts <- list(
     function() transform_data(stu, method = "bogus", cores = 1),

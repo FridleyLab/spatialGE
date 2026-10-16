@@ -184,3 +184,31 @@ testthat::test_that("stgradient_dists_one_sample matches the matrix-based refere
   }
   testthat::expect_gt(n_checked, 6)
 })
+
+testthat::test_that("spearman_cor_safe() flags a zero-standard-deviation correlation", {
+  ## pval_warn is initialised to NA_character_ up front and set only when
+  ## cor.test's warning is specifically about a zero standard deviation (f05c855).
+  ## Pinned here rather than through STgradient() because the integration route is
+  ## not reachable from the fixture: the only gene that is constant after
+  ## library-size normalisation is ZeroGene, and the robust regression fails on it
+  ## first, so it carries 'rob_regr_no_convergence' and never reaches the
+  ## correlation. dev/xver reported this delta NOT_OBSERVED for three runs for
+  ## that reason; this is the verification it was missing.
+  flat <- spatialGE:::spearman_cor_safe(seq_len(20), rep(5, 20))
+  testthat::expect_identical(flat$pval_warn, "zero_st_deviation")
+  ## It still returns a usable htest, with an undefined estimate rather than an
+  ## error, so the caller can record the row instead of dropping the gene.
+  testthat::expect_s3_class(flat$cor_res, "htest")
+  testthat::expect_true(is.na(as.vector(flat$cor_res$estimate)))
+
+  ## A correlation that merely cannot compute an exact p-value (ties) retries with
+  ## exact=FALSE and must NOT be labelled zero-SD.
+  tied <- spatialGE:::spearman_cor_safe(seq_len(20), c(seq_len(19), 19))
+  testthat::expect_true(is.na(tied$pval_warn))
+  testthat::expect_false(is.na(as.vector(tied$cor_res$estimate)))
+
+  ## A clean, fully-determined correlation leaves the flag unset.
+  clean <- spatialGE:::spearman_cor_safe(seq_len(20), seq_len(20) * 2)
+  testthat::expect_true(is.na(clean$pval_warn))
+  testthat::expect_equal(as.vector(clean$cor_res$estimate), 1)
+})

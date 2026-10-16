@@ -30,14 +30,20 @@
 #' @param spot_maxreads the maximum number of total reads for a spot to be retained
 #' @param spot_mingenes the minimum number of non-zero counts for a spot to be retained
 #' @param spot_maxgenes the maximum number of non-zero counts for a spot to be retained
-#' @param spot_minpct the minimum percentage of counts for features defined by `spot_pct_expr` for a spot to be retained.
-#' @param spot_maxpct the maximum percentage of counts for features defined by `spot_pct_expr` for a spot to be retained.
+#' @param spot_minpct the minimum proportion of counts for features defined by
+#' `spot_pct_expr` for a spot to be retained. A **proportion between 0 and 1**,
+#' not a percentage: use 0.1 for 10%
+#' @param spot_maxpct the maximum proportion of counts for features defined by
+#' `spot_pct_expr` for a spot to be retained. A proportion between 0 and 1
 #' @param gene_minreads the minimum number of total reads for a gene to be retained
 #' @param gene_maxreads the maximum number of total reads for a gene to be retained
 #' @param gene_minspots he minimum number of spots with non-zero counts for a gene to be retained
 #' @param gene_maxspots the maximum number of spots with non-zero counts for a gene to be retained
-#' @param gene_minpct the minimum percentage of spots with non-zero counts for a gene to be retained
-#' @param gene_maxpct the maximum percentage of spots with non-zero counts for a gene to be retained
+#' @param gene_minpct the minimum proportion of spots with non-zero counts for a
+#' gene to be retained. A **proportion between 0 and 1**, not a percentage: use
+#' 0.1 for 10%. A value above 1 removes every gene
+#' @param gene_maxpct the maximum proportion of spots with non-zero counts for a
+#' gene to be retained. A proportion between 0 and 1
 #' @param samples samples (as in `names(x@counts)`) to perform filtering.
 #' @param rm_tissue sample (as in `names(x@counts)`) to remove from STlist. Removes samples in `x@counts`, `x@tr_counts`, `x@spatial_meta`, `x@gene_meta`, and `x@sample_meta`
 #' @param rm_spots vector of spot/cell IDs to remove. Removes spots/cells in `x@counts`, `x@tr_counts`, and `x@spatial_meta`

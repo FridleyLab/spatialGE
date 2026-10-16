@@ -407,14 +407,32 @@ for(sc in common_sc){
     if(!isTRUE(om) && !isTRUE(oa)) vac <- c(vac, paste(sc, st, sep = "/"))
   }
 }
+
+## Split the list. A step whose purpose is to assert an error is not debt -- the
+## error is the output being compared -- so only the UNDECLARED ones are. Running
+## them together reported 86 steps and buried the single live crash among them
+## (filter_data() with any threshold that removed every gene, which surfaced
+## dplyr's "Join columns in `x` must be present in the data"). Declared patterns
+## live in XV_ERROR_PATH in classify.R.
+vac_declared <- Filter(xv_is_error_path, vac)
+vac_undeclared <- setdiff(vac, vac_declared)
 cat(sprintf("  %d of %d compared steps compared only an error string\n", length(vac), tot))
-for(v in vac) cat(sprintf("      %s\n", v))
+cat(sprintf("    %d declared error-path steps (the error IS the comparison)\n",
+            length(vac_declared)))
+cat(sprintf("    %d UNDECLARED -- a step meant to produce output did not\n",
+            length(vac_undeclared)))
+if(length(vac_undeclared)){
+  for(v in vac_undeclared) cat(sprintf("      INVESTIGATE  %s\n", v))
+} else {
+  cat("      none\n")
+}
 
 ## ---- persist --------------------------------------------------------------
 
 saveRDS(list(pass0 = pass0, noise = noise, pass_a = pass_a, pass_b = pass_b,
              pass_bp = pass_bp, gateC = gateC, gateP = gateP,
              verdicts = verdicts, missing = missing, vacuous = vac,
+             vacuous_declared = vac_declared, vacuous_undeclared = vac_undeclared,
              scenarios = common_sc,
              headers = list(main = pm$header, alex = pa$header)),
         file.path(OUT, sprintf("comparison-rep%s.rds", CMP_REP)), version = 3)
