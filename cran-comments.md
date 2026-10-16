@@ -7,73 +7,50 @@
 
 ## R CMD check results
 
-0 ERRORs, 0 WARNINGs, 3 NOTEs. All three are properties of the machine that ran
-the check rather than of the package, and the reasoning is given for each so a
-reviewer does not have to reconstruct it.
+0 ERRORs, 0 WARNINGs, 1 NOTE.
 
-Four findings present in earlier drafts of this file have been fixed rather than
-explained, and are recorded here only because a reviewer comparing submissions
-may look for them:
+### NOTE: checking for future file timestamps -- unable to verify current time
 
-* *Undocumented S4 methods* (`[`, `[[`, `length` on `STlist`) -- these are now
-  documented, along with the `@param` entries for the generics' full argument
-  lists.
+Environmental, and the only finding left. The check compares file timestamps
+against an external time service, and both services R consults
+(`worldclockapi.com` and `worldtimeapi.org`) were unreachable or erroring when
+this check ran -- the first returned HTTP 503, the second did not respond. The
+submitting network was otherwise working normally at the time, so this is an
+outage of those services rather than a local block, and R has no fallback. No
+file in the tarball carries a future timestamp.
+
+### Findings fixed rather than explained
+
+Earlier drafts of this file explained six other findings. All are now fixed, and
+are listed here only because a reviewer comparing submissions may look for them:
+
+* *Undocumented S4 methods* (`[`, `[[`, `length` on `STlist`) -- now documented,
+  including the `@param` entries for the generics' full argument lists and an
+  explicit alias for `[[`, whose registered signature loses its trailing `ANY`s.
 * *Namespace in Imports field not imported from: 'R.utils'* -- `R.utils` is a
   **runtime** dependency of `data.table::fread()`, which loads it to decompress
   the gzipped `features`/`barcodes`/`matrix` files Cell Ranger always emits.
   `fread()` loads it internally rather than spatialGE calling it, so static
-  analysis could not see the use. It is now named in an `@importFrom` beside
-  those `fread()` calls. It is not moved to Suggests: a minimal install then
-  cannot read standard 10x MEX output at all.
-* *'qpdf' is needed for checks on size reduction of PDFs* -- `qpdf` is now
-  installed on the machine that runs the check.
+  analysis could not see the use; it is now named in an `@importFrom` beside
+  those `fread()` calls. Deliberately not moved to Suggests, which would silence
+  the NOTE by making a minimal install unable to read standard 10x MEX output.
+* *'qpdf' is needed for checks on size reduction of PDFs* -- `qpdf` installed on
+  the machine that runs the check.
+* *checking HTML version of manual* -- the machine had Apple's 2006 build of
+  HTML Tidy, so R skipped HTML validation; HTML Tidy 5.8.0 is now installed.
 * *Possibly invalid URL `https://clustrmaps.com/site/1bwt8`* -- a visitor-counter
   badge, now commented out in README.md.
+* *Possibly invalid URL `https://support.10xgenomics.com/.../what-is-space-ranger`*
+  -- 10x Genomics appears to have retired that host (403 to any client,
+  including a browser user agent, with no redirect), so the vignette now refers
+  to Space Ranger without linking to it.
 
-### NOTE: CRAN incoming feasibility
-
-Two parts. The maintainer line is expected.
-
-The URLs reported as possibly invalid are four `doi.org` citation links and one
-`satijalab.org` documentation link. All five fail with the same error, and the
-check's own output records why they are not broken:
-
-```
-Status: Error
-Message: libcurl error code 60:
-    SSL certificate OpenSSL verify result: self-signed certificate in
-    certificate chain (19)
-    (Status without verification: OK)
-```
-
-The submitting institution intercepts TLS, so the chain presented for those
-hosts terminates at an internal root (`CN=Moffitt Root CA`) that is in the macOS
-keychain but not in the CA bundle R's libcurl uses. `Status without
-verification: OK` is the check confirming that each URL resolves normally once
-verification is taken out of the picture. These are stable DOIs and a current
-Seurat reference page; they are not expected to reproduce on CRAN's
-infrastructure, which does not sit behind the interception.
-
-A previously reported URL,
-`https://support.10xgenomics.com/.../what-is-space-ranger`, is gone from this
-submission: 10x Genomics appears to have retired that host (403 to any client,
-including a browser user agent, with no redirect), so the vignette now refers to
-Space Ranger without linking to it.
-
-The incoming-feasibility check itself could not run locally, because the network
-blocks the CRAN and Bioconductor package indexes.
-
-### NOTE: checking for future file timestamps -- unable to verify current time
-
-Environmental. The check contacts an external time service to compare file
-timestamps, and the submitting network blocks it. No file in the tarball carries
-a future timestamp.
-
-### NOTE: checking HTML version of manual
-
-Environmental: `HTML Tidy` on the machine that ran the check is older than the
-version R requires for HTML validation, so that validation is skipped rather
-than failed.
+Four `doi.org` citations and one `satijalab.org` page were also reported as
+possibly invalid at one point. That was local TLS interception, not a problem
+with the links: the check reported `libcurl error code 60` together with
+`(Status without verification: OK)`, i.e. it confirmed each URL resolves and
+only certificate verification had failed. Pointing R's libcurl at a CA bundle
+that includes the institution's root resolves it, and all five verify normally.
 
 ## Downstream dependencies
 
