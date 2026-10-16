@@ -384,15 +384,19 @@ not tell you the branch is broken; it tells you the table is stale.
 
 | Verdict | main batch | extras batch | Meaning |
 |---|---:|---:|---|
-| `EXPECTED_CHANGE` | 9,003 | 5,409 | deliberate, documented, not a bug fix |
-| `ORDER_ONLY` | 1,792 | 501 | differs as produced, identical once canonicalized |
-| `EXPECTED_FIX` | 1,686 | 444 | a documented fix, direction asserted |
-| `ORDER_INDUCED_VALUE` | 532 | 54 | value moved *because* order changed |
-| `FLOAT_NOISE` | 433 | 190 | below 1e-12 scale-relative |
+| `EXPECTED_CHANGE` | 9,007 | 5,409 | deliberate, documented, not a bug fix |
+| `ORDER_ONLY` | 1,831 | 501 | differs as produced, identical once canonicalized |
+| `EXPECTED_FIX` | 1,688 | 444 | a documented fix, direction asserted |
+| `ORDER_INDUCED_VALUE` | 535 | 54 | value moved *because* order changed |
+| `FLOAT_NOISE` | 439 | 190 | below 1e-12 scale-relative |
 | `SELECTION_CASCADE` | 6 | 24 | the two versions selected different genes |
 | `UNDOCUMENTED_CHANGE` | 4 | 1 | real, user-visible, not in NEWS |
 | **`REGRESSION`** | **0** | **0** | |
-| Total | 13,456 | 6,623 | all accounted for |
+| Total | 13,510 | 6,623 | all accounted for |
+
+**`MISSING_EXPECTED` is zero in both batches.** Every remaining inverse-check
+line is `NOT_OBSERVED` on a record explicitly marked `optional`, i.e. one that
+declares in advance it may not be reachable.
 
 Noise floor empty again: **0 non-reproducible paths on both versions in both
 batches**, including the `spaMM` mixed-model path and the real Visium data.
@@ -509,16 +513,82 @@ Those blanks are the reducer, **not** a formatting bug in the message. Both
 counts are present in the real output. This cost a detour; it is recorded so the
 next reader does not repeat it.
 
-## Coverage debt still outstanding
+## Coverage debt: closed, and what closing it found
 
-- **86 of 204 compared steps compared only an error string** in the main batch,
-  so the step count overstates how much numeric surface is covered.
-- `fix13_pval_warn` (`f05c855`) remains `NOT_OBSERVED`: it is reachable only when
-  a gene's post-filter sample size is <= 1, which no scenario produces. Still
-  unverified, now for the third run in a row.
-- The expectation table is only as current as its last update. Any commit that
-  changes output needs a record in the same commit, or the next run reports it as
-  a regression — exactly what happened here.
+The previous run left two items standing. Both are now resolved, and the first
+turned out to be hiding a live crash.
+
+### "86 of 204 steps compared only an error string"
+
+That count had been reported for three runs as undifferentiated debt. Splitting
+it was the whole fix: **85 of the 86 were deliberate** bad-input sweeps (`S6`,
+`S7`), the `samples=` resolution sweep (`S14`), and one deliberately unsupported
+input format (`S1/STlist_samplesfile_matrices`, which
+`tests/testthat/test-fixtures.R` already pins must error). For those the error
+*is* the output being compared, so they are not debt at all.
+
+The 86th was `S13/s13_filter_gene_minpct`, and it was a **live crash in
+`filter_data()` present in 1.2.2 as well**:
+
+```
+filter_data(st, gene_minpct = 10)
+#> Error: Join columns in `x` must be present in the data. x Problem with `gene`.
+```
+
+Any threshold that removes every gene from a sample hits it — `gene_minreads =
+1e9` and `gene_minspots = 1e6` do too, so it is reachable from ordinary
+arguments. A 0-row `dgCMatrix` carries `rownames = NULL` rather than
+`character(0)`, so `sample_genes()` returns `NULL`, `tibble()` silently **drops**
+the `gene` column it is handed, and the `@gene_meta` `left_join(by = 'gene')` has
+nothing to join on. Fixed: `filter_data()` now raises `error0098` naming the
+sample.
+
+The likeliest route in was the documentation. `@param` called `gene_minpct` and
+its three siblings "percentage" while the code compares against a **proportion in
+[0,1]**, so a caller passing 10 for "10%" removed every gene. The `@param` text
+now says proportion with 0.1 as the 10% example, and the error message repeats
+it.
+
+`XV_ERROR_PATH` in `classify.R` now declares the intentional error-path steps,
+and the report prints declared and **UNDECLARED** separately, flagging the latter
+as `INVESTIGATE`. Both batches now report **0 UNDECLARED**. The next crash of
+this kind cannot hide in a list of 86.
+
+The scenario itself was also wrong, and that is why it never caught anything: it
+passed `gene_minpct = 10`, removing all 200 genes, so it never exercised the pct
+stage. It now passes `0.1`, and the out-of-range value is kept as its own
+declared step asserting the new behavior cross-version (`main` leaks dplyr, the
+branch raises `error0098` — records `fix18_filter_all_genes_removed` and
+`..._class`, the latter because the condition class also changes from
+`rlang_error` to `simpleError`).
+
+### `fix13_pval_warn`, `NOT_OBSERVED` for three runs
+
+Resolved as **unreachable from the fixture, and verified directly instead**.
+
+`pval_warn` is set only when `cor.test(method='spearman')` warns specifically
+about a zero standard deviation, i.e. when an input vector is constant. The only
+gene still constant after library-size normalisation is `ZeroGene` — `ConstGene`
+is *not*, because dividing a constant count by a varying library size gives
+sd 0.0389 — and `ZeroGene` never reaches the correlation, because the robust
+regression fails on it first and its row carries `rob_regr_no_convergence`. No
+`topgenes` or `robust` setting changes that.
+
+So it is pinned by a unit test instead:
+`tests/testthat/test-numeric-stgradient.R`, *"spearman_cor_safe() flags a
+zero-standard-deviation correlation"*, asserting the zero-SD branch, the ties
+branch that must **not** be labelled zero-SD, and the clean branch. The record
+now carries that reasoning rather than reporting debt indefinitely.
+
+### What remains, honestly
+
+Nothing undeclared. The `COVERAGE_GAP` lines in a single-batch run are an
+artifact of scenario scoping — a record scoped to `S4` cannot match in a batch
+that does not run `S4` — and the two batches together cover every scoped record.
+The expectation table is only ever as current as its last update: **a commit that
+changes output needs a record in the same commit**, or the next run reports it as
+a regression. That is not a flaw to fix; it is the mechanism working, and it is
+what caught `filter_data()`.
 
 ## Reproducing this section
 

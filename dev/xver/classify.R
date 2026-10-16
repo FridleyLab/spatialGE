@@ -403,6 +403,21 @@ XV_EXPECT <- list(
                          "tests/testthat/test-filter_data.R and guarded by the leaked vector",
                          "in test-graceful-errors.R.")),
 
+  ## The condition CLASS changes with the error source: dplyr raises an
+  ## rlang_error, raise_err() uses stop(..., call.=FALSE) and so raises a
+  ## simpleError. Given its own record rather than relaxing fix18's value guards,
+  ## which deliberately refused to absorb a leaf whose values they did not
+  ## describe -- that refusal is the guard working, not an inconvenience.
+  list(id = "fix18_filter_all_genes_removed_class", commit = NA, delta = NA,
+       scenario = "S13", path = "^S13/s13_filter_gene_minpct_all_removed/error_classes$",
+       class = "EXPECTED_FIX",
+       main_pattern = "rlang_error",
+       alex_pattern = "simpleError",
+       rationale = paste("Same fix as fix18, seen in the condition class: the dplyr failure was",
+                         "an rlang_error, and the catalog error is a simpleError. Code",
+                         "tryCatch-ing on rlang_error specifically would need updating; code",
+                         "catching `error` is unaffected.")),
+
   ## ---- declared non-comparable ------------------------------------------
   list(id = "noncomparable_krige_call", commit = NA, delta = NA,
        scenario = NA, path = "gene_krige/.*/(call|fields)$",
