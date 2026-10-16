@@ -126,11 +126,14 @@ filtering</p>
 
 
 <dt id="arg-spot-minpct">spot_minpct<a class="anchor" aria-label="anchor" href="#arg-spot-minpct"></a></dt>
-<dd><p>the minimum percentage of counts for features defined by <code>spot_pct_expr</code> for a spot to be retained.</p></dd>
+<dd><p>the minimum proportion of counts for features defined by
+<code>spot_pct_expr</code> for a spot to be retained. A <strong>proportion between 0 and 1</strong>,
+not a percentage: use 0.1 for 10%</p></dd>
 
 
 <dt id="arg-spot-maxpct">spot_maxpct<a class="anchor" aria-label="anchor" href="#arg-spot-maxpct"></a></dt>
-<dd><p>the maximum percentage of counts for features defined by <code>spot_pct_expr</code> for a spot to be retained.</p></dd>
+<dd><p>the maximum proportion of counts for features defined by
+<code>spot_pct_expr</code> for a spot to be retained. A proportion between 0 and 1</p></dd>
 
 
 <dt id="arg-gene-minreads">gene_minreads<a class="anchor" aria-label="anchor" href="#arg-gene-minreads"></a></dt>
@@ -150,11 +153,14 @@ filtering</p>
 
 
 <dt id="arg-gene-minpct">gene_minpct<a class="anchor" aria-label="anchor" href="#arg-gene-minpct"></a></dt>
-<dd><p>the minimum percentage of spots with non-zero counts for a gene to be retained</p></dd>
+<dd><p>the minimum proportion of spots with non-zero counts for a
+gene to be retained. A <strong>proportion between 0 and 1</strong>, not a percentage: use
+0.1 for 10%. A value above 1 removes every gene</p></dd>
 
 
 <dt id="arg-gene-maxpct">gene_maxpct<a class="anchor" aria-label="anchor" href="#arg-gene-maxpct"></a></dt>
-<dd><p>the maximum percentage of spots with non-zero counts for a gene to be retained</p></dd>
+<dd><p>the maximum proportion of spots with non-zero counts for a
+gene to be retained. A proportion between 0 and 1</p></dd>
 
 
 <dt id="arg-samples">samples<a class="anchor" aria-label="anchor" href="#arg-samples"></a></dt>
