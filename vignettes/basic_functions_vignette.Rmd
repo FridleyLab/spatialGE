@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 options(rmarkdown.html_vignette.check_title=F)
 ```
 
-The package ***`spatialGE`*** provides a collection of tools for the visualization of gene expression from spatially-resolved transcriptomic experiments. The data input methods have been designed so that any data can be analyzed as long as it contains gene expression counts per spot or cell, and the spatial coordinates of those spots or cells. Specialized data input options are available to allow interoperability with workflows such as [*Space Ranger*](https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger).
+The package ***`spatialGE`*** provides a collection of tools for the visualization of gene expression from spatially-resolved transcriptomic experiments. The data input methods have been designed so that any data can be analyzed as long as it contains gene expression counts per spot or cell, and the spatial coordinates of those spots or cells. Specialized data input options are available to allow interoperability with workflows such as *Space Ranger* (available from 10X Genomics).
 
 This tutorial covers basic analysis possible within spatialGE. Tutorials explaining more advanced spatial analyses and other data input types can be found in the documentation site of the [spatialGE GitHub repository](https://fridleylab.github.io/spatialGE/). A point-and-click, user-friendly interface is also available at https://spatialge.moffitt.org.
 

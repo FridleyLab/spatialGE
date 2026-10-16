@@ -34,14 +34,31 @@ may look for them:
 
 Two parts. The maintainer line is expected.
 
-The URL reported as possibly invalid is
-`https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger`,
-cited in the Space Ranger reference of `basic_functions_vignette.Rmd`. 10x
-Genomics appears to have retired the `support.10xgenomics.com` host: it returns
-403 to any client, including a browser user agent, and issues no redirect. The
-current location is `https://www.10xgenomics.com/support/software/space-ranger`,
-which could not be confirmed from the submitting network because 10x rate-limits
-it (HTTP 429).
+The URLs reported as possibly invalid are four `doi.org` citation links and one
+`satijalab.org` documentation link. All five fail with the same error, and the
+check's own output records why they are not broken:
+
+```
+Status: Error
+Message: libcurl error code 60:
+    SSL certificate OpenSSL verify result: self-signed certificate in
+    certificate chain (19)
+    (Status without verification: OK)
+```
+
+The submitting institution intercepts TLS, so the chain presented for those
+hosts terminates at an internal root (`CN=Moffitt Root CA`) that is in the macOS
+keychain but not in the CA bundle R's libcurl uses. `Status without
+verification: OK` is the check confirming that each URL resolves normally once
+verification is taken out of the picture. These are stable DOIs and a current
+Seurat reference page; they are not expected to reproduce on CRAN's
+infrastructure, which does not sit behind the interception.
+
+A previously reported URL,
+`https://support.10xgenomics.com/.../what-is-space-ranger`, is gone from this
+submission: 10x Genomics appears to have retired that host (403 to any client,
+including a browser user agent, with no redirect), so the vignette now refers to
+Space Ranger without linking to it.
 
 The incoming-feasibility check itself could not run locally, because the network
 blocks the CRAN and Bioconductor package indexes.
