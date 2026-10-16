@@ -13,12 +13,17 @@ STplot_interpolation(
 )
 }
 \arguments{
-\item{x}{an STlist containing results from \code{gene_krige} for the genes selected.}
+\item{x}{an STlist containing results from \code{gene_krige} for the genes selected.
+Kriging must have been run first with \code{\link[=gene_interpolation]{gene_interpolation()}}.}
 
-\item{genes}{a vector of gene names (one or several) to plot. If 'top', the 10
-genes with highest standard deviation from each spatial sample are plotted.}
+\item{genes}{a vector of gene names (one or several) to plot. If \code{'top'} (the
+default when \code{NULL}), the \code{top_n} genes with the highest standardized variance
+(VST) from each spatial sample are plotted. Only genes that already have
+kriging results can be plotted; a warning names any requested gene that was not
+interpolated.}
 
-\item{top_n}{an integer indicating how many top genes to perform kriging. Default is 10.}
+\item{top_n}{an integer indicating how many of the most variable genes to plot
+when \code{genes='top'}. Default is 10.}
 
 \item{samples}{a vector indicating the spatial samples to plot. If vector of numbers,
 it follows the order of \code{names(x@counts)}. If NULL, the function plots all samples}

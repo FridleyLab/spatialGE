@@ -72,6 +72,22 @@ Seurat_FindVariableFeatures = function(object=NULL){
     hvf.info$variance.expected <- 0
     hvf.info$variance.standardized <- 0
     not.const <- hvf.info$variance > 0
+
+    # The loess below is fit across GENES, on the non-constant ones only, so it
+    # has a minimum data requirement that the rest of this function does not. At
+    # span=0.3 and loess' default degree=2 it needs 4 such genes; with 1-3 it
+    # stops with 'span is too small', an internal stats message naming neither
+    # the sample nor the cause. Note the count that matters is of non-constant
+    # genes, not of genes: a 100-gene matrix in which only 3 vary fails too.
+    #
+    # Returning NULL rather than raising lets calculate_vst() decide, because the
+    # right answer differs by caller -- transform_data() can still deliver the
+    # normalization a caller actually asked for, while a topgenes selection
+    # genuinely cannot proceed.
+    if(sum(not.const) < 4){
+      return(NULL)
+    }
+
     fit <- loess(
       formula = log10(x = variance) ~ log10(x = mean),
       data = hvf.info[not.const, ],

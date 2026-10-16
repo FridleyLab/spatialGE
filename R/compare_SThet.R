@@ -39,7 +39,7 @@ compare_SThet = function(x=NULL, samplemeta=NULL, genes=NULL,  color_by=NULL,
   x = assert_stlist(x, message="The input must be a STList.")
 
   if(is.null(genes)){
-    stop('Please, enter one gene or more to generate plot.')
+    raise_err(err_code='error0092')
   }
 
   # Color by patient if no color_by

@@ -89,7 +89,7 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
 
   # Do not allow weights higher than 1
   if(any(ws < 0) | any(ws > 1)){
-    stop('Please select a spatial weight between 0 and 1.')
+    raise_err(err_code='error0086')
   }
 
   # Check to ensure number of ks is acceptable
@@ -233,11 +233,11 @@ stclust_one_sample = function(trcounts_mat, spatial_meta_df, dist_metric, ws, cl
       # Hierarchical clustering using range of Ks
       hierclusters_ls = get_hier_clusters_ks(weighted_dists=weighted_dists, ws=ws, ks=ks, linkage=linkage)
     } else{
-      stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')
+      raise_err(err_code='error0087')
     }
 
   } else{
-    stop('Currently, only spatially-informed hierarchical clustering is supported.')
+    raise_err(err_code='error0088')
   }
 
   if(verbose > 1L){

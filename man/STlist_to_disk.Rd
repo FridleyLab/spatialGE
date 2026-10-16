@@ -21,26 +21,25 @@ Converts an in-memory STlist into one backed by parquet files, so
 data larger than memory can be held and read in slices.
 }
 \details{
-Opt-in and reversible. \code{@counts} and \code{@tr_counts} elements are replaced
-by manifests describing per-sample parquet files; every other slot is untouched.
+Opt-in and reversible. \verb{@counts} and \verb{@tr_counts} elements are replaced by
+manifests describing per-sample parquet files; every other slot is untouched.
 All package functions continue to work, because slot reads go through internal
-accessors that materialize on demand -- so this trades memory for I/O rather than
-changing results.
+accessors that materialize on demand -- so this trades memory for I/O rather
+than changing results.
 
 Matrices are stored in COO (long) form, one file per sample per slot, sorted by
 gene then cell. \code{STlist_to_memory()} reverses the conversion.
 
-Note what this does and does not buy. It buys capacity: an STlist larger than RAM
-can be held and read in gene-subset slices. It does not currently speed anything
-up -- aggregate operations still materialize and compute in memory, so a backed
-STlist is slower on those paths than an in-memory one.
+Note what this does and does not buy. It buys capacity: an STlist larger than
+RAM can be held and read in gene-subset slices. It does not currently speed
+anything up -- aggregate operations still materialize and compute in memory, so
+a backed STlist is slower on those paths than an in-memory one.
 
-The store is a directory of files, not part of the R object. An STlist saved with
-\code{saveRDS()} records paths, so moving or deleting \code{root} breaks it;
+The store is a directory of files, not part of the R object. An STlist saved
+with \code{saveRDS()} records paths, so moving or deleting \code{root} breaks it;
 \code{validate_store()} reports that rather than failing obscurely later. A store
 written under \code{tempdir()} is flagged as non-portable for the same reason.
 }
 \seealso{
-\code{\link{STlist_to_memory}}, \code{\link{validate_store}},
-\code{\link{is_backed}}
+\code{\link[=STlist_to_memory]{STlist_to_memory()}}, \code{\link[=validate_store]{validate_store()}}, \code{\link[=is_backed]{is_backed()}}
 }

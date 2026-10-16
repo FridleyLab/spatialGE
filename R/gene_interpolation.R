@@ -85,7 +85,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
 
   # Test that a gene name was entered.
   if(is.null(genes)) {
-    stop("Please, enter one or more genes to plot.")
+    raise_err(err_code='error0091')
   }
 
   # If genes='top', get names of 10 genes with the highest standard deviation.
@@ -177,9 +177,6 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
 
   # Define cores available
   cores = resolve_cores(length(unique(combo[[1]])), cores, coerce='as_integer')
-  if(is.na(cores)){
-    stop('Could not recognize number of cores requested')
-  }
 
   # Loop through combinations of samples
   kriging_list = sge_lapply(seq_along(1:length(as.vector(unique(combo[[1]])))), function(i_combo){

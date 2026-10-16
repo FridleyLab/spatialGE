@@ -1,6 +1,6 @@
 # spatialGE
 
-<img align="left" src="vignettes/img/logo.png" height="100" width="90" />
+<img align="left" src="man/figures/logo.png" height="100" width="90" />
 
 An R package for the visualization and analysis of spatially-resolved transcriptomics data,
 such as those generated with 10X Visium. The **spatialGE** package features a data object 
@@ -27,7 +27,7 @@ this publication: https://doi.org/10.1093/bioinformatics/btac145. For details on
 developed methods `STenrich`, `STgradient`, and `STdiff` please refer to the spatialGE documentation.
 
 <p align="center">
-<img src="vignettes/img/spatialGE_workflow_v3.png" height="686" width="600" >
+<img src="man/figures/spatialGE_workflow_v3.png" height="686" width="600" >
 </p>
 
 ## Installation
@@ -61,9 +61,17 @@ spatialGE: quantification and visualization of the tumor microenvironment hetero
 transcriptomics. Bioinformatics, 38:2645-2647. https://doi.org/10.1093/bioinformatics/btac145
 
 
+<!-- Visitor-counter badge. Commented out rather than deleted: R CMD check
+     --as-cran reads the URLs out of README.md and reported this one as
+     possibly invalid, which is the kind of NOTE that holds up a submission.
+     An HTML comment is not merely hidden from rendering -- it is also skipped
+     by the URL extractor (tools:::url_db_from_package_README_md returns the
+     link when this block is live and nothing when it is commented), so the
+     NOTE goes away without losing the badge. Uncomment to restore it.
 <p align="center">
 <a href="https://clustrmaps.com/site/1bwt8">
 <img src="https://clustrmaps.com/map_v2.png?cl=a0d9e6&w=a&t=tt&d=MaZTayTGh9YYcDsI3LkJtKTJFTPygJFYO9LnIVaLr2Q&co=062f6e" />
 </a>
 </p>
+-->
 

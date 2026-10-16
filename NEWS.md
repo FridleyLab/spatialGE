@@ -2,6 +2,61 @@
 
 ## Behavior changes
 
+* **`transform_data()` now populates `vst.variance.standardized` in
+  `@gene_meta`.** Previously the column was added only as a side effect of
+  whichever analysis ran first, so whether `get_gene_meta()` showed it depended
+  on call order, and `gene_interpolation()`/`STplot_interpolation()` dropped any
+  existing column and recomputed it. `transform_data()` now computes it for both
+  `method='log'` and `method='sct'`, through the same `calculate_vst()` helper
+  `STclust()` uses, so every caller sees one definition. Code that inspected
+  `colnames(get_gene_meta(x))` will see one additional column, and code that
+  counted on `STclust()` being what created it no longer needs to.
+
+  Note this does not change which genes any function *selects*: `STclust()`,
+  `STgradient()`, `gene_interpolation()` and `STdiff()` already computed VST
+  themselves before ranking, so their `topgenes` choices were consistent before
+  this change too. (An earlier draft of this entry claimed otherwise, and also
+  cited a top-20 overlap between `gene_stdevs` and VST rankings of 6; measured
+  across the eight Visium samples of the `tnbc_bassiouni` set it is 7-13.) What
+  changed is where the column comes from, not what downstream functions do with
+  it.
+
+* **`transform_data()` no longer fails on a sample with very few variable
+  genes.** Because of the change above, `transform_data()` began fitting the
+  variance-mean loess that `vst.variance.standardized` requires. That fit needs
+  at least 4 genes with non-zero variance, and below it `stats::loess` stops
+  with `span is too small` -- so normalizing a very small or low-complexity
+  STlist aborted, where in 1.2.2 it had succeeded. The count that matters is of
+  *non-constant* genes, so a matrix with many genes of which only a few vary hit
+  it as well. Such a sample now gets a warning naming it, and is left without
+  the column rather than failing; `calculate_vst()` only computes when the column
+  is absent, so a later analysis retries instead of inheriting a wrong value.
+  Functions that rank genes by variability still raise an error on such a sample,
+  since there is no ranking to return.
+
+* **`dim()` on an `STlist` now obeys the base R contract.** It returns
+  `c(n_genes, n_spots)` as an integer vector when the object holds exactly one
+  sample, and `NULL` for a multi-sample object -- because there is no single gene
+  x spot shape to report. It previously returned a *named list* of per-sample
+  dimensions, which made `nrow()` and `ncol()` meaningless on an STlist and was
+  reported by `R CMD check` as "dim() returns class 'list'". Use
+  `summarize_STlist()` for a per-sample table of dimensions. Nothing inside the
+  package called `dim()` on an STlist.
+
+* **`STlist` objects are now validated at construction.** `setValidity()` rejects
+  a malformed object up front: a sample-keyed slot referring to a sample that is
+  not in `@counts`, a count matrix without gene/spot names, or an
+  `@spatial_meta` entry whose row count disagrees with the number of spots. These
+  previously surfaced much later, far from their cause.
+
+* **`filter_data()` reports what it did.** Every count threshold defaults to `0`
+  (and the `*_max*` thresholds to `NULL`), so a call supplying none of them
+  filtered nothing -- while looking like a successful filter. With the new
+  `verbose=TRUE` default it now says explicitly that nothing was filtered, or how
+  many samples, spots/cells and genes were removed. `filter_data()` remains
+  single-threaded and deliberately has no `cores` argument, unlike the analysis
+  functions.
+
 * **Requesting a gene, annotation or reference domain that does not exist is now
   an error rather than a silent no-op.** `SThet(genes=)`, `STgradient(annot=)`,
   `STgradient(ref=)` and `gene_interpolation(genes=)` previously accepted a name
@@ -114,6 +169,25 @@
 
 ## New features
 
+* **An `STlist` can now be subset by sample, and has a length.** `x[i]` returns a
+  new, valid `STlist` holding only the selected spatial arrays, and `length(x)`
+  reports how many it holds. Previously neither worked: subsetting failed with
+  "object of type 'S4' is not subsettable", and `length(x)` returned the number
+  of *slots* (7) rather than samples, so `seq_along(x)` and
+  `for(i in seq_len(length(x)))` silently did the wrong thing. To work with one
+  sample out of a multi-sample object you had to rebuild an `STlist` from the raw
+  files.
+
+  Select by name (`x[tissue_names(x)[1]]`), position, negative position or logical
+  vector. Every sample-keyed slot is subset alongside `@counts` -- `@spatial_meta`,
+  `@gene_meta`, `@tr_counts`, and the per-sample level inside each
+  `@gene_krige` element -- so the result passes validity, and `@sample_meta` rows
+  are matched to their sample rather than sliced positionally. Subsetting is
+  deliberately one-dimensional: an `STlist` holds several arrays with independent
+  gene and spot sets, so there is no shared second dimension. `x[i, j]` and
+  `x[[i]]` raise an error saying so. An unknown sample name is also an error,
+  listing the available names, rather than a silent omission.
+
 * **Parallelism on Windows.** `resolve_cores()` returned `1L` unconditionally on
   Windows and `sge_lapply()` forwarded only to `parallel::mclapply`, which has no
   `fork()` there -- so the package was entirely serial. A non-forking (PSOCK)
@@ -168,6 +242,57 @@
   This is a development aid and is deliberately not part of the documented API.
 
 ## Bug fixes
+
+* `STlist` validity no longer rejects an object that has kriging results.
+  `setValidity()` treated `@gene_krige` as sample-keyed and compared its names to
+  the sample names, but that slot is keyed by **gene** first and sample second
+  (`x@gene_krige[[gene]][[sample]]`), so its top-level names are gene symbols.
+  Every object returned by `gene_interpolation()` was therefore reported invalid
+  -- but only when validity actually ran, and assignment through `@<-` does not
+  trigger it, so the function appeared to succeed and a later `validObject()` (or
+  any construction from that object) failed. The sample level is now checked, one
+  gene at a time.
+
+* `load_images()` no longer drops samples whose image is not the first path
+  match. Two defects combined: sample-to-file matching used a vectorized `&`
+  where it needed a scalar `&&`, and the match was positional, so with more than
+  one image directory or a sample whose name did not sort first the wrong file --
+  or no file -- was attached. Matching is now by normalized sample name, across
+  every supplied directory and both extensions (`.png`/`.jpg`/`.jpeg`), with a
+  decoder fallback when the file extension disagrees with its actual encoding. A
+  sample whose image genuinely cannot be read is skipped **with a warning** rather
+  than silently, and if no image matches at all the error names what was searched.
+
+* `STplot_interpolation()` works on its documented default. With the default
+  `genes=NULL` it selected genes by VST but then intersected that selection with a
+  kriging-derived gene list; because it also required the column to be present,
+  the call failed on any `STlist` that had not already been through
+  `gene_interpolation()`. It now errors with a clear message when the object has no
+  kriged genes, restricts to those that do exist (warning only when the user named
+  genes explicitly), uses `calculate_vst()` rather than its own inline copy, and
+  errors clearly when a color scale has no finite values.
+
+* `STdiff()` explains an unusable `annot=` instead of failing inside dplyr. A
+  numeric metadata column -- a perfectly ordinary one, such as `total_counts` --
+  reached an internal join and produced ``Can't join `x$orig_annot` with
+  `y$orig_annot` due to incompatible types. i `x$orig_annot` is a <double>``,
+  which names neither the function nor the argument to change. `annot` must hold
+  group labels, so a numeric column now raises an error naming `STdiff`, the
+  requirement and the fix (`as.character()`), as does a column with fewer than two
+  distinct groups -- which previously produced no usable comparison.
+
+* `transform_data(method='sct')` reports an actionable error when SCTransform
+  fails. On a small or low-complexity matrix `sctransform::vst()` failed with
+  ``missing value where TRUE/FALSE needed``, giving no indication of which sample,
+  how large it was, or what to change. The error now names the sample and its
+  dimensions (`n_genes` x spots/cells) and suggests lowering `sct_n_regr_genes`
+  or using `method='log'`, while still reporting the underlying message.
+
+* A bad `cores=` value is caught on every parallelized path. The gene-metadata
+  step of `transform_data()` never validated it, so `cores='abc'` coerced to `NA`
+  and was handed directly to the parallel lapply instead of raising an error.
+  Validation is now centralized (see Minor), which fixes that path and removes the
+  five duplicated checks elsewhere.
 
 * `pseudobulk_samples()` no longer fails on a gene whose pseudobulk total is
   constant across samples. Such a gene produced an all-`NaN` column after scaling
@@ -230,6 +355,27 @@
   `.Rbuildignore`).
 
 ## Minor
+
+* **User-facing validation errors are now raised through the shared error
+  catalog, so they all carry the `spatialGE exception:` signature.** About thirty
+  sites used a bare `stop()`, which meant an argument-validation failure looked no
+  different from an internal crash; and three sites wrote the `spatialGE exception:`
+  prefix by hand instead of using the catalog, so their wording could drift from
+  it. Their text is unchanged in substance but now lives in `inst/err.csv`, and
+  `raise_err()` gained optional `sprintf`-style interpolation so messages that embed
+  a gene name, sample size or threshold can be catalogued too. Code matching on the
+  exact wording of these messages may need updating; matching on
+  `spatialGE exception:` (the documented pattern) is unaffected.
+
+* **An unusable `cores=` value now fails the same way everywhere.** Validation of
+  a core count used to be each call site's job, and was done three different ways:
+  some sites raised `error0032`, others `error0036`, five used an uncatalogued bare
+  `stop()`, and `transform_data()`'s gene-metadata path did not check at all -- so
+  `cores='abc'` there became `NA` and was passed straight into the parallel
+  lapply. Resolution now happens once in `resolve_cores()`, which rejects a value
+  that is not one finite positive number with an error naming the fix. The
+  caller's coercion is preserved: `coerce='ceiling'` and `coerce='none'` still
+  return a non-integral value unchanged.
 
 * The error raised when an argument that should be an `STlist` is `NULL` or of the
   wrong type now reads `cannot get a slot (...) from an object of type ...` rather

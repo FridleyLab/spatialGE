@@ -13,12 +13,19 @@
 # One parquet file per sample per slot, schema (gene_idx int32, cell_idx int32,
 # value double), sorted by (gene_idx, cell_idx).
 #
-# Sorting by gene gives parquet row-group min/max statistics on gene_idx, so
-# filter(gene_idx %in% ...) prunes whole row groups without reading them -- which
-# is the dominant access pattern in this package (STdiff, STgradient, STenrich and
-# the gene plots all want ~100 genes by all spots). Physically hive-partitioning by
-# gene would give finer pruning but create tens of thousands of tiny files, which
-# arrow handles badly.
+# Sorting by gene gives parquet row-group min/max statistics on gene_idx, which is
+# what a reader would need in order to skip whole row groups for
+# filter(gene_idx %in% ...) -- the dominant access pattern in this package
+# (STdiff, STgradient, STenrich and the gene plots all want ~100 genes by all
+# spots). Physically hive-partitioning by gene would give finer granularity but
+# create tens of thousands of tiny files, which arrow handles badly.
+#
+# NOTE that nothing currently exploits those statistics: sge_store_materialize()
+# below reads with arrow::read_parquet() and filters the resulting Table, so a
+# gene-subset read still performs whole-file I/O and only the returned matrix is
+# smaller. Skipping row groups would need arrow::open_dataset() (or a row-group
+# selection through ParquetFileReader). So the sort key is correctness and
+# future-proofing today, not a measured speedup -- do not describe it as one.
 #
 # Including cell_idx in the sort key is not cosmetic. It makes a per-gene
 # group_by/sum visit values in the same order Matrix::rowMeans walks a row, which
@@ -66,7 +73,11 @@ new_sge_manifest = function(sample, store_id, path, generation, genes, cells,
 
 is_sge_manifest = function(x) inherits(x, 'sge_manifest')
 
-#' @export
+# Registered as an S3 method, not exported as a plain function: a bare @export
+# makes roxygen2 >= 8 emit export(print.sge_manifest) instead of
+# S3method(print, sge_manifest), which leaves print() on a manifest undispatched
+# unless the package happens to be attached.
+#' @exportS3Method base::print
 print.sge_manifest = function(x, ...){
   cat(sprintf('<sge_manifest> %s: %d genes x %d cells, %.0f nonzero, gen %d\n',
               x$sample, x$n_genes, x$n_cells, x$nnz, x$generation))
@@ -221,14 +232,22 @@ sge_store_materialize = function(m, genes = NULL, cells = NULL){
 #' Matrices are stored in COO (long) form, one file per sample per slot, sorted by
 #' gene then cell. `STlist_to_memory()` reverses the conversion.
 #'
-#' Note the store is a directory of files, not part of the R object. An STlist
-#' saved with `saveRDS()` records paths, so moving or deleting `root` breaks it;
-#' `validate_store()` reports that rather than failing obscurely later.
+#' Note what this does and does not buy. It buys capacity: an STlist larger than
+#' RAM can be held and read in gene-subset slices. It does not currently speed
+#' anything up -- aggregate operations still materialize and compute in memory, so
+#' a backed STlist is slower on those paths than an in-memory one.
+#'
+#' The store is a directory of files, not part of the R object. An STlist saved
+#' with `saveRDS()` records paths, so moving or deleting `root` breaks it;
+#' `validate_store()` reports that rather than failing obscurely later. A store
+#' written under `tempdir()` is flagged as non-portable for the same reason.
 #'
 #' @param x an STlist
 #' @param root directory to write the store into. Created if absent
 #' @param overwrite logical, whether to overwrite an existing store at `root`
 #' @return an STlist whose count slots are on-disk backed
+#'
+#' @seealso [STlist_to_memory()], [validate_store()], [is_backed()]
 #'
 #' @export
 #
@@ -276,8 +295,15 @@ STlist_to_disk = function(x = NULL, root = NULL, overwrite = FALSE){
 ##
 #' @title STlist_to_memory: Bring an on-disk STlist back into memory
 #' @description Reverses `STlist_to_disk()`, materializing every backed matrix.
+#' @details
+#' The round trip is exact: COO stores the values themselves and the manifest
+#' carries dimensions and dimnames, so nothing is inferred on the way back. An
+#' STlist that was never backed is returned unchanged.
+#'
 #' @param x an STlist, backed or not
 #' @return an STlist with in-memory count matrices
+#'
+#' @seealso [STlist_to_disk()]
 #'
 #' @export
 #
@@ -296,8 +322,13 @@ STlist_to_memory = function(x = NULL){
 
 ##
 #' @title is_backed: Is an STlist's expression data stored on disk?
+#' @description Reports whether an STlist's count matrices are held in on-disk
+#' parquet files rather than in memory.
 #' @param x an STlist
 #' @return logical
+#'
+#' @seealso [STlist_to_disk()]
+#'
 #' @export
 #
 is_backed = function(x = NULL){
@@ -311,16 +342,24 @@ is_backed = function(x = NULL){
 #' @description Verifies that a backed STlist's files exist and still match what
 #' its manifests record, reading parquet footers only.
 #' @details
-#' Checks sample order against the recorded `sample_order` (fidelity rule 7), that
-#' every file exists and its size/mtime fingerprint is unchanged, that dimnames
-#' lengths agree with the recorded dimensions, and that `@tr_counts` genes and
-#' cells are subsets of `@counts`' in the same relative order -- the invariant
-#' `filter_data()` assumes. With `deep=TRUE`, also reads the data to check index
-#' bounds and duplicate coordinates.
+#' Checks sample order against the order recorded when the store was written,
+#' that every file exists and its size/mtime fingerprint is unchanged, that
+#' dimnames lengths agree with the recorded dimensions, and that `@tr_counts`
+#' genes and cells are subsets of `@counts`' in the same relative order -- the
+#' invariant `filter_data()` assumes.
+#'
+#' With `deep=TRUE`, also reads the data to check that stored coordinates are in
+#' bounds and not duplicated.
+#'
+#' The failure this is most useful for is a store directory that has been moved
+#' or deleted after the STlist was saved with `saveRDS()`, which it reports as
+#' such rather than surfacing later as an error from inside an analysis.
 #'
 #' @param x a backed STlist
 #' @param deep logical, whether to read data pages as well as metadata
 #' @return invisibly TRUE, or stops with the first problem found
+#'
+#' @seealso [STlist_to_disk()], [is_backed()]
 #'
 #' @export
 #

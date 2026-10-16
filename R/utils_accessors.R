@@ -13,9 +13,11 @@
 #
 # When the optional parquet backing is in use (see R/store_parquet.R) a slot
 # element is an sge_manifest rather than a dgCMatrix, so the two matrix accessors
-# materialize on demand. `genes=` is forwarded to the store so a gene-subset read
-# touches only the row groups it needs; in memory it is an ordinary subset. This is
-# the whole reason the accessor layer exists.
+# materialize on demand. `genes=` is forwarded to the store, which builds the
+# subset at its final size rather than materializing the whole matrix and masking
+# it; in memory it is an ordinary subset. Note the forward saves allocation, not
+# I/O -- the store reads the whole parquet file either way. This is the whole
+# reason the accessor layer exists.
 sample_counts = function(x, sample, genes=NULL){
   m = x@counts[[sample]]
   if(is_sge_manifest(m)) return(sge_store_materialize(m, genes=genes))
@@ -28,6 +30,16 @@ sample_tr_counts = function(x, sample, genes=NULL){
   if(is_sge_manifest(m)) return(sge_store_materialize(m, genes=genes))
   if(is.null(genes)) return(m)
   m[rownames(m) %in% genes, , drop=FALSE]
+}
+
+# The materializing counterpart to sample_slot_mtx() below: resolves the slot by
+# name and returns values, so a call site that already branches on the plotting
+# functions' `data_type` ('tr'/'raw') does not branch a second time on which of
+# the two accessors above to call. `genes=` is forwarded, so the subset is built
+# at its final size rather than taken off a fully materialized matrix.
+sample_slot_counts = function(x, sample, slot=c('counts', 'tr_counts'), genes=NULL){
+  slot = match.arg(slot)
+  if(slot == 'counts') sample_counts(x, sample, genes=genes) else sample_tr_counts(x, sample, genes=genes)
 }
 
 sample_spatial_meta = function(x, sample) x@spatial_meta[[sample]]

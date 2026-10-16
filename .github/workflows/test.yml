@@ -69,3 +69,114 @@ jobs:
           options(spatialGE.psock = TRUE)
           devtools::test(stop_on_failure = TRUE)
         shell: Rscript {0}
+
+      # Three of the four vignettes are in .Rbuildignore, so R CMD check never
+      # builds them and devtools::test() never reads them: a chunk calling an
+      # exported function with an argument that no longer exists can sit there
+      # indefinitely. This parses every vignette's code and validates argument
+      # names against the formals, without evaluating anything.
+      - name: Vignette argument check
+        run: Rscript dev/ci/check_vignette_args.R
+
+      # roxygen2 8.x silently DROPS importFrom(methods,.hasSlot) when it
+      # regenerates NAMESPACE, even though .hasSlot is exported from methods and
+      # is used in R/stlist_readers.R (image handling). Regenerating docs with a
+      # newer roxygen therefore removes the import and breaks that path at
+      # runtime, with no error until a sample with images is read. Guard it.
+      - name: NAMESPACE import guard
+        # Asks R's own namespace parser instead of grepping. The previous version
+        # matched the literal line `importFrom(methods,.hasSlot)` that roxygen2 7
+        # wrote; roxygen2 8 writes multi-symbol imports one symbol per line, so
+        # the grep began failing on a NAMESPACE that was in fact correct.
+        run: |
+          Rscript -e 'nd <- parseNamespaceFile("spatialGE", "..", mustExist = TRUE);
+            ok <- any(vapply(nd$imports, function(i)
+              is.list(i) && identical(i[[1]], "methods") && ".hasSlot" %in% i[[2]],
+              logical(1)));
+            if (!ok) stop("NAMESPACE no longer imports methods::.hasSlot. R/stlist_readers.R calls it on a Seurat image slot; that call is conditional, so the import can be dropped with no other symptom.")'
+        shell: bash
+
+  ## The `test` job above installs Imports only, which is deliberate: the committed
+  ## tier must pass without any Suggests. The side effect is that anything gated by
+  ## skip_if_not_installed() passes *by not running*. Today that is the whole of
+  ## tests/testthat/test-seurat-interop.R -- i.e. as_Seurat() and Seurat v5 input,
+  ## the headline features added in 2.0.0 -- so this job installs the Suggests and
+  ## fails if those tests skip.
+  test-full-suggests:
+    runs-on: ubuntu-latest
+    name: full Suggests (interop must not skip)
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.3'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"all"'
+          extra-packages: any::devtools, any::testthat
+          cache: always
+
+      - name: Test with Suggests installed, asserting nothing skipped
+        run: |
+          res <- as.data.frame(devtools::test(reporter = "silent", stop_on_failure = FALSE))
+          interop <- res[grepl("seurat-interop", res$file), , drop = FALSE]
+          if (nrow(interop) == 0) {
+            stop("test-seurat-interop.R did not run at all.")
+          }
+          if (sum(interop$skipped) > 0) {
+            stop("test-seurat-interop.R skipped ", sum(interop$skipped),
+                 " test(s). SeuratObject is a Suggests and must be installed here so that",
+                 " as_Seurat()/Seurat v5 input is actually exercised.")
+          }
+          if (sum(res$failed) > 0 || sum(res$error) > 0) {
+            stop("Test failures: ", sum(res$failed), " failed, ", sum(res$error), " errored.")
+          }
+          cat("interop tests run:", nrow(interop),
+              "| suite expectations passed:", sum(res$passed), "\n")
+        shell: Rscript {0}
+
+  ## devtools::test() never looks at NAMESPACE, roxygen/usage consistency, examples,
+  ## or S4 registration -- so a broken @export, a stale .Rd, or an example that no
+  ## longer runs all pass CI today. R CMD check covers those.
+  ##
+  ## error-on is "error" rather than "warning"/"note" on purpose: the repo has not
+  ## been checked here before, so this job first establishes a baseline and fails on
+  ## hard breakage (unloadable package, failing examples). Tighten it to "warning"
+  ## once the existing NOTEs are cleared.
+  check:
+    runs-on: ubuntu-latest
+    name: R CMD check --as-cran
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.3'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          dependencies: '"all"'
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          args: 'c("--as-cran", "--no-manual")'
+          error-on: '"error"'
+          upload-snapshots: true

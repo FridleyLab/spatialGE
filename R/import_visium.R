@@ -15,6 +15,20 @@
 # @return x A list with two objects: Visium counts in `dgCMatrix` sparse format and
 # a data frames with spot coordinates.
 #
+# R.utils is a RUNTIME dependency of data.table::fread(), which loads it to
+# decompress .gz input read straight from a path -- which is what the three
+# fread() calls below do, since Cell Ranger always emits features.tsv.gz,
+# barcodes.tsv.gz and matrix.mtx.gz. Because fread() loads it internally rather
+# than this package calling it by name, static analysis cannot see the use, and
+# R CMD check reports R.utils as a declared-but-unused Import. Naming a symbol
+# here makes the dependency visible to that check and puts the reason next to
+# the calls that need it; the decompression still happens inside fread().
+#
+# Do NOT move R.utils to Suggests to silence the NOTE: a minimal install then
+# cannot read standard 10x MEX output at all, which is the regression that
+# commit 98097bc fixed.
+#' @importFrom R.utils gunzip
+#
 #
 import_visium = function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL){
 

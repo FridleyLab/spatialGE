@@ -4,21 +4,16 @@
 # stdiff_ensure_vst
 # Ensure vst.variance.standardized is present in gene_meta for every sample in
 # the STlist, computing and joining it if missing.
+#
+# transform_data() now populates VST itself, so this is a safety net for STlists
+# whose gene_meta was replaced or built by hand. It delegates to calculate_vst()
+# so there is a single definition of the statistic across STclust(), STgradient(),
+# gene_interpolation() and STdiff().
 # @param x an STlist.
 # @return the STlist with gene_meta updated.
 #
 stdiff_ensure_vst = function(x){
-  for(i in 1:length(x@tr_counts)){
-    # Check that vst is not already calculated
-    if(length(grep('vst.variance.standardized', colnames(x@gene_meta[[i]]))) == 0){
-      #x@gene_meta[[i]] = Seurat::FindVariableFeatures(x@counts[[i]], verbose=F) %>%
-      x@gene_meta[[i]] = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
-        tibble::rownames_to_column(var='gene') %>%
-        dplyr::select('gene', 'vst.variance.standardized') %>%
-        dplyr::left_join(x@gene_meta[[i]], ., by='gene')
-    }
-  }
-  return(x)
+  calculate_vst(x=x, samples=names(x@tr_counts))
 }
 
 

@@ -15,23 +15,23 @@ validate_store(x = NULL, deep = FALSE)
 invisibly TRUE, or stops with the first problem found
 }
 \description{
-Verifies that a backed STlist's files exist and still match what its
-manifests record, reading parquet footers only.
+Verifies that a backed STlist's files exist and still match what
+its manifests record, reading parquet footers only.
 }
 \details{
-Checks sample order against the order recorded when the store was written, that
-every file exists and its size/mtime fingerprint is unchanged, that dimnames
-lengths agree with the recorded dimensions, and that \code{@tr_counts} genes and
-cells are subsets of \code{@counts}' in the same relative order -- the invariant
-\code{filter_data()} assumes.
+Checks sample order against the order recorded when the store was written,
+that every file exists and its size/mtime fingerprint is unchanged, that
+dimnames lengths agree with the recorded dimensions, and that \verb{@tr_counts}
+genes and cells are subsets of \verb{@counts}' in the same relative order -- the
+invariant \code{filter_data()} assumes.
 
-With \code{deep=TRUE}, also reads the data to check that stored coordinates are
-in bounds and not duplicated.
+With \code{deep=TRUE}, also reads the data to check that stored coordinates are in
+bounds and not duplicated.
 
-The failure this is most useful for is a store directory that has been moved or
-deleted after the STlist was saved with \code{saveRDS()}, which it reports as
+The failure this is most useful for is a store directory that has been moved
+or deleted after the STlist was saved with \code{saveRDS()}, which it reports as
 such rather than surfacing later as an error from inside an analysis.
 }
 \seealso{
-\code{\link{STlist_to_disk}}
+\code{\link[=STlist_to_disk]{STlist_to_disk()}}, \code{\link[=is_backed]{is_backed()}}
 }

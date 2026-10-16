@@ -173,6 +173,28 @@ testthat::test_that("STenrich requires annot and domain together", {
              cores = 1, verbose = FALSE))
 })
 
+testthat::test_that("the on-disk backing never reports a present gene as absent", {
+  ## The other half of the rule: silently accepting bad state, or silently
+  ## answering nothing, is worse than an error because the caller believes it
+  ## worked. All three defects this pins were that half rather than the error
+  ## half -- show()/summary() printed blank dimensions, distribution_plots()
+  ## messaged every gene as absent and then returned plots that failed only when
+  ## printed, and STplot() stopped with "Data was not found in the specified
+  ## slot" about data that was right there.
+  ##
+  ## A manifest answers rownames()/nrow() with NULL rather than erroring, so any
+  ## read that leaves the accessors in R/utils_accessors.R fails this way by
+  ## default. That is why this is a class guard and not three separate tests.
+  st <- ge_fixture()
+  bk <- STlist_to_disk(st, file.path(tempdir(), paste0("sge-ge-", as.integer(runif(1, 1, 1e6)))),
+                       overwrite = TRUE)
+
+  testthat::expect_no_warning(STplot(bk, genes = "Gene1"))
+  testthat::expect_no_message(distribution_plots(bk, genes = "Gene1"))
+  testthat::expect_false(any(grepl("( ROIs|spots|cells x  genes)",
+                                   capture.output(methods::show(bk)), fixed = TRUE)))
+})
+
 testthat::test_that("no user-facing failure leaks an internal variable name", {
   st <- ge_fixture()
   stu <- ge_fixture(transformed = FALSE)
@@ -198,4 +220,54 @@ testthat::test_that("no user-facing failure leaks an internal variable name", {
     }
     testthat::expect_match(msg, "spatialGE exception")
   }
+})
+
+testthat::test_that("STdiff rejects a numeric annotation with an actionable message", {
+  ## `annot` is documented as "a column name ... containing the groups/clusters
+  ## to test", but a perfectly ordinary numeric metadata column (total_counts,
+  ## survival_months) used to surface only much later, from dplyr:
+  ##   Can't join `x$orig_annot` with `y$orig_annot` due to incompatible types.
+  ##   i `x$orig_annot` is a <double>
+  ## which names neither STdiff nor the argument to change.
+  st <- ge_fixture()
+  acol <- "num_annot"
+  for (s in names(st@spatial_meta)) {
+    st@spatial_meta[[s]][[acol]] <- seq_len(nrow(st@spatial_meta[[s]]))
+  }
+
+  testthat::expect_error(
+    STdiff(st, annot = acol, topgenes = 5, test_type = "t_test",
+           cores = 1, verbose = FALSE),
+    "spatialGE exception.*STdiff.*character or factor"
+  )
+})
+
+testthat::test_that("STdiff rejects an annotation with a single group", {
+  st <- ge_fixture()
+  acol <- "one_group"
+  for (s in names(st@spatial_meta)) {
+    st@spatial_meta[[s]][[acol]] <- "only"
+  }
+
+  testthat::expect_error(
+    STdiff(st, annot = acol, topgenes = 5, test_type = "t_test",
+           cores = 1, verbose = FALSE),
+    "spatialGE exception.*STdiff.*at least two distinct groups"
+  )
+})
+
+testthat::test_that("STdiff still accepts a character annotation", {
+  ## The guard above must not reject the normal case.
+  st <- ge_fixture()
+  acol <- "char_annot"
+  for (s in names(st@spatial_meta)) {
+    st@spatial_meta[[s]][[acol]] <- rep(c("a", "b"), length.out = nrow(st@spatial_meta[[s]]))
+  }
+
+  res <- suppressWarnings(
+    STdiff(st, annot = acol, topgenes = 5, test_type = "t_test",
+           cores = 1, verbose = FALSE)
+  )
+
+  testthat::expect_true(is.list(res))
 })

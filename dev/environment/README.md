@@ -68,13 +68,54 @@ export REQUESTS_CA_BUNDLE=/path/to/combined_cacert.pem
 
 ### Concrete values observed on the Moffitt network
 
-The intercepting root is `O=Moffitt Cancer Center, CN=ca.moffitt.goskope.com`,
-so the first command above is:
+**There is more than one interceptor, and which one you get depends on where you
+are.** An earlier version of this section named only
+`CN=ca.moffitt.goskope.com` and told you to extract that one cert. That is not
+enough: it is an *intermediate*, not a root, and a different network path
+intercepts with an entirely different CA. Two chains observed, both on Moffitt
+networks:
+
+| Where | Chain presented | Trust anchor needed |
+|---|---|---|
+| Netskope cloud proxy | `<host>` → `ca.moffitt.goskope.com` → `caadmin.netskope.com` | `caadmin.netskope.com` |
+| On-premises | `<host>` → `Moffitt Issuing Authority` → `Moffitt Root CA` | `Moffitt Root CA` |
+
+Interception is also **per host, not per network**: on the cloud-proxy path
+`conda.anaconda.org` was intercepted while `github.com` was not, so R's
+`download.file()` from GitHub worked while `conda search` failed. On the
+on-premises path `doi.org` and `satijalab.org` are intercepted, which makes
+`R CMD check --as-cran` report every DOI citation as a possibly invalid URL
+(with `libcurl error code 60` and, tellingly, `(Status without verification:
+OK)`).
+
+So do not extract one CN by name. Take every corporate cert the keychain holds,
+roots and intermediates, and let the extras be harmless:
 
 ```sh
-security find-certificate -a -c ca.moffitt.goskope.com -p \
-  /Library/Keychains/System.keychain > corp_roots.pem
+security find-certificate -a -p /Library/Keychains/System.keychain > sys.pem
+
+python3 - <<'EOF' > corp_roots.pem
+import re, subprocess
+pem = open('sys.pem').read()
+for c in re.findall(r'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----', pem, re.S):
+    subj = subprocess.run(['openssl', 'x509', '-noout', '-subject'],
+                          input=c, capture_output=True, text=True).stdout.lower()
+    if 'moffitt' in subj or 'netskope' in subj:
+        print(c)
+EOF
+
+cat /etc/ssl/cert.pem corp_roots.pem > combined_cacert.pem
 ```
+
+If you prefer to do the filtering by hand, note that `security
+find-certificate -c "Moffitt Root CA"` returns **nothing** even though that
+cert is present -- `-c` does not match its subject. Enumerate with `-a` and
+filter on the decoded subject instead. On this machine that yields 11 corporate
+certs, taking the bundle from 129 to 139.
+
+Verify the result is a superset before replacing a working bundle, by comparing
+SHA-256 fingerprints of the old and new files; losing a public root here breaks
+far more than it fixes.
 
 Note that macOS trusts this CA via the system keychain, so `/usr/bin/curl`
 succeeds while conda's `curl` and conda R's libcurl both fail -- "curl works, so

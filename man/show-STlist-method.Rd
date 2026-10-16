@@ -9,6 +9,10 @@
 \arguments{
 \item{object}{an STList object to show summary from.}
 }
+\value{
+Invisibly returns \code{NULL}. Called for the side effect of printing an
+overview: the number of spatial arrays, their dimensions and a sample count.
+}
 \description{
 Prints overview/summary of STList oject.
 }

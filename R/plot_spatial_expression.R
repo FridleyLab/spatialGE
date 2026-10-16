@@ -43,11 +43,17 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
                             char_transform='none', post_check='grep',
                             message='The requested samples are not present in the STList spatial metadata.')
 
-  # Select appropriate slot to take counts from
+  # Select appropriate slot to take counts from. The slot NAME is kept alongside
+  # the list, because each sample's matrix is read from `x` through the accessors
+  # below rather than off this list: a slot element is an sge_manifest when the
+  # parquet backing is in use, and rownames() is NULL on one. `counts` stays the
+  # accumulator the rest of the function iterates over.
   if(data_type == 'tr'){
     counts = x@tr_counts[samples]
+    data_slot = 'tr_counts'
   }else if(data_type == 'raw'){
     counts = x@counts[samples]
+    data_slot = 'counts'
     # Expand sparse matrices
     # for(i in samples){
     #   counts[[i]] = expandSparse(counts[[i]])
@@ -60,7 +66,7 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
   # Extract genes and trasnpose expression data (to get genes in columns)
   # Also join coordinate data
   for(i in samples){
-    if(any(rownames(counts[[i]]) %in% genes)){
+    if(any(sample_genes(x, i, data_slot) %in% genes)){
       # counts[[i]] = counts[[i]] %>%
       #   expandSparse() %>%
       #   tibble::rownames_to_column(var='gene') %>%
@@ -72,7 +78,7 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
       #   dplyr::left_join(x@spatial_meta[[i]] %>%
       #                      dplyr::select(libname, xpos, ypos), ., by='libname')
 
-      counts[[i]] = expandSparse(counts[[i]][rownames(counts[[i]]) %in% genes, , drop=FALSE], transpose=TRUE) %>%
+      counts[[i]] = expandSparse(sample_slot_counts(x, i, data_slot, genes=genes), transpose=TRUE) %>%
         tibble::rownames_to_column(var='libname') %>%
         dplyr::left_join(x@spatial_meta[[i]] %>%
                            dplyr::select(libname, xpos, ypos), ., by='libname')

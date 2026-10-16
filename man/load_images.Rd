@@ -9,7 +9,13 @@ load_images(x = NULL, images = NULL)
 \arguments{
 \item{x}{an STlist}
 
-\item{images}{a string indicating a folder to load images from}
+\item{images}{image file paths or one or more folders to load images from.
+A named character vector (\code{c(sample_name = "path/to/image.png")}) maps
+samples to files explicitly and bypasses name matching. An unnamed vector
+is matched against the sample names in \code{x}; any element that is an existing
+directory is expanded to the image files it contains. Image filenames are
+matched to sample names by looking for \verb{<sample_name>.} in the filename and,
+failing that, a normalized prefix match (case- and separator-insensitive).}
 }
 \value{
 an STlist with images

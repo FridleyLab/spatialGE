@@ -53,7 +53,7 @@ distribution_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
     plist = gene_plots(x=x, genes=genes, samples=samples, data_type=data_type,
                        plot_type=plot_type, color_pal=color_pal, ptsize=ptsize, ptalpha=ptalpha)
   } else {
-    stop('Specify a spot/cell meta data variable or a gene to plot.')
+    raise_err(err_code='error0089')
   }
 
   return(plist)
@@ -126,13 +126,16 @@ spot_plots = function(x=NULL, plot_meta=NULL, samples=NULL,
 
 gene_plots = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
                       plot_type='violin', color_pal='roma', ptsize=0.5, ptalpha=0.5){
-  # Extract data slot
+  # Extract data slot. Resolved as a slot NAME rather than as the slot itself, so
+  # each sample's matrix is read through the accessors in the loop below: a slot
+  # element is an sge_manifest when the parquet backing is in use, and rownames()
+  # is NULL on one.
   if(data_type == 'tr'){
-    expr_tmp = x@tr_counts
+    data_slot = 'tr_counts'
     p_title = 'Normalized expression - '
     ax_title = 'Normalized expression'
   } else {
-    expr_tmp = x@counts
+    data_slot = 'counts'
     p_title = 'Raw expression - '
     ax_title = 'Counts'
   }
@@ -144,13 +147,14 @@ gene_plots = function(x=NULL, genes=NULL, samples=NULL, data_type='tr',
     samples_tmp = samples
     df_tmp = tibble::tibble()
     for(i in samples){
-      if(!(gene %in% rownames(expr_tmp[[i]]))){
+      if(!(gene %in% sample_genes(x, i, data_slot))){
         message(paste0('Sample ', i, ' does not contain ', gene, '.\n'))
         samples_tmp = grep(paste0('^', i, '$'), samples_tmp, value=T, invert=T)
       } else{
+        mtx_tmp = sample_slot_counts(x, i, data_slot, genes=gene)
         df_tmp = dplyr::bind_rows(df_tmp,
-                                  tibble::tibble(libname=colnames(expr_tmp[[i]]),
-                                                 geneexpr=expr_tmp[[i]][gene, ],
+                                  tibble::tibble(libname=colnames(mtx_tmp),
+                                                 geneexpr=mtx_tmp[gene, ],
                                                  samplename=i))
       }
     }
@@ -214,7 +218,7 @@ cluster_gene_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
     }
   }
   if(length(samples) < 1){
-    stop('All samples skipped.')
+    raise_err(err_code='error0090')
   }
 
   # Check plot type
@@ -223,13 +227,16 @@ cluster_gene_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
     plot_type = 'box'
   }
 
-  # Extract data slot
+  # Extract data slot. Resolved as a slot NAME rather than as the slot itself, so
+  # each sample's matrix is read through the accessors in the loop below: a slot
+  # element is an sge_manifest when the parquet backing is in use, and rownames()
+  # is NULL on one.
   if(data_type == 'tr'){
-    expr_tmp = x@tr_counts
+    data_slot = 'tr_counts'
     p_title = 'Normalized expression - '
     ax_title = 'Normalized expression'
   } else {
-    expr_tmp = x@counts
+    data_slot = 'counts'
     p_title = 'Raw expression - '
     ax_title = 'Counts'
   }
@@ -241,13 +248,14 @@ cluster_gene_plots = function(x=NULL, plot_meta=NULL, genes=NULL, samples=NULL, 
     samples_tmp = samples
     df_tmp = tibble::tibble()
     for(i in samples){
-      if(!(gene %in% rownames(expr_tmp[[i]]))){
+      if(!(gene %in% sample_genes(x, i, data_slot))){
         message(paste0('Sample ', i, ' does not contain ', gene, '.\n'))
         samples_tmp = grep(paste0('^', i, '$'), samples_tmp, value=T, invert=T)
       } else{
+        mtx_tmp = sample_slot_counts(x, i, data_slot, genes=gene)
         df_tmp = dplyr::bind_rows(df_tmp,
-                                  dplyr::left_join(tibble::tibble(libname=colnames(expr_tmp[[i]]),
-                                                                  geneexpr=expr_tmp[[i]][gene, ],
+                                  dplyr::left_join(tibble::tibble(libname=colnames(mtx_tmp),
+                                                                  geneexpr=mtx_tmp[gene, ],
                                                                   samplename=i),
                                                    x@spatial_meta[[i]][, c('libname', plot_meta)], by='libname'))
       }

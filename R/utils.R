@@ -95,6 +95,14 @@ tissue_names = function(x){
 #' @importFrom methods as is new
 #' @importFrom grDevices colorRampPalette
 #
+# .hasSlot is declared here rather than beside its two uses in
+# R/stlist_readers.R because roxygen2 >= 8 drops an @importFrom whose symbol it
+# cannot see being called -- and those are conditional calls on a Seurat object,
+# which is in Suggests. Without the import, reading a Seurat image slot fails on
+# a minimal install. A CI step greps NAMESPACE for it, so a future document()
+# run cannot silently remove it again.
+#' @importFrom methods .hasSlot
+#
 #
 color_parse = function(color_pal=NULL, n_cats=NULL){
   # Get color palette and number of colors needed.
@@ -138,7 +146,13 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 #' can be used for plotting along with other spatialGE plots.
 #'
 #' @param x an STlist
-#' @param images a string indicating a folder to load images from
+#' @param images image file paths or one or more folders to load images from.
+#'   A named character vector (`c(sample_name = "path/to/image.png")`) maps
+#'   samples to files explicitly and bypasses name matching. An unnamed vector
+#'   is matched against the sample names in `x`; any element that is an existing
+#'   directory is expanded to the image files it contains. Image filenames are
+#'   matched to sample names by looking for `<sample_name>.` in the filename and,
+#'   failing that, a normalized prefix match (case- and separator-insensitive).
 #' @return an STlist with images
 #'
 #' @export
@@ -152,29 +166,92 @@ load_images = function(x=NULL, images=NULL){
 
   if(is.null(images)){
     stop("Please, provide a vector with images file paths.")
-  } else{
-    if(length(images) == 1 & dir.exists(images)){ # In case a directory was provided
-      images = list.files(images, full.names=T)
-    }
+  }
+  if(!is.character(images) || length(images) == 0){
+    stop("`images` must be a character vector of image file paths or folders.")
   }
 
+  # A named vector maps samples to files directly, which is the escape hatch when
+  # filenames do not resemble the sample names at all (e.g. Visium exports that
+  # name images after a GEO accession rather than the sample folder).
+  explicit_map = NULL
+  if(!is.null(names(images)) && any(nzchar(names(images)))){
+    explicit_map = images[nzchar(names(images))]
+  }
+  paths = unname(images)
+
+  # Expand any directories (one or several) into the image files they contain.
+  is_dir = dir.exists(paths)
+  if(any(is_dir)){
+    from_dirs = unlist(lapply(paths[is_dir], list.files, full.names=TRUE), use.names=FALSE)
+    paths = c(paths[!is_dir], from_dirs)
+  }
+
+  # Keep only existing files with an image extension.
+  keep = file.exists(paths) & grepl('\\.(png|jpg|jpeg)$', paths, ignore.case=TRUE)
+  if(!any(keep)){
+    stop("None of the supplied paths are existing .png, .jpg or .jpeg image files.")
+  }
+  images = unique(paths[keep])
+
+  # Tolerant key for fallback matching: lowercase, separators removed.
+  norm_key = function(z) gsub('[^a-z0-9]', '', tolower(basename(z)))
+
   # Process each image.
+  unmatched = c()
   for(i in names(x@counts)){
-    fp = grep(paste0(i, '\\.'), images, value=T)
-    if(length(fp) == 0){
-      message(paste0("Image for sample ", i, " was not found.\n"))
+    fp = NULL
+
+    # 1. Explicit sample -> file mapping.
+    if(!is.null(explicit_map) && i %in% names(explicit_map)){
+      cand = explicit_map[[i]]
+      if(any(file.exists(cand))){
+        fp = cand[file.exists(cand)][1]
+      }
+    }
+
+    # 2. Documented convention: the filename contains `<sample_name>.`.
+    if(is.null(fp)){
+      hit = grep(paste0(i, '\\.'), images, value=TRUE)
+      if(length(hit) > 1){
+        warning(paste0("Multiple image files matched sample ", i,
+                       ". Using the first match (", hit[1], ")."), call.=FALSE)
+      }
+      if(length(hit) >= 1){
+        fp = hit[1]
+      }
+    }
+
+    # 3. Fallback: normalized prefix match (case- and separator-insensitive).
+    if(is.null(fp)){
+      key = norm_key(i)
+      hit = images[startsWith(norm_key(images), key)]
+      if(length(hit) >= 1){
+        fp = hit[1]
+      }
+    }
+
+    if(is.null(fp)){
+      unmatched = c(unmatched, i)
       next
     }
 
-    # Return warning if more than one file matches the sample name
-    if(length(fp) > 1){
-      message(paste0("Multiple image files matched sample ", i, ". Using the first match (", fp[1], ")."))
+    # Pick the decoder from the extension, but fall back to the other one: image
+    # files are frequently mislabelled (e.g. a PNG saved as .jpg), and the
+    # decoder's own error does not say which file it was reading.
+    if(grepl('\\.jpe?g$', fp, ignore.case=TRUE)){ # CosMx uses jpeg files
+      img_obj = tryCatch(jpeg::readJPEG(fp), error=function(e) NULL)
+      if(is.null(img_obj)) img_obj = tryCatch(png::readPNG(fp), error=function(e) NULL)
+    } else{
+      img_obj = tryCatch(png::readPNG(fp), error=function(e) NULL)
+      if(is.null(img_obj)) img_obj = tryCatch(jpeg::readJPEG(fp), error=function(e) NULL)
     }
 
-    if(grepl('jpg$', fp[1])){ # CosMx uses jpeg files
-      img_obj = jpeg::readJPEG(fp[1])
-    } else{
-      img_obj = png::readPNG(fp[1])
+    if(is.null(img_obj)){
+      warning(paste0("Could not read image file '", fp, "' for sample ", i,
+                     " as PNG or JPEG; skipping this sample."), call.=FALSE)
+      unmatched = c(unmatched, i)
+      next
     }
 
     # Downsize image if too large
@@ -184,6 +261,16 @@ load_images = function(x=NULL, images=NULL){
 
     x@misc[['sp_images']][[i]] = img_obj
   }
+
+  # Report unmatched samples once, with the convention to follow.
+  if(length(unmatched) > 0){
+    warning(paste0("No image found for sample(s): ", paste(unmatched, collapse=', '),
+                   ". Image filenames must contain '<sample_name>.' (for example '",
+                   unmatched[1], ".png'), or pass a named vector mapping sample names ",
+                   "to file paths, e.g. images=c(", unmatched[1], "='path/to/image.png')."),
+            call.=FALSE)
+  }
+
   return(x)
 }
 
@@ -219,9 +306,6 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
 create_listw_from_dist = function(x=NULL, cores=NULL){
   # Define cores available
   cores = resolve_cores(length(x@spatial_meta), cores, coerce='as_integer')
-  if(is.na(cores)){
-    stop('Could not recognize number of cores requested')
-  }
 
   # Create distance matrix based on the coordinates of each sampled location.
   listw_list = sge_lapply(seq(names(x@spatial_meta)), function(i){
@@ -358,13 +442,30 @@ get_gene_meta = function(x=NULL, sthet_only=FALSE){
 ##
 # @title raise_err
 #
-raise_err = function(err_code=NULL, samplename=NULL){
+raise_err = function(err_code=NULL, samplename=NULL, ...){
   if(is.null(.err_db_cache$err_db)){
     pkg_fp = list.files(system.file(package='spatialGE'), full.names=T, pattern='err\\.csv')
     .err_db_cache$err_db = suppressWarnings(utils::read.csv(pkg_fp, header=F, quote="'"))
   }
   err_db = .err_db_cache$err_db
   str_to_print = err_db[[2]][ err_db[[1]] == err_code ]
+
+  # An unknown or missing code used to give character(0), and stop(character(0))
+  # fails with "argument is of length zero" -- which names neither the typo'd code
+  # nor the function. Name it here instead.
+  if(length(str_to_print) != 1 || is.na(str_to_print)){
+    stop(paste0('spatialGE exception: internal error - unknown error code ',
+                if(is.null(err_code)) '<NULL>' else err_code, '.'), call.=F)
+  }
+
+  # Optional sprintf() formatting. Messages that embed gene names, sample sizes or
+  # thresholds otherwise have to be written inline at the call site, where they
+  # drift from this catalog and lose the shared wording.
+  dots = list(...)
+  if(length(dots) > 0){
+    str_to_print = do.call(sprintf, c(list(str_to_print), dots))
+  }
+
   if(is.null(samplename)){
     stop(paste0('spatialGE exception: ', str_to_print), call.=F)
   } else{
@@ -391,7 +492,12 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
       # Find tops variable genes using Seurat approach
       # First check if VST hasn't been calculated. If not, calculate
       if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
-        vst_tmp = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
+        vst_raw = Seurat_FindVariableFeatures(sample_counts(x, i))
+        # Too few non-constant genes for the loess fit. Reported as NA rather
+        # than warned here: this runs inside a fork, where a warning() is not
+        # reliably delivered to the caller, so the parent loop below emits it.
+        if(is.null(vst_raw)) return(NA)
+        vst_tmp = vst_raw %>%
           tibble::rownames_to_column(var='gene') %>%
           dplyr::select('gene', 'vst.variance.standardized') %>%
           dplyr::left_join(x@gene_meta[[i]], ., by='gene')
@@ -403,14 +509,32 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
     names(vst_ls) = samples
 
     for(i in samples){
-      if(!is.null(vst_ls[[i]])){
+      if(identical(vst_ls[[i]], NA)){
+        # Leave @gene_meta without the column rather than failing: the caller
+        # asked for a transformation, and gene_mean/gene_stdevs are still there.
+        # calculate_vst() only computes when the column is absent, so whichever
+        # analysis next needs it will retry rather than inherit a wrong value.
+        warning(paste0('Sample ', i, ' has fewer than 4 genes with non-zero variance, ',
+                       'which is too few to fit the variance-mean trend. ',
+                       'Skipping vst.variance.standardized for this sample; ',
+                       'functions selecting genes by variability (topgenes) will not work on it.'))
+      } else if(!is.null(vst_ls[[i]])){
         x@gene_meta[[i]] = vst_ls[[i]]
       }
     }
     return(x)
   } else{
     #vst_tmp = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
-    vst_tmp = Seurat_FindVariableFeatures(x) %>%
+    vst_raw = Seurat_FindVariableFeatures(x)
+    # The matrix form exists to rank genes by variability for a caller's
+    # `topgenes`. If the trend cannot be fit there is no ranking to return, so
+    # this is an error rather than a skip (error when nothing matches, warn when
+    # only some does). The message names STgradient because that is the only
+    # caller of this branch; a second caller should add its own code.
+    if(is.null(vst_raw)){
+      raise_err(err_code='error0097', samplename=NULL, nrow(x))
+    }
+    vst_tmp = vst_raw %>%
       tibble::rownames_to_column(var='gene') %>%
       dplyr::select('gene', 'vst.variance.standardized')
     return(vst_tmp)

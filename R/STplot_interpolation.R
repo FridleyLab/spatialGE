@@ -6,9 +6,14 @@
 #' genes and spatial samples
 #'
 #' @param x an STlist containing results from `gene_krige` for the genes selected.
-#' @param genes a vector of gene names (one or several) to plot. If 'top', the 10
-#' genes with highest standard deviation from each spatial sample are plotted.
-#' @param top_n an integer indicating how many top genes to perform kriging. Default is 10.
+#'   Kriging must have been run first with [gene_interpolation()].
+#' @param genes a vector of gene names (one or several) to plot. If `'top'` (the
+#' default when `NULL`), the `top_n` genes with the highest standardized variance
+#' (VST) from each spatial sample are plotted. Only genes that already have
+#' kriging results can be plotted; a warning names any requested gene that was not
+#' interpolated.
+#' @param top_n an integer indicating how many of the most variable genes to plot
+#' when `genes='top'`. Default is 10.
 #' @param samples a vector indicating the spatial samples to plot. If vector of numbers,
 #' it follows the order of `names(x@counts)`. If NULL, the function plots all samples
 #' @param color_pal a color scheme from `khroma` or `RColorBrewer`.
@@ -63,32 +68,58 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
   # Force number of top variable genes as integer
   top_n = as.integer(top_n)
 
-  # Test that a gene name was entered.
-  if (is.null(genes)) {
-    stop("Please, enter one or more genes to plot.")
-  }
-
   # Test if no specific subject plot was requested.
   samples = resolve_samples(x, samples, slot='tr_counts', numeric_handling='plain',
                             char_transform='none', post_check='none')
 
-  # If genes='top', get names of 10 genes with the highest standard deviation.
-  if(length(genes) == 1 && genes == 'top'){
+  # The default is to plot the most variable genes, which is also what
+  # genes='top' requests. (Previously a NULL default stopped before this branch
+  # could run, so the documented no-argument call always failed.)
+  top_requested = is.null(genes) || (length(genes) == 1 && identical(as.character(genes), 'top'))
+  if (is.null(genes)) {
+    genes = 'top'
+  }
+
+  # If genes='top', get names of the top_n most variable genes from each sample.
+  if(length(genes) == 1 && identical(as.character(genes), 'top')){
+    # Single source of truth for VST, shared with STclust() and
+    # gene_interpolation(); it is idempotent and preserves the existing columns.
+    x = calculate_vst(x=x, samples=samples)
+
     genes = c()
     for(i in samples){
-      # Find tops variable genes using Seurat approach. In the past, instead of Seurat, genes with the highest stdev were used
-      if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
-        x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
-      }
-      x@gene_meta[[i]] = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
-        tibble::rownames_to_column(var='gene') %>%
-        dplyr::select('gene', 'vst.variance.standardized') %>%
-        dplyr::left_join(x@gene_meta[[i]], ., by='gene')
-
-      genes = append(genes, x@gene_meta[[i]][['gene']][order(x@gene_meta[[i]][['vst.variance.standardized']], decreasing=T)][1:top_n])
+      gm = x@gene_meta[[i]]
+      genes = append(genes, gm[['gene']][order(gm[['vst.variance.standardized']], decreasing=T)][1:top_n])
     }
     # Get unique genes from most variable.
     genes = unique(genes)
+  }
+
+  # Kriging is a prerequisite: it supplies both the predicted grid and the
+  # tissue border below. Without it there is nothing to plot.
+  if(is.null(x@misc[['gene_krige']][['krige_border']])){
+    raise_err(err_code='error0072')
+  }
+  kriged = genes[vapply(genes, function(g) rlang::has_name(x@gene_krige, g), logical(1))]
+  if(length(kriged) == 0){
+    available = sort(names(x@gene_krige))
+    raise_err(err_code='error0073', samplename=NULL,
+              if(length(available) == 0){ 'none' } else {
+                paste(c(utils::head(available, 5), if(length(available) > 5) '...'),
+                      collapse=', ')
+              })
+  }
+  if(length(kriged) < length(genes)){
+    # Only warn when the caller named genes explicitly. When they asked for
+    # 'top', top_n here is independent of the top_n used at kriging time, so
+    # silently plotting whichever of them were interpolated is the expected
+    # behaviour rather than a user error.
+    if(!top_requested){
+      warning(paste0("No kriging results for: ",
+                     paste(setdiff(genes, kriged), collapse=', '),
+                     ". Plotting only the genes that were interpolated."), call.=FALSE)
+    }
+    genes = kriged
   }
 
   # Store maximum and minimum expression value for plot color scaling
@@ -100,16 +131,26 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
       if (rlang::has_name(x@gene_krige, gene)){
         if(!is.null(x@gene_krige[[gene]][[i]][['success_or_not']])){
           if(x@gene_krige[[gene]][[i]][['success_or_not']] != 'error'){
-            # Find maximum expression value for each spatial array.
+            # Find maximum expression value for each spatial array. Drop
+            # non-finite predictions first: a grid that is entirely NA made
+            # max()/min() warn and return +/-Inf, which then propagated into the
+            # shared color scale for every panel.
             values <- x@gene_krige[[gene]][[i]][['krige_out']][['krige']]
-            maxvalue <- append(maxvalue, max(values, na.rm=T))
-            minvalue <- append(minvalue, min(values, na.rm=T))
+            values <- values[is.finite(values)]
+            if(length(values) > 0){
+              maxvalue <- append(maxvalue, max(values))
+              minvalue <- append(minvalue, min(values))
+            }
           }
         }
       }
     }
   }
   # Find maximum value among selected spatial arrays.
+  if(length(maxvalue) == 0){
+    raise_err(err_code='error0074', samplename=NULL,
+              paste(utils::head(genes, 5), collapse=', '))
+  }
   maxvalue <- max(maxvalue)
   minvalue <- min(minvalue)
 

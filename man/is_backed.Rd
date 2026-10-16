@@ -17,5 +17,5 @@ Reports whether an STlist's count matrices are held in on-disk
 parquet files rather than in memory.
 }
 \seealso{
-\code{\link{STlist_to_disk}}
+\code{\link[=STlist_to_disk]{STlist_to_disk()}}
 }

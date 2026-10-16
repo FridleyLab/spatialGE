@@ -23,7 +23,8 @@ filter_data(
   rm_spots = NULL,
   rm_genes = NULL,
   rm_genes_expr = NULL,
-  spot_pct_expr = "^MT-"
+  spot_pct_expr = "^MT-",
+  verbose = TRUE
 )
 }
 \arguments{
@@ -64,6 +65,9 @@ filter_data(
 \item{rm_genes_expr}{a regular expression that matches genes to remove. Removes genes in \code{x@counts}, \code{x@tr_counts}, and \code{x@gene_meta}}
 
 \item{spot_pct_expr}{a expression to use with \code{spot_minpct} and \code{spot_maxpct}. By default '^MT-'.}
+
+\item{verbose}{logical, if \code{TRUE} reports how many samples, spots/cells and
+genes were removed (and says explicitly when nothing was filtered).}
 }
 \value{
 an STlist containing the filtered data
@@ -87,6 +91,15 @@ filters in the following order:
 \item Genes matching \code{rm_genes_expr}
 \item Min and max counts
 }
+
+Note that every count threshold defaults to \code{0} (and the \verb{*_max*} thresholds
+to \code{NULL}, meaning no upper bound). A call that supplies none of them, and no
+\verb{rm_*} argument either, therefore returns the STlist unchanged. Set at least
+one threshold to actually filter; with \code{verbose=TRUE} the function says so
+rather than returning silently.
+
+Filtering is sequential and single-threaded, so unlike the analysis functions
+there is no \code{cores} argument.
 }
 \examples{
 \donttest{
