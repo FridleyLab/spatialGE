@@ -180,9 +180,13 @@ XV_EXPECT <- list(
   ## changed across roughly ten exported functions, and NEWS does not mention it.
   ## Matched on the message text, not just the path, so a genuine behavior change in
   ## the same sweep cannot hide behind this record.
+  ## SUPERSEDED by fix16_assert_stlist_msg above: alex no longer produces
+  ## "cannot get a slot" on this path, so this record matches nothing. Marked
+  ## optional rather than deleted, because the two records together are the
+  ## record that this message went raw -> raw -> informative.
   list(id = "undoc_slot_error_text", commit = "6a35680", delta = NA,
        scenario = NA, path = "/error_message$",
-       class = "UNDOCUMENTED_CHANGE",
+       class = "UNDOCUMENTED_CHANGE", optional = TRUE,
        main_pattern = "no applicable method for",
        alex_pattern = "cannot get a slot",
        rationale = paste("Raw R slot-access error text changed because the guard now reads the",
@@ -196,6 +200,167 @@ XV_EXPECT <- list(
        class = "EXPECTED_FIX",
        rationale = paste("The same row-names collision, reached with an annotation pinned to the",
                          "fixture's own domain rather than to STclust output.")),
+
+  ## =====================================================================
+  ## Records below cover work committed after this table was first written
+  ## (everything from a35b3cb onward). Before they existed, the run reported
+  ## 9,853 REGRESSION paths in the main batch and 5,773 in the extras -- the
+  ## harness failing closed on changes nobody had recorded, not on defects.
+  ## =====================================================================
+
+  ## ---- @misc$sthet$listws is no longer built on the default path ---------
+  ## The single largest source of differences in both batches: 8,883 of 8,923
+  ## main-batch paths and 5,345 of 5,773 extras paths, every one of them
+  ## kind=only_main. Scoped to misc/sthet so it cannot absorb a moran_i/geary_c
+  ## change, which lives under gene_meta and is a different question entirely.
+  list(id = "change01_sthet_listw_absent", commit = "e631ddb", delta = NA,
+       scenario = NA, path = "value/misc/sthet/",
+       class = "EXPECTED_CHANGE",
+       rationale = paste("SThet(k=NULL) computes Moran's I and Geary's C directly from the",
+                         "coordinates in C++ rather than materializing a distance-weighted",
+                         "complete graph, so @misc$sthet$listws is not populated on that path.",
+                         "NEWS states this. The motive is capacity, not correctness: the old",
+                         "listw needed 1.2 GB for one 4,096-spot sample and ~181 GB",
+                         "extrapolated to 50,000 cells, i.e. it could not run on Xenium or",
+                         "CosMx at all. SThet(k=) still builds a real spdep object, which is",
+                         "why s13_sthet_k does not match this record.")),
+
+  ## ---- transform_data() now populates the VST column --------------------
+  ## Value-guarded on the alex side: the record only matches when the new column
+  ## is what appeared, so an unrelated gene_meta column change cannot hide here.
+  list(id = "change02_vst_column", commit = "a35b3cb", delta = NA,
+       scenario = NA, path = "/gene_meta/[^/]+/colnames$",
+       class = "EXPECTED_CHANGE",
+       alex_pattern = "vst\\.variance\\.standardized",
+       rationale = paste("transform_data() computes vst.variance.standardized itself instead of",
+                         "leaving it to whichever analysis ran first, so @gene_meta gains one",
+                         "column (3 -> 4). Does not change which genes any function SELECTS:",
+                         "STclust, STgradient, gene_interpolation and STdiff all computed VST",
+                         "themselves before ranking, on both versions.")),
+
+  ## ---- pseudobulk_samples() died on a zero-variance gene ----------------
+  ## Directional and unambiguous: main errors, alex succeeds. Verified from the
+  ## producer payloads in both S0 (cores=1) and S0b (cores=3) --
+  ## main ok=FALSE "cannot rescale a constant/zero column to unit variance",
+  ## alex ok=TRUE. dim_plot and heatmap fail only because they depend on it.
+  list(id = "fix14_pbulk_zero_variance", commit = "d00b0bf", delta = NA,
+       scenario = NA, path = "^S0b?/pseudobulk_(samples|dim_plot|heatmap)/",
+       class = "EXPECTED_FIX",
+       rationale = paste("prcomp(scale.=TRUE) on a gene with zero variance across samples",
+                         "errored, taking the whole pseudobulk family with it. The fixture",
+                         "contains such a gene, so every pseudobulk step errored on main.")),
+
+  ## ---- samples= matching nothing is an error, not a silent result -------
+  ## main built a complete STlist keyed by a sample that does not exist
+  ## ("not_a_sample", and "a" matched as a substring); alex raises. The whole
+  ## object therefore differs, which is why these scenarios contribute counts
+  ## across counts/tr_counts/gene_meta/spatial_meta rather than one path.
+  list(id = "fix15_samples_match_nothing", commit = "b538c38", delta = NA,
+       scenario = "S14",
+       path = "^S14/s14_SThet_(missing_name|substring|out_of_range)/",
+       class = "EXPECTED_FIX",
+       rationale = paste("A samples= value matching nothing was a silent no-op that returned",
+                         "results a caller would read as real -- including gene_meta and",
+                         "spatial_meta entries named after the non-existent sample. Now an",
+                         "error, so a typo no longer looks like a run that found nothing.")),
+
+  ## ---- filter_data() reports what it removed ----------------------------
+  ## Scoped by the message text rather than by scenario: filter_data is reached
+  ## from S2, S4, S12 and S13, and a scenario-scoped record missed three of them.
+  ## Note the counts appear blank in the payload because reduce.R's xv_scrub()
+  ## strips 3-7 digit numbers at end-of-string so data-dependent magnitudes do
+  ## not read as differences -- the counts are present in the real message.
+  list(id = "change03_filter_verbose", commit = "a35b3cb", delta = NA,
+       scenario = NA, path = "/messages$",
+       class = "EXPECTED_CHANGE",
+       alex_pattern = "filter_data: (removed|nothing was filtered)",
+       rationale = paste("Every count threshold defaults to 0, so a call supplying none of",
+                         "them filtered nothing while looking like a successful filter.",
+                         "verbose=TRUE now says so, or reports the counts removed.")),
+
+  ## ---- assert_stlist() replaces a raw slot-access error ------------------
+  ## Supersedes undoc_slot_error_text below, which recorded an INTERMEDIATE state
+  ## of this same message. At the time that record was written, alex answered a
+  ## non-STlist input with "cannot get a slot (...) from an object of type ..." --
+  ## a different raw R error, because the guard read the slot via methods::slot()
+  ## instead of @. The error-catalog work replaced it with a real message, so the
+  ## old record now matches nothing and reports MISSING_EXPECTED. Kept both, with
+  ## the old one marked optional, because the progression is the evidence that
+  ## this path went raw -> raw -> informative across two commits.
+  list(id = "fix16_assert_stlist_msg", commit = "3a16a1c", delta = NA,
+       scenario = "S7", path = "/error_message$",
+       class = "EXPECTED_FIX",
+       main_pattern = "no applicable method for",
+       alex_pattern = "must be a STlist",
+       rationale = paste("Passing NULL, no argument, or a non-STlist to any of ~15 exported",
+                         "functions produced R's raw 'no applicable method for `@` applied to",
+                         "an object of class \"NULL\"', which names nothing the caller can act",
+                         "on. assert_stlist() now answers 'The input must be a STlist.'")),
+
+  ## ---- which condition class a missing argument raises -------------------
+  list(id = "undoc_missing_arg_class", commit = "6a35680", delta = NA,
+       scenario = "S7", path = "/error_classes$",
+       class = "UNDOCUMENTED_CHANGE",
+       main_pattern = "evalError",
+       alex_pattern = "getvarError",
+       rationale = paste("For a missing required argument, the R condition class changed from",
+                         "evalError to getvarError, because the value is now first touched by",
+                         "a validation helper rather than inside the original expression.",
+                         "Both still subclass missingArgError/error, so tryCatch on those is",
+                         "unaffected; code matching the concrete class is not.")),
+
+  ## ---- get_gene_meta() column ORDER changed -----------------------------
+  ## Both versions return the same seven columns; the order differs, because
+  ## transform_data() now inserts vst.variance.standardized before SThet appends
+  ## moran_i/geary_c, where previously the analysis appended VST last. Recorded as
+  ## undocumented: fidelity rule 8 treats column position as API, and NEWS
+  ## mentions the new column but not that it moved the existing ones.
+  list(id = "undoc_gene_meta_col_order", commit = "a35b3cb", delta = NA,
+       scenario = NA, path = "^S0b?/get_gene_meta/value/colnames$",
+       class = "UNDOCUMENTED_CHANGE",
+       rationale = paste("main: sample, gene, gene_mean, gene_stdevs, moran_i, geary_c,",
+                         "vst.variance.standardized. alex: the same seven with",
+                         "vst.variance.standardized third from last instead of last. Content",
+                         "is identical; anything selecting by position rather than name sees",
+                         "a different column.")),
+
+  ## ---- validation order: the message named the wrong argument ------------
+  list(id = "fix17_stplot_interp_validation_order", commit = "3a16a1c", delta = NA,
+       scenario = "S7", path = "^S7/s7_STplot_interpolation_",
+       class = "EXPECTED_FIX",
+       main_pattern = "enter one or more genes",
+       alex_pattern = "must be a STlist",
+       rationale = paste("STplot_interpolation() tested genes before validating x, so passing",
+                         "NULL, no argument or a non-STlist was reported as 'Please, enter one",
+                         "or more genes to plot.' -- naming an argument the caller had nothing",
+                         "wrong with. The input is now validated first.")),
+
+  ## ---- the VST loess now emits its numerical warnings from transform_data -
+  ## Scenario-scoped to S9: only that scenario's data makes the loess warn, so a
+  ## scenario=NA record would report MISSING_EXPECTED on every other batch.
+  list(id = "change05_vst_loess_warnings", commit = "a35b3cb", delta = NA,
+       scenario = "S9", path = "/warnings$",
+       class = "EXPECTED_CHANGE",
+       alex_pattern = paste("NaNs produced|near singularities|neighborhood radius",
+                            "|pseudoinverse used|reciprocal condition number", sep = ""),
+       rationale = paste("Moving vst.variance.standardized into transform_data() moved the",
+                         "stats::loess fit there too, so its numerical warnings now surface",
+                         "from the transform rather than from whichever analysis ran first.",
+                         "The warnings are the loess reporting a marginal fit on this data;",
+                         "they occurred on main as well, just later and only if an analysis",
+                         "that needed VST was run at all.")),
+
+  ## ---- pseudobulk zero-variance drop, as a warning on real data ---------
+  ## Scenario-scoped to S12: on the fixture main errors outright (fix14 above),
+  ## so the warning form is only reachable where the gene count permits it.
+  list(id = "fix14_pbulk_zero_variance_warn", commit = "d00b0bf", delta = NA,
+       scenario = "S12", path = "/warnings$",
+       class = "EXPECTED_FIX",
+       alex_pattern = "zero variance across samples",
+       rationale = paste("Same fix as fix14, seen from the other side: where the gene count",
+                         "permits, the degenerate genes are dropped with a warning instead of",
+                         "erroring. On the real Visium data this is a warning rather than the",
+                         "hard failure main produced.")),
 
   ## ---- declared non-comparable ------------------------------------------
   list(id = "noncomparable_krige_call", commit = NA, delta = NA,

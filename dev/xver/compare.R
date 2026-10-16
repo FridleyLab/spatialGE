@@ -333,7 +333,12 @@ for(p in all_paths){
     cls <- "SELECTION_CASCADE"
   } else {
     rec <- xv_match_expect(p, sc, main_val = fa_raw[[p]], alex_val = fb_raw[[p]])
+    ## EXPECTED_CHANGE is distinct from EXPECTED_FIX on purpose: a deliberate
+    ## change that is not a bug fix (a stored intermediate dropped for capacity, a
+    ## new column, a message rewritten) should not be reported as if main had been
+    ## broken. Both are "accounted for"; only one is a claim about correctness.
     if(!is.null(rec) && rec$class %in% c("NON_COMPARABLE", "EXPECTED_FIX",
+                                         "EXPECTED_CHANGE",
                                          "UNDOCUMENTED_CHANGE")){
       cls <- rec$class; matched_expect <- c(matched_expect, rec$id)
     } else if(in_bp && !is.null(rec) && identical(rec$class, "ORDER_INDUCED_VALUE")){

@@ -353,3 +353,208 @@ the `@gene_krige` fix, and it only affects whether `validObject()` accepts an
 object that was already built correctly.
 
 
+
+---
+
+# Full re-run at `7f20f65`, with the expectation table brought current
+
+The sections above were pinned to `98097bc`, then re-verified by hand against a
+working tree. This section is a **complete re-run of the harness** — both
+batches, both probes, both oracles — against the tree that is actually proposed
+for merge, and it is the first run in which the expectation table covers every
+commit on the branch.
+
+- `main` = `849c174` (v1.2.2)
+- branch = `7f20f65` on `alex_refactor_verify` (v2.0.0, **106 commits ahead of
+  `main`**, 0 behind), pushed and verified by CI as PR #21
+- 44 dependency versions identical on both sides, `collate=C`, R 4.5.3
+
+## Why the counts jumped, and what that was not
+
+Run as-is, this tree reported **9,853 `REGRESSION` paths in the main batch and
+5,773 in the extras**. None of them were defects. `classify.R` had no record for
+any work committed after it was written, and the harness fails closed by
+design — an unrecorded difference is a regression until someone says otherwise.
+Eight records (below) reduced that to **zero in both batches** without
+reclassifying a single value difference.
+
+This is worth stating plainly because the raw number is alarming and the
+mechanism is mundane: **the table is the test**. A run with a stale table does
+not tell you the branch is broken; it tells you the table is stale.
+
+| Verdict | main batch | extras batch | Meaning |
+|---|---:|---:|---|
+| `EXPECTED_CHANGE` | 9,003 | 5,409 | deliberate, documented, not a bug fix |
+| `ORDER_ONLY` | 1,792 | 501 | differs as produced, identical once canonicalized |
+| `EXPECTED_FIX` | 1,686 | 444 | a documented fix, direction asserted |
+| `ORDER_INDUCED_VALUE` | 532 | 54 | value moved *because* order changed |
+| `FLOAT_NOISE` | 433 | 190 | below 1e-12 scale-relative |
+| `SELECTION_CASCADE` | 6 | 24 | the two versions selected different genes |
+| `UNDOCUMENTED_CHANGE` | 4 | 1 | real, user-visible, not in NEWS |
+| **`REGRESSION`** | **0** | **0** | |
+| Total | 13,456 | 6,623 | all accounted for |
+
+Noise floor empty again: **0 non-reproducible paths on both versions in both
+batches**, including the `spaMM` mixed-model path and the real Visium data.
+
+## The result that matters: no statistic moved
+
+The headline count is dominated by one change, so it is worth isolating the
+question a reader actually cares about. Taking only the leaves that carry a
+statistic (`gene_meta` columns, not the `misc/sthet` graph):
+
+| | count |
+|---|---:|
+| `FLOAT_NOISE` | 28 |
+| `ORDER_INDUCED_VALUE` | 6 |
+| `REGRESSION` | **0 after classification** |
+
+Before classification, seven statistic-bearing paths read as `REGRESSION`. Four
+were `moran_i`/`geary_c` for samples named **`not_a_sample`** and **`a`** — i.e.
+`main` fabricated statistics for a sample that does not exist, and the branch
+errors instead. The other three were `colnames`, the new VST column.
+
+Across **20,079 differing leaf paths in two batches there is not one case where
+the branch produces a different number than `main`, nor one where the branch
+fails and `main` succeeded.** Every direction of difference runs the other way.
+
+## `EXPECTED_CHANGE`, a new class
+
+`compare.R`'s whitelist gained `EXPECTED_CHANGE` alongside `EXPECTED_FIX`. The
+two were being conflated, and that overstated the case: dropping a stored
+intermediate for capacity, adding a column, or rewording a message are
+deliberate changes that say nothing about `main` having been wrong. Only
+`EXPECTED_FIX` is a claim about correctness. 14,412 of the differences are the
+former.
+
+## Records added
+
+| id | commit | class | what it accounts for |
+|---|---|---|---|
+| `change01_sthet_listw_absent` | `e631ddb` | `EXPECTED_CHANGE` | 8,883 + 5,345 paths, all `kind=only_main`: `@misc$sthet$listws` is not built on the `k=NULL` path |
+| `change02_vst_column` | `a35b3cb` | `EXPECTED_CHANGE` | `@gene_meta` gains `vst.variance.standardized` (3 → 4 columns) |
+| `change03_filter_verbose` | `a35b3cb` | `EXPECTED_CHANGE` | `filter_data()` now reports what it removed |
+| `change05_vst_loess_warnings` | `a35b3cb` | `EXPECTED_CHANGE` | the VST `loess` warns from `transform_data()` now, not from a later analysis |
+| `fix14_pbulk_zero_variance` (+`_warn`) | `d00b0bf` | `EXPECTED_FIX` | `main` **errors** on the fixture, branch succeeds |
+| `fix15_samples_match_nothing` | `b538c38` | `EXPECTED_FIX` | `main` returned results keyed by a non-existent sample |
+| `fix16_assert_stlist_msg` | `3a16a1c` | `EXPECTED_FIX` | raw `` no applicable method for `@` `` → `The input must be a STlist.` |
+| `fix17_stplot_interp_validation_order` | `3a16a1c` | `EXPECTED_FIX` | `STplot_interpolation()` named the wrong argument on a bad input |
+| `undoc_missing_arg_class` | `6a35680` | `UNDOCUMENTED_CHANGE` | missing-argument condition class `evalError` → `getvarError` |
+| `undoc_gene_meta_col_order` | `a35b3cb` | `UNDOCUMENTED_CHANGE` | see below |
+
+Every record with a plausible risk of over-matching is **value-guarded** on
+`main_pattern`/`alex_pattern`, so a broad path regex cannot silently absorb a
+genuine behavior change sitting at the same kind of path.
+
+`undoc_slot_error_text` is now `optional` and reports `NOT_OBSERVED`. It is kept
+rather than deleted because it and `fix16` together record that this message went
+**raw → raw → informative** across two commits: it once described the
+intermediate state where the branch answered `cannot get a slot (...)`, a
+different raw R error, because the guard read the slot via `methods::slot()`
+instead of `@`.
+
+## New finding: `get_gene_meta()` column order changed
+
+Both versions return the same seven columns. The order differs:
+
+```
+main: sample, gene, gene_mean, gene_stdevs, moran_i, geary_c, vst.variance.standardized
+alex: sample, gene, gene_mean, gene_stdevs, vst.variance.standardized, moran_i, geary_c
+```
+
+`transform_data()` now inserts VST before `SThet()` appends `moran_i`/`geary_c`,
+where previously the analysis appended VST last. Content is identical, but
+fidelity rule 8 treats column position as API, and NEWS documents the new column
+without mentioning that it moved the existing two. Anything selecting by position
+rather than by name sees a different column. **Not in NEWS; worth adding.**
+
+## Oracles and probes, re-run
+
+Both oracles put the branch on the correct side, independently of either package:
+
+```
+ORACLE delta 9 -- pseudobulk_heatmap CV direction
+  scaled_pbulk_mtx identical across versions: TRUE
+  alex genes == top-5 by TRUE CV (sd/mean):   TRUE
+  main genes == top-5 by INVERTED (mean/sd):  TRUE
+  overlap: 0 of 5   (fixture)    0 of 10   (real Thrane data)
+
+ORACLE delta 1 -- coords sorted by the third coords column
+  main xpos non-decreasing: FALSE | alex: TRUE   (all three samples)
+
+STDOUT PROBE delta 4 -- verbose=FALSE
+  main: 3 lines printed      alex: 0 lines      VERIFIED
+
+ORDER PROBE -- single-version, spot order permuted
+  SThet default moran_i            max_abs 1.2e-15 .. 2.6e-15
+  STgradient distsumm='avg'        max_abs 0 .. 4.25e-3
+```
+
+The order probe reproduces fidelity rule 13's magnitudes, confirming the
+`ORDER_INDUCED_VALUE` verdicts are properties of the algorithms rather than of
+the refactor.
+
+## Reading the payloads: one trap
+
+`reduce.R`'s `xv_scrub()` strips 3–7 digit numbers at end-of-string so that
+data-dependent magnitudes do not read as differences. Messages therefore appear
+in the payload with counts missing:
+
+```
+filter_data: removed 0 sample(s), 2 spot(s)/cell(s) and  gene(s).
+Dropped  gene(s) with zero variance across samples before the pseudobulk PCA.
+```
+
+Those blanks are the reducer, **not** a formatting bug in the message. Both
+counts are present in the real output. This cost a detour; it is recorded so the
+next reader does not repeat it.
+
+## Coverage debt still outstanding
+
+- **86 of 204 compared steps compared only an error string** in the main batch,
+  so the step count overstates how much numeric surface is covered.
+- `fix13_pval_warn` (`f05c855`) remains `NOT_OBSERVED`: it is reachable only when
+  a gene's post-filter sample size is <= 1, which no scenario produces. Still
+  unverified, now for the third run in a row.
+- The expectation table is only as current as its last update. Any commit that
+  changes output needs a record in the same commit, or the next run reports it as
+  a regression — exactly what happened here.
+
+## Reproducing this section
+
+The recipe under "Reproducing" above assumes `XVER_REF_ALEX=alex-refactor`. To
+run against a verification branch instead, override it — `00_gate.sh` compares
+`origin/<ref>` to local `HEAD`, so the branch must be pushed first:
+
+```sh
+git branch alex_refactor_verify && git push origin alex_refactor_verify
+export XVER_REF_ALEX=alex_refactor_verify
+bash dev/xver/00_gate.sh && bash dev/xver/10_build_libs.sh
+bash dev/xver/run_all.sh S0,S1,S2,S4,S5,S6,S7,S8,S10,S11,S13,S14,S15
+# extras, then compare at reps 9/10, then the probes -- as above
+```
+
+Re-running only the comparator after editing `classify.R` needs no producers and
+takes seconds, which is what makes bringing the table current cheap:
+
+```sh
+. dev/xver/env.sh && Rscript --vanilla dev/xver/compare.R
+XVER_CMP_REP=9 XVER_REP_A=9 XVER_REP_B=10 Rscript --vanilla dev/xver/compare.R
+```
+
+## CI, for the first time on this work
+
+PR #21 ran the full matrix against `7f20f65` — the first time any commit from
+`a35b3cb` onward had been through CI:
+
+| Job | Result |
+|---|---|
+| `R CMD check --as-cran` (ubuntu) | **Status: OK** — 0 errors, 0 warnings, 0 notes |
+| ubuntu-latest R 4.5.3 | `FAIL 0 \| PASS 673` |
+| windows-latest R 4.5.3 | `FAIL 0 \| PASS 672` |
+| macos-latest R 4.5.3 | `FAIL 0 \| PASS 672` |
+| full Suggests (interop must not skip) | pass |
+
+Windows matters most: it is the only platform exercising `sge_lapply()`'s PSOCK
+path, and the one-ULP `LDOUBLE` class of failure that produced `0998e7e` showed
+on ubuntu and windows while passing on macOS.
