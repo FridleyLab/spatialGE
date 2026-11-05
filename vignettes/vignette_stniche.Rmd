@@ -4,18 +4,15 @@ subtitle: "Visium (GSE175540) and CosMx (ccRCC) case studies"
 author: "Yonatan Mekonnen"
 date: "`r Sys.Date()`"
 output:
-  pdf_document:
+  rmarkdown::html_vignette:
     toc: true
     toc_depth: 2
     number_sections: true
     fig_caption: true
-    latex_engine: xelatex
-geometry: margin=0.9in
-fontsize: 10pt
-colorlinks: true
-header-includes:
-  - '\renewcommand{\thesection}{\arabic{section}.}'
-  - '\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}'
+vignette: >
+  %\VignetteIndexEntry{Spatial niche detection with STniche}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 params:
   run_visium: true
   run_cosmx:  true
@@ -70,7 +67,8 @@ suppressPackageStartupMessages({
 knitr::opts_chunk$set(
   echo = FALSE, message = FALSE, warning = FALSE, comment = NA,
   fig.align = "center", out.width = "100%",
-  fig.width = 10, fig.height = 6, dpi = 150, fig.retina = 1
+  fig.width = 10, fig.height = 6, dpi = 150, fig.retina = 1,
+  fig.path = "vignette_stniche_files/figure-html/"
 )
 options(knitr.kable.NA = "")
 

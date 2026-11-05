@@ -2,15 +2,26 @@ Package: spatialGE
 Title: Visualization and Analysis of Spatial Heterogeneity in
     Spatially-Resolved Gene Expression
 Version: 2.0.0
-Authors@R: c( person(given = "Oscar", family = "Ospina", role = c("aut",
-    "cre"), email = "oscar.ospina@jhmi.edu", comment = c(ORCID =
-    "0000-0001-5986-4207")), person(given = "Alex", family = "Soupir", role =
-    c("aut"), email = "Alex.Soupir@moffitt.org", comment = c(ORCID =
-    "0000-0003-1251-9179")), person(given = "Brooke", family = "Fridley", role
-    = c("aut"), email = "Brooke.Fridley@Moffitt.org", comment = c(ORCID =
-    "0000-0001-7739-7956")), person("Satija Lab", role = "cph",
-    comment="Copyright holder of code fragments from Seurat function
-    FindVariableFeatures") )
+Authors@R: c(
+    person(given = "Oscar", family = "Ospina",
+           role = c("aut", "cre"),
+           email = "oscar.ospina@jhmi.edu",
+           comment = c(ORCID = "0000-0001-5986-4207")),
+    person(given = "Alex", family = "Soupir",
+           role = c("aut"),
+           email = "Alex.Soupir@moffitt.org",
+           comment = c(ORCID = "0000-0003-1251-9179")),
+    person(given = "Yonatan Ayalew", family = "Mekonnen",
+           role = c("aut"),
+           email = "yaayalew@gmail.com"),
+    person(given = "Brooke", family = "Fridley",
+           role = c("aut"),
+           email = "Brooke.Fridley@Moffitt.org",
+           comment = c(ORCID = "0000-0001-7739-7956")),
+    person("Satija Lab",
+           role = "cph",
+           comment = "Copyright holder of code fragments from Seurat function FindVariableFeatures")
+    )
 Description: Visualization and analysis of spatially resolved transcriptomics
     data. The 'spatialGE' R package provides methods for visualizing and
     analyzing spatially resolved transcriptomics data, such as 10X Visium,

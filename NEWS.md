@@ -424,8 +424,6 @@
   therefore ignores. The join now declares `relationship='many-to-many'`. The
   joined rows, and every result built from them, are unchanged.
 
-# spatialGE 1.2.2
-
 # spatialGE 1.2.1
 
 * Added C++ code to speed up `STenrich` computations (Thank you, Dr. Soupir!).
