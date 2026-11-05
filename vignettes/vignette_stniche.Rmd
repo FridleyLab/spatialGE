@@ -42,7 +42,10 @@ params:
   # ---- CosMx cell-type patterns (regular expressions) ----
   cd8_label: "CD8"
   m2_label:  "M2|CD163|Macrophage"
-
+  
+  # ---- CosMx cell-type column (empty = auto-detect) ----
+  cosmx_celltype_col: ""
+  
   # ---- Representative samples shown in figures ----
   representative_mode:   "ffpe_vs_frozen"
   representative_visium: [ffpe_c_20, frozen_a_15]
@@ -110,9 +113,9 @@ This vignette applies STniche to two technologies and uses each to answer a spec
 
 All data are downloaded automatically on first use (GEO for Visium; Zenodo and Springer for CosMx).
 Set `visium_root`, `cosmx_root` or `out_root` in the YAML header to reuse local copies.
-Only the analysis steps are echoed in this document; download and import code is hidden for readability.
 
-```{r settings, results="hide"}
+
+```{r settings, echo=TRUE, results="hide"}
 `%||%` <- function(a, b) {
   if (is.null(a) || length(a) == 0L || identical(a, "")) b else a
 }
@@ -313,14 +316,11 @@ if (run_cosmx) {
 }
 ```
 
-```{r build-data, results="hide"}
+```{r build-visium, echo=TRUE, results="hide"}
 STs <- list()
 
-# ---------------- Visium ----------------
 if (run_visium) {
-  cat("\n==========================================================\n")
-  cat("Building Visium STlist (", visium_cfg$mode, ")\n", sep = "")
-  cat("==========================================================\n")
+  cat("\n=== Building Visium STlist (", visium_cfg$mode, ") ===\n", sep = "")
 
   sample_dirs <- list.dirs(visium_cfg$ds_root, recursive = FALSE,
                            full.names = TRUE)
@@ -330,57 +330,37 @@ if (run_visium) {
   if (length(sample_dirs) == 0)
     stop("No Space-Ranger sample folders under ", visium_cfg$ds_root)
 
-  n_symlinks_removed <- 0L
+  # Remove stale symlinks so the canonical files are read
   for (d in sample_dirs) {
     for (rel in c("filtered_feature_bc_matrix.h5",
                   file.path("spatial", "tissue_positions_list.csv"),
                   file.path("spatial", "scalefactors_json.json"),
                   file.path("spatial", "tissue_hires_image.png"))) {
       fp <- file.path(d, rel)
-      if (nzchar(Sys.readlink(fp))) {
-        unlink(fp, force = TRUE)
-        n_symlinks_removed <- n_symlinks_removed + 1L
-      }
+      if (nzchar(Sys.readlink(fp))) unlink(fp, force = TRUE)
     }
   }
-  if (n_symlinks_removed > 0)
-    cat("Removed ", n_symlinks_removed,
-        " stale canonical symlink(s) before loading.\n", sep = "")
 
   sample_names <- basename(sample_dirs)
-  collide <- vapply(sample_names, function(n) {
-    any(sample_names != n & startsWith(sample_names, n))
-  }, logical(1))
-  if (any(collide)) {
-    stop("Prefix-colliding Visium sample names: ",
-         paste(sample_names[collide], collapse = ", "),
-         ". Rename these directories on disk to pad the trailing number ",
-         "(e.g. ffpe_c_2 -> ffpe_c_02) before re-running.")
-  }
 
-  cat("Samples: ", length(sample_dirs),
-      " → ", paste(head(sample_names, 6), collapse = ", "),
-      if (length(sample_names) > 6) ", …\n" else "\n", sep = "")
-
+  # One STlist per sample, then merge
   per_sample <- lapply(sample_dirs, function(d) {
     nm <- basename(d)
-    cat("  building ", nm, " … ", sep = "")
+    cat("  building ", nm, " ... ", sep = "")
     st_i <- tryCatch(STlist(d, samples = nm, cores = 1),
-                     error = function(e) { cat("FAILED (", e$message, ")\n"); NULL })
+                     error = function(e) { cat("FAILED\n"); NULL })
     if (is.null(st_i)) return(NULL)
-    st_i <- tryCatch(filter_data(st_i, spot_minreads = 500,
-                                 spot_mingenes = 300),
+    st_i <- tryCatch(filter_data(st_i, spot_minreads = 500, spot_mingenes = 300),
                      error = function(e) st_i)
     st_i <- tryCatch(transform_data(st_i, method = "log", cores = 1),
                      error = function(e) st_i)
-    cat("ok (", nrow(st_i@spatial_meta[[nm]]), " spots)\n", sep = "")
+    cat("ok\n")
     st_i
   })
   names(per_sample) <- sample_names
   per_sample <- per_sample[!vapply(per_sample, is.null, logical(1))]
-  if (length(per_sample) == 0)
-    stop("None of the Visium samples could be loaded.")
 
+  # Merge per-sample STlists into one
   st_v <- methods::new("STlist")
   st_v@counts       <- list()
   st_v@tr_counts    <- list()
@@ -394,28 +374,25 @@ if (run_visium) {
     st_v@sample_meta        <- rbind(st_v@sample_meta, s@sample_meta)
   }
 
-  STs$visium <- list(st       = st_v,
-                     smp1     = names(st_v@spatial_meta)[1],
-                     out_dir  = visium_cfg$out_dir,
-                     label    = paste0("Visium (", length(names(st_v@spatial_meta)),
-                                       " samples, ", visium_cfg$mode, ")"),
-                     fov      = NA_character_,
-                     mode     = visium_cfg$mode)
-  cat("Visium STlist: ", length(st_v@spatial_meta),
-      " samples merged\n", sep = "")
-} else {
-  cat("Visium: skipped.\n")
+  STs$visium <- list(st      = st_v,
+                     smp1    = names(st_v@spatial_meta)[1],
+                     out_dir = visium_cfg$out_dir,
+                     label   = paste0("Visium (",
+                                      length(st_v@spatial_meta), " samples)"),
+                     fov     = NA_character_,
+                     mode    = visium_cfg$mode)
 }
+```
 
-# ---------------- CosMx ----------------
+```{r build-cosmx, echo=TRUE, results="hide"}
 if (run_cosmx) {
-  cat("\n==========================================================\n")
-  cat("Building CosMx STlist (multi-FOV)\n")
-  cat("==========================================================\n")
+  cat("\n=== Building CosMx STlist ===\n")
+
   suppressPackageStartupMessages({
     library(Seurat); library(tibble); library(stringr)
   })
 
+  # Clinical sheet drives IO status
   io_annot <- read_excel(cosmx_cfg$inputs["clinical_xlsx"],
                          sheet = "Table S11", skip = 1) %>%
     select(1:7) %>%
@@ -423,7 +400,6 @@ if (run_cosmx) {
       is.na(`Immunotherapy before Sample Collection`) |
         `Immunotherapy before Sample Collection` == "None",
       "IO-naive", "IO-exposed"))
-  write_csv(io_annot, file.path(cosmx_cfg$step123, "Table_S11_IO_annotated.csv"))
 
   seu <- readRDS(cosmx_cfg$inputs["seurat_rds"])
   seu$annotation    <- trimws(seu$annotation)
@@ -445,53 +421,23 @@ if (run_cosmx) {
   design <- fov_annotation %>%
     left_join(io_map, by = c("Slide_name", "fov")) %>%
     arrange(Slide_name, fov)
-  write_csv(design, file.path(cosmx_cfg$step123,
-                              "FOV_design_with_IO_status.csv"))
 
   seu@meta.data <- seu@meta.data %>%
     left_join(fov_annotation[, c("Slide_name", "fov", "FOV_majority")],
               by = c("Slide_name", "fov")) %>%
     left_join(io_map, by = c("Slide_name", "fov"))
 
-  requested <- if (!is.null(params$cosmx_fovs)) {
-    as.character(params$cosmx_fovs)
-  } else {
-    raw <- as.character(params$cosmx_fov)
-    if (identical(tolower(raw), "all")) {
-      design %>%
-        dplyr::filter(FOV_majority == "Tumor", !is.na(IO)) %>%
-        dplyr::transmute(fov_name = paste0(Slide_name, "_fov", fov)) %>%
-        dplyr::pull(fov_name)
-    } else {
-      trimws(strsplit(raw, ",")[[1]])
+  # Pick the counts assay
+  assay_use <- {
+    found <- NA_character_
+    for (a in Assays(seu)) {
+      ok <- tryCatch({GetAssayData(seu, assay = a, layer = "counts"); TRUE},
+                     error = function(e) FALSE)
+      if (ok) { found <- a; break }
     }
+    if (is.na(found)) stop("No counts assay in Seurat object.")
+    found
   }
-  requested <- unique(requested[!is.na(requested) & nzchar(requested)])
-  if (length(requested) == 0)
-    stop("No CosMx FOVs requested; check params$cosmx_fov / params$cosmx_fovs.")
-
-  design_key <- paste0(design$Slide_name, "_fov", design$fov)
-  unknown    <- setdiff(requested, design_key)
-  if (length(unknown) > 0) {
-    warning("Requested FOVs not present in design (skipped): ",
-            paste(unknown, collapse = ", "))
-    requested <- intersect(requested, design_key)
-  }
-  if (length(requested) == 0)
-    stop("None of the requested FOVs exist in the FOV design sheet.")
-  cat("Requested FOVs: ", paste(requested, collapse = ", "), "\n", sep = "")
-
-  pick_count_assay <- function(obj) {
-    for (a in Assays(obj)) {
-      ok <- tryCatch({GetAssayData(obj, assay = a, layer = "counts"); TRUE},
-                     error = function(e) tryCatch({
-                       GetAssayData(obj, assay = a, slot = "counts"); TRUE},
-                       error = function(e) FALSE))
-      if (ok) return(a)
-    }
-    stop("No assay with a counts matrix in Seurat object.")
-  }
-  assay_use <- pick_count_assay(seu)
   cat("Using counts assay: ", assay_use, "\n", sep = "")
 
   counts_all <- tryCatch(
@@ -501,53 +447,37 @@ if (run_cosmx) {
       !identical(colnames(counts_all), colnames(seu)))
     colnames(counts_all) <- colnames(seu)
 
-  imgs <- Images(seu)
+  # Coordinates from Seurat images
   coords_all <- NULL
-  if (length(imgs) > 0) {
-    for (im in imgs) {
-      ctr <- seu@images[[im]][["centroids"]]
-      if (is.null(ctr)) next
-      tc <- as.data.frame(Seurat::GetTissueCoordinates(ctr))
-      if (!all(c("x","y","cell") %in% colnames(tc))) next
-      add <- data.frame(id   = tc$cell,
-                        xpos = as.numeric(tc$x),
-                        ypos = as.numeric(tc$y),
-                        stringsAsFactors = FALSE)
-      coords_all <- if (is.null(coords_all)) add
-                    else rbind(coords_all,
-                               add[!add$id %in% coords_all$id, , drop = FALSE])
-    }
-  }
-  if (is.null(coords_all)) {
-    md2 <- seu@meta.data
-    cx <- intersect(c("x","xpos","pxl_col_in_fullres","CenterX"),
-                    colnames(md2))[1]
-    cy <- intersect(c("y","ypos","pxl_row_in_fullres","CenterY"),
-                    colnames(md2))[1]
-    if (is.na(cx) || is.na(cy))
-      stop("No coordinates in images or meta.data; cannot build CosMx STlist.")
-    coords_all <- data.frame(id   = rownames(md2),
-                             xpos = as.numeric(md2[[cx]]),
-                             ypos = as.numeric(md2[[cy]]),
-                             stringsAsFactors = FALSE)
+  for (im in Images(seu)) {
+    ctr <- seu@images[[im]][["centroids"]]
+    if (is.null(ctr)) next
+    tc <- as.data.frame(Seurat::GetTissueCoordinates(ctr))
+    if (!all(c("x","y","cell") %in% colnames(tc))) next
+    add <- data.frame(id   = tc$cell,
+                      xpos = as.numeric(tc$x),
+                      ypos = as.numeric(tc$y),
+                      stringsAsFactors = FALSE)
+    coords_all <- if (is.null(coords_all)) add
+                  else rbind(coords_all,
+                             add[!add$id %in% coords_all$id, , drop = FALSE])
   }
 
-  ct_col <- intersect(
-    c("nb_clus", "lasso_final", "annotation", "celltype", "cell_type"),
-    colnames(seu@meta.data))[1]
-  if (is.na(ct_col))
-    stop("seu@meta.data has no usable cell-type column ",
-         "(tried: nb_clus / lasso_final / annotation / celltype / cell_type).")
+  # Cell-type column
+  ct_col <- if (nzchar(params$cosmx_celltype_col %||% "")) {
+    params$cosmx_celltype_col
+  } else {
+    intersect(c("nb_clus", "lasso_final", "annotation", "celltype", "cell_type"),
+              colnames(seu@meta.data))[1]
+  }
+  if (is.na(ct_col) || !ct_col %in% colnames(seu@meta.data))
+    stop("No usable cell-type column. Set params$cosmx_celltype_col.")
 
   id_col <- intersect(
     c("id", "cell_ID", "cell_id", "cell", "barcode", "Barcode", "CellID"),
     colnames(seu@meta.data))[1]
-  if (is.na(id_col)) {
-    cell_ids <- rownames(seu@meta.data)
-    message("No explicit cell-ID column; using rownames(seu@meta.data).")
-  } else {
-    cell_ids <- as.character(seu@meta.data[[id_col]])
-  }
+  cell_ids <- if (is.na(id_col)) rownames(seu@meta.data)
+              else as.character(seu@meta.data[[id_col]])
 
   celltypes <- seu@meta.data %>%
     dplyr::transmute(
@@ -556,110 +486,56 @@ if (run_cosmx) {
       lasso_final = as.character(.data[[ct_col]])) %>%
     dplyr::distinct(unique_fov, id, .keep_all = TRUE)
 
-  cat("Cell types from seu@meta.data$", ct_col,
-      " (cell ID from column '", id_col, "') — ",
-      nrow(celltypes), " cells\n", sep = "")
-  cat("Top cell types:\n")
-  print(head(sort(table(celltypes$lasso_final), decreasing = TRUE), 8))
+  # Which FOVs to build
+  requested <- if (!is.null(params$cosmx_fovs)) {
+    as.character(params$cosmx_fovs)
+  } else {
+    raw <- as.character(params$cosmx_fov)
+    if (identical(tolower(raw), "all")) {
+      design %>%
+        dplyr::filter(FOV_majority == "Tumor", !is.na(IO)) %>%
+        dplyr::transmute(fov_name = paste0(Slide_name, "_fov", fov)) %>%
+        dplyr::pull(fov_name)
+    } else trimws(strsplit(raw, ",")[[1]])
+  }
+  requested <- unique(requested[!is.na(requested) & nzchar(requested)])
 
-  build_one_fov <- function(fov_name) {
+  # One STlist per FOV, merged
+  st_per_fov <- lapply(requested, function(fov_name) {
     parts <- stringr::str_match(fov_name, "^(RCC\\d+)_fov(\\d+)$")
-    if (is.na(parts[1, 1])) {
-      warning("Skipping malformed FOV name: ", fov_name); return(NULL)
-    }
-    slide_name <- parts[1, 2]
-    fov_int    <- as.integer(parts[1, 3])
-
-    row_idx <- which(design$Slide_name == slide_name & design$fov == fov_int)
-    if (length(row_idx) == 0) {
-      warning("No design row for ", fov_name, "; skipped."); return(NULL)
-    }
-    tissue_lab <- design$FOV_majority[row_idx[1]]
-    io_label   <- design$IO[row_idx[1]]
-    if (is.na(io_label)) {
-      warning("No IO label for ", fov_name, "; skipped."); return(NULL)
-    }
+    if (is.na(parts[1, 1])) return(NULL)
+    slide_name <- parts[1, 2]; fov_int <- as.integer(parts[1, 3])
 
     cells_keep <- rownames(seu@meta.data)[
-      seu@meta.data$Slide_name    == slide_name &
-        seu@meta.data$fov         == fov_int    &
-        seu@meta.data$FOV_majority == tissue_lab &
-        seu@meta.data$IO          == io_label
-    ]
+      seu@meta.data$Slide_name == slide_name & seu@meta.data$fov == fov_int]
     cells_keep <- intersect(cells_keep, colnames(seu))
-    if (length(cells_keep) < 10) {
-      warning(fov_name, ": fewer than 10 cells matched; skipped."); return(NULL)
-    }
+    if (length(cells_keep) < 10) return(NULL)
 
     counts_sub <- counts_all[, cells_keep, drop = FALSE]
+    id_for_key <- trimws(as.character(seu@meta.data[cells_keep, id_col]))
+    idx        <- match(id_for_key, coords_all$id)
+    if (any(is.na(idx))) return(NULL)
 
-    if (all(cells_keep %in% coords_all$id)) {
-      target_ids <- cells_keep
-    } else {
-      overlap <- sapply(colnames(seu@meta.data), function(col) {
-        v <- seu@meta.data[[col]]
-        if (is.factor(v)) v <- as.character(v)
-        if (!is.character(v)) return(NA_real_)
-        mean(trimws(v) %in% coords_all$id, na.rm = TRUE)
-      })
-      overlap  <- sort(overlap[!is.na(overlap)], decreasing = TRUE)
-      best_col <- names(overlap)[1]
-      id_map        <- trimws(as.character(seu@meta.data[[best_col]]))
-      names(id_map) <- rownames(seu@meta.data)
-      target_ids    <- id_map[cells_keep]
-      n_mapped <- mean(target_ids %in% coords_all$id)
-      if (!is.finite(n_mapped) || n_mapped < 0.95) {
-        warning(fov_name, ": mapping via '", best_col, "' covers only ",
-                round(100 * n_mapped, 1), "% — skipped.")
-        return(NULL)
-      }
-    }
-    idx <- match(target_ids, coords_all$id)
-    if (any(is.na(idx))) {
-      warning(fov_name, ": ", sum(is.na(idx)),
-              " cells unmapped to coords; skipped."); return(NULL)
-    }
     coords_sub <- data.frame(libname = cells_keep,
                              xpos    = coords_all$xpos[idx],
-                             ypos    = coords_all$ypos[idx],
-                             stringsAsFactors = FALSE)
-    stopifnot(identical(coords_sub$libname, colnames(counts_sub)))
+                             ypos    = coords_all$ypos[idx])
 
     ct_key <- paste0(slide_name, "_", fov_int)
-    ct <- celltypes[celltypes$unique_fov == ct_key, c("id", "lasso_final")]
-    if (nrow(ct) == 0) {
-      warning(fov_name, ": no celltypes rows for unique_fov=", ct_key); return(NULL)
-    }
-    id_for_key <- trimws(as.character(seu@meta.data[cells_keep, id_col]))
-    ct_df <- data.frame(id        = trimws(ct$id),
-                        cell_type = ct$lasso_final,
-                        stringsAsFactors = FALSE)
-    cell_type_vec <- ct_df$cell_type[match(id_for_key, ct_df$id)]
+    ct     <- celltypes[celltypes$unique_fov == ct_key, c("id", "lasso_final")]
+    cell_type_vec <- ct$lasso_final[match(id_for_key, trimws(ct$id))]
 
-    n_typed <- sum(!is.na(cell_type_vec))
-    cat(sprintf("  %-12s | tissue=%-6s | IO=%-10s | %d cells | %d typed (%.0f%%)\n",
-                fov_name, tissue_lab, io_label,
-                length(cells_keep), n_typed,
-                100 * n_typed / length(cells_keep)))
-
-    sample_name <- fov_name
     st <- methods::new("STlist")
-    st@counts       <- setNames(list(counts_sub), sample_name)
-    sm <- coords_sub
-    sm$id_key    <- id_for_key
-    sm$cell_type <- cell_type_vec
-    st@spatial_meta <- setNames(list(sm), sample_name)
-    st@sample_meta  <- tibble(sample = sample_name)
-    st <- transform_data(st, method = "sct")
-    st
-  }
-
-  st_per_fov <- lapply(requested, build_one_fov)
+    st@counts       <- setNames(list(counts_sub), fov_name)
+    sm              <- coords_sub
+    sm$cell_type    <- cell_type_vec
+    st@spatial_meta <- setNames(list(sm), fov_name)
+    st@sample_meta  <- tibble(sample = fov_name)
+    transform_data(st, method = "sct")
+  })
   names(st_per_fov) <- requested
   st_per_fov <- st_per_fov[!vapply(st_per_fov, is.null, logical(1))]
-  if (length(st_per_fov) == 0)
-    stop("No CosMx FOVs could be built. See warnings above.")
 
+  # Merge into one STlist
   st_multi <- methods::new("STlist")
   st_multi@counts       <- list()
   st_multi@tr_counts    <- list()
@@ -670,29 +546,22 @@ if (run_cosmx) {
     st_multi@counts[[nm]]       <- s@counts[[nm]]
     st_multi@tr_counts[[nm]]    <- s@tr_counts[[nm]]
     st_multi@spatial_meta[[nm]] <- s@spatial_meta[[nm]]
-    st_multi@sample_meta <- rbind(st_multi@sample_meta, s@sample_meta)
+    st_multi@sample_meta        <- rbind(st_multi@sample_meta, s@sample_meta)
   }
-
-  cat("\nCosMx STlist built: ", length(names(st_multi@spatial_meta)),
-      " FOV(s): ", paste(names(st_multi@spatial_meta), collapse = ", "),
-      "\n", sep = "")
-  saveRDS(st_multi, file.path(cosmx_cfg$step123,
-                              "stlist_CosMx_multiFOV_SCT.rds"))
 
   STs$cosmx <- list(st      = st_multi,
                     smp1    = names(st_multi@spatial_meta)[1],
                     out_dir = cosmx_cfg$out_dir,
-                    label   = paste0("CosMx (",
-                                     length(names(st_multi@spatial_meta)),
+                    label   = paste0("CosMx (", length(st_multi@spatial_meta),
                                      " FOVs)"),
                     fov     = requested)
-  rm(seu, counts_all, coords_all, st_per_fov); invisible(gc())
-  cat("CosMx STlist ready.\n")
-} else {
-  cat("CosMx: skipped.\n")
 }
-cat("\nBuilt platforms: ", paste(names(STs), collapse = ", "), "\n", sep = "")
 ```
+
+```{r build-summary, echo=TRUE}
+cat("Platforms built: ", paste(names(STs), collapse = ", "), "\n", sep = "")
+```
+
 
 ```{r representatives}
 plat_lab   <- c(visium = "Visium", cosmx = "CosMx")
@@ -841,6 +710,12 @@ STniche is run jointly on all samples of a platform, so niche labels (C1, C2, ..
 samples and directly comparable. The ten gene sets below were chosen to cover the programmes that
 define lymphoid organisation (TLS, germinal centre, antigen presentation) and the inflammatory
 signalling that accompanies it (interferon, complement, NF-kB, cytokine pathways).
+The two `build-*` chunks above show exactly how each `STlist` was assembled from disk: one Space Ranger
+folder per Visium section, and one expression plus metadata CSV pair per CosMx FOV. To use your own
+data, replace the paths in the `settings` chunk (`visium_root`, `cosmx_root`) with your folders; the
+required file layout per platform is visible in the `build-visium` and `build-cosmx` chunks. Every
+`STlist` must be transformed before `STniche`; the `filter_data` and `transform_data` calls are inside
+those same chunks.
 
 ```{r gene-set-table}
 gs_desc <- c(
