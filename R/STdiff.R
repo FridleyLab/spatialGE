@@ -46,7 +46,6 @@
 #' `verbose=1`
 #' @param cores Number of cores to use in parallelization. If `NULL`, the number of
 #' cores to use is detected automatically
-#' @param verbose either logical or an integer (0, 1, or 2) to increase verbosity
 #' @return a list with one data frame per sample with results of differential gene
 #' expression analysis
 #'
@@ -60,44 +59,44 @@
 STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NULL,
                   topgenes=5000, pval_thr=0.05, pval_adj='fdr', test_type='mm', sp_topgenes=0.2,
                   clusters=NULL, pairwise=FALSE, verbose=1L, cores=NULL){
-
+  
   # Validate, and accept a Seurat object by coercing it (see assert_stlist).
   x = assert_stlist(x)
-
+  
   # To prevent NOTES in R CMD check
   . = NULL
-
+  
   # Record time
   zero_t = Sys.time()
-
+  
   # Convert user inputs to expected inputs
   topgenes = as.integer(ceiling(topgenes))
   pval_thr = as.double(pval_thr)
   sp_topgenes = as.double(sp_topgenes)
-
+  
   # Set verbosity level
   verbose = as.integer(verbose)
   if(!is.integer(verbose) | !(verbose %in% c(0L, 1L, 2L))){
     verbose = 1L
   }
-
+  
   # Check that at least two clusters have been specified if pairwise
   if(pairwise & !is.null(clusters)){
     if(length(clusters) < 2){
       stop('If pairwise tests requested, at least two clusters are required.')
     }
   }
-
+  
   # Stop function if topgenes and sp_topgenes are not valid
   if((round(topgenes, 0) <= 0) | (sp_topgenes < 0 | sp_topgenes > 1)){
     stop('topgenes or sp_topgenes contain invalid values.')
   }
-
+  
   # Define samples using names (convert indexes to names if necessary)
   samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='na_omit',
                             char_transform='exact', post_check='any_in',
                             message='None of the requested samples are present in the STlist.')
-
+  
   # Define column to test
   if(is.null(annot)){
     # If annot=NULL, must specify w and k
@@ -135,7 +134,7 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
       stop('Only one annotation column from @spatial_meta can be tested at a time. ')
     }
   }
-
+  
   # Check that the meta data column exists (if not in specific sample, remove sample)
   samples_tmp = samples
   for(i in samples){
@@ -151,10 +150,10 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   }
   samples = samples_tmp
   rm(samples_tmp) # Clean env
-
+  
   # Calculate standardized variance for all samples (regardless if sample is not in requested test)
   x = stdiff_ensure_vst(x)
-
+  
   # Print metadata assignment to be tested
   if(grepl('stclust_', annot[1])){
     spw_print = stringr::str_extract(annot[1], '(?<=spw)0\\.?[0-9]*')
@@ -168,27 +167,27 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
   } else{
     test_print = paste0('Testing metadata: ', annot[1], '...\n')
   }
-
+  
   # Print metadata to be tested
   if(verbose){
     cat(test_print)
   }
   rm(test_print) # Clean environment
-
+  
   # Build table of gene x cluster combinations to test, and the annotation dictionary
   combo_prep = stdiff_build_combo_table(x, samples, annot, topgenes, clusters, pairwise, verbose)
   combo_df = combo_prep[['combo_df']]
   meta_dict = combo_prep[['meta_dict']]
   rm(combo_prep) # Clean env
-
+  
   ######## ######## ######## BEGIN NON-SPATIAL TESTS ######## ######## ########
   nonspatial_run = stdiff_run_nonspatial_tests(x, combo_df, clusters, meta_dict, annot, pairwise, verbose, test_type, cores)
   non_sp_models = nonspatial_run[['non_sp_models']]
   cores = nonspatial_run[['cores']]
   rm(nonspatial_run) # Clean env
-
+  
   result_de = stdiff_assemble_nonspatial_results(non_sp_models, meta_dict, pairwise, test_type, pval_adj)
-
+  
   ######## ######## ######## BEGIN SPATIAL TESTS ######## ######## ########     ##### MADE BIG CHANGES TO NON-SPATIAL... NEED TO CHECK SPATIAL TESTS
   if(test_type == 'mm' & sp_topgenes > 0){
     start_t = Sys.time()
@@ -204,11 +203,11 @@ STdiff = function(x=NULL, samples=NULL, annot=NULL, w=NULL, k=NULL, deepSplit=NU
       cat(paste0('\n\tCompleted spatial mixed models (', round(end_t, 2), ' min).\n'))
     }
     rm(non_sp_models) # Clean environment
-
+    
     result_de = stdiff_assemble_spatial_results(result_de, sp_models, meta_dict, pairwise, pval_adj)
     rm(sp_models) # Clean environment
   }   ##### CLOSES IF TO ENTER SPATIAL TESTS CODE
-
+  
   # Print time
   end_t = difftime(Sys.time(), zero_t, units='min')
   if(verbose){

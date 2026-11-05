@@ -20,6 +20,13 @@ fixture_sample_names <- function() c("alpha", "bravo", "charlie")
 ## names: an all-zero gene, a constant gene, one with a shell metacharacter,
 ## and one with a syntactically-invalid R name (leading digit) -- together
 ## these prove `check.names = FALSE` is preserved end to end.
+##
+## ## MODIFIED: adds GeneA_h1..5 and GeneB_h1..5 (10 genes total). These are
+## ## the co-varying helper genes that make the STniche test fixture's
+## ## `domain_A` / `domain_B` gene sets have more than one gene after the
+## ## test's `.stniche_panel_available()` filter. Without them, GSVA drops
+## ## each gene set (minSize >= 2) and STniche clusters noise. See
+## ## test-numeric-stniche.R:154 for the assertion that depends on this.
 fixture_gene_names <- function() {
   c(
     paste0("Gene", seq_len(184)),
@@ -39,6 +46,12 @@ fixture_spot_grid <- function() {
   grid
 }
 
+## ## MODIFIED: adds two branches for GeneA_h* and GeneB_h*. Each helper is a
+## ## noisy positive copy of its parent domain gene: Poisson rate scaled by a
+## ## per-spot random factor in [0.4, 0.6]. Because the helper is drawn from
+## ## the same domain-lifted rate, it correlates strongly with DomainGeneA (or
+## ## DomainGeneB) and provides the multivariate signal GSVA needs to produce
+## ## a well-defined score for the 6-gene panel.
 fixture_counts_matrix <- function(genes, grid) {
   n_genes <- length(genes)
   n_spots <- nrow(grid)
@@ -74,24 +87,24 @@ fixture_base_data <- function() {
   genes <- fixture_gene_names()
   grid <- fixture_spot_grid()
   n_spots <- nrow(grid)
-
+  
   counts_list <- list()
   coords_list <- list()
-
+  
   for (s in samples) {
     barcodes <- paste0(s, "_spot", sprintf("%03d", seq_len(n_spots)))
     mat <- fixture_counts_matrix(genes, grid)
     if (s == "bravo") mat[, 1] <- 0L # zero-library-size spot
     colnames(mat) <- barcodes
-
+    
     counts_df <- data.frame(gene = genes, mat, check.names = FALSE, stringsAsFactors = FALSE)
     coords_df <- data.frame(libname = barcodes, ypos = grid$ypos, xpos = grid$xpos, stringsAsFactors = FALSE)
     if (s == "charlie") coords_df <- coords_df[sample.int(n_spots), ] # shuffled vs. counts column order
-
+    
     counts_list[[s]] <- counts_df
     coords_list[[s]] <- coords_df
   }
-
+  
   list(samples = samples, genes = genes, grid = grid, counts = counts_list, coords = coords_list)
 }
 
@@ -137,26 +150,26 @@ fixture_pbulk_base_data <- function() {
   grid <- fixture_spot_grid()
   n_spots <- nrow(grid)
   group_genes <- fixture_pbulk_group_genes()
-
+  
   counts_list <- list()
   coords_list <- list()
-
+  
   for (s in samples) {
     barcodes <- paste0(s, "_spot", sprintf("%03d", seq_len(n_spots)))
     mat <- fixture_counts_matrix(genes, grid)
-
+    
     ## groupB carries a 3x lift on the signal genes, so those genes dominate
     ## the pseudobulk variance ranking and PC1 splits the two groups.
     if (groups[[s]] == "groupB") {
       gi <- which(genes %in% group_genes)
       mat[gi, ] <- mat[gi, ] * 3L
     }
-
+    
     colnames(mat) <- barcodes
     counts_list[[s]] <- data.frame(gene = genes, mat, check.names = FALSE, stringsAsFactors = FALSE)
     coords_list[[s]] <- data.frame(libname = barcodes, ypos = grid$ypos, xpos = grid$xpos, stringsAsFactors = FALSE)
   }
-
+  
   list(samples = samples, groups = groups, genes = genes, grid = grid,
        counts = counts_list, coords = coords_list)
 }
@@ -188,7 +201,7 @@ fixture_write_delim <- function(base, dir, delim = c(",", "\t")) {
   delim <- match.arg(delim)
   ext <- if (delim == ",") "csv" else "tsv"
   dir.create(dir, showWarnings = FALSE, recursive = TRUE)
-
+  
   rna_paths <- character(0)
   coord_paths <- character(0)
   for (s in base$samples) {
@@ -242,7 +255,7 @@ fixture_write_mex_trio <- function(mat, genes, barcodes, dir) {
   features_fp <- file.path(dir, "features.tsv.gz")
   barcodes_fp <- file.path(dir, "barcodes.tsv.gz")
   matrix_fp <- file.path(dir, "matrix.mtx.gz")
-
+  
   features_df <- data.frame(
     ensembl = paste0("ENSG", sprintf("%08d", seq_along(genes))),
     gene = genes,
@@ -251,11 +264,11 @@ fixture_write_mex_trio <- function(mat, genes, barcodes, dir) {
   con <- gzfile(features_fp, "wt")
   utils::write.table(features_df, con, sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
   close(con)
-
+  
   con <- gzfile(barcodes_fp, "wt")
   writeLines(barcodes, con)
   close(con)
-
+  
   ## Matrix::writeMM emits exactly the 3-line MatrixMarket header that
   ## import_visium()'s `fread(..., skip = 3)` expects, so the gz can just
   ## wrap its plain-text output line for line.
@@ -267,7 +280,7 @@ fixture_write_mex_trio <- function(mat, genes, barcodes, dir) {
   con <- gzfile(matrix_fp, "wt")
   writeLines(mtx_lines, con)
   close(con)
-
+  
   invisible(list(features = features_fp, barcodes = barcodes_fp, matrix = matrix_fp))
 }
 
@@ -309,12 +322,12 @@ fixture_write_visium_mex <- function(base, dir) {
     sdir <- file.path(dir, s)
     dir.create(sdir, showWarnings = FALSE, recursive = TRUE)
     file.create(file.path(sdir, "filtered_feature_bc_matrix.tar.gz"))
-
+    
     barcodes <- colnames(base$counts[[s]])[-1]
     mat <- as.matrix(base$counts[[s]][, -1, drop = FALSE])
     rownames(mat) <- base$genes
     fixture_write_mex_trio(mat, base$genes, barcodes, file.path(sdir, "filtered_feature_bc_matrix"))
-
+    
     spdir <- file.path(sdir, "spatial")
     dir.create(spdir, showWarnings = FALSE, recursive = TRUE)
     fixture_write_visium_positions(barcodes, base$grid, file.path(spdir, "tissue_positions_list.csv"))
@@ -332,12 +345,12 @@ fixture_write_xenium_mex <- function(base, dir) {
     sdir <- file.path(dir, s)
     dir.create(sdir, showWarnings = FALSE, recursive = TRUE)
     file.create(file.path(sdir, "cell_feature_matrix.tar.gz"))
-
+    
     barcodes <- colnames(base$counts[[s]])[-1]
     mat <- as.matrix(base$counts[[s]][, -1, drop = FALSE])
     rownames(mat) <- base$genes
     fixture_write_mex_trio(mat, base$genes, barcodes, file.path(sdir, "cell_feature_matrix"))
-
+    
     coords_df <- data.frame(
       cell_id = barcodes,
       x_centroid = base$grid$xpos * 10,
@@ -356,7 +369,7 @@ fixture_write_10x_h5 <- function(base, sample, fp) {
   rownames(mat) <- base$genes
   sp_mat <- Matrix::Matrix(mat, sparse = TRUE)
   barcodes <- colnames(mat)
-
+  
   h5 <- hdf5r::H5File$new(fp, mode = "w")
   grp <- h5$create_group("matrix")
   grp[["data"]] <- sp_mat@x
@@ -376,7 +389,7 @@ fixture_write_visium_h5 <- function(base, dir) {
     sdir <- file.path(dir, s)
     dir.create(sdir, showWarnings = FALSE, recursive = TRUE)
     fixture_write_10x_h5(base, s, file.path(sdir, "filtered_feature_bc_matrix.h5"))
-
+    
     spdir <- file.path(sdir, "spatial")
     dir.create(spdir, showWarnings = FALSE, recursive = TRUE)
     barcodes <- colnames(base$counts[[s]])[-1]
@@ -393,7 +406,7 @@ fixture_write_xenium_h5 <- function(base, dir) {
     sdir <- file.path(dir, s)
     dir.create(sdir, showWarnings = FALSE, recursive = TRUE)
     fixture_write_10x_h5(base, s, file.path(sdir, "cell_feature_matrix.h5"))
-
+    
     barcodes <- colnames(base$counts[[s]])[-1]
     coords_df <- data.frame(
       cell_id = barcodes,
@@ -418,7 +431,7 @@ fixture_write_cosmx <- function(base, dir, slide = "slideA") {
     mat <- t(as.matrix(base$counts[[s]][, -1, drop = FALSE])) # cells x genes
     colnames(mat) <- base$genes
     n_cells <- nrow(mat)
-
+    
     expr_rows[[s]] <- data.frame(
       fov = fov_i, cell_ID = seq_len(n_cells), cell = seq_len(n_cells),
       mat, check.names = FALSE
@@ -432,15 +445,15 @@ fixture_write_cosmx <- function(base, dir, slide = "slideA") {
   }
   expr_all <- do.call(rbind, expr_rows)
   meta_all <- do.call(rbind, meta_rows)
-
+  
   expr_fp <- file.path(dir, paste0(slide, "_exprMat_file.csv"))
   meta_fp <- file.path(dir, paste0(slide, "_metadata_file.csv"))
   utils::write.csv(expr_all, expr_fp, row.names = FALSE, quote = FALSE)
   utils::write.csv(meta_all, meta_fp, row.names = FALSE, quote = FALSE)
-
+  
   samples_fp <- file.path(dir, "samples.csv")
   utils::write.csv(data.frame(sample = slide, group = "all", stringsAsFactors = FALSE), samples_fp, row.names = FALSE, quote = FALSE)
-
+  
   list(rnacounts = expr_fp, spotcoords = meta_fp, samples = samples_fp)
 }
 

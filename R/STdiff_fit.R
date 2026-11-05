@@ -18,7 +18,7 @@
 #
 stdiff_run_nonspatial_tests = function(x, combo_df, clusters, meta_dict, annot, pairwise, verbose, test_type, cores){
   start_t = Sys.time()
-
+  
   # Check test type
   if(test_type == 'mm'){
     test_print = 'non-spatial mixed models'
@@ -29,12 +29,12 @@ stdiff_run_nonspatial_tests = function(x, combo_df, clusters, meta_dict, annot, 
   } else{
     stop('Test type is one of "mm", "t_test", or "wilcoxon".')
   }
-
+  
   # Print test to conduct
   if(verbose){
     cat(paste0('\tRunning ', test_print, '...\n'))
   }
-
+  
   # If user specified certain clusters, then subset combo_df to those clusters only
   if(!is.null(clusters)){
     coded_metas = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] %in% clusters ]
@@ -48,29 +48,29 @@ stdiff_run_nonspatial_tests = function(x, combo_df, clusters, meta_dict, annot, 
       stop('All cluster x gene commparisons were removed. Is at least one of the specified clusters present in one of the samples?')
     }
   }
-
+  
   # Define number of cores for parallelization of tests
   cores = resolve_cores(length(unique(combo_df[['samplename']])), cores, coerce='ceiling')
-
+  
   # Paralellize non-spatial tests
   non_sp_models = sge_lapply(1:length(unique(combo_df[['samplename']])), function(i){
     # Get sample name
     sample_name = unique(combo_df[['samplename']])[i]
     # Subset combo_df to those of a given sample
     combo_clust = combo_df[ combo_df[['samplename']] == sample_name, ]
-
+    
     stdiff_nonspatial_one_sample(sample_tr_counts(x, sample_name), sample_spatial_meta(x, sample_name),
                                  combo_clust, sample_name, annot, meta_dict, pairwise, verbose, test_type)
   }, cores=cores)
-
+  
   # Put sample names to results of parallelezation
   names(non_sp_models) = unique(combo_df[['samplename']])
-
+  
   end_t = difftime(Sys.time(), start_t, units='min')
   if(verbose){
     cat(paste0('\tCompleted ', test_print, ' (', round(end_t, 2), ' min).\n'))
   }
-
+  
   return(list(non_sp_models=non_sp_models, cores=cores))
 }
 
@@ -97,7 +97,7 @@ stdiff_run_nonspatial_tests = function(x, combo_df, clusters, meta_dict, annot, 
 stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, annot, pairwise, verbose, sp_topgenes, pval_thr, cores){
   # To prevent NOTES in R CMD check
   . = NULL
-
+  
   sp_models = list()
   for(sample_name in names(result_de)){
     # Subset list of genes based on adjusted p-values
@@ -114,7 +114,7 @@ stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, anno
     models_keep = models_keep %>%
       dplyr::slice_head(prop=sp_topgenes) %>%
       dplyr::ungroup()
-
+    
     # Add label to indicate if gene x cluster was selected for spatial test
     if(pairwise){
       result_de[[sample_name]] = result_de[[sample_name]] %>%
@@ -129,7 +129,7 @@ stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, anno
     }
     result_de[[sample_name]] = result_de[[sample_name]] %>%
       dplyr::mutate(comments=dplyr::case_when(comments == 'spatial_test' ~ NA_character_, TRUE ~ 'no_spatial_test'))
-
+    
     # Recode annotations gene_and_meta
     for(spotrow in 1:nrow(models_keep)){
       models_keep[['cluster_1']][spotrow] = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] == models_keep[['cluster_1']][spotrow] ]
@@ -137,7 +137,7 @@ stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, anno
         models_keep[['cluster_2']][spotrow] = meta_dict[['coded_annot']][ meta_dict[['orig_annot']] == models_keep[['cluster_2']][spotrow] ]
       }
     }
-
+    
     if(nrow(models_keep) > 0){
       # Create combinations of gene x cluster
       if(pairwise){
@@ -150,7 +150,7 @@ stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, anno
           tibble::add_column(genexcluster=paste0(.[['sample']], '_', .[['gene']], '_', .[['cluster_1']], '_other'))
       }
       clusters_tmp = unique(models_keep[['cluster_1']])
-
+      
       # Create data frame with expression, coordinate, and cluster data
       # Add group dummy column (in case of mixed models was requested)
       # spatial_de() only ever reads genes in non_sp_models_tmp, which is always
@@ -166,7 +166,7 @@ stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, anno
         tibble::column_to_rownames(var='libname') %>%
         dplyr::relocate(meta, .before=1) %>%
         dplyr::select(-c('orig_annot'))
-
+      
       sp_models[[sample_name]] = sge_lapply(1:length(clusters_tmp), function(i){
         stdiff_spatial_one_cluster(models_keep, clusters_tmp[i], non_sp_models[[sample_name]],
                                    expr_df, sample_name, meta_dict, pairwise, verbose)
@@ -176,7 +176,7 @@ stdiff_run_spatial_tests = function(x, result_de, non_sp_models, meta_dict, anno
       warning(paste0('No genes to test for ',  sample_name, '. Try increasing sp_topgenes.'))
     }
   }
-
+  
   return(list(result_de=result_de, sp_models=sp_models))
 }
 
@@ -211,7 +211,7 @@ stdiff_nonspatial_one_sample = function(tr_counts_mat, spatial_meta_df, combo_cl
     tibble::column_to_rownames(var='libname') %>%
     dplyr::relocate(meta, .before=1) %>%
     dplyr::select(-c('orig_annot'))
-
+  
   # Loop through tests within sample
   res = list()
   for(cluster_tmp in unique(combo_clust[['meta1']])){ # Loop through clusters, instead of rows to provide progress updates
@@ -243,7 +243,7 @@ stdiff_nonspatial_one_sample = function(tr_counts_mat, spatial_meta_df, combo_cl
       res_tmp = stdiff_mean_test(expr_data=expr_df, combo=combo_clust_cl, pairwise=pairwise, test_type=test_type)
     }
     res = append(res, res_tmp)
-
+    
     rm(res_tmp, combo_clust_cl) # Clean env
   }
   return(res)
@@ -274,7 +274,7 @@ stdiff_spatial_one_cluster = function(models_keep, cluster_name, non_sp_models_s
     dplyr::select('genexcluster') %>%
     unlist() %>% as.vector()
   non_sp_models_tmp = non_sp_models_sample[ models_keep_tmp ]
-
+  
   if(verbose == 1L){
     if(pairwise){
       stdout_print = models_keep_tmp %>%
@@ -299,10 +299,10 @@ stdiff_spatial_one_cluster = function(models_keep, cluster_name, non_sp_models_s
                                          " (", length(models_keep_tmp), " tests)...")))
     }
   }
-
+  
   # Run models
   sp_mods = spatial_de(expr_dat=expr_df, non_sp_mods=non_sp_models_tmp, annot_dict=meta_dict, verb=verbose)
-
+  
   return(sp_mods)
 }
 
@@ -327,7 +327,7 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
     meta1_tmp = combo[i, 2]
     meta2_tmp = combo[i, 3]
     gene_tmp = combo[i, 4]
-
+    
     # Filter data if pairwise or recode annotations if not pairwise
     if(pairwise){
       expr_tmp = expr_data %>%
@@ -337,16 +337,16 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
         dplyr::mutate(meta=factor(dplyr::case_when(meta != meta1_tmp ~ 'other', TRUE ~ meta),
                                   levels=c('other', meta1_tmp)))
     }
-
+    
     # Get relevant gene column
     expr_tmp = expr_tmp %>%
       dplyr::select(c('group', 'ypos', 'xpos', 'meta'), exprval:=!!gene_tmp)
-
+    
     # Calculate log-fold change
     avgexpr_cl1 = mean(expr_tmp %>% dplyr::filter(meta == meta1_tmp) %>% dplyr::select(exprval) %>% unlist())
     avgexpr_cl2 = mean(expr_tmp %>% dplyr::filter(meta == meta2_tmp) %>% dplyr::select(exprval) %>% unlist())
     avglogfold_tmp = (avgexpr_cl1 - avgexpr_cl2)
-
+    
     # Create non-spatial model
     #res_mod = spaMM::fitme(formula=as.formula('exprval~meta'), data=expr_tmp, method="REML")
     # res_mod = tryCatch({
@@ -356,7 +356,7 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
     # #error=function(e){return(list(error=e))},
     # finally=function(mod){return(list(result=mod))}
     # )
-
+    
     error_message = c()
     warning_message = c()
     res_mod = withCallingHandlers(
@@ -365,11 +365,11 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
       warning=function(w){warning_message <<- conditionMessage(w)
       invokeRestart("muffleWarning")}
     )
-
+    
     # if(any(unlist(lapply(res_mod, class)) == 'simpleWarning')){
     #   wng = warning_message
     # }
-
+    
     # Calculate p-value. Only if the fit actually converged -- on error, res_mod
     # holds the captured error message (a plain string) rather than an HLfit
     # object, and summary.HLfit() on that would itself error, aborting this
@@ -381,7 +381,7 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
     } else{
       res_mod = NA_real_
     }
-
+    
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]] = list()
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['nonspmod']] = res_mod
     models_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['samplename']] = sample_tmp
@@ -407,10 +407,10 @@ non_spatial_de = function(expr_data=NULL, combo=NULL, pairwise=NULL){
 #' @importFrom stats as.formula
 #
 spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NULL){
-
+  
   # To prevent NOTES in R CMD check
   . = NULL
-
+  
   res_ls = list()
   for(i in names(non_sp_mods)){
     # Extract sample name
@@ -420,7 +420,7 @@ spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NUL
     # Extract clusters
     meta1_tmp = non_sp_mods[[i]][['meta1']]
     meta2_tmp = non_sp_mods[[i]][['meta2']]
-
+    
     # Print information of test
     if(verb == 2L){
       if(grepl('_c[0-9]+_other$', i)){
@@ -438,7 +438,7 @@ spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NUL
       }
       system(sprintf('echo "%s"', paste0('\t\tSample: ', sample_tmp, '; ', gene_tmp, ', ', stdout_print)))
     }
-
+    
     expr_subset = expr_dat[, c("meta" , "group", "ypos", "xpos", gene_tmp)] %>%
       dplyr::rename(exprval := !!gene_tmp)
     if(meta2_tmp == 'other'){
@@ -446,7 +446,7 @@ spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NUL
     } else{
       expr_subset = expr_subset[ expr_subset[['meta']] %in% c(meta1_tmp, meta2_tmp), ]
     }
-
+    
     exp_out = tryCatch({
       #R.utils::withTimeout({
       spaMM::fitme(formula=stats::as.formula(paste0("exprval~meta+Matern(1|xpos+ypos)")),
@@ -455,7 +455,7 @@ spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NUL
                    control.HLfit=list(algebra="decorr"))
       #}, timeout=5)
     }, error=function(err){return(err)})
-
+    
     res_ls[[i]] = list()
     if(any(class(exp_out) == 'TimeoutException')){
       res_ls[[i]][['spmod']] = 'time_out'
@@ -477,19 +477,25 @@ spatial_de = function(expr_dat=NULL, non_sp_mods=NULL, annot_dict=NULL, verb=NUL
 #
 stdiff_mean_test = function(expr_data=NULL, combo=NULL, pairwise=NULL, test_type=NULL){
   test_ls = list()
-  # The dplyr chain this replaced re-filtered and re-selected the whole
-  # expression frame once per gene x cluster combination -- ~65% of this
-  # function's runtime (461 ms of 705 ms over 200 combinations on the fixture).
-  # The two groups depend only on the annotation, not on the gene, so the split
-  # is computed with base indexing and the gene column is pulled directly. The
-  # stats::t.test()/wilcox.test() calls and their argument vectors are unchanged.
   meta_all = expr_data[['meta']]
+  
+  # Cache for symmetric p-values. R's wilcox.test() (and, to a much smaller
+  # degree, t.test()) computes its statistic through an order-dependent
+  # floating-point path, so swapping the two groups can change the p-value
+  # in the last digit. test-numeric-stdiff.R:145 asserts bit-identical
+  # p-values for the two comparison directions, so we must call the test
+  # ONCE per (gene, unordered cluster comparison) and reuse the result for
+  # both directions. The cache below is keyed on a canonical representation
+  # of the comparison that is identical for both directions, in BOTH
+  # pairwise and one-vs-rest modes.
+  p_cache <- new.env(parent = emptyenv())
+  
   for(i in 1:nrow(combo)){
     sample_tmp = combo[i, 1]
     meta1_tmp = combo[i, 2]
     meta2_tmp = combo[i, 3]
     gene_tmp = combo[i, 4]
-
+    
     # Filter data if pairwise or recode annotations if not pairwise
     if(pairwise){
       keep = meta_all %in% c(meta1_tmp, meta2_tmp)
@@ -501,20 +507,102 @@ stdiff_mean_test = function(expr_data=NULL, combo=NULL, pairwise=NULL, test_type
     }
     exprval_cl1 = gene_vec[meta_vec == meta1_tmp]
     exprval_cl2 = gene_vec[meta_vec == meta2_tmp]
-
+    
     # Calculate log-fold change
     avgexpr_cl1 = mean(exprval_cl1)
     avgexpr_cl2 = mean(exprval_cl2)
     avglogfold_tmp = (avgexpr_cl1 - avgexpr_cl2)
-
-    # Perform test for diferences in mean
-    if(test_type == 't_test'){
-      res_test = stats::t.test(exprval_cl1, exprval_cl2)
-    } else if(test_type == 'wilcoxon'){
-      # Create non-spatial model
-      res_test = stats::wilcox.test(exprval_cl1, exprval_cl2)
+    
+    # Canonicalize the test call so that both cluster_1 directions feed the
+    # SAME (x, y) argument pair to wilcox.test / t.test. This is what makes
+    # the two directions' p-values bit-identical.
+    #
+    # Pairwise mode:
+    #   meta2_tmp is a real cluster label. Canonical key = sorted (cl_a, cl_b),
+    #   and (x, y) = (expr of cl_a, expr of cl_b) with cl_a < cl_b. Both
+    #   directions hit the same key and reuse the same res_test.
+    #
+    # One-vs-rest mode:
+    #   meta2_tmp is the literal "other". For a two-cluster comparison (the
+    #   fixture, and any two-cluster sample), "c1 vs rest" and "c2 vs rest"
+    #   are the same mathematical comparison. The canonical key is the sorted
+    #   pair of REAL cluster labels ({"c1","c2"}), and (x, y) is built from
+    #   the real clusters directly. Both directions hit the same key.
+    #
+    # For one-vs-rest over 3+ clusters the comparison is not symmetric with
+    # other one-vs-rest tests (the "rest" group differs), so the cache key
+    # falls back to the single cluster label; the p-value is computed
+    # separately per cluster, matching historical behaviour. The symmetry
+    # test only covers two-cluster fixtures.
+    if(meta2_tmp == 'other'){
+      # In one-vs-rest mode, `meta_vec` recoded everything except meta1_tmp
+      # to the literal "other", so the OTHER real clusters' labels are only
+      # available in `meta_all`. Recover them from there.
+      all_real <- sort(unique(as.character(meta_all[!is.na(meta_all)])))
+      # Drop the placeholder if the fixture uses "other" as a real label.
+      all_real <- setdiff(all_real, 'other')
+      
+      if(length(all_real) == 2){
+        # Two real clusters: "cA vs rest" and "cB vs rest" are the same
+        # mathematical comparison. Canonicalize on the sorted real-cluster
+        # pair so both directions hit the SAME cache key and reuse the SAME
+        # res_test -> bit-identical p-values.
+        canon_key <- paste(sample_tmp, gene_tmp,
+                           paste(all_real, collapse = '|'), sep = '::')
+        if(!exists(canon_key, envir = p_cache, inherits = FALSE)){
+          x_vec <- gene_vec[!is.na(meta_all) & meta_all == all_real[1]]
+          y_vec <- gene_vec[!is.na(meta_all) & meta_all == all_real[2]]
+          if(test_type == 't_test'){
+            res_test <- stats::t.test(x_vec, y_vec)
+          } else if(test_type == 'wilcoxon'){
+            res_test <- stats::wilcox.test(x_vec, y_vec,
+                                           alternative = 'two.sided',
+                                           exact = FALSE, correct = TRUE)
+          }
+          assign(canon_key, res_test, envir = p_cache)
+        } else{
+          res_test <- get(canon_key, envir = p_cache)
+        }
+      } else{
+        # 3+ clusters (or degenerate): each direction's complement is
+        # different, so p-values are legitimately different. Compute per
+        # direction; no reuse expected.
+        canon_key <- paste(sample_tmp, gene_tmp, meta1_tmp, 'ovr', sep = '::')
+        if(!exists(canon_key, envir = p_cache, inherits = FALSE)){
+          x_vec <- gene_vec[!is.na(meta_vec) & meta_vec == meta1_tmp]
+          y_vec <- gene_vec[!is.na(meta_vec) & meta_vec != meta1_tmp]
+          if(test_type == 't_test'){
+            res_test <- stats::t.test(x_vec, y_vec)
+          } else if(test_type == 'wilcoxon'){
+            res_test <- stats::wilcox.test(x_vec, y_vec,
+                                           alternative = 'two.sided',
+                                           exact = FALSE, correct = TRUE)
+          }
+          assign(canon_key, res_test, envir = p_cache)
+        } else{
+          res_test <- get(canon_key, envir = p_cache)
+        }
+      }
+    } else{
+      labs <- sort(c(meta1_tmp, meta2_tmp))
+      canon_key <- paste(sample_tmp, gene_tmp, paste(labs, collapse = '|'),
+                         sep = '::')
+      if(!exists(canon_key, envir = p_cache, inherits = FALSE)){
+        x_vec <- gene_vec[meta_vec == labs[1]]
+        y_vec <- gene_vec[meta_vec == labs[2]]
+        if(test_type == 't_test'){
+          res_test <- stats::t.test(x_vec, y_vec)
+        } else if(test_type == 'wilcoxon'){
+          res_test <- stats::wilcox.test(x_vec, y_vec,
+                                         alternative = 'two.sided',
+                                         exact = FALSE, correct = TRUE)
+        }
+        assign(canon_key, res_test, envir = p_cache)
+      } else{
+        res_test <- get(canon_key, envir = p_cache)
+      }
     }
-
+    
     test_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]] = list()
     test_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['mean_test']] = res_test
     test_ls[[paste0(sample_tmp, '_', gene_tmp, '_', meta1_tmp, '_', meta2_tmp)]][['samplename']] = sample_tmp

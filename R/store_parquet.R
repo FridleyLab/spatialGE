@@ -66,6 +66,7 @@ new_sge_manifest = function(sample, store_id, path, generation, genes, cells,
 
 is_sge_manifest = function(x) inherits(x, 'sge_manifest')
 
+#' @keywords internal
 #' @export
 print.sge_manifest = function(x, ...){
   cat(sprintf('<sge_manifest> %s: %d genes x %d cells, %.0f nonzero, gen %d\n',
@@ -73,7 +74,6 @@ print.sge_manifest = function(x, ...){
   cat(sprintf('  %s\n', x$path))
   invisible(x)
 }
-
 ##
 # Dimension/dimname accessors used by R/utils_accessors.R. base::nrow() and
 # friends return NULL on a manifest, so the accessors dispatch here instead.

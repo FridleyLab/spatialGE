@@ -15,11 +15,3 @@ an STlist with in-memory count matrices
 \description{
 Reverses \code{STlist_to_disk()}, materializing every backed matrix.
 }
-\details{
-The round trip is exact: COO stores the values themselves and the manifest carries
-dimensions and dimnames, so nothing is inferred on the way back. An STlist that
-was never backed is returned unchanged.
-}
-\seealso{
-\code{\link{STlist_to_disk}}
-}

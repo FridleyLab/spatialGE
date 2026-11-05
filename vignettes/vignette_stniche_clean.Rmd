@@ -1,0 +1,1369 @@
+---
+title: "Spatial niche detection with STniche"
+subtitle: "Visium (GSE175540) and CosMx (ccRCC) case studies"
+author: "Yonatan Mekonnen"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    fig_caption: true
+    latex_engine: xelatex
+geometry: margin=0.9in
+fontsize: 10pt
+colorlinks: true
+header-includes:
+  - '\renewcommand{\thesection}{\arabic{section}.}'
+  - '\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}'
+params:
+  run_visium: true
+  run_cosmx:  true
+
+  # ---- Data locations (empty = download to a temporary folder) ----
+  visium_root: ""
+  cosmx_root:  ""
+  cosmx_fov:   "all"          # "all" = every tumour FOV with a known IO status
+  out_root:    ""
+
+  # ---- STniche ----
+  stniche_knns: [22, 6]       # first value is the primary analysis
+  stniche_ks:   [2, 3, 4, 5, 6, 7, 8, 9, 10]
+  stniche_gene_sets:
+    value:
+      TLS_core: [CXCL13, CCL19, CCL21, CXCR5, LAMP3, MS4A1]
+      GC_Bcell: [AICDA, BCL6, PAX5, CD38, CXCR4, IRF4]
+      Antigen_Presentation: [CIITA, HLA-DRA, HLA-DRB1, CD74, CD86]
+      IFNG_RESPONSE: [IFNG, STAT1, IRF1, CXCL9, CXCL10, CXCL11, IDO1, HLA-DRA]
+      COMPLEMENT: [C1QA, C1QB, C1QC, C3, C4A, C4B, CFB, CFH, CFI, CD46, CD55, CD59]
+      IFNA_RESPONSE: [IFI6, IFI27, IFI44, IFI44L, IFIT1, IFIT3, MX1, MX2, OAS1, OAS2, ISG15]
+      TNFA_NFKB: [TNF, TNFRSF1A, TNFRSF1B, NFKB1, NFKB2, RELA, RELB, NFKBIA, NFKBIB, BIRC3, CCL20, CXCL1, CXCL2]
+      IL2_STAT5_TGFB: [IL2RA, IL2RB, STAT5A, STAT5B, TGFB1, TGFBR1, TGFBR2, SMAD3, SMAD4, IL10RA]
+      IL6_JAK_STAT3: [IL6, IL6R, IL6ST, JAK1, JAK2, STAT3, SOCS3, PTPN11]
+      INFLAMMATORY_RESPONSE: [IL1B, IL1R1, IL18, IL18R1, CXCL8, CCL2, CCL3, CCL4, CCL5, PTGS2, NFKB1, TLR4, MYD88]
+
+  # ---- CosMx cell-type patterns (regular expressions) ----
+  cd8_label: "CD8"
+  m2_label:  "M2|CD163|Macrophage"
+
+  # ---- Representative samples shown in figures ----
+  representative_mode:   "ffpe_vs_frozen"
+  representative_visium: [ffpe_c_20, frozen_a_15]
+  representative_cosmx:  [RCC3_fov7, RCC4_fov2]
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(spatialGE)
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(ggplot2)
+  library(readr)
+  library(readxl)
+  library(stringr)
+  library(grid)
+  library(ComplexHeatmap)
+  library(circlize)
+})
+
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE, comment = NA,
+  fig.align = "center", out.width = "100%",
+  fig.width = 10, fig.height = 6, dpi = 150, fig.retina = 1
+)
+options(knitr.kable.NA = "")
+
+sort_clusters <- function(x) {
+  x   <- unique(as.character(x))
+  sfx <- suppressWarnings(as.integer(sub("^[A-Za-z_]+", "", x)))
+  if (all(!is.na(sfx))) x[order(sfx)] else sort(x)
+}
+
+show_table <- function(df, caption = NULL, digits = 2) {
+  knitr::kable(df, booktabs = TRUE, linesep = "", digits = digits,
+               caption = caption, row.names = FALSE)
+}
+```
+
+# Introduction
+
+Tissues are organised into local microenvironments, or *niches*, in which particular cell types and
+molecular programmes co-occur. Identifying niches matters because their composition and spatial
+arrangement are often more informative about tissue function and disease state than bulk or
+per-cell expression alone.
+
+**STniche** (part of *spatialGE*) detects niches directly from spatial transcriptomics data in three steps:
+
+1. **Gene-set scoring.** Each spot or cell receives an activity score for every gene set of interest.
+2. **Spatial autocorrelation.** A local Moran's I statistic (reported as a Z-score, *Zi*) measures
+   whether each gene set is spatially concentrated around that location, rather than merely expressed.
+3. **Clustering.** The Zi profiles are clustered (model-based clustering, number of niches chosen by BIC),
+   so that each niche is defined by *which programmes are locally organised together*.
+
+This vignette applies STniche to two technologies and uses each to answer a specific question:
+
+| Dataset | Technology | Question |
+|:--|:--|:--|
+| GSE175540 (24 RCC sections, FFPE and fresh frozen) | Visium (spot level) | Do STniche niches recover pathologist-annotated tertiary lymphoid structures (TLS)? |
+| ccRCC tumour fields of view (FOVs) | CosMx (single-cell level) | Which cell types and immune programmes define each niche, and does niche-level immune activity differ between immunotherapy (IO)-naive and IO-exposed tumours? |
+
+# Setup and data
+
+All data are downloaded automatically on first use (GEO for Visium; Zenodo and Springer for CosMx).
+Set `visium_root`, `cosmx_root` or `out_root` in the YAML header to reuse local copies.
+Only the analysis steps are echoed in this document; download and import code is hidden for readability.
+
+```{r settings, results="hide"}
+`%||%` <- function(a, b) {
+  if (is.null(a) || length(a) == 0L || identical(a, "")) b else a
+}
+
+ensure_download <- function(url, dest, min_bytes = 1e6, retries = 2L,
+                            referer = NULL, user_agent = NULL) {
+  dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
+  if (file.exists(dest) && file.size(dest) >= min_bytes) {
+    cat("  [SKIP] ", basename(dest), " (",
+        round(file.size(dest) / 1024^2, 1), " MB)\n", sep = "")
+    return(invisible(TRUE))
+  }
+  if (file.exists(dest)) file.remove(dest)
+  ua <- user_agent %||% "R-spatialGE"
+  for (i in seq_len(retries)) {
+    cat("  [DOWNLOAD try ", i, "] ", basename(dest), " ...\n", sep = "")
+    ok <- FALSE
+    if (nzchar(Sys.which("curl"))) {
+      extra <- paste0(
+        "-L -sS -C - ",
+        if (!is.null(referer)) sprintf("-e '%s' ", referer) else "",
+        sprintf("-A '%s' ", ua))
+      ok <- tryCatch({
+        system(sprintf("curl %s -o %s '%s'",
+                       extra, shQuote(dest), url)) == 0L
+      }, error = function(e) FALSE)
+    }
+    if (!ok) {
+      ok <- tryCatch({
+        utils::download.file(url, dest, mode = "wb", quiet = TRUE)
+        TRUE
+      }, error = function(e) FALSE, warning = function(w) FALSE)
+    }
+    if (ok && file.exists(dest) && file.size(dest) >= min_bytes) {
+      return(invisible(TRUE))
+    }
+  }
+  stop("Failed to download: ", url, " -> ", dest)
+}
+
+GEO_VISIUM_URL <- paste0(
+  "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE175nnn/",
+  "GSE175540/suppl/GSE175540_RAW.tar"
+)
+ZENODO_COSMX_URL <- paste0(
+  "https://zenodo.org/records/12730227/files/seurat_object.Rds?download=1"
+)
+SPRINGER_CLINICAL_URL <- paste0(
+  "https://static-content.springer.com/esm/",
+  "art%3A10.1186%2Fs13059-024-03435-z/MediaObjects/",
+  "13059_2024_3435_MOESM2_ESM.xlsx"
+)
+SPRINGER_REFERER <- paste0(
+  "https://genomebiology.biomedcentral.com/articles/10.1186/s13059-024-03435-z"
+)
+
+data_root <- file.path(tempdir(), "spatial_data")
+dir.create(data_root, recursive = TRUE, showWarnings = FALSE)
+
+visium_root <- if (nzchar(params$visium_root %||% "")) {
+  path.expand(params$visium_root)
+} else file.path(data_root, "Visium", "GSE175540")
+
+cosmx_root <- if (nzchar(params$cosmx_root %||% "")) {
+  path.expand(params$cosmx_root)
+} else file.path(data_root, "CosMx", "CosMx_ccRCC")
+
+out_root <- if (nzchar(params$out_root %||% "")) {
+  path.expand(params$out_root)
+} else file.path(tempdir(), "spatialGE_outputs")
+dir.create(out_root, recursive = TRUE, showWarnings = FALSE)
+
+run_visium <- isTRUE(params$run_visium)
+run_cosmx  <- isTRUE(params$run_cosmx)
+stopifnot(run_visium || run_cosmx)
+
+n_cores  <- max(1, parallel::detectCores() - 1)
+
+visium_cfg <- NULL
+if (run_visium) {
+  gse_root <- visium_root
+
+  visium_ready <- dir.exists(gse_root) &&
+    any(grepl("^ffpe|^frozen",
+              basename(list.dirs(gse_root, recursive = FALSE))))
+
+  if (!visium_ready) {
+    cat("\n=== Visium: auto-download from GEO ===\n")
+    dir.create(gse_root, recursive = TRUE, showWarnings = FALSE)
+    tarball <- file.path(gse_root, "GSE175540_RAW.tar")
+    ensure_download(GEO_VISIUM_URL, tarball, min_bytes = 900e6)
+
+    cat("  [EXTRACT] tar -xf ...\n")
+    system(sprintf("tar -xf %s -C %s",
+                   shQuote(tarball), shQuote(gse_root)))
+
+    cat("  [FIX] Decompress spatial .gz ...\n")
+    for (f_gz in list.files(gse_root,
+                            pattern = "\\.(csv|json|png)\\.gz$",
+                            full.names = TRUE)) {
+      system(sprintf("gunzip -kf %s", shQuote(f_gz)))
+    }
+
+    cat("  [FIX] Restructure into per-sample folders ...\n")
+    h5s <- list.files(gse_root, pattern = "_feature_bc_matrix\\.h5$",
+                      full.names = TRUE)
+    for (h5 in h5s) {
+      base_name <- sub("_(filtered|raw)_feature_bc_matrix\\.h5$", "",
+                       basename(h5))
+      sample    <- sub("^GSM\\d+_", "", base_name)
+      sdir      <- file.path(gse_root, sample)
+      spdir     <- file.path(sdir, "spatial")
+      dir.create(spdir, recursive = TRUE, showWarnings = FALSE)
+      new_h5 <- file.path(sdir, basename(h5))
+      if (!file.exists(new_h5)) file.rename(h5, new_h5)
+      for (std in c("tissue_positions_list.csv", "scalefactors_json.json",
+                    "tissue_hires_image.png", "tissue_lowres_image.png",
+                    "TLS_annotation.csv")) {
+        src <- file.path(gse_root, paste0(base_name, "_", std))
+        dst <- file.path(spdir, std)
+        if (file.exists(src) && !file.exists(dst)) file.rename(src, dst)
+      }
+    }
+
+    cat("  [FIX] Prefix collisions ...\n")
+    sd <- list.dirs(gse_root, recursive = FALSE, full.names = TRUE)
+    sn <- basename(sd)
+    colliders <- sn[vapply(sn, function(n)
+      any(sn != n & startsWith(sn, n)), logical(1))]
+    for (n in colliders) {
+      old    <- file.path(gse_root, n)
+      padded <- paste0(sub("_[^_]+$", "_", n),
+                       sprintf("%02d", as.integer(sub("^.*_", "", n))))
+      new    <- file.path(gse_root, padded)
+      if (!dir.exists(new)) file.rename(old, new)
+    }
+    visium_ready <- TRUE
+    cat("  [DONE] Visium ready at ", gse_root, "\n", sep = "")
+  }
+
+  if (!visium_ready)
+    stop("Visium root not ready after download: ", gse_root)
+
+  ds_root     <- gse_root
+  visium_mode <- "GSE175540"
+
+  out_dir_v <- file.path(out_root, "spatialGE_out", "GSE175540")
+  dir.create(out_dir_v, recursive = TRUE, showWarnings = FALSE)
+  cat("Platform  : visium (", visium_mode, ")\n", sep = "")
+  cat("  Input   : ", ds_root,    "\n", sep = "")
+  cat("  Out dir : ", out_dir_v, "\n", sep = "")
+  visium_cfg <- list(ds_root = ds_root, out_dir = out_dir_v,
+                     mode = visium_mode)
+} else {
+  cat("Platform  : visium (disabled)\n")
+}
+
+cosmx_cfg <- NULL
+if (run_cosmx) {
+  cosmx_fov <- params$cosmx_fov
+  step123   <- file.path(out_root, "cosmx_step1_2_3")
+  out_dir_c <- file.path(out_root, "spatialGE_out", "cosmx")
+  dir.create(step123, recursive = TRUE, showWarnings = FALSE)
+  dir.create(out_dir_c, recursive = TRUE, showWarnings = FALSE)
+  dir.create(cosmx_root, recursive = TRUE, showWarnings = FALSE)
+
+  seu_path  <- file.path(cosmx_root, "seurat_object.Rds")
+  clin_path <- file.path(cosmx_root, "13059_2024_3435_MOESM2_ESM.xlsx")
+
+  if (!file.exists(seu_path) || file.size(seu_path) < 500e6) {
+    cat("\n=== CosMx: auto-download seurat_object.Rds from Zenodo ===\n")
+    ensure_download(ZENODO_COSMX_URL, seu_path, min_bytes = 500e6)
+  }
+  if (!file.exists(clin_path) || file.size(clin_path) < 1000) {
+    cat("\n=== CosMx: auto-download clinical xlsx from Springer ===\n")
+    ensure_download(SPRINGER_CLINICAL_URL, clin_path, min_bytes = 1000,
+                    referer = SPRINGER_REFERER, user_agent = "Mozilla/5.0")
+  }
+
+  inputs <- c(
+    clinical_xlsx = clin_path,
+    seurat_rds    = seu_path
+  )
+  miss <- names(inputs)[!file.exists(inputs)]
+  if (length(miss)) {
+    stop("Missing CosMx inputs in ", cosmx_root, ":\n  ",
+         paste(miss, collapse = "\n  "),
+         "\nCheck network access, or set cosmx_root to a folder containing these files.")
+  }
+  cat("Platform  : cosmx (enabled)\n")
+  cat("  Input   : ", cosmx_root, "\n", sep = "")
+  cat("  Out dir : ", out_dir_c,  "\n", sep = "")
+  cosmx_cfg <- list(cosmx_root = cosmx_root, cosmx_fov = cosmx_fov,
+                    step123 = step123, out_dir = out_dir_c,
+                    inputs = inputs)
+} else {
+  cat("Platform  : cosmx (disabled)\n")
+}
+```
+
+```{r build-data, results="hide"}
+STs <- list()
+
+# ---------------- Visium ----------------
+if (run_visium) {
+  cat("\n==========================================================\n")
+  cat("Building Visium STlist (", visium_cfg$mode, ")\n", sep = "")
+  cat("==========================================================\n")
+
+  sample_dirs <- list.dirs(visium_cfg$ds_root, recursive = FALSE,
+                           full.names = TRUE)
+  sample_dirs <- sample_dirs[sapply(sample_dirs, function(d) {
+    length(list.files(d, pattern = "_filtered_feature_bc_matrix\\.h5$")) > 0
+  })]
+  if (length(sample_dirs) == 0)
+    stop("No Space-Ranger sample folders under ", visium_cfg$ds_root)
+
+  n_symlinks_removed <- 0L
+  for (d in sample_dirs) {
+    for (rel in c("filtered_feature_bc_matrix.h5",
+                  file.path("spatial", "tissue_positions_list.csv"),
+                  file.path("spatial", "scalefactors_json.json"),
+                  file.path("spatial", "tissue_hires_image.png"))) {
+      fp <- file.path(d, rel)
+      if (nzchar(Sys.readlink(fp))) {
+        unlink(fp, force = TRUE)
+        n_symlinks_removed <- n_symlinks_removed + 1L
+      }
+    }
+  }
+  if (n_symlinks_removed > 0)
+    cat("Removed ", n_symlinks_removed,
+        " stale canonical symlink(s) before loading.\n", sep = "")
+
+  sample_names <- basename(sample_dirs)
+  collide <- vapply(sample_names, function(n) {
+    any(sample_names != n & startsWith(sample_names, n))
+  }, logical(1))
+  if (any(collide)) {
+    stop("Prefix-colliding Visium sample names: ",
+         paste(sample_names[collide], collapse = ", "),
+         ". Rename these directories on disk to pad the trailing number ",
+         "(e.g. ffpe_c_2 -> ffpe_c_02) before re-running.")
+  }
+
+  cat("Samples: ", length(sample_dirs),
+      " → ", paste(head(sample_names, 6), collapse = ", "),
+      if (length(sample_names) > 6) ", …\n" else "\n", sep = "")
+
+  per_sample <- lapply(sample_dirs, function(d) {
+    nm <- basename(d)
+    cat("  building ", nm, " … ", sep = "")
+    st_i <- tryCatch(STlist(d, samples = nm, cores = 1),
+                     error = function(e) { cat("FAILED (", e$message, ")\n"); NULL })
+    if (is.null(st_i)) return(NULL)
+    st_i <- tryCatch(filter_data(st_i, spot_minreads = 500,
+                                 spot_mingenes = 300),
+                     error = function(e) st_i)
+    st_i <- tryCatch(transform_data(st_i, method = "log", cores = 1),
+                     error = function(e) st_i)
+    cat("ok (", nrow(st_i@spatial_meta[[nm]]), " spots)\n", sep = "")
+    st_i
+  })
+  names(per_sample) <- sample_names
+  per_sample <- per_sample[!vapply(per_sample, is.null, logical(1))]
+  if (length(per_sample) == 0)
+    stop("None of the Visium samples could be loaded.")
+
+  st_v <- methods::new("STlist")
+  st_v@counts       <- list()
+  st_v@tr_counts    <- list()
+  st_v@spatial_meta <- list()
+  st_v@sample_meta  <- tibble(sample = character(0))
+  for (nm in names(per_sample)) {
+    s <- per_sample[[nm]]
+    st_v@counts[[nm]]       <- s@counts[[nm]]
+    st_v@tr_counts[[nm]]    <- s@tr_counts[[nm]]
+    st_v@spatial_meta[[nm]] <- s@spatial_meta[[nm]]
+    st_v@sample_meta        <- rbind(st_v@sample_meta, s@sample_meta)
+  }
+
+  STs$visium <- list(st       = st_v,
+                     smp1     = names(st_v@spatial_meta)[1],
+                     out_dir  = visium_cfg$out_dir,
+                     label    = paste0("Visium (", length(names(st_v@spatial_meta)),
+                                       " samples, ", visium_cfg$mode, ")"),
+                     fov      = NA_character_,
+                     mode     = visium_cfg$mode)
+  cat("Visium STlist: ", length(st_v@spatial_meta),
+      " samples merged\n", sep = "")
+} else {
+  cat("Visium: skipped.\n")
+}
+
+# ---------------- CosMx ----------------
+if (run_cosmx) {
+  cat("\n==========================================================\n")
+  cat("Building CosMx STlist (multi-FOV)\n")
+  cat("==========================================================\n")
+  suppressPackageStartupMessages({
+    library(Seurat); library(tibble); library(stringr)
+  })
+
+  io_annot <- read_excel(cosmx_cfg$inputs["clinical_xlsx"],
+                         sheet = "Table S11", skip = 1) %>%
+    select(1:7) %>%
+    mutate(IO = if_else(
+      is.na(`Immunotherapy before Sample Collection`) |
+        `Immunotherapy before Sample Collection` == "None",
+      "IO-naive", "IO-exposed"))
+  write_csv(io_annot, file.path(cosmx_cfg$step123, "Table_S11_IO_annotated.csv"))
+
+  seu <- readRDS(cosmx_cfg$inputs["seurat_rds"])
+  seu$annotation    <- trimws(seu$annotation)
+  seu@meta.data$fov <- as.integer(as.character(seu@meta.data$fov))
+
+  fov_annotation <- seu@meta.data %>%
+    count(Slide_name, fov, annotation, name = "n_cells") %>%
+    group_by(Slide_name, fov) %>%
+    slice_max(n_cells, n = 1, with_ties = FALSE) %>%
+    ungroup() %>%
+    rename(FOV_majority = annotation)
+
+  io_map <- io_annot %>%
+    transmute(Slide_name = trimws(`Tissue Slide`),
+              fov = as.integer(as.character(FOV)),
+              IO  = trimws(IO)) %>%
+    distinct(Slide_name, fov, .keep_all = TRUE)
+
+  design <- fov_annotation %>%
+    left_join(io_map, by = c("Slide_name", "fov")) %>%
+    arrange(Slide_name, fov)
+  write_csv(design, file.path(cosmx_cfg$step123,
+                              "FOV_design_with_IO_status.csv"))
+
+  seu@meta.data <- seu@meta.data %>%
+    left_join(fov_annotation[, c("Slide_name", "fov", "FOV_majority")],
+              by = c("Slide_name", "fov")) %>%
+    left_join(io_map, by = c("Slide_name", "fov"))
+
+  requested <- if (!is.null(params$cosmx_fovs)) {
+    as.character(params$cosmx_fovs)
+  } else {
+    raw <- as.character(params$cosmx_fov)
+    if (identical(tolower(raw), "all")) {
+      design %>%
+        dplyr::filter(FOV_majority == "Tumor", !is.na(IO)) %>%
+        dplyr::transmute(fov_name = paste0(Slide_name, "_fov", fov)) %>%
+        dplyr::pull(fov_name)
+    } else {
+      trimws(strsplit(raw, ",")[[1]])
+    }
+  }
+  requested <- unique(requested[!is.na(requested) & nzchar(requested)])
+  if (length(requested) == 0)
+    stop("No CosMx FOVs requested; check params$cosmx_fov / params$cosmx_fovs.")
+
+  design_key <- paste0(design$Slide_name, "_fov", design$fov)
+  unknown    <- setdiff(requested, design_key)
+  if (length(unknown) > 0) {
+    warning("Requested FOVs not present in design (skipped): ",
+            paste(unknown, collapse = ", "))
+    requested <- intersect(requested, design_key)
+  }
+  if (length(requested) == 0)
+    stop("None of the requested FOVs exist in the FOV design sheet.")
+  cat("Requested FOVs: ", paste(requested, collapse = ", "), "\n", sep = "")
+
+  pick_count_assay <- function(obj) {
+    for (a in Assays(obj)) {
+      ok <- tryCatch({GetAssayData(obj, assay = a, layer = "counts"); TRUE},
+                     error = function(e) tryCatch({
+                       GetAssayData(obj, assay = a, slot = "counts"); TRUE},
+                       error = function(e) FALSE))
+      if (ok) return(a)
+    }
+    stop("No assay with a counts matrix in Seurat object.")
+  }
+  assay_use <- pick_count_assay(seu)
+  cat("Using counts assay: ", assay_use, "\n", sep = "")
+
+  counts_all <- tryCatch(
+    GetAssayData(seu, assay = assay_use, layer = "counts"),
+    error = function(e) GetAssayData(seu, assay = assay_use, slot = "counts"))
+  if (ncol(counts_all) == ncol(seu) &&
+      !identical(colnames(counts_all), colnames(seu)))
+    colnames(counts_all) <- colnames(seu)
+
+  imgs <- Images(seu)
+  coords_all <- NULL
+  if (length(imgs) > 0) {
+    for (im in imgs) {
+      ctr <- seu@images[[im]][["centroids"]]
+      if (is.null(ctr)) next
+      tc <- as.data.frame(Seurat::GetTissueCoordinates(ctr))
+      if (!all(c("x","y","cell") %in% colnames(tc))) next
+      add <- data.frame(id   = tc$cell,
+                        xpos = as.numeric(tc$x),
+                        ypos = as.numeric(tc$y),
+                        stringsAsFactors = FALSE)
+      coords_all <- if (is.null(coords_all)) add
+                    else rbind(coords_all,
+                               add[!add$id %in% coords_all$id, , drop = FALSE])
+    }
+  }
+  if (is.null(coords_all)) {
+    md2 <- seu@meta.data
+    cx <- intersect(c("x","xpos","pxl_col_in_fullres","CenterX"),
+                    colnames(md2))[1]
+    cy <- intersect(c("y","ypos","pxl_row_in_fullres","CenterY"),
+                    colnames(md2))[1]
+    if (is.na(cx) || is.na(cy))
+      stop("No coordinates in images or meta.data; cannot build CosMx STlist.")
+    coords_all <- data.frame(id   = rownames(md2),
+                             xpos = as.numeric(md2[[cx]]),
+                             ypos = as.numeric(md2[[cy]]),
+                             stringsAsFactors = FALSE)
+  }
+
+  ct_col <- intersect(
+    c("nb_clus", "lasso_final", "annotation", "celltype", "cell_type"),
+    colnames(seu@meta.data))[1]
+  if (is.na(ct_col))
+    stop("seu@meta.data has no usable cell-type column ",
+         "(tried: nb_clus / lasso_final / annotation / celltype / cell_type).")
+
+  id_col <- intersect(
+    c("id", "cell_ID", "cell_id", "cell", "barcode", "Barcode", "CellID"),
+    colnames(seu@meta.data))[1]
+  if (is.na(id_col)) {
+    cell_ids <- rownames(seu@meta.data)
+    message("No explicit cell-ID column; using rownames(seu@meta.data).")
+  } else {
+    cell_ids <- as.character(seu@meta.data[[id_col]])
+  }
+
+  celltypes <- seu@meta.data %>%
+    dplyr::transmute(
+      unique_fov  = paste0(Slide_name, "_", fov),
+      id          = trimws(cell_ids),
+      lasso_final = as.character(.data[[ct_col]])) %>%
+    dplyr::distinct(unique_fov, id, .keep_all = TRUE)
+
+  cat("Cell types from seu@meta.data$", ct_col,
+      " (cell ID from column '", id_col, "') — ",
+      nrow(celltypes), " cells\n", sep = "")
+  cat("Top cell types:\n")
+  print(head(sort(table(celltypes$lasso_final), decreasing = TRUE), 8))
+
+  build_one_fov <- function(fov_name) {
+    parts <- stringr::str_match(fov_name, "^(RCC\\d+)_fov(\\d+)$")
+    if (is.na(parts[1, 1])) {
+      warning("Skipping malformed FOV name: ", fov_name); return(NULL)
+    }
+    slide_name <- parts[1, 2]
+    fov_int    <- as.integer(parts[1, 3])
+
+    row_idx <- which(design$Slide_name == slide_name & design$fov == fov_int)
+    if (length(row_idx) == 0) {
+      warning("No design row for ", fov_name, "; skipped."); return(NULL)
+    }
+    tissue_lab <- design$FOV_majority[row_idx[1]]
+    io_label   <- design$IO[row_idx[1]]
+    if (is.na(io_label)) {
+      warning("No IO label for ", fov_name, "; skipped."); return(NULL)
+    }
+
+    cells_keep <- rownames(seu@meta.data)[
+      seu@meta.data$Slide_name    == slide_name &
+        seu@meta.data$fov         == fov_int    &
+        seu@meta.data$FOV_majority == tissue_lab &
+        seu@meta.data$IO          == io_label
+    ]
+    cells_keep <- intersect(cells_keep, colnames(seu))
+    if (length(cells_keep) < 10) {
+      warning(fov_name, ": fewer than 10 cells matched; skipped."); return(NULL)
+    }
+
+    counts_sub <- counts_all[, cells_keep, drop = FALSE]
+
+    if (all(cells_keep %in% coords_all$id)) {
+      target_ids <- cells_keep
+    } else {
+      overlap <- sapply(colnames(seu@meta.data), function(col) {
+        v <- seu@meta.data[[col]]
+        if (is.factor(v)) v <- as.character(v)
+        if (!is.character(v)) return(NA_real_)
+        mean(trimws(v) %in% coords_all$id, na.rm = TRUE)
+      })
+      overlap  <- sort(overlap[!is.na(overlap)], decreasing = TRUE)
+      best_col <- names(overlap)[1]
+      id_map        <- trimws(as.character(seu@meta.data[[best_col]]))
+      names(id_map) <- rownames(seu@meta.data)
+      target_ids    <- id_map[cells_keep]
+      n_mapped <- mean(target_ids %in% coords_all$id)
+      if (!is.finite(n_mapped) || n_mapped < 0.95) {
+        warning(fov_name, ": mapping via '", best_col, "' covers only ",
+                round(100 * n_mapped, 1), "% — skipped.")
+        return(NULL)
+      }
+    }
+    idx <- match(target_ids, coords_all$id)
+    if (any(is.na(idx))) {
+      warning(fov_name, ": ", sum(is.na(idx)),
+              " cells unmapped to coords; skipped."); return(NULL)
+    }
+    coords_sub <- data.frame(libname = cells_keep,
+                             xpos    = coords_all$xpos[idx],
+                             ypos    = coords_all$ypos[idx],
+                             stringsAsFactors = FALSE)
+    stopifnot(identical(coords_sub$libname, colnames(counts_sub)))
+
+    ct_key <- paste0(slide_name, "_", fov_int)
+    ct <- celltypes[celltypes$unique_fov == ct_key, c("id", "lasso_final")]
+    if (nrow(ct) == 0) {
+      warning(fov_name, ": no celltypes rows for unique_fov=", ct_key); return(NULL)
+    }
+    id_for_key <- trimws(as.character(seu@meta.data[cells_keep, id_col]))
+    ct_df <- data.frame(id        = trimws(ct$id),
+                        cell_type = ct$lasso_final,
+                        stringsAsFactors = FALSE)
+    cell_type_vec <- ct_df$cell_type[match(id_for_key, ct_df$id)]
+
+    n_typed <- sum(!is.na(cell_type_vec))
+    cat(sprintf("  %-12s | tissue=%-6s | IO=%-10s | %d cells | %d typed (%.0f%%)\n",
+                fov_name, tissue_lab, io_label,
+                length(cells_keep), n_typed,
+                100 * n_typed / length(cells_keep)))
+
+    sample_name <- fov_name
+    st <- methods::new("STlist")
+    st@counts       <- setNames(list(counts_sub), sample_name)
+    sm <- coords_sub
+    sm$id_key    <- id_for_key
+    sm$cell_type <- cell_type_vec
+    st@spatial_meta <- setNames(list(sm), sample_name)
+    st@sample_meta  <- tibble(sample = sample_name)
+    st <- transform_data(st, method = "sct")
+    st
+  }
+
+  st_per_fov <- lapply(requested, build_one_fov)
+  names(st_per_fov) <- requested
+  st_per_fov <- st_per_fov[!vapply(st_per_fov, is.null, logical(1))]
+  if (length(st_per_fov) == 0)
+    stop("No CosMx FOVs could be built. See warnings above.")
+
+  st_multi <- methods::new("STlist")
+  st_multi@counts       <- list()
+  st_multi@tr_counts    <- list()
+  st_multi@spatial_meta <- list()
+  st_multi@sample_meta  <- tibble(sample = character(0))
+  for (nm in names(st_per_fov)) {
+    s <- st_per_fov[[nm]]
+    st_multi@counts[[nm]]       <- s@counts[[nm]]
+    st_multi@tr_counts[[nm]]    <- s@tr_counts[[nm]]
+    st_multi@spatial_meta[[nm]] <- s@spatial_meta[[nm]]
+    st_multi@sample_meta <- rbind(st_multi@sample_meta, s@sample_meta)
+  }
+
+  cat("\nCosMx STlist built: ", length(names(st_multi@spatial_meta)),
+      " FOV(s): ", paste(names(st_multi@spatial_meta), collapse = ", "),
+      "\n", sep = "")
+  saveRDS(st_multi, file.path(cosmx_cfg$step123,
+                              "stlist_CosMx_multiFOV_SCT.rds"))
+
+  STs$cosmx <- list(st      = st_multi,
+                    smp1    = names(st_multi@spatial_meta)[1],
+                    out_dir = cosmx_cfg$out_dir,
+                    label   = paste0("CosMx (",
+                                     length(names(st_multi@spatial_meta)),
+                                     " FOVs)"),
+                    fov     = requested)
+  rm(seu, counts_all, coords_all, st_per_fov); invisible(gc())
+  cat("CosMx STlist ready.\n")
+} else {
+  cat("CosMx: skipped.\n")
+}
+cat("\nBuilt platforms: ", paste(names(STs), collapse = ", "), "\n", sep = "")
+```
+
+```{r representatives}
+plat_lab   <- c(visium = "Visium", cosmx = "CosMx")
+has_visium <- !is.null(STs$visium)
+has_cosmx  <- !is.null(STs$cosmx)
+
+rep_visium <- function(smp, mode, manual) {
+  manual <- as.character(unlist(manual))
+  if (identical(mode, "manual") && length(intersect(manual, smp)) > 0)
+    return(head(intersect(manual, smp), 2))
+  ffpe   <- grep("^ffpe",   smp, value = TRUE)
+  frozen <- grep("^frozen", smp, value = TRUE)
+  if (length(ffpe) >= 1 && length(frozen) >= 1) return(c(ffpe[1], frozen[1]))
+  head(smp, 2)
+}
+
+rep_cosmx <- function(st, io_map, mode, manual, min_cells = 10) {
+  smp    <- names(st@spatial_meta)
+  manual <- as.character(unlist(manual))
+  if (identical(mode, "manual") && length(intersect(manual, smp)) > 0)
+    return(head(intersect(manual, smp), 2))
+  info <- do.call(rbind, lapply(smp, function(s) {
+    ct <- as.character(st@spatial_meta[[s]]$cell_type)
+    p  <- stringr::str_match(s, "^(RCC\\d+)_fov(\\d+)$")
+    io <- io_map$IO[io_map$Slide_name == p[1, 2] & io_map$fov == as.integer(p[1, 3])]
+    data.frame(fov   = s,
+               IO    = if (length(io)) io[1] else NA_character_,
+               n_cd8 = sum(grepl(params$cd8_label, ct, ignore.case = TRUE)),
+               n_m2  = sum(grepl(params$m2_label,  ct, ignore.case = TRUE)),
+               stringsAsFactors = FALSE)
+  }))
+  ok   <- info$n_cd8 >= min_cells & info$n_m2 >= min_cells
+  best <- function(lbl) {
+    x <- info[ok & info$IO %in% lbl, , drop = FALSE]
+    if (nrow(x)) x$fov[which.max(x$n_cd8 + x$n_m2)] else NA_character_
+  }
+  pick <- c(best("IO-naive"), best("IO-exposed"))
+  pick <- pick[!is.na(pick)]
+  if (length(pick) < 2) pick <- unique(c(pick, smp))[seq_len(min(2, length(smp)))]
+  pick
+}
+
+FOVS_PLOT <- list()
+if (has_visium)
+  FOVS_PLOT$visium <- rep_visium(names(STs$visium$st@spatial_meta),
+                                 params$representative_mode,
+                                 params$representative_visium)
+if (has_cosmx)
+  FOVS_PLOT$cosmx <- rep_cosmx(STs$cosmx$st, io_map,
+                               params$representative_mode,
+                               params$representative_cosmx)
+
+io_of <- function(f) {
+  p <- stringr::str_match(f, "^(RCC\\d+)_fov(\\d+)$")
+  io_map$IO[match(paste(p[, 2], p[, 3]),
+                  paste(io_map$Slide_name, io_map$fov))]
+}
+
+overview <- do.call(rbind, lapply(names(STs), function(nm) {
+  n_units <- vapply(STs[[nm]]$st@spatial_meta, nrow, integer(1))
+  data.frame(Platform = plat_lab[[nm]],
+             Samples  = length(n_units),
+             Unit     = if (nm == "visium") "spots" else "cells",
+             Total    = format(sum(n_units), big.mark = ","),
+             Median   = format(round(median(n_units)), big.mark = ","),
+             stringsAsFactors = FALSE)
+}))
+names(overview)[4:5] <- c("Total units", "Median per sample")
+
+reps <- do.call(rbind, lapply(names(FOVS_PLOT), function(nm) {
+  s <- FOVS_PLOT[[nm]]
+  data.frame(Platform = plat_lab[[nm]],
+             Sample   = s,
+             Context  = if (nm == "visium")
+                          ifelse(grepl("^ffpe", s), "FFPE", "Fresh frozen")
+                        else io_of(s),
+             Units    = vapply(s, function(x) nrow(STs[[nm]]$st@spatial_meta[[x]]),
+                               integer(1)),
+             stringsAsFactors = FALSE)
+}))
+
+tex_esc <- function(x) gsub("_", "\\_", x, fixed = TRUE)
+unit_of <- c(visium = "section", cosmx = "FOV")
+ctx_of  <- function(nm, s) {
+  if (nm == "visium") return(ifelse(grepl("^ffpe", s), "FFPE", "fresh frozen"))
+  io <- io_of(s); ifelse(is.na(io), "IO status unknown", io)
+}
+samp_name <- function(nm, s) sprintf("%s (%s)", tex_esc(s), ctx_of(nm, s))
+samp_lab  <- function(nm, s) paste(unit_of[[nm]], samp_name(nm, s))
+cap_each  <- function(nm, fmt)
+  unname(vapply(FOVS_PLOT[[nm]], function(s) sprintf(fmt, samp_lab(nm, s)), ""))
+cap_pair  <- function(nm)
+  paste(vapply(FOVS_PLOT[[nm]], function(s) samp_name(nm, s), ""), collapse = " and ")
+
+natural_factor <- function(x) {
+  x   <- as.character(x)
+  u   <- unique(x[!is.na(x)])
+  num <- suppressWarnings(as.integer(gsub("[^0-9]", "", u)))
+  factor(x, levels = u[order(num, u)])
+}
+natural_niche_order <- function(p) {
+  strata_aes <- c("stratum", paste0("axis", 1:20))
+  rewrap <- function(m) {
+    for (a in intersect(names(m), strata_aes)) {
+      q <- rlang::as_quosure(m[[a]], env = globalenv())
+      env <- new.env(parent = rlang::quo_get_env(q))
+      env$natural_factor <- natural_factor
+      m[[a]] <- rlang::new_quosure(
+        rlang::call2("natural_factor", rlang::quo_get_expr(q)), env)
+    }
+    m
+  }
+  is_niche <- function(x) (is.character(x) || is.factor(x)) && length(x) &&
+    all(grepl("^C[0-9]+$", as.character(x[!is.na(x)])))
+  fix_data <- function(d) {
+    if (!is.data.frame(d)) return(d)
+    for (v in names(d)) if (is_niche(d[[v]])) d[[v]] <- natural_factor(d[[v]])
+    d
+  }
+  if (!is.null(p$mapping)) p$mapping <- rewrap(p$mapping)
+  p$data <- fix_data(p$data)
+  for (l in p$layers) {
+    if (!is.null(l$mapping)) l$mapping <- rewrap(l$mapping)
+    if (is.data.frame(l$data)) l$data <- fix_data(l$data)
+  }
+  p
+}
+
+show_plots <- function(p) {
+  if (inherits(p, "ggplot")) print(p) else for (q in p) print(q)
+  invisible(NULL)
+}
+```
+
+```{r data-overview}
+show_table(overview, caption = "Datasets analysed.", digits = 0)
+```
+
+```{r rep-table}
+show_table(reps, caption = "Representative samples used in the figures. All niche statistics are computed on every sample; only plots are restricted to these.", digits = 0)
+```
+
+# Running STniche
+
+STniche is run jointly on all samples of a platform, so niche labels (C1, C2, ...) are shared across
+samples and directly comparable. The ten gene sets below were chosen to cover the programmes that
+define lymphoid organisation (TLS, germinal centre, antigen presentation) and the inflammatory
+signalling that accompanies it (interferon, complement, NF-kB, cytokine pathways).
+
+```{r gene-set-table}
+gs_desc <- c(
+  TLS_core              = "TLS organisation and lymphocyte homing chemokines",
+  GC_Bcell              = "Germinal-centre B-cell programme",
+  Antigen_Presentation  = "MHC class II antigen presentation",
+  IFNG_RESPONSE         = "Interferon-gamma response (T-cell activity)",
+  COMPLEMENT            = "Complement cascade",
+  IFNA_RESPONSE         = "Type I interferon response",
+  TNFA_NFKB             = "TNF-alpha / NF-kB signalling",
+  IL2_STAT5_TGFB        = "IL-2/STAT5 and TGF-beta signalling",
+  IL6_JAK_STAT3         = "IL-6/JAK/STAT3 signalling",
+  INFLAMMATORY_RESPONSE = "General inflammatory response")
+gs_tab <- data.frame(
+  `Gene set` = names(params$stniche_gene_sets),
+  Genes      = vapply(params$stniche_gene_sets, length, integer(1)),
+  Readout    = unname(gs_desc[names(params$stniche_gene_sets)]),
+  check.names = FALSE, stringsAsFactors = FALSE)
+show_table(gs_tab, caption = "Gene sets used to define niches.", digits = 0)
+```
+
+Two neighbourhood sizes (`stniche_knns`) are run. The first (kNN = 22) is the primary analysis used in
+all figures; the second serves as a sensitivity check. Each run starts from the same input object, so the
+niche labels stored in the STlist always correspond to the Zi matrix used alongside them.
+
+```{r stniche-run, echo=TRUE, results="hide"}
+stniche_knns      <- as.integer(params$stniche_knns)
+stniche_ks        <- as.integer(params$stniche_ks)
+stniche_gene_sets <- lapply(params$stniche_gene_sets,
+                            function(v) as.character(unlist(v)))
+
+for (nm in names(STs)) {
+  st0  <- STs[[nm]]$st
+  runs <- lapply(stniche_knns, function(k)
+    spatialGE::STniche(x = st0, gene_sets = stniche_gene_sets,
+                       samples = names(st0@spatial_meta),
+                       ks = stniche_ks, knns = k, out_i = TRUE,
+                       cores = n_cores, verbose = 1L))
+  names(runs)   <- paste0("knn", stniche_knns)
+  STs[[nm]]$st   <- runs[[1]][[1]]
+  STs[[nm]]$fits <- lapply(runs, `[[`, 2)
+  STs[[nm]]$alt  <- lapply(runs, `[[`, 1)
+}
+Zi_of <- function(nm) STs[[nm]]$fits[[1]]
+```
+
+```{r niche-summary}
+niche_tab <- do.call(rbind, lapply(names(STs), function(nm) {
+  do.call(rbind, lapply(FOVS_PLOT[[nm]], function(s) {
+    tb <- table(STs[[nm]]$st@spatial_meta[[s]]$STniche_DTC)
+    data.frame(Platform = plat_lab[[nm]], Sample = s,
+               Niches = length(tb), Smallest = min(tb), Largest = max(tb),
+               stringsAsFactors = FALSE)
+  }))
+}))
+
+robust_tab <- NULL
+if (length(stniche_knns) >= 2 && requireNamespace("mclust", quietly = TRUE)) {
+  lab_vec <- function(st) unlist(lapply(names(st@spatial_meta), function(s) {
+    d <- st@spatial_meta[[s]]
+    setNames(as.character(d$STniche_DTC), paste0(s, "&&", d$libname))
+  }))
+  robust_tab <- do.call(rbind, lapply(names(STs), function(nm) {
+    a <- lab_vec(STs[[nm]]$alt[[1]]); b <- lab_vec(STs[[nm]]$alt[[2]])
+    common <- intersect(names(a), names(b))
+    common <- common[!is.na(a[common]) & !is.na(b[common])]
+    data.frame(Platform = plat_lab[[nm]],
+               `kNN (primary)` = stniche_knns[1],
+               `kNN (check)`   = stniche_knns[2],
+               `Adjusted Rand index` =
+                 mclust::adjustedRandIndex(a[common], b[common]),
+               check.names = FALSE, stringsAsFactors = FALSE)
+  }))
+}
+```
+
+```{r niche-summary-print}
+show_table(niche_tab,
+           caption = "Niches detected in the representative samples (units per niche).",
+           digits = 0)
+if (!is.null(robust_tab))
+  show_table(robust_tab,
+             caption = "Agreement between niche assignments obtained with two neighbourhood sizes (1 = identical, 0 = chance).",
+             digits = 2)
+```
+
+# Spatial organisation of niches
+
+A useful niche should form spatially coherent territories. The maps below colour each spot or cell by niche, and the second set of maps shows the underlying
+Local Moran's Z signal for the TLS gene set that the niches are partly built from.
+
+## Niche maps
+
+```{r niche-maps-visium, echo=TRUE, eval=has_visium, fig.width=11, fig.height=4.8, fig.cap=cap_each("visium", "STniche niches in %s.")}
+p <- plot_stniche(STs$visium$st, type = "clusters",
+                  samples = FOVS_PLOT$visium, overlay_samples = FALSE,
+                  ptsize = 0.9, title = "STniche niches - Visium")
+show_plots(p)
+```
+
+```{r niche-maps-cosmx, echo=TRUE, eval=has_cosmx, fig.width=11, fig.height=4.8, fig.cap=cap_each("cosmx", "STniche niches in %s.")}
+p <- plot_stniche(STs$cosmx$st, type = "clusters",
+                  samples = FOVS_PLOT$cosmx, overlay_samples = FALSE,
+                  ptsize = 0.9, reverse_y = TRUE,
+                  title = "STniche niches - CosMx")
+show_plots(p)
+```
+
+## Local Moran's Z of the TLS gene set
+
+High Zi marks locations where TLS-associated genes are *locally clustered*, which is the signal that
+lets STniche separate lymphoid aggregates from diffusely expressing tissue.
+
+```{r zi-maps, echo=TRUE, fig.width=11, fig.height=4.8, fig.cap=unlist(lapply(names(STs), function(nm) cap_each(nm, "Local Moran's Z of the TLS\\_core gene set in %s.")))}
+for (nm in names(STs)) {
+  Zi <- Zi_of(nm)
+  gs <- if ("TLS_core" %in% rownames(Zi)) "TLS_core" else rownames(Zi)[1]
+  p  <- plot_stniche(STs[[nm]]$st, type = "Zi", zi = Zi, gene_set = gs,
+                     samples = FOVS_PLOT[[nm]], overlay_samples = FALSE,
+                     ptsize = 0.8, reverse_y = identical(nm, "cosmx"),
+                     title = sprintf("%s - Local Moran's Z - %s", gs, plat_lab[[nm]]))
+  show_plots(p)
+}
+```
+
+# Biological identity of niches
+
+Spatial coherence alone does not say what a niche *is*. We characterise each niche by (i) the mean
+Zi of every gene set across all of its members, which gives its functional signature, and
+(ii) for CosMx, its cell-type composition.
+
+## Gene-set signatures
+
+Each tile is the mean Local Moran's Z of a gene set within a niche (red = programme spatially
+concentrated, blue = spatially depleted). Values are pooled over all samples of the platform, and the
+number of spots or cells in each niche is shown beneath its label.
+
+```{r niche-signature, fig.width=9, fig.height=4.2, fig.cap=unname(vapply(names(STs), function(nm) sprintf("Mean Local Moran's Z of each gene set within each %s niche. Values are pooled over all %d %ss; n is the number of %s in the niche.", plat_lab[[nm]], length(STs[[nm]]$st@spatial_meta), unit_of[[nm]], c(visium = "spots", cosmx = "cells")[[nm]]), ""))}
+for (nm in names(STs)) {
+  p <- plot_stniche(STs[[nm]]$st, type = "niche_signature", zi = Zi_of(nm),
+                    palette = c(low = "#2166AC", mid = "white", high = "#B2182B"),
+                    title = sprintf("%s: gene-set signature of each niche", plat_lab[[nm]]))
+  print(p)
+}
+```
+
+## Cell-type composition of CosMx niches
+
+Because CosMx resolves single cells, each niche can be annotated with the cell types that populate it.
+This links the molecular signatures above to concrete cellular neighbourhoods (for example, immune
+aggregates versus tumour or stromal regions).
+
+### Cluster × cell-type heatmap
+
+For each representative FOV, this heatmap shows the fraction of each niche's cells that belong to each
+cell type. Rows are niches, columns are cell types, and cell values are the proportion of cells in that
+niche assigned to that cell type. Bright tiles therefore mark the dominant cell types of a niche, so a
+niche with a single bright column is a "pure" niche and one with many moderate tiles is a "mixed" niche.
+
+```{r cluster-by-celltype, echo=TRUE, eval=has_cosmx, fig.width=9, fig.height=5, fig.cap=cap_each("cosmx", "Cell-type composition of STniche niches in %s.")}
+for (nm in intersect(names(STs), "cosmx")) {
+  for (s in FOVS_PLOT[[nm]]) {
+    ht <- plot_stniche(STs[[nm]]$st, samples = s,
+                       type = "celltype_heatmap",
+                       title = sprintf("Cell types within STniche clusters | %s", s))
+    if (inherits(ht, "Heatmap")) {
+      draw(ht, heatmap_legend_side = "right")
+    } else if (is.list(ht)) {
+      for (h in ht) if (inherits(h, "Heatmap")) draw(h, heatmap_legend_side = "right")
+    }
+  }
+}
+```
+
+### Cell-type composition per niche (stacked bars)
+
+The heatmap is compact, but it is hard to judge from it how much of a niche a cell type actually
+occupies. A stacked bar answers that directly: each bar is one niche, its segments sum to 100%, and the
+number of cells behind it is printed beneath the label. This serves three purposes. First, it shows how
+*pure* a niche is (a single dominant cell type) versus how *mixed* it is. Second, it puts all niches on a
+common scale so that they can be compared side by side. Third, drawing the representative samples in
+separate panels shows whether a niche with the same label has the same cellular make-up in different
+samples (here IO-naive versus IO-exposed), which pooled summaries would hide. The bars are compositional:
+they describe shares of a niche, not enrichment relative to the whole tissue, so they should be read
+together with the heatmap and with the niche size.
+
+```{r celltype-per-cluster, echo=TRUE, eval=has_cosmx, fig.width=9, fig.height=5, fig.cap=sprintf("Cell-type composition of each STniche niche in the representative FOVs %s. Bar segments sum to 100%% of the cells in the niche; n is the number of cells. Rare cell types are collapsed into Other.", cap_pair("cosmx"))}
+for (nm in intersect(names(STs), "cosmx")) {
+  p_list <- plot_stniche(STs[[nm]]$st, type = "celltype_composition",
+                         samples = FOVS_PLOT[[nm]],
+                         title = "Cell-type composition per cluster")
+  for (s in names(p_list)) {
+    cat("\n\n#### ", s, " (", io_of(s), ")\n\n", sep = "")
+    print(p_list[[s]])
+  }
+}
+```
+
+## Niche correspondence between samples
+
+The alluvial plots connect niches of the two representative samples through the gene-set programme
+they share most strongly. Link colour shows the shared programme, so flows of one colour indicate niches in different
+samples (FFPE versus frozen; IO-naive versus IO-exposed) that share the same dominant signal.
+
+```{r alluvial, echo=TRUE, fig.width=12, fig.height=6, fig.cap=unname(vapply(names(STs), function(nm) sprintf("Niche correspondence between the two representative %ss, %s.", unit_of[[nm]], cap_pair(nm)), ""))}
+for (nm in names(STs)) {
+  p <- plot_stniche(x = STs[[nm]]$st, type = "multi_sample_alluvial",
+                    samples = FOVS_PLOT[[nm]], zi = Zi_of(nm),
+                    title = sprintf("%s niche correspondence", plat_lab[[nm]]))
+  print(natural_niche_order(p))
+}
+```
+
+# Validation against TLS pathology (Visium)
+
+GSE175540 provides a pathologist label for every spot (`TLS`, `T_agg` for T-cell aggregates, or no
+structure). These labels were **not** used by STniche, so they provide an independent test of whether
+the niches capture real lymphoid organisation.
+
+```{r tls-validation, eval=has_visium, fig.width=11, fig.height=4.2, fig.cap=c(sprintf("Pathologist annotation of TLS and T-cell aggregates (T\\_agg) in the Visium sections %s.", cap_pair("visium")), sprintf("STniche niches in the same sections (%s).", cap_pair("visium")))}
+st_v <- STs$visium$st
+
+annot <- lapply(FOVS_PLOT$visium, function(s) {
+  fp <- list.files(file.path(visium_cfg$ds_root, s, "spatial"),
+                   pattern = "TLS_annotation\\.csv$", full.names = TRUE)[1]
+  if (is.na(fp) || !file.exists(fp)) return(NULL)
+  raw <- read.csv(fp, stringsAsFactors = FALSE)
+  bc  <- intersect(c("Barcode", "barcode", "libname", "spot", "spot_id"),
+                   colnames(raw))[1]
+  lb  <- intersect(c("TLS_2_cat", "TLS", "TLS_CAT", "tls", "pathology"),
+                   colnames(raw))[1]
+  if (is.na(bc) || is.na(lb)) return(NULL)
+  data.frame(libname = trimws(as.character(raw[[bc]])),
+             TLS     = trimws(as.character(raw[[lb]])),
+             stringsAsFactors = FALSE) %>%
+    mutate(TLS = ifelse(is.na(TLS) | TLS == "", "NO_TLS", TLS))
+})
+names(annot) <- FOVS_PLOT$visium
+
+dropped <- names(annot)[vapply(annot, is.null, logical(1))]
+if (length(dropped))
+  message("No usable TLS_annotation.csv for: ", paste(dropped, collapse = ", "),
+          " — these samples are omitted from the TLS validation.")
+annot <- annot[!vapply(annot, is.null, logical(1))]
+if (length(annot) == 0)
+  stop("No representative Visium sample has a usable TLS annotation file ",
+       "(looked under: ", file.path(visium_cfg$ds_root, FOVS_PLOT$visium, "spatial"),
+       ").")
+
+joined <- do.call(rbind, lapply(names(annot), function(s) {
+  st_v@spatial_meta[[s]] %>%
+    transmute(libname = trimws(as.character(libname)), xpos, ypos,
+              Niche = as.character(STniche_DTC)) %>%
+    left_join(annot[[s]], by = "libname") %>%
+    mutate(TLS = ifelse(is.na(TLS) | TLS == "", "NO_TLS", TLS),
+           sample = s)
+}))
+joined$sample <- factor(joined$sample, levels = names(annot))
+
+pal_tls <- c(NO_TLS = "grey85", T_agg = "#1F77B4", TLS = "#00C853")
+extra   <- setdiff(unique(joined$TLS), names(pal_tls))
+if (length(extra))
+  pal_tls <- c(pal_tls, setNames(grDevices::hcl.colors(length(extra), "Dark 3"), extra))
+lev     <- sort_clusters(joined$Niche)
+pal_nic <- setNames(grDevices::hcl.colors(length(lev), "Set 3"), lev)
+
+spot_map <- function(col, pal, legend_title) {
+  ggplot(joined, aes(xpos, ypos, colour = .data[[col]])) +
+    geom_point(size = 0.6) +
+    scale_colour_manual(values = pal, breaks = names(pal), name = legend_title,
+                        na.value = "grey90") +
+    coord_equal() + scale_y_reverse() +
+    facet_grid(. ~ sample, scales = "free", space = "free") +
+    theme_void(base_size = 11) +
+    theme(strip.text = element_text(face = "bold"))
+}
+print(spot_map("TLS",   pal_tls, "Pathology"))
+print(spot_map("Niche", pal_nic, "Niche"))
+```
+
+The table lists, for every niche, how many spots carry each pathology label and the fraction annotated
+as TLS or T-cell aggregate. A niche with a high fraction is a candidate lymphoid-structure niche.
+
+```{r tls-crosstab, eval=has_visium}
+all_lab  <- sort(unique(joined$TLS))
+lab_cols <- setdiff(all_lab, "NO_TLS")
+
+xt <- do.call(rbind, lapply(names(annot), function(s) {
+  j   <- joined[joined$sample == s & !is.na(joined$Niche), ]
+  tb  <- as.data.frame.matrix(table(
+           factor(j$Niche, levels = sort_clusters(j$Niche)),
+           factor(j$TLS,   levels = all_lab)))
+  pct <- if (length(lab_cols))
+           100 * rowSums(tb[, lab_cols, drop = FALSE]) / rowSums(tb) else 0
+  data.frame(Sample = s, Niche = rownames(tb), tb,
+             `% TLS or T_agg` = pct,
+             check.names = FALSE, row.names = NULL, stringsAsFactors = FALSE)
+}))
+xt <- xt[order(xt$Sample, -xt$`% TLS or T_agg`), ]
+show_table(xt, caption = "Pathology labels per STniche niche (spot counts), ordered by TLS enrichment.", digits = 1)
+```
+
+# Immune context and immunotherapy exposure (CosMx)
+
+The CosMx tumours include patients with and without prior immunotherapy (IO). The final analyses ask
+whether cytotoxic CD8 T cells and M2-like macrophages, two cell types with opposing roles in anti-tumour
+immunity, differ by IO status, whether they are spatially associated, and whether the niches in which CD8 T
+cells reside differ in their immune signalling.
+
+## Abundance of CD8 T cells and M2 macrophages
+
+Cell-type fractions are computed from the published annotation for every FOV with a known IO status.
+This establishes the baseline immune composition before examining spatial relationships.
+
+```{r abundance, eval=has_cosmx, fig.width=8, fig.height=3.8, fig.cap="CD8 T-cell and M2-macrophage fractions per FOV by IO status (Wilcoxon rank-sum test)."}
+fov_tbl <- celltypes %>%
+  mutate(Slide_name = sub("_(\\d+)$", "", unique_fov),
+         fov        = as.integer(sub("^.*_(\\d+)$", "\\1", unique_fov))) %>%
+  group_by(unique_fov, Slide_name, fov) %>%
+  summarise(n_cells = n(),
+            CD8 = 100 * mean(grepl(params$cd8_label, lasso_final, ignore.case = TRUE)),
+            M2  = 100 * mean(grepl(params$m2_label,  lasso_final, ignore.case = TRUE)),
+            .groups = "drop") %>%
+  left_join(io_map, by = c("Slide_name", "fov")) %>%
+  filter(n_cells >= 10, IO %in% c("IO-naive", "IO-exposed")) %>%
+  mutate(IO = factor(IO, levels = c("IO-naive", "IO-exposed")))
+
+metric_lab <- c(CD8 = "CD8 T cells (% of cells)", M2 = "M2 macrophages (% of cells)")
+fmt <- function(x) sprintf("%.2f (%.2f-%.2f)", median(x),
+                           unname(quantile(x, .25)), unname(quantile(x, .75)))
+
+ab_stats <- do.call(rbind, lapply(names(metric_lab), function(m) {
+  a <- fov_tbl[[m]][fov_tbl$IO == "IO-naive"]
+  b <- fov_tbl[[m]][fov_tbl$IO == "IO-exposed"]
+  data.frame(Metric = metric_lab[[m]],
+             `IO-naive`   = fmt(a),
+             `IO-exposed` = fmt(b),
+             `n (naive / exposed)` = sprintf("%d / %d", length(a), length(b)),
+             p = suppressWarnings(wilcox.test(a, b)$p.value),
+             check.names = FALSE, stringsAsFactors = FALSE)
+}))
+
+long <- fov_tbl %>%
+  select(unique_fov, IO, CD8, M2) %>%
+  pivot_longer(c(CD8, M2), names_to = "Metric", values_to = "pct") %>%
+  mutate(Metric = factor(metric_lab[Metric], levels = metric_lab))
+ann <- data.frame(Metric = factor(ab_stats$Metric, levels = metric_lab),
+                  label  = paste("Wilcoxon p =", signif(ab_stats$p, 2)))
+
+ggplot(long, aes(IO, pct, fill = IO)) +
+  geom_boxplot(width = 0.5, outlier.shape = NA, colour = "grey20") +
+  geom_jitter(width = 0.1, size = 1.3, alpha = 0.7) +
+  geom_text(data = ann, aes(x = 1.5, y = Inf, label = label),
+            vjust = 1.5, size = 3.2, inherit.aes = FALSE) +
+  scale_fill_manual(values = c("IO-naive" = "grey75", "IO-exposed" = "#E8908A"),
+                    guide = "none") +
+  facet_wrap(~Metric, scales = "free_y") +
+  labs(x = NULL, y = NULL) +
+  theme_classic(base_size = 11) +
+  theme(strip.text = element_text(face = "bold"),
+        strip.background = element_blank())
+```
+
+```{r abundance-table, eval=has_cosmx, results="asis"}
+print(show_table(ab_stats, caption = "Median (IQR) cell-type fraction per FOV.", digits = 3))
+sp <- suppressWarnings(cor.test(fov_tbl$CD8, fov_tbl$M2, method = "spearman"))
+cat(sprintf("\nAcross FOVs, CD8 and M2 fractions are correlated (Spearman rho = %.2f, p = %.2g), suggesting that both populations might have a tracking tendency for the overall immune infiltration.\n",
+            unname(sp$estimate), sp$p.value))
+```
+
+## Spatial relationship between CD8 T cells and M2 macrophages
+
+Abundance does not reveal whether the two cell types share tissue space. The maps show their positions in
+the representative FOVs, and the cross-type Ripley's K function quantifies co-localisation across all FOVs:
+it compares the number of M2 cells found within radius *r* of a CD8 cell with the number expected under
+spatial randomness (values above zero indicate co-localisation).
+
+```{r cd8-m2-map, eval=has_cosmx, fig.width=11, fig.height=4.8, fig.cap=sprintf("Spatial distribution of CD8 T cells and M2 macrophages in the representative FOVs %s.", cap_pair("cosmx"))}
+map_plot <- function(s) {
+  plot_stniche(STs$cosmx$st, type = "celltype_spatial", samples = s,
+               highlight_types = c(CD8 = params$cd8_label, M2 = params$m2_label),
+               highlight_cols  = c(CD8 = "#E66101", M2 = "#7B3294"),
+               ptsize = 1.1, reverse_y = TRUE, legend_name = "Cell class",
+               title = sprintf("%s (%s)", s, io_of(s)))[[s]]
+}
+map_list <- lapply(FOVS_PLOT$cosmx, map_plot)
+if (requireNamespace("patchwork", quietly = TRUE)) {
+  patchwork::wrap_plots(map_list, nrow = 1, guides = "collect")
+} else {
+  gridExtra::grid.arrange(grobs = map_list, nrow = 1)
+}
+```
+
+```{r ripley, eval=has_cosmx, results="asis", fig.width=7, fig.height=4.2, fig.cap="CD8 to M2 cross-type K function (observed minus expected under randomness). Thin lines: individual FOVs; thick lines: group means. Group means (blue = IO-naive, red = IO-exposed) run above the dashed null line in both groups, indicating CD8-M2 co-localisation irrespective of IO status; the two group means overlap and the individual FOV curves span a wide range, consistent with the absence of an IO-group difference in excess K at r = 200 (Wilcoxon p = 0.68). The gradual rise with radius reflects the cumulative nature of K and points to diffuse, region-level co-localisation of the two populations (cf. Figure 19 and the positive CD8-M2 correlation reported under Table 7) rather than tight cell-contact-scale clustering."}
+if (requireNamespace("spatstat.geom", quietly = TRUE) &&
+    requireNamespace("spatstat.explore", quietly = TRUE)) {
+  st_c  <- STs$cosmx$st
+  radii <- seq(0, 200, by = 20)
+
+  rows <- list()
+  for (s in names(st_c@spatial_meta)) {
+    d <- st_c@spatial_meta[[s]]
+    d$cell_type <- as.character(d$cell_type)
+    cd8 <- d[grepl(params$cd8_label, d$cell_type, ignore.case = TRUE), ]
+    m2  <- d[grepl(params$m2_label,  d$cell_type, ignore.case = TRUE), ]
+    if (nrow(cd8) < 10 || nrow(m2) < 10) next
+    both <- rbind(data.frame(x = cd8$xpos, y = cd8$ypos, type = "CD8"),
+                  data.frame(x = m2$xpos,  y = m2$ypos,  type = "M2"))
+    pp   <- spatstat.geom::ppp(both$x, both$y,
+                               window = spatstat.geom::owin(range(d$xpos), range(d$ypos)),
+                               marks  = factor(both$type, levels = c("CD8", "M2")))
+    k_cross <- tryCatch(
+      spatstat.explore::Kcross(pp, i = "CD8", j = "M2", r = radii,
+                               correction = "border"),
+      error = function(e) {
+        message("Kcross failed for ", s, ": ", conditionMessage(e)); NULL })
+    if (is.null(k_cross)) next
+    rows[[s]] <- data.frame(sample = s, IO = io_of(s), r = radii,
+                            delta = as.numeric(k_cross$border) - as.numeric(k_cross$theo),
+                            stringsAsFactors = FALSE)
+  }
+  k_df <- do.call(rbind, rows)
+
+  if (!is.null(k_df) && nrow(k_df) > 0) {
+    k_df$IO <- factor(k_df$IO, levels = c("IO-naive", "IO-exposed"))
+    print(
+      ggplot(k_df, aes(r, delta, colour = IO)) +
+        geom_line(aes(group = sample), alpha = 0.35, linewidth = 0.5) +
+        stat_summary(aes(group = IO), fun = function(x) mean(x, na.rm = TRUE),
+                     geom = "line", linewidth = 1.6) +
+        geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
+        scale_colour_manual(values = c("IO-naive" = "#2C7FB8", "IO-exposed" = "#D7301F"),
+                            name = NULL) +
+        labs(x = "Radius (coordinate units)", y = "K observed - K expected",
+             subtitle = sprintf("%d FOVs with at least 10 CD8 and 10 M2 cells",
+                                length(unique(k_df$sample)))) +
+        theme_minimal(base_size = 11))
+
+    at_max <- k_df[k_df$r == max(radii), ]
+    if (all(table(at_max$IO)[c("IO-naive", "IO-exposed")] > 0)) {
+      wt <- suppressWarnings(wilcox.test(delta ~ IO, data = at_max))
+      cat(sprintf("\nAt r = %d, median excess K is %.0f (IO-naive, n = %d) versus %.0f (IO-exposed, n = %d); Wilcoxon p = %.2g.\n",
+                  max(radii),
+                  median(at_max$delta[at_max$IO == "IO-naive"]),
+                  sum(at_max$IO == "IO-naive"),
+                  median(at_max$delta[at_max$IO == "IO-exposed"]),
+                  sum(at_max$IO == "IO-exposed"), wt$p.value))
+    }
+  }
+}
+```
+
+
+## Immune signalling in CD8 T-cell niches
+
+Finally, we ask whether the *microenvironment around CD8 T cells* differs by IO status. For each FOV we
+average the Local Moran's Z of every gene set over its CD8 T cells (FOVs with at least five CD8 cells).
+Testing each gene set between IO groups highlights programmes (for example interferon signalling) that differ between groups.
+
+```{r cd8-pathways, eval=has_cosmx, fig.width=10, fig.height=4.6, fig.cap="Mean Local Moran's Z of each gene set in CD8 T cells, per FOV, grouped by IO status."}
+st_c <- STs$cosmx$st
+Zi   <- Zi_of("cosmx")
+
+cd8_cols <- lapply(names(st_c@spatial_meta), function(s) {
+  d   <- st_c@spatial_meta[[s]]
+  ct  <- as.character(d$cell_type)
+  key <- intersect(paste0(s, "&&", d$libname[grepl(params$cd8_label, ct, ignore.case = TRUE)]),
+                   colnames(Zi))
+  if (length(key) < 5) return(NULL)
+  setNames(list(rowMeans(Zi[, key, drop = FALSE], na.rm = TRUE)), s)
+})
+cd8_cols <- unlist(cd8_cols, recursive = FALSE)
+
+if (length(cd8_cols) >= 4) {
+  m  <- do.call(cbind, cd8_cols)
+  io <- io_of(colnames(m))
+  keep <- !is.na(io) & io %in% c("IO-naive", "IO-exposed")
+  m  <- m[, keep, drop = FALSE]
+  io <- factor(io[keep], levels = c("IO-naive", "IO-exposed"))
+  o  <- order(io, colnames(m))
+  m  <- m[, o, drop = FALSE]; io <- io[o]
+
+  lim <- max(abs(m), na.rm = TRUE)
+  ha  <- HeatmapAnnotation(
+    IO = io,
+    col = list(IO = c("IO-naive" = "#2C7FB8", "IO-exposed" = "#D7301F")),
+    annotation_name_side = "left")
+  draw(Heatmap(m, name = "Mean Zi",
+               col = colorRamp2(c(-lim, 0, lim), c("#2166AC", "white", "#B2182B")),
+               top_annotation = ha, column_split = io, column_gap = unit(2, "mm"),
+               cluster_rows = FALSE, cluster_columns = FALSE,
+               show_column_names = FALSE, row_names_side = "left",
+               row_names_gp = gpar(fontsize = 9)),
+       heatmap_legend_side = "right", annotation_legend_side = "right")
+
+  if (all(table(io) >= 2)) {
+    path_tab <- do.call(rbind, lapply(rownames(m), function(g) {
+      a <- m[g, io == "IO-naive"]; b <- m[g, io == "IO-exposed"]
+      data.frame(`Gene set` = g,
+                 `Mean Zi, naive`   = mean(a, na.rm = TRUE),
+                 `Mean Zi, exposed` = mean(b, na.rm = TRUE),
+                 p = tryCatch(suppressWarnings(wilcox.test(a, b)$p.value),
+                              error = function(e) NA_real_),
+                 check.names = FALSE, stringsAsFactors = FALSE)
+    }))
+    path_tab$FDR <- p.adjust(path_tab$p, method = "BH")
+    path_tab <- path_tab[order(path_tab$p), ]
+  }
+}
+```
+
+```{r cd8-pathway-table, eval=has_cosmx}
+if (exists("path_tab"))
+  show_table(path_tab,
+             caption = sprintf("IO-naive versus IO-exposed CD8 T-cell niches (%d naive and %d exposed FOVs; Wilcoxon test, Benjamini-Hochberg FDR).",
+                               sum(io == "IO-naive"), sum(io == "IO-exposed")),
+             digits = 3)
+```
+
+# Session information
+
+```{r session, echo=TRUE}
+sessionInfo()
+```

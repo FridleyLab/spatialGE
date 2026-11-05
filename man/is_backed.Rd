@@ -13,9 +13,5 @@ is_backed(x = NULL)
 logical
 }
 \description{
-Reports whether an STlist's count matrices are held in on-disk
-parquet files rather than in memory.
-}
-\seealso{
-\code{\link{STlist_to_disk}}
+is_backed: Is an STlist's expression data stored on disk?
 }

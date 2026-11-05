@@ -1,90 +1,87 @@
 Package: spatialGE
-Title: Visualization and Analysis of Spatial Heterogeneity in Spatially-Resolved Gene Expression
+Title: Visualization and Analysis of Spatial Heterogeneity in
+    Spatially-Resolved Gene Expression
 Version: 2.0.0
-Authors@R: c(
-    person(given = "Oscar",
-           family = "Ospina",
-           role = c("aut", "cre"),
-           email = "oscar.ospina@jhmi.edu",
-           comment = c(ORCID = "0000-0001-5986-4207")),
-    person(given = "Alex",
-           family = "Soupir",
-           role = c("aut"),
-           email = "Alex.Soupir@moffitt.org",
-           comment = c(ORCID = "0000-0003-1251-9179")),           
-    person(given = "Brooke",
-           family = "Fridley",
-           role = c("aut"),
-           email = "Brooke.Fridley@Moffitt.org",
-           comment = c(ORCID = "0000-0001-7739-7956")),
-    person("Satija Lab", 
-    		role = "cph",
-    		comment="Copyright holder of code fragments from Seurat function FindVariableFeatures")
-           )
-Description: Visualization and analysis of spatially resolved transcriptomics data. The 'spatialGE'
-	R package provides methods for visualizing and analyzing spatially resolved transcriptomics data, 
-	such as 10X Visium, CosMx, or csv/tsv gene expression matrices. It includes tools for spatial 
-	interpolation, autocorrelation analysis, tissue domain detection, gene set enrichment, and 
-	differential expression analysis using spatial mixed models.
+Authors@R: c( person(given = "Oscar", family = "Ospina", role = c("aut",
+    "cre"), email = "oscar.ospina@jhmi.edu", comment = c(ORCID =
+    "0000-0001-5986-4207")), person(given = "Alex", family = "Soupir", role =
+    c("aut"), email = "Alex.Soupir@moffitt.org", comment = c(ORCID =
+    "0000-0003-1251-9179")), person(given = "Brooke", family = "Fridley", role
+    = c("aut"), email = "Brooke.Fridley@Moffitt.org", comment = c(ORCID =
+    "0000-0001-7739-7956")), person("Satija Lab", role = "cph",
+    comment="Copyright holder of code fragments from Seurat function
+    FindVariableFeatures") )
+Description: Visualization and analysis of spatially resolved transcriptomics
+    data. The 'spatialGE' R package provides methods for visualizing and
+    analyzing spatially resolved transcriptomics data, such as 10X Visium,
+    CosMx, or csv/tsv gene expression matrices. It includes tools for spatial
+    interpolation, autocorrelation analysis, tissue domain detection, gene set
+    enrichment, and differential expression analysis using spatial mixed
+    models.
 License: MIT + file LICENSE
 Copyright: inst/COPYRIGHT
+URL: https://github.com/FridleyLab/spatialGE,
+    https://fridleylab.github.io/spatialGE/
+BugReports: https://github.com/FridleyLab/spatialGE/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
-Imports:
-	arrow,
-	BiocParallel,
-	concaveman,
-	ComplexHeatmap,
-	data.table,
-	DelayedArray,
-	DelayedMatrixStats,
-	dynamicTreeCut,
-	dplyr (>= 1.1.0),
-	EBImage,
-	ggforce,
-	ggplot2,
-	ggpolypath,
-	ggrepel,
-	gstat,
-	GSVA,
-	hdf5r,
-	jpeg,
-	jsonlite,
-	khroma (>= 1.6.0),
-	magrittr,
-	Matrix,
-	MASS,
-	methods,
-	parallel,
-	png,
-	RColorBrewer,
-	Rcpp (>= 1.0.7),
-	readr,
-	readxl,
-	R.utils,
-	rlang,
-	scales,
-	sctransform,
-	sfsmisc,
-	sf,
-	sp,
-	spaMM,
-	spdep,
-	stats,
-	stringr,
-	tibble,
-	tidyr,
-	utils,
-	uwot,
-	wordspace
+Imports: 
+    arrow,
+    BiocParallel,
+    ComplexHeatmap,
+    concaveman,
+    data.table,
+    DelayedArray,
+    DelayedMatrixStats,
+    dplyr (>= 1.1.0),
+    dynamicTreeCut,
+    EBImage,
+    ggforce,
+    ggplot2,
+    ggpolypath,
+    ggrepel,
+    gstat,
+    GSVA,
+    hdf5r,
+    jpeg,
+    jsonlite,
+    khroma (>= 1.6.0),
+    magrittr,
+    MASS,
+    Matrix,
+    mclust,
+    methods,
+    parallel,
+    png,
+    RColorBrewer,
+    Rcpp (>= 1.0.7),
+    readr,
+    readxl,
+    rlang,
+    scales,
+    sctransform,
+    sf,
+    sfsmisc,
+    sp,
+    spaMM,
+    spdep,
+    stats,
+    stringr,
+    tibble,
+    tidyr,
+    utils,
+    uwot,
+    wordspace,
+    FNN,
+    circlize,
+    ggalluvial
 LinkingTo: 
-	Rcpp, 
-	RcppEigen,
-	RcppProgress
-Suggests:
-	curl,
+    Rcpp,
+    RcppEigen,
+    RcppProgress
+Suggests: 
+    curl,
     geoR,
     ggpubr,
     httr,
@@ -95,14 +92,16 @@ Suggests:
     progress,
     rmarkdown,
     rpart,
+    rhdf5,
     scSpatialSIM,
-    spatstat,
     SeuratObject,
-    tidyverse,
+    spatstat,
     testthat (>= 3.0.0),
+    tidyverse,
     waldo,
     withr,
-    writexl
-VignetteBuilder:
-	knitr
+    writexl,
+    R.utils
+VignetteBuilder: knitr
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.1
