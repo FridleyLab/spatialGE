@@ -62,16 +62,23 @@ The complete data set can be downloaded from the links below. It is also likely 
 -   [Lung 5-1](https://nanostring.com/resources/smi-ffpe-dataset-lung5-rep1-data/)
 -   [Lung 6](https://nanostring.com/resources/smi-ffpe-dataset-lung6-data/)
 
-The data from the 6 FOVs used in this tutorial is available at the [spatialGE_Data GitHub repository](https://github.com/FridleyLab/spatialGE_Data). Data will be downloaded and deposited in a temporary directory. However, the download path can be changed within the following code block:
+The data from the 6 FOVs used in this tutorial is available at the [spatialGE_Data GitHub repository](https://github.com/FridleyLab/spatialGE_Data). Data will be downloaded and deposited in a temporary directory. However, the download path can be changed within the following code block. If the download fails (e.g., no network or GitHub unreachable), a message is printed and all data-dependent chunks below are skipped rather than aborting the build:
 
-```{r data_download}
-nsclc_tmp = tempdir()
-unlink(nsclc_tmp, recursive=TRUE)
-dir.create(nsclc_tmp)
-download.file('https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/nanostring_nsclc.zip?download=', 
-              destfile=paste0(nsclc_tmp, '/', 'nanostring_nsclc.zip'), mode='wb')
-zip_tmp = list.files(nsclc_tmp, pattern='nanostring_nsclc.zip$', full.names=TRUE)
-unzip(zipfile=zip_tmp, exdir=nsclc_tmp)
+```{r data_download, error=TRUE}
+data_ready <- TRUE
+tryCatch({
+  nsclc_tmp = tempdir()
+  unlink(nsclc_tmp, recursive=TRUE)
+  dir.create(nsclc_tmp)
+  download.file('https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/nanostring_nsclc.zip?download=', 
+                destfile=paste0(nsclc_tmp, '/', 'nanostring_nsclc.zip'), mode='wb')
+  zip_tmp = list.files(nsclc_tmp, pattern='nanostring_nsclc.zip$', full.names=TRUE)
+  unzip(zipfile=zip_tmp, exdir=nsclc_tmp)
+}, error = function(e) {
+  data_ready <<- FALSE
+  message("Data download failed; data-dependent chunks will be skipped: ",
+          conditionMessage(e))
+})
 ```
 
 Data for each tissue slice is stored in separate folders. The structure of the files is shown below:
@@ -86,7 +93,7 @@ The key files are shown enclosed in orange (Lung 5-1) and green (Lung 6) boxes. 
 
 From the temporary directory, the file paths to be passed to the `STlist` function are:
 
-```{r data_fpaths1}
+```{r data_fpaths1, eval=data_ready}
 # Find expression and coordinates files within the temporary folder
 exprmats <- c(
   paste0(nsclc_tmp, '/nanostring_nsclc/Lung5_Rep1-Flat_files_and_images/Lung5_Rep1_exprMat_file_SUBSET.csv'),
@@ -100,7 +107,7 @@ metas <- c(
 
 Now, that the data is ready, load the `spatialGE` package:
 
-```{r load_spatialGE, message=F}
+```{r load_spatialGE, message=F, eval=data_ready}
 library('spatialGE')
 ```
 
@@ -110,7 +117,7 @@ The starting point of a `spatialGE` analysis is the creation of an ***STlist*** 
 
 To load the files into an STlist, please use these commands:
 
-```{r create_stlist, warning=F}
+```{r create_stlist, warning=F, eval=data_ready}
 lung <- STlist(rnacounts=exprmats, 
                spotcoords=metas, 
                samples=c('Lung5_Rep1', 'Lung6'), cores=2)
@@ -118,21 +125,21 @@ lung <- STlist(rnacounts=exprmats,
 
 To obtain count statistics, the `summarize_STlist` function can be used:
 
-```{r count_stats}
+```{r count_stats, eval=data_ready}
 summ_df = summarize_STlist(lung)
 summ_df
 ```
 
 Some cells have zero counts. We can look at the distribution of counts per cell for the first five and last five FOVs using the `distribution_plots` function:
 
-```{r count_dstr}
+```{r count_dstr, eval=data_ready}
 cp <- distribution_plots(lung, plot_type='violin', plot_meta='total_counts', samples=c(1:5, 56:60))
 cp[['total_counts']]
 ```
 
 Cells with zero counts, can be removed using the `filter_data` function. The function can also be used to remove all counts from specific genes. This option is useful in this case, as CosMx-SMI panels include negative probe genes. While the negative probes can be used in normalization of counts, in this tutorial those genes will be removed. Negative probes in CosMx-SMI begin with the token "NegPrb":
 
-```{r filter_chunk}
+```{r filter_chunk, eval=data_ready}
 lung <- filter_data(lung, spot_minreads=20, rm_genes_expr='^NegPrb')
 ```
 
@@ -140,7 +147,7 @@ lung <- filter_data(lung, spot_minreads=20, rm_genes_expr='^NegPrb')
 
 The function `transform_data` allows data transformation using one of two possible options. The first options applies log-transformation to the counts, after library size normalization performed on each sample separately. The second option applies variance-stabilizing transformation (SCT; @hafemeister_2019), which is a method increasingly used in single-cell and spatial transcriptomics studies. To apply SCT transformation, use the following command:
 
-```{r norm_chunk, message=F}
+```{r norm_chunk, message=F, eval=data_ready}
 lung <- transform_data(lung, method='sct', cores=2)
 ```
 
@@ -173,7 +180,7 @@ A few important notes about the algorithm to consider:
 
 The first step to run `STenrich` is to obtain a list of gene sets. Here, the `msigdbr` package will be used to obtain HALLMARK gene sets:
 
-```{r genesets, message=F}
+```{r genesets, message=F, eval=data_ready}
 # Load msigdbr
 library('msigdbr')
 
@@ -190,7 +197,7 @@ gene_sets <- split(x=gene_sets[['gene_symbol']], f=gene_sets[['gs_name']])
 ```
 
 For the purpose of this example, we will only test "signaling" pathways:
-```{r genesets_sub, message=F}
+```{r genesets_sub, message=F, eval=data_ready}
 gene_sets = gene_sets[grep('SIGNALING', names(gene_sets))]
 ```
 
@@ -198,7 +205,7 @@ Please keep in mind that it is assumed that HUGO gene names are used. For CosMx-
 
 The `STenrich` function can now be used. For this analysis, 1000 replicates (`reps=1000`) will be used to generate the null distribution. In addition, for a gene set to be considered as highly expressed in cell, it should be expressed at least over the average expression plus 1.5 standard deviations (`num_sds=1.5`). Gene sets with less than five genes in the sample (`min_genes=5`) and gene sets with less than 10 highly expressed cells (`min_units=10`) will not be tested. Notice a seed was set (`seed=12345`), which critical for replication of the results in the future. 
 
-```{r stenrich}
+```{r stenrich, eval=data_ready}
 stenrich_df <- STenrich(lung, gene_sets=gene_sets, 
                         reps=1000, 
                         num_sds=1.5, 
@@ -209,7 +216,7 @@ stenrich_df <- STenrich(lung, gene_sets=gene_sets,
 
 The result of the function is a list of data frames, with one data frame per samples (FOV in this case). For example, this is the data frame for the first FOV in the STlist:
 
-```{r stenrich_df}
+```{r stenrich_df, eval=data_ready}
 head(stenrich_df$Lung5_Rep1_fov_1)
 ```
 
@@ -217,7 +224,7 @@ Each row represents a test for the null hypothesis of no spatial aggregation in 
 
 With a few lines of code, a visual summary can be generated that presents the gene sets with adj_p_value < 0.05 across FOVs for each tissue slide:
 
-```{r message=F}
+```{r message=F, eval=data_ready}
 # Load tidyverse for data frame manipulation
 library('tidyverse')
 
@@ -242,7 +249,7 @@ ggplot(res) +
 
 The "NOTCH signaling" pathway showed spatial patterns less frequently in the slide "Lung5_Rep1" compared to "Lung6". With the function `STplot`, the average gene set expression for this pathway can be plotted. First, FOVs with and without NOTCH signaling spatial patterns will be identified from "Lung5_Rep1" and "Lung6" respectively.
 
-```{r notch_sig1}
+```{r notch_sig1, eval=data_ready}
 bind_rows(stenrich_df) %>%
   mutate(prop_gene_set=size_test/size_gene_set) %>%
   filter(prop_gene_set >= 0.3 & adj_p_value >= 0.05) %>%
@@ -252,7 +259,7 @@ bind_rows(stenrich_df) %>%
   slice_head(n=3)
 ```
 
-```{r notch_sig2}
+```{r notch_sig2, eval=data_ready}
 bind_rows(stenrich_df) %>%
   mutate(prop_gene_set=size_test/size_gene_set) %>%
   filter(prop_gene_set >= 0.3 & adj_p_value < 0.05) %>%
@@ -264,7 +271,7 @@ bind_rows(stenrich_df) %>%
 
 Plots can be generated like so:
 
-```{r notch_plots, fig.width=10}
+```{r notch_plots, fig.width=10, eval=data_ready}
 qp <- STplot(lung, genes=gene_sets[names(gene_sets) == 'HALLMARK_NOTCH_SIGNALING'], 
              samples=c('Lung5_Rep1_fov_2', 'Lung5_Rep1_fov_6', 'Lung5_Rep1_fov_11',
                        'Lung6_fov_4', 'Lung6_fov_6', 'Lung6_fov_7'),
@@ -278,7 +285,7 @@ Although expression of the NOTCH signaling pathway is higher overall in "Lung6",
 
 Since this expression of this pathway has been identified as spatially aggregated, it might be of interest to know if there is correspondence of NOTCH signaling with tissue domains. With the `STclust` function, tissue domains can be identified. 
 
-```{r stclust_smi}
+```{r stclust_smi, eval=data_ready}
 lung <- STclust(lung, ws=0.02, ks='dtc', cores=2)
 ```
 
@@ -291,27 +298,27 @@ The multiplexed immunofluorescence images have been previously downloaded from t
 
 Now, upload the images to the STlist with the `load_images` function:
 
-```{r loadimages1}
+```{r loadimages1, eval=data_ready}
 img_fp = paste0(nsclc_tmp, '/nanostring_nsclc/Lung5_Rep1-Flat_files_and_images/CellComposite')
 lung <- load_images(lung, images=img_fp)
 ```
 
 The images for slide "Lung6" were not found, which are in the corresponsing folder. The `load_images` function is ran again to add images from "Lung6":
 
-```{r loadimages2}
+```{r loadimages2, eval=data_ready}
 img_fp = paste0(nsclc_tmp, '/nanostring_nsclc/Lung6-Flat_files_and_images/CellComposite')
 lung <- load_images(lung, images=img_fp)
 ```
 
 The function `plot_image` is used to generate the ggplot objects containing the images:
 
-```{r plotimages}
+```{r plotimages, eval=data_ready}
 ti <- plot_image(lung)
 ```
 
 The domains can be plotted with the `STplot` function too.
 
-```{r plot_domains, fig.width=12}
+```{r plot_domains, fig.width=12, eval=data_ready}
 dom_p <- STplot(lung, ks='dtc', ws=0.02, deepSplit=FALSE,
                 color_pal='discreterainbow')
 
@@ -335,13 +342,13 @@ ggpubr::ggarrange(dom_p$Lung5_Rep1_fov_2_stclust_spw0.02_dsplFalse,
 
 Now, to identify the domains, differential gene expression can be performed:
 
-```{r domain_de}
+```{r domain_de, eval=data_ready}
 deg <- STdiff(lung, w=0.02, k='dtc', deepSplit=FALSE, test_type='wilcoxon', cores=2)
 ```
 
 Then, the top 3 DE genes per cluster in the samples showing NOTCH signaling spatial patterns are identified:
 
-```{r top_de}
+```{r top_de, eval=data_ready}
 bind_rows(deg) %>%
   filter(adj_p_val < 0.05 & abs(avg_log2fc > 0.05)) %>%
   filter(sample %in% c('Lung6_fov_4', 'Lung6_fov_6', 'Lung6_fov_7')) %>%
@@ -365,13 +372,13 @@ In `STgradient`, the spatial coordinates are used to calculate Euclidean distanc
 
 The `STgradient` function can be executed with these commands, in order to test for gradients within the tumor compartment. First, it is necessary to find the name of the column in `lung_subset@spatial_meta` containing the domain assigments:
 
-```{r columnnames}
+```{r columnnames, eval=data_ready}
 colnames(lung@spatial_meta$Lung5_Rep1_fov_2)
 ```
 
 The name of the column is `stclust_spw0.02_dsplFalse` (STclust results using spatial weight of 0.02 and DynamicTreeCuts with no deepSplit). This name is used in the `annot` argument of `STgradient`:
 
-```{r stgradient_run}
+```{r stgradient_run, eval=data_ready}
 stg <- STgradient(lung, 
                   topgenes=1000, 
                   annot='stclust_spw0.02_dsplFalse',
@@ -383,14 +390,14 @@ stg <- STgradient(lung,
 
 Here are the first few rows of the `STgradient` result for sample "Lung6_fov_4":
 
-```{r stg_res}
+```{r stg_res, eval=data_ready}
 head(stg$Lung6_fov_4)
 ```
 
 The key columns to look ar are `min_spearman_r` and `min_spearman_r_pval_adj`. Now, to find genes with significant spatial gradients across the three samples,
 these commands can be used:
 
-```{r topstg}
+```{r topstg, eval=data_ready}
 bind_rows(stg) %>%
   arrange(desc(abs(min_spearman_r))) %>%
   group_by(sample_name) %>%
@@ -401,14 +408,14 @@ bind_rows(stg) %>%
 
 It can be seen from these results that multiple keratin genes show spatial gradients, all of them with negative Spearman's coefficients (cells close to domain 3 tend to have higher keratin expression). Other such __HLA-B__ and __NDRG1__ have higher expression in cells far from domain 3: 
 
-```{r stg_plots}
+```{r stg_plots, eval=data_ready}
 qp2 <- STplot(lung, genes=c('KRT6A', 'HLA-B'), samples='Lung6_fov_4', color_pal='YlOrBr')
 ggpubr::ggarrange(plotlist=qp2, common.legend=TRUE)
 ```
 
 Here are the results for genes within the NOTCH signaling pathway:
 
-```{r stg_notch}
+```{r stg_notch, eval=data_ready}
 bind_rows(stg) %>%
   arrange(desc(abs(min_spearman_r))) %>%
   filter(gene %in% gene_sets[['HALLMARK_NOTCH_SIGNALING']]) %>%

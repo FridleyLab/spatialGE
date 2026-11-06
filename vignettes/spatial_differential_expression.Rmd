@@ -42,21 +42,28 @@ library('spatialGE')
 
 The `STlist` function takes data in several formats. The reader is encouraged to see the `STlist` reference (see [here](https://fridleylab.github.io/spatialGE/reference/STlist.html) to learn about the different options to read ST data in `spatialGE`. In this guide, we provide the `STlist` function with comma-delimited files containing gene expression counts per spot and comma-delimited containing the spatial coordinates per spot. The example files in this tutorial can be downloaded from the [spatialGE_Data GitHub repository](https://github.com/FridleyLab/spatialGE_Data). Users are encouraged to download these files to familirize themselves with the data format. 
 
-In this tutorial, data will be downloaded and deposited in a temporary directory. However, the download path can be changed within the following code block:
+In this tutorial, data will be downloaded and deposited in a temporary directory. However, the download path can be changed within the following code block. If the download fails (e.g., no network or GitHub unreachable), a message is printed and all data-dependent chunks below are skipped rather than aborting the build:
 
-```{r data_download}
-thrane_tmp = tempdir()
-unlink(thrane_tmp, recursive=TRUE)
-dir.create(thrane_tmp)
-download.file('https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download=', 
-              destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
-unzip(zipfile=zip_tmp, exdir=thrane_tmp)
+```{r data_download, error=TRUE}
+data_ready <- TRUE
+tryCatch({
+  thrane_tmp = tempdir()
+  unlink(thrane_tmp, recursive=TRUE)
+  dir.create(thrane_tmp)
+  download.file('https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download=', 
+                destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
+  zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+  unzip(zipfile=zip_tmp, exdir=thrane_tmp)
+}, error = function(e) {
+  data_ready <<- FALSE
+  message("Data download failed; data-dependent chunks will be skipped: ",
+          conditionMessage(e))
+})
 ```
 
 From the temporary directory, we can use R to generate the file paths to be passed to the `STlist` function:
 
-```{r data_fpaths1}
+```{r data_fpaths1, eval=data_ready}
 # Find expression and coordinates files within the temporary folder
 count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'), full.names=TRUE, pattern='counts')
 coord_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'), full.names=TRUE, pattern='mapping')
@@ -64,14 +71,14 @@ coord_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'), full.names=TRU
 
 This melanoma ST data set also contains sample-level meta data. We will also provide this file to specify sample names:
 
-```{r data_fpaths2}
+```{r data_fpaths2, eval=data_ready}
 # Find clinical data within folder
 clin_file <- list.files(paste0(thrane_tmp, '/melanoma_thrane'), full.names=TRUE, pattern='clinical')
 ```
 
 We can load the data into an STlist object with:
 
-```{r create_stlist, warning=F}
+```{r create_stlist, warning=F, eval=data_ready}
 melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_file, cores=2)
 ```
 
@@ -79,13 +86,13 @@ melanoma <- STlist(rnacounts=count_files, spotcoords=coord_files, samples=clin_f
 
 The `melanoma` object is an STlist that contains the count data, spot coordinates, and clinical meta data.
 
-```{r call_stlist}
+```{r call_stlist, eval=data_ready}
 melanoma
 ```
 
 To normalize the ST data, the `transform_data` is used:
 
-```{r norm_chunk}
+```{r norm_chunk, eval=data_ready}
 melanoma <- transform_data(melanoma, cores=2)
 ```
 
@@ -95,13 +102,13 @@ The expression of the gene _COL1A1_ will be used to illustrate spatial dependenc
 
 Load `tidtverse` for data manipulation:
 
-```{r variogram_libraries, message=F, warning=F}
+```{r variogram_libraries, message=F, warning=F, eval=data_ready}
 library('tidyverse')
 ```
 
 Then, data frame is created with both gene _COL1A1_ gene expression and spatial coordinates from sample "ST_mel1_rep2".
 
-```{r variogram_chunk}
+```{r variogram_chunk, eval=data_ready}
 # Sample and gene to be used in example
 samplename <- 'ST_mel1_rep2'
 gene <- 'COL1A1'
@@ -116,13 +123,13 @@ df_vgm <- melanoma@spatial_meta[[samplename]] %>%
 
 The data frame contains the spatial coordinates of each spot (`xpos`, `ypos`) and transformed expression of _MLANA_ (`geneexpr`).
 
-```{r vgmdf_chunk}
+```{r vgmdf_chunk, eval=data_ready}
 head(df_vgm)
 ```
 
 In a variogram, each point describes the variance in gene expression (semiovariance) with respect to the distance between spots. If spatial dependency is present trend should be observed wherein semiovariance increases as the distance between spots increases. In other words, variance between close spots is lower than variance between distant spots. To calculate the variogram, the `geoR` package is used:
 
-```{r vgm_chunk, echo=F, message=F}
+```{r vgm_chunk, echo=F, message=F, eval=data_ready}
 # Create geodata object
 geodata_obj <- geoR::as.geodata(df_vgm, coords.col=c('xpos', 'ypos'), data.col='geneexpr')
 
@@ -132,7 +139,7 @@ vgm <- geoR::variog(geodata_obj, uvec=100, trend='cte')
 
 Now, the variogram can be plotted:
 
-```{r vgm_plot, fig.asp=1, fig.width=5, fig.align='center'}
+```{r vgm_plot, fig.asp=1, fig.width=5, fig.align='center', eval=data_ready}
 plot(vgm, pch=16, cex=0.5, ylab='Semiovariance', xlab='Distance', 
      main=paste0('Variogram of ', gene, ' expression'))
 text(c(2, 5, 14), c(0.65, 2.1, 0.65), 
@@ -160,7 +167,7 @@ The spatial covariance can be modeled using different covariance structures. The
 
 Using the variogram calculated previously, the different covariance structures can be fitted and visualized with geoR like so:
 
-```{r vgm_model_plot, message=F, fig.asp=1, fig.width=5, fig.align='center'}
+```{r vgm_model_plot, message=F, fig.asp=1, fig.width=5, fig.align='center', eval=data_ready}
 # Exponential covariance structure:
 exp_model <- geoR::variofit(vgm, fix.nugget=FALSE, cov.model='exponential',
                             ini.cov.pars=c(0.2, 11), nugget=0.7, # Sill, range, and nugget specified here
@@ -222,7 +229,7 @@ In order to detect differentially expressed genes, groups of spots/cells should 
 
 The `STclust` function groups spots/cells into tissue domains using hierarchical clustering on a wighted similarity matrix. The similarity maxtrox is derived from Euclidean transcriptomics distances "shrunk" by the spatial Euclidean distances. Please, refer to the journal article describing the method for more details [@ospina_2022]. To detect tissue domains, a spatial weight of 0.025 (`w=0.025`) will be used. The number of domains will be automatically defined by applying dynamicTreeClusters (`ks='dtc'`).
 
-```{r clustespots_chunk, warning=F}
+```{r clustespots_chunk, warning=F, eval=data_ready}
 melanoma <- STclust(melanoma, 
                     ks='dtc', 
                     ws=0.025, cores=2)
@@ -230,7 +237,7 @@ melanoma <- STclust(melanoma,
 
 Results of `STclust` domain detection can be plotted using the `STplot` function:
 
-```{r plotclustspots_chunk, fig.align='center', fig.height=4, fig.width=3}
+```{r plotclustspots_chunk, fig.align='center', fig.height=4, fig.width=3, eval=data_ready}
 cluster_p <- STplot(melanoma, 
                     samples='ST_mel1_rep2', 
                     ws=0.025, 
@@ -242,7 +249,7 @@ print(cluster_p[[1]])
 
 With the domains identified, the `STdiff` function can be used. The following command tests for differentially expressed genes on the 1000 genes with the highest variation (as defined by `Seurat`'s function `FindVariableFeatures`).
 
-```{r stdiff_chunk}
+```{r stdiff_chunk, eval=data_ready}
 deg <- STdiff(melanoma, 
               samples='ST_mel1_rep2', 
               w=0.025, k='dtc', deepSplit=FALSE, 
@@ -252,7 +259,7 @@ deg <- STdiff(melanoma,
 
 The output of `STdiff` is a list, where each element is a data frame containing the test results for each sample:
 
-```{r stdiff_res1}
+```{r stdiff_res1, eval=data_ready}
 print(deg[['ST_mel1_rep2']])
 ```
 
@@ -262,7 +269,7 @@ The columns `p_val` and `adj_p_val` are respectively the nominal and adjusted p-
 
 We can look at the -log10(p-values) to compare each spatial model to the non-spatial model:
 
-```{r compare_pval, warning=F}
+```{r compare_pval, warning=F, eval=data_ready}
 # First load ggrepel to add gene names to plot
 library('ggrepel')
 
@@ -283,7 +290,7 @@ p1 <- ggplot(log_pval, aes(x=log_p_val, y=log_exp_p_val)) +
   theme_bw()
 ```
 
-```{r compare_pval_p, warning=F, fig.width=7.5, fig.height=4, fig.align='center'}
+```{r compare_pval_p, warning=F, fig.width=7.5, fig.height=4, fig.align='center', eval=data_ready}
 p1
 ```
 
@@ -299,7 +306,7 @@ Testing spatial models with `STdiff` is both computationally- and time-intensive
 
 It has been shown above that accounting for spatial dependence between spots/cells is important to control inflation of type-I error (i.e., too many differentially expressed genes). Nonetheless, the `STdiff` function also implements differential expression analysis using tests commonly used in non-spatial single cell analysis. Specifically, the argument `test_type` can be set to "wilcoxon" or "t_test" to perform either Wilcoxon's Rank tests or T-tests respectively:
 
-```{r stdiff_wilcox}
+```{r stdiff_wilcox, eval=data_ready}
 deg_wilcox <- STdiff(melanoma, 
                      samples='ST_mel1_rep2', 
                      w=0.025, k='dtc', deepSplit=FALSE, 
@@ -309,7 +316,7 @@ deg_wilcox <- STdiff(melanoma,
 
 No spatial tests are executed when Wilcoxon's Rank tests or T-tests are requested.
 
-```{r stdiff_wilcox_res}
+```{r stdiff_wilcox_res, eval=data_ready}
 print(deg_wilcox[['ST_mel1_rep2']])
 ```
 
@@ -321,13 +328,13 @@ print(deg_wilcox[['ST_mel1_rep2']])
 
 The `spatialGE` package has a built-in function (`STdiff_volcano`) to generate volcano plots. The function takes `STdiff` outputs and generates a volcano plot for each sample and cluster (or cluster pair if pairwise testing was requested).
 
-```{r volc_plots1}
+```{r volc_plots1, eval=data_ready}
 vp <- STdiff_volcano(deg)
 ```
 
 Now, the `ggpubr` package can be used to arrange all plots:
 
-```{r volc_plots2, warning=F, fig.width=7.5, fig.height=4, fig.align='center'}
+```{r volc_plots2, warning=F, fig.width=7.5, fig.height=4, fig.align='center', eval=data_ready}
 ggpubr::ggarrange(plotlist=vp, ncol=3, common.legend=TRUE)
 ```
 
