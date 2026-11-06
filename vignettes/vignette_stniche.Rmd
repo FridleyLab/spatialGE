@@ -112,10 +112,16 @@ This vignette applies STniche to two technologies and uses each to answer a spec
 # Setup and data
 
 All data are downloaded automatically on first use (GEO for Visium; Zenodo and Springer for CosMx).
-Set `visium_root`, `cosmx_root` or `out_root` in the YAML header to reuse local copies. Download, extraction, and STlist construction are all shown in the chunks below so the required inputs and their on-disk layout are explicit. Their printed progress output is suppressed to keep the page readable; if you run this locally, set results="asis" on the settings, build-visium, or build-cosmx chunks to see the download and per-sample progress messages.
+Set `visium_root`, `cosmx_root` or `out_root` in the YAML header to reuse local copies. The chunks below
+show the main steps only: **download**, **build one `STlist` per sample**, and **merge**. Low-level plumbing
+(download retries, unpacking the GEO archive, per-FOV subsetting of the Seurat object) is kept in a hidden
+`helpers` chunk in the Rmd source, and progress messages are suppressed to keep the page readable.
 
 
-```{r settings, echo=TRUE, results="hide"}
+```{r helpers, echo=FALSE, results="hide"}
+# Low-level plumbing, hidden from the rendered vignette. Read this chunk in the
+# .Rmd source if you want to see how downloads, unpacking and per-FOV subsetting work.
+
 `%||%` <- function(a, b) {
   if (is.null(a) || length(a) == 0L || identical(a, "")) b else a
 }
@@ -156,252 +162,134 @@ ensure_download <- function(url, dest, min_bytes = 1e6, retries = 2L,
   stop("Failed to download: ", url, " -> ", dest)
 }
 
-GEO_VISIUM_URL <- paste0(
-  "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE175nnn/",
-  "GSE175540/suppl/GSE175540_RAW.tar"
-)
-ZENODO_COSMX_URL <- paste0(
-  "https://zenodo.org/records/12730227/files/seurat_object.Rds?download=1"
-)
-SPRINGER_CLINICAL_URL <- paste0(
-  "https://static-content.springer.com/esm/",
-  "art%3A10.1186%2Fs13059-024-03435-z/MediaObjects/",
-  "13059_2024_3435_MOESM2_ESM.xlsx"
-)
-SPRINGER_REFERER <- paste0(
-  "https://genomebiology.biomedcentral.com/articles/10.1186/s13059-024-03435-z"
-)
-
-data_root <- file.path(tempdir(), "spatial_data")
-dir.create(data_root, recursive = TRUE, showWarnings = FALSE)
-
-visium_root <- if (nzchar(params$visium_root %||% "")) {
-  path.expand(params$visium_root)
-} else file.path(data_root, "Visium", "GSE175540")
-
-cosmx_root <- if (nzchar(params$cosmx_root %||% "")) {
-  path.expand(params$cosmx_root)
-} else file.path(data_root, "CosMx", "CosMx_ccRCC")
-
-out_root <- if (nzchar(params$out_root %||% "")) {
-  path.expand(params$out_root)
-} else file.path(tempdir(), "spatialGE_outputs")
-dir.create(out_root, recursive = TRUE, showWarnings = FALSE)
-
-run_visium <- isTRUE(params$run_visium)
-run_cosmx  <- isTRUE(params$run_cosmx)
-stopifnot(run_visium || run_cosmx)
-
-n_cores  <- max(1, parallel::detectCores() - 1)
-
-visium_cfg <- NULL
-if (run_visium) {
-  gse_root <- visium_root
-
-  visium_ready <- dir.exists(gse_root) &&
+# ---- Visium: download GEO tarball and reshape into one Space Ranger folder per sample
+download_visium <- function(gse_root, url) {
+  ready <- dir.exists(gse_root) &&
     any(grepl("^ffpe|^frozen",
               basename(list.dirs(gse_root, recursive = FALSE))))
+  if (ready) return(invisible(gse_root))
 
-  if (!visium_ready) {
-    cat("\n=== Visium: auto-download from GEO ===\n")
-    dir.create(gse_root, recursive = TRUE, showWarnings = FALSE)
-    tarball <- file.path(gse_root, "GSE175540_RAW.tar")
-    ensure_download(GEO_VISIUM_URL, tarball, min_bytes = 900e6)
+  cat("\n=== Visium: auto-download from GEO ===\n")
+  dir.create(gse_root, recursive = TRUE, showWarnings = FALSE)
+  tarball <- file.path(gse_root, "GSE175540_RAW.tar")
+  ensure_download(url, tarball, min_bytes = 900e6)
 
-    cat("  [EXTRACT] tar -xf ...\n")
-    system(sprintf("tar -xf %s -C %s",
-                   shQuote(tarball), shQuote(gse_root)))
+  cat("  [EXTRACT] tar -xf ...\n")
+  system(sprintf("tar -xf %s -C %s", shQuote(tarball), shQuote(gse_root)))
 
-    cat("  [FIX] Decompress spatial .gz ...\n")
-    for (f_gz in list.files(gse_root,
-                            pattern = "\\.(csv|json|png)\\.gz$",
-                            full.names = TRUE)) {
-      system(sprintf("gunzip -kf %s", shQuote(f_gz)))
-    }
-
-    cat("  [FIX] Restructure into per-sample folders ...\n")
-    h5s <- list.files(gse_root, pattern = "_feature_bc_matrix\\.h5$",
-                      full.names = TRUE)
-    for (h5 in h5s) {
-      base_name <- sub("_(filtered|raw)_feature_bc_matrix\\.h5$", "",
-                       basename(h5))
-      sample    <- sub("^GSM\\d+_", "", base_name)
-      sdir      <- file.path(gse_root, sample)
-      spdir     <- file.path(sdir, "spatial")
-      dir.create(spdir, recursive = TRUE, showWarnings = FALSE)
-      new_h5 <- file.path(sdir, basename(h5))
-      if (!file.exists(new_h5)) file.rename(h5, new_h5)
-      for (std in c("tissue_positions_list.csv", "scalefactors_json.json",
-                    "tissue_hires_image.png", "tissue_lowres_image.png",
-                    "TLS_annotation.csv")) {
-        src <- file.path(gse_root, paste0(base_name, "_", std))
-        dst <- file.path(spdir, std)
-        if (file.exists(src) && !file.exists(dst)) file.rename(src, dst)
-      }
-    }
-
-    cat("  [FIX] Prefix collisions ...\n")
-    sd <- list.dirs(gse_root, recursive = FALSE, full.names = TRUE)
-    sn <- basename(sd)
-    colliders <- sn[vapply(sn, function(n)
-      any(sn != n & startsWith(sn, n)), logical(1))]
-    for (n in colliders) {
-      old    <- file.path(gse_root, n)
-      padded <- paste0(sub("_[^_]+$", "_", n),
-                       sprintf("%02d", as.integer(sub("^.*_", "", n))))
-      new    <- file.path(gse_root, padded)
-      if (!dir.exists(new)) file.rename(old, new)
-    }
-    visium_ready <- TRUE
-    cat("  [DONE] Visium ready at ", gse_root, "\n", sep = "")
+  cat("  [FIX] Decompress spatial .gz ...\n")
+  for (f_gz in list.files(gse_root, pattern = "\\.(csv|json|png)\\.gz$",
+                          full.names = TRUE)) {
+    system(sprintf("gunzip -kf %s", shQuote(f_gz)))
   }
 
-  if (!visium_ready)
-    stop("Visium root not ready after download: ", gse_root)
+  cat("  [FIX] Restructure into per-sample folders ...\n")
+  h5s <- list.files(gse_root, pattern = "_feature_bc_matrix\\.h5$",
+                    full.names = TRUE)
+  for (h5 in h5s) {
+    base_name <- sub("_(filtered|raw)_feature_bc_matrix\\.h5$", "", basename(h5))
+    sample    <- sub("^GSM\\d+_", "", base_name)
+    sdir      <- file.path(gse_root, sample)
+    spdir     <- file.path(sdir, "spatial")
+    dir.create(spdir, recursive = TRUE, showWarnings = FALSE)
+    new_h5 <- file.path(sdir, basename(h5))
+    if (!file.exists(new_h5)) file.rename(h5, new_h5)
+    for (std in c("tissue_positions_list.csv", "scalefactors_json.json",
+                  "tissue_hires_image.png", "tissue_lowres_image.png",
+                  "TLS_annotation.csv")) {
+      src <- file.path(gse_root, paste0(base_name, "_", std))
+      dst <- file.path(spdir, std)
+      if (file.exists(src) && !file.exists(dst)) file.rename(src, dst)
+    }
+  }
 
-  ds_root     <- gse_root
-  visium_mode <- "GSE175540"
-
-  out_dir_v <- file.path(out_root, "spatialGE_out", "GSE175540")
-  dir.create(out_dir_v, recursive = TRUE, showWarnings = FALSE)
-  cat("Platform  : visium (", visium_mode, ")\n", sep = "")
-  cat("  Input   : ", ds_root,    "\n", sep = "")
-  cat("  Out dir : ", out_dir_v, "\n", sep = "")
-  visium_cfg <- list(ds_root = ds_root, out_dir = out_dir_v,
-                     mode = visium_mode)
-} else {
-  cat("Platform  : visium (disabled)\n")
+  cat("  [FIX] Prefix collisions ...\n")
+  sn <- basename(list.dirs(gse_root, recursive = FALSE, full.names = TRUE))
+  colliders <- sn[vapply(sn, function(n) any(sn != n & startsWith(sn, n)),
+                         logical(1))]
+  for (n in colliders) {
+    padded <- paste0(sub("_[^_]+$", "_", n),
+                     sprintf("%02d", as.integer(sub("^.*_", "", n))))
+    new <- file.path(gse_root, padded)
+    if (!dir.exists(new)) file.rename(file.path(gse_root, n), new)
+  }
+  cat("  [DONE] Visium ready at ", gse_root, "\n", sep = "")
+  invisible(gse_root)
 }
 
-cosmx_cfg <- NULL
-if (run_cosmx) {
-  cosmx_fov <- params$cosmx_fov
-  step123   <- file.path(out_root, "cosmx_step1_2_3")
-  out_dir_c <- file.path(out_root, "spatialGE_out", "cosmx")
-  dir.create(step123, recursive = TRUE, showWarnings = FALSE)
-  dir.create(out_dir_c, recursive = TRUE, showWarnings = FALSE)
-  dir.create(cosmx_root, recursive = TRUE, showWarnings = FALSE)
-
-  seu_path  <- file.path(cosmx_root, "seurat_object.Rds")
-  clin_path <- file.path(cosmx_root, "13059_2024_3435_MOESM2_ESM.xlsx")
-
-  if (!file.exists(seu_path) || file.size(seu_path) < 500e6) {
-    cat("\n=== CosMx: auto-download seurat_object.Rds from Zenodo ===\n")
-    ensure_download(ZENODO_COSMX_URL, seu_path, min_bytes = 500e6)
-  }
-  if (!file.exists(clin_path) || file.size(clin_path) < 1000) {
-    cat("\n=== CosMx: auto-download clinical xlsx from Springer ===\n")
-    ensure_download(SPRINGER_CLINICAL_URL, clin_path, min_bytes = 1000,
-                    referer = SPRINGER_REFERER, user_agent = "Mozilla/5.0")
-  }
-
-  inputs <- c(
-    clinical_xlsx = clin_path,
-    seurat_rds    = seu_path
-  )
-  miss <- names(inputs)[!file.exists(inputs)]
-  if (length(miss)) {
-    stop("Missing CosMx inputs in ", cosmx_root, ":\n  ",
-         paste(miss, collapse = "\n  "),
-         "\nCheck network access, or set cosmx_root to a folder containing these files.")
-  }
-  cat("Platform  : cosmx (enabled)\n")
-  cat("  Input   : ", cosmx_root, "\n", sep = "")
-  cat("  Out dir : ", out_dir_c,  "\n", sep = "")
-  cosmx_cfg <- list(cosmx_root = cosmx_root, cosmx_fov = cosmx_fov,
-                    step123 = step123, out_dir = out_dir_c,
-                    inputs = inputs)
-} else {
-  cat("Platform  : cosmx (disabled)\n")
-}
-```
-
-```{r build-visium, echo=TRUE, results="hide"}
-STs <- list()
-
-if (run_visium) {
-  cat("\n=== Building Visium STlist (", visium_cfg$mode, ") ===\n", sep = "")
-
-  sample_dirs <- list.dirs(visium_cfg$ds_root, recursive = FALSE,
-                           full.names = TRUE)
-  sample_dirs <- sample_dirs[sapply(sample_dirs, function(d) {
-    length(list.files(d, pattern = "_filtered_feature_bc_matrix\\.h5$")) > 0
-  })]
-  if (length(sample_dirs) == 0)
-    stop("No Space-Ranger sample folders under ", visium_cfg$ds_root)
-
+visium_sample_dirs <- function(ds_root) {
+  d <- list.dirs(ds_root, recursive = FALSE, full.names = TRUE)
+  d <- d[vapply(d, function(x)
+    length(list.files(x, pattern = "_filtered_feature_bc_matrix\\.h5$")) > 0,
+    logical(1))]
+  if (length(d) == 0) stop("No Space-Ranger sample folders under ", ds_root)
   # Remove stale symlinks so the canonical files are read
-  for (d in sample_dirs) {
+  for (x in d) {
     for (rel in c("filtered_feature_bc_matrix.h5",
                   file.path("spatial", "tissue_positions_list.csv"),
                   file.path("spatial", "scalefactors_json.json"),
                   file.path("spatial", "tissue_hires_image.png"))) {
-      fp <- file.path(d, rel)
+      fp <- file.path(x, rel)
       if (nzchar(Sys.readlink(fp))) unlink(fp, force = TRUE)
     }
   }
-
-  sample_names <- basename(sample_dirs)
-
-  # One STlist per sample, then merge
-  per_sample <- lapply(sample_dirs, function(d) {
-    nm <- basename(d)
-    cat("  building ", nm, " ... ", sep = "")
-    st_i <- tryCatch(STlist(d, samples = nm, cores = 1),
-                     error = function(e) { cat("FAILED\n"); NULL })
-    if (is.null(st_i)) return(NULL)
-    st_i <- tryCatch(filter_data(st_i, spot_minreads = 500, spot_mingenes = 300),
-                     error = function(e) st_i)
-    st_i <- tryCatch(transform_data(st_i, method = "log", cores = 1),
-                     error = function(e) st_i)
-    cat("ok\n")
-    st_i
-  })
-  names(per_sample) <- sample_names
-  per_sample <- per_sample[!vapply(per_sample, is.null, logical(1))]
-
-  # Merge per-sample STlists into one
-  st_v <- methods::new("STlist")
-  st_v@counts       <- list()
-  st_v@tr_counts    <- list()
-  st_v@spatial_meta <- list()
-  st_v@sample_meta  <- tibble(sample = character(0))
-  for (nm in names(per_sample)) {
-    s <- per_sample[[nm]]
-    st_v@counts[[nm]]       <- s@counts[[nm]]
-    st_v@tr_counts[[nm]]    <- s@tr_counts[[nm]]
-    st_v@spatial_meta[[nm]] <- s@spatial_meta[[nm]]
-    st_v@sample_meta        <- rbind(st_v@sample_meta, s@sample_meta)
-  }
-
-  STs$visium <- list(st      = st_v,
-                     smp1    = names(st_v@spatial_meta)[1],
-                     out_dir = visium_cfg$out_dir,
-                     label   = paste0("Visium (",
-                                      length(st_v@spatial_meta), " samples)"),
-                     fov     = NA_character_,
-                     mode    = visium_cfg$mode)
+  d
 }
-```
 
-```{r build-cosmx, echo=TRUE, results="hide"}
-if (run_cosmx) {
-  cat("\n=== Building CosMx STlist ===\n")
+# ---- Merge a named list of single-sample STlists into one STlist
+merge_stlists <- function(lst) {
+  lst <- lst[!vapply(lst, is.null, logical(1))]
+  st <- methods::new("STlist")
+  st@counts       <- list()
+  st@tr_counts    <- list()
+  st@spatial_meta <- list()
+  st@sample_meta  <- tibble(sample = character(0))
+  for (nm in names(lst)) {
+    s <- lst[[nm]]
+    st@counts[[nm]]       <- s@counts[[nm]]
+    st@tr_counts[[nm]]    <- s@tr_counts[[nm]]
+    st@spatial_meta[[nm]] <- s@spatial_meta[[nm]]
+    st@sample_meta        <- rbind(st@sample_meta, s@sample_meta)
+  }
+  st
+}
 
-  suppressPackageStartupMessages({
-    library(Seurat); library(tibble); library(stringr)
-  })
+# ---- CosMx: download Seurat object + clinical sheet
+download_cosmx <- function(root, seu_url, clin_url, referer) {
+  dir.create(root, recursive = TRUE, showWarnings = FALSE)
+  seu_path  <- file.path(root, "seurat_object.Rds")
+  clin_path <- file.path(root, "13059_2024_3435_MOESM2_ESM.xlsx")
+  if (!file.exists(seu_path) || file.size(seu_path) < 500e6) {
+    cat("\n=== CosMx: auto-download seurat_object.Rds from Zenodo ===\n")
+    ensure_download(seu_url, seu_path, min_bytes = 500e6)
+  }
+  if (!file.exists(clin_path) || file.size(clin_path) < 1000) {
+    cat("\n=== CosMx: auto-download clinical xlsx from Springer ===\n")
+    ensure_download(clin_url, clin_path, min_bytes = 1000,
+                    referer = referer, user_agent = "Mozilla/5.0")
+  }
+  inputs <- c(clinical_xlsx = clin_path, seurat_rds = seu_path)
+  miss <- names(inputs)[!file.exists(inputs)]
+  if (length(miss)) {
+    stop("Missing CosMx inputs in ", root, ":\n  ",
+         paste(miss, collapse = "\n  "),
+         "\nCheck network access, or set cosmx_root to a folder containing these files.")
+  }
+  inputs
+}
 
-  # Clinical sheet drives IO status
-  io_annot <- read_excel(cosmx_cfg$inputs["clinical_xlsx"],
-                         sheet = "Table S11", skip = 1) %>%
+# ---- CosMx: read Seurat object + clinical sheet; return everything needed per FOV
+load_cosmx <- function(inputs, celltype_col = "") {
+  suppressPackageStartupMessages(library(Seurat))
+
+  io_annot <- read_excel(inputs["clinical_xlsx"], sheet = "Table S11", skip = 1) %>%
     select(1:7) %>%
     mutate(IO = if_else(
       is.na(`Immunotherapy before Sample Collection`) |
         `Immunotherapy before Sample Collection` == "None",
       "IO-naive", "IO-exposed"))
 
-  seu <- readRDS(cosmx_cfg$inputs["seurat_rds"])
+  seu <- readRDS(inputs["seurat_rds"])
   seu$annotation    <- trimws(seu$annotation)
   seu@meta.data$fov <- as.integer(as.character(seu@meta.data$fov))
 
@@ -427,19 +315,15 @@ if (run_cosmx) {
               by = c("Slide_name", "fov")) %>%
     left_join(io_map, by = c("Slide_name", "fov"))
 
-  # Pick the counts assay
-  assay_use <- {
-    found <- NA_character_
-    for (a in Assays(seu)) {
-      ok <- tryCatch({GetAssayData(seu, assay = a, layer = "counts"); TRUE},
-                     error = function(e) FALSE)
-      if (ok) { found <- a; break }
-    }
-    if (is.na(found)) stop("No counts assay in Seurat object.")
-    found
+  # counts assay
+  assay_use <- NA_character_
+  for (a in Assays(seu)) {
+    ok <- tryCatch({GetAssayData(seu, assay = a, layer = "counts"); TRUE},
+                   error = function(e) FALSE)
+    if (ok) { assay_use <- a; break }
   }
+  if (is.na(assay_use)) stop("No counts assay in Seurat object.")
   cat("Using counts assay: ", assay_use, "\n", sep = "")
-
   counts_all <- tryCatch(
     GetAssayData(seu, assay = assay_use, layer = "counts"),
     error = function(e) GetAssayData(seu, assay = assay_use, slot = "counts"))
@@ -447,29 +331,24 @@ if (run_cosmx) {
       !identical(colnames(counts_all), colnames(seu)))
     colnames(counts_all) <- colnames(seu)
 
-  # Coordinates from Seurat images
+  # coordinates from Seurat images
   coords_all <- NULL
   for (im in Images(seu)) {
     ctr <- seu@images[[im]][["centroids"]]
     if (is.null(ctr)) next
     tc <- as.data.frame(Seurat::GetTissueCoordinates(ctr))
-    if (!all(c("x","y","cell") %in% colnames(tc))) next
-    add <- data.frame(id   = tc$cell,
-                      xpos = as.numeric(tc$x),
-                      ypos = as.numeric(tc$y),
-                      stringsAsFactors = FALSE)
+    if (!all(c("x", "y", "cell") %in% colnames(tc))) next
+    add <- data.frame(id = tc$cell, xpos = as.numeric(tc$x),
+                      ypos = as.numeric(tc$y), stringsAsFactors = FALSE)
     coords_all <- if (is.null(coords_all)) add
                   else rbind(coords_all,
                              add[!add$id %in% coords_all$id, , drop = FALSE])
   }
 
-  # Cell-type column
-  ct_col <- if (nzchar(params$cosmx_celltype_col %||% "")) {
-    params$cosmx_celltype_col
-  } else {
+  # cell-type column
+  ct_col <- if (nzchar(celltype_col %||% "")) celltype_col else
     intersect(c("nb_clus", "lasso_final", "annotation", "celltype", "cell_type"),
               colnames(seu@meta.data))[1]
-  }
   if (is.na(ct_col) || !ct_col %in% colnames(seu@meta.data))
     stop("No usable cell-type column. Set params$cosmx_celltype_col.")
 
@@ -486,75 +365,137 @@ if (run_cosmx) {
       lasso_final = as.character(.data[[ct_col]])) %>%
     dplyr::distinct(unique_fov, id, .keep_all = TRUE)
 
-  # Which FOVs to build
-  requested <- if (!is.null(params$cosmx_fovs)) {
-    as.character(params$cosmx_fovs)
-  } else {
-    raw <- as.character(params$cosmx_fov)
-    if (identical(tolower(raw), "all")) {
-      design %>%
-        dplyr::filter(FOV_majority == "Tumor", !is.na(IO)) %>%
-        dplyr::transmute(fov_name = paste0(Slide_name, "_fov", fov)) %>%
-        dplyr::pull(fov_name)
-    } else trimws(strsplit(raw, ",")[[1]])
+  list(meta = seu@meta.data, counts = counts_all, coords = coords_all,
+       id_col = id_col, celltypes = celltypes, io_map = io_map, design = design)
+}
+
+# ---- CosMx: build one STlist for a single FOV (e.g. "RCC3_fov7")
+build_cosmx_fov <- function(fov_name, prep) {
+  parts <- stringr::str_match(fov_name, "^(RCC\\d+)_fov(\\d+)$")
+  if (is.na(parts[1, 1])) return(NULL)
+  slide_name <- parts[1, 2]; fov_int <- as.integer(parts[1, 3])
+
+  cells_keep <- rownames(prep$meta)[
+    prep$meta$Slide_name == slide_name & prep$meta$fov == fov_int]
+  cells_keep <- intersect(cells_keep, colnames(prep$counts))
+  if (length(cells_keep) < 10) return(NULL)
+
+  id_for_key <- trimws(as.character(prep$meta[cells_keep, prep$id_col]))
+  idx <- match(id_for_key, prep$coords$id)
+  if (any(is.na(idx))) return(NULL)
+
+  ct <- prep$celltypes[prep$celltypes$unique_fov == paste0(slide_name, "_", fov_int),
+                       c("id", "lasso_final")]
+  sm <- data.frame(libname   = cells_keep,
+                   xpos      = prep$coords$xpos[idx],
+                   ypos      = prep$coords$ypos[idx],
+                   cell_type = ct$lasso_final[match(id_for_key, trimws(ct$id))])
+
+  st <- methods::new("STlist")
+  st@counts       <- setNames(list(prep$counts[, cells_keep, drop = FALSE]), fov_name)
+  st@spatial_meta <- setNames(list(sm), fov_name)
+  st@sample_meta  <- tibble(sample = fov_name)
+  transform_data(st, method = "sct")
+}
+```
+
+```{r settings, echo=TRUE, results="hide"}
+# Data sources (downloaded automatically on first use)
+GEO_VISIUM_URL        <- "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE175nnn/GSE175540/suppl/GSE175540_RAW.tar"
+ZENODO_COSMX_URL      <- "https://zenodo.org/records/12730227/files/seurat_object.Rds?download=1"
+SPRINGER_CLINICAL_URL <- "https://static-content.springer.com/esm/art%3A10.1186%2Fs13059-024-03435-z/MediaObjects/13059_2024_3435_MOESM2_ESM.xlsx"
+SPRINGER_REFERER      <- "https://genomebiology.biomedcentral.com/articles/10.1186/s13059-024-03435-z"
+
+# Local folders (YAML params override; empty = temporary folder)
+data_root   <- file.path(tempdir(), "spatial_data")
+visium_root <- if (nzchar(params$visium_root)) path.expand(params$visium_root) else
+  file.path(data_root, "Visium", "GSE175540")
+cosmx_root  <- if (nzchar(params$cosmx_root)) path.expand(params$cosmx_root) else
+  file.path(data_root, "CosMx", "CosMx_ccRCC")
+out_root    <- if (nzchar(params$out_root)) path.expand(params$out_root) else
+  file.path(tempdir(), "spatialGE_outputs")
+
+run_visium <- isTRUE(params$run_visium)
+run_cosmx  <- isTRUE(params$run_cosmx)
+stopifnot(run_visium || run_cosmx)
+n_cores <- max(1, parallel::detectCores() - 1)
+```
+
+## Step 1: Download the data
+
+Each call below fetches the raw files if they are not already present. For Visium the GEO archive is
+unpacked into one Space Ranger folder per section; for CosMx the Seurat object and the clinical table
+(which defines IO status) are downloaded. The helper functions are defined in the hidden `helpers` chunk of the
+Rmd source.
+
+```{r download-data, echo=TRUE, results="hide"}
+if (run_visium) {
+  ds_root <- download_visium(visium_root, GEO_VISIUM_URL)
+  visium_cfg <- list(ds_root = ds_root, mode = "GSE175540",
+                     out_dir = file.path(out_root, "spatialGE_out", "GSE175540"))
+}
+if (run_cosmx) {
+  cosmx_inputs <- download_cosmx(cosmx_root, ZENODO_COSMX_URL,
+                                 SPRINGER_CLINICAL_URL, SPRINGER_REFERER)
+  cosmx_cfg <- list(cosmx_root = cosmx_root, inputs = cosmx_inputs,
+                    out_dir = file.path(out_root, "spatialGE_out", "cosmx"))
+}
+```
+
+## Step 2: Build the STlist objects
+
+**Visium.** One `STlist` is created per section from its Space Ranger folder, spots with fewer than 500
+reads or 300 genes are removed, and counts are log-transformed. The sections are then merged into a single object.
+
+```{r build-visium, echo=TRUE, results="hide"}
+STs <- list()
+
+if (run_visium) {
+  sample_dirs <- visium_sample_dirs(visium_cfg$ds_root)
+
+  build_sample <- function(d) {
+    st <- STlist(d, samples = basename(d), cores = 1)
+    st <- filter_data(st, spot_minreads = 500, spot_mingenes = 300)
+    transform_data(st, method = "log", cores = 1)
   }
+  per_sample <- lapply(sample_dirs, function(d)
+    tryCatch(build_sample(d), error = function(e) NULL))
+  names(per_sample) <- basename(sample_dirs)
+
+  st_v <- merge_stlists(per_sample)
+  STs$visium <- list(st = st_v, smp1 = names(st_v@spatial_meta)[1],
+                     out_dir = visium_cfg$out_dir,
+                     label = paste0("Visium (", length(st_v@spatial_meta), " samples)"),
+                     fov = NA_character_, mode = visium_cfg$mode)
+}
+```
+
+**CosMx.** The Seurat object is read together with the clinical table, which assigns each FOV an
+IO status (IO-naive or IO-exposed). Every tumour FOV with a known IO status becomes one `STlist`
+(counts, cell coordinates, cell type; SCT-normalised), and the FOVs are merged into a single object.
+
+```{r build-cosmx, echo=TRUE, results="hide"}
+if (run_cosmx) {
+  prep   <- load_cosmx(cosmx_cfg$inputs, params$cosmx_celltype_col)
+  io_map    <- prep$io_map      # FOV -> IO status
+  celltypes <- prep$celltypes   # per-cell type labels, used for abundance later
+
+  requested <- if (identical(tolower(as.character(params$cosmx_fov)), "all")) {
+    prep$design %>%
+      filter(FOV_majority == "Tumor", !is.na(IO)) %>%
+      transmute(fov_name = paste0(Slide_name, "_fov", fov)) %>%
+      pull(fov_name)
+  } else trimws(strsplit(as.character(params$cosmx_fov), ",")[[1]])
   requested <- unique(requested[!is.na(requested) & nzchar(requested)])
 
-  # One STlist per FOV, merged
-  st_per_fov <- lapply(requested, function(fov_name) {
-    parts <- stringr::str_match(fov_name, "^(RCC\\d+)_fov(\\d+)$")
-    if (is.na(parts[1, 1])) return(NULL)
-    slide_name <- parts[1, 2]; fov_int <- as.integer(parts[1, 3])
+  st_per_fov <- setNames(lapply(requested, build_cosmx_fov, prep = prep), requested)
+  st_multi   <- merge_stlists(st_per_fov)
 
-    cells_keep <- rownames(seu@meta.data)[
-      seu@meta.data$Slide_name == slide_name & seu@meta.data$fov == fov_int]
-    cells_keep <- intersect(cells_keep, colnames(seu))
-    if (length(cells_keep) < 10) return(NULL)
-
-    counts_sub <- counts_all[, cells_keep, drop = FALSE]
-    id_for_key <- trimws(as.character(seu@meta.data[cells_keep, id_col]))
-    idx        <- match(id_for_key, coords_all$id)
-    if (any(is.na(idx))) return(NULL)
-
-    coords_sub <- data.frame(libname = cells_keep,
-                             xpos    = coords_all$xpos[idx],
-                             ypos    = coords_all$ypos[idx])
-
-    ct_key <- paste0(slide_name, "_", fov_int)
-    ct     <- celltypes[celltypes$unique_fov == ct_key, c("id", "lasso_final")]
-    cell_type_vec <- ct$lasso_final[match(id_for_key, trimws(ct$id))]
-
-    st <- methods::new("STlist")
-    st@counts       <- setNames(list(counts_sub), fov_name)
-    sm              <- coords_sub
-    sm$cell_type    <- cell_type_vec
-    st@spatial_meta <- setNames(list(sm), fov_name)
-    st@sample_meta  <- tibble(sample = fov_name)
-    transform_data(st, method = "sct")
-  })
-  names(st_per_fov) <- requested
-  st_per_fov <- st_per_fov[!vapply(st_per_fov, is.null, logical(1))]
-
-  # Merge into one STlist
-  st_multi <- methods::new("STlist")
-  st_multi@counts       <- list()
-  st_multi@tr_counts    <- list()
-  st_multi@spatial_meta <- list()
-  st_multi@sample_meta  <- tibble(sample = character(0))
-  for (nm in names(st_per_fov)) {
-    s <- st_per_fov[[nm]]
-    st_multi@counts[[nm]]       <- s@counts[[nm]]
-    st_multi@tr_counts[[nm]]    <- s@tr_counts[[nm]]
-    st_multi@spatial_meta[[nm]] <- s@spatial_meta[[nm]]
-    st_multi@sample_meta        <- rbind(st_multi@sample_meta, s@sample_meta)
-  }
-
-  STs$cosmx <- list(st      = st_multi,
-                    smp1    = names(st_multi@spatial_meta)[1],
+  STs$cosmx <- list(st = st_multi, smp1 = names(st_multi@spatial_meta)[1],
                     out_dir = cosmx_cfg$out_dir,
-                    label   = paste0("CosMx (", length(st_multi@spatial_meta),
-                                     " FOVs)"),
-                    fov     = requested)
+                    label = paste0("CosMx (", length(st_multi@spatial_meta), " FOVs)"),
+                    fov = requested)
+  rm(prep); invisible(gc())
 }
 ```
 
@@ -706,11 +647,11 @@ STniche is run jointly on all samples of a platform, so niche labels (C1, C2, ..
 samples and directly comparable. The ten gene sets below were chosen to cover the programmes that
 define lymphoid organisation (TLS, germinal centre, antigen presentation) and the inflammatory
 signalling that accompanies it (interferon, complement, NF-kB, cytokine pathways).
-The two `build-*` chunks above show exactly how each `STlist` was assembled from disk: one Space Ranger
-folder per Visium section, and one expression plus metadata CSV pair per CosMx FOV. To use your own
-data, replace the paths in the `settings` chunk (`visium_root`, `cosmx_root`) with your folders; the
-required file layout per platform is visible in the `build-visium` and `build-cosmx` chunks. Every
-`STlist` must be transformed before `STniche`; the `filter_data` and `transform_data` calls are inside
+The two `build-*` chunks above show the main steps used to assemble each `STlist`: one Space Ranger
+folder per Visium section, and one subset of the CosMx Seurat object per FOV. To use your own
+data, set `visium_root` / `cosmx_root` in the YAML header to your folders; the required Visium layout
+is one Space Ranger folder per sample (see `visium_sample_dirs()` in the `helpers` chunk). Every
+`STlist` must be transformed before `STniche`; the `filter_data` and `transform_data` calls are in
 those same chunks.
 
 ```{r gene-set-table}
