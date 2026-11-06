@@ -112,7 +112,7 @@ This vignette applies STniche to two technologies and uses each to answer a spec
 # Setup and data
 
 All data are downloaded automatically on first use (GEO for Visium; Zenodo and Springer for CosMx).
-Set `visium_root`, `cosmx_root` or `out_root` in the YAML header to reuse local copies.
+Set `visium_root`, `cosmx_root` or `out_root` in the YAML header to reuse local copies. Download, extraction, and STlist construction are all shown in the chunks below so the required inputs and their on-disk layout are explicit. Their printed progress output is suppressed to keep the page readable; if you run this locally, set results="asis" on the settings, build-visium, or build-cosmx chunks to see the download and per-sample progress messages.
 
 
 ```{r settings, echo=TRUE, results="hide"}
@@ -556,10 +556,6 @@ if (run_cosmx) {
                                      " FOVs)"),
                     fov     = requested)
 }
-```
-
-```{r build-summary, echo=TRUE}
-cat("Platforms built: ", paste(names(STs), collapse = ", "), "\n", sep = "")
 ```
 
 

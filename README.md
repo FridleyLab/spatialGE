@@ -71,25 +71,45 @@ composition and immune signaling in IO-naive and IO-exposed tumors.
 **New**
 
 - `STniche` and `plot_stniche` for spatial niche detection on Visium and CosMx data.
-- Subset an `STlist` by sample with `x[i]`; `length(x)` now returns the number of samples.
-- Seurat v5 support, and `as_Seurat()` for converting back.
-- Optional on-disk storage for data larger than memory (`STlist_to_disk()`, `STlist_to_memory()`).
-- Parallel processing on Windows.
-- Faster and lighter on large datasets: `SThet`, `STgradient`, `filter_data`, and `STdiff` (t-test/Wilcoxon) now scale to Xenium- and CosMx-sized samples.
+- Subset an `STlist` by sample with `x[i]` (name, position, negative position, or logical); `length(x)` now returns the number of samples. `x[i, j]` and `x[[i]]` raise an error by design.
+- Seurat v5 support (uses `DefaultAssay()`, sparse import) and `as_Seurat()` for converting back.
+- Optional on-disk (parquet) storage for data larger than memory: `STlist_to_disk()`, `STlist_to_memory()`, `is_backed()`, `validate_store()`. It adds capacity, not speed.
+- Parallel processing on Windows (PSOCK backend; force it elsewhere with `options(spatialGE.psock = TRUE)`).
+- `filter_data()` now reports what it removed (`verbose = TRUE`), or that nothing was filtered.
+- Scales to Xenium- and CosMx-sized samples (200 genes x 50,000 cells benchmark):
+  - `filter_data` 27x faster, per-gene SD 42x, log transformation 33x (identical output).
+  - `STdiff` t-test/Wilcoxon 17-27x faster (default `mm` path unchanged).
+  - `STgradient` distances computed in O(n) memory (previously ~20 GB at 50,000 cells); output is bit-identical.
+  - `SThet` (default `k = NULL`) no longer builds a weights list (previously ~1.2 GB for 4,096 spots).
 
 **Changes that may affect existing code**
 
-- `dim()` on an `STlist` returns `c(n_genes, n_spots)` for a single sample and `NULL` for multiple samples; use `summarize_STlist()` for per-sample dimensions.
+- `dim()` returns `c(n_genes, n_spots)` for a single sample and `NULL` for multiple samples; use `summarize_STlist()` for per-sample dimensions.
 - `STlist` objects are validated at construction.
-- Unmatched genes, annotations, or domains now raise an error instead of being silently ignored.
-- `STenrich()` requires `annot` and `domain` to be supplied together.
-- Spots are now ordered deterministically by coordinates.
-- In `@gene_meta`, `vst.variance.standardized` now precedes `moran_i` and `geary_c`; select columns by name.
+- Unmatched genes, annotations, or domains now raise an error instead of being silently ignored (`SThet(genes=)`, `STgradient(annot=, ref=)`, `gene_interpolation(genes=)`). Partial matches give a message naming what was dropped.
+- `STenrich()` requires `annot` and `domain` together. In 1.2.x, passing only one silently ran the *unrestricted* analysis; regenerate those results.
+- `transform_data()` now populates `vst.variance.standardized` in `@gene_meta` (for `log` and `sct`), which now precedes `moran_i` and `geary_c`; select columns by name. Samples with fewer than 4 non-constant genes get a warning and no VST column, instead of failing.
+- A Seurat object's platform is now inferred from its image class (it was always assumed Visium), which affects `STgradient()`'s default `nb_dist_thr` for Xenium/CosMx imports.
+- `cores=` is now honored by `STlist()` and `transform_data()`. Use `cores = 1` when exact `sct` reproducibility matters on large samples.
+- Spots are now ordered deterministically by coordinates (the third coordinate column, normally `xpos` then `ypos`). Values are identical when matched by name, but column order of `@counts`/`@tr_counts` and row order of `@spatial_meta` can change; address spots by `libname`, not position.
+- Some results depend on spot order by construction (as in 1.2.x, but now fixed by coordinates rather than file layout): `STenrich()` p-values, `SThet(k=)` Moran's I (up to ~0.02), `STgradient(distsumm = 'avg')` correlations (up to ~0.004), and density/jitter in `plot_counts()` and violin plots. For order-independent values, use `SThet()` without `k`, `distsumm = 'min'`, and a higher `reps` in `STenrich()`.
+- Negligible numeric shifts: `SThet()` default (~2e-15) and `gene_stdevs` (~1e-16). `@misc$sthet$listws` is no longer populated on the default path.
+- Validation errors now carry the `spatialGE exception:` prefix; match on that rather than on exact wording.
 
 **Fixes**
 
-- `pseudobulk_heatmap()` previously displayed the *least* variable genes. Heatmaps from 1.2.x should be regenerated.
-- `STenrich(annot=, domain=)` now works; it failed in 1.2.1 and 1.2.2.
+- `pseudobulk_heatmap()` previously displayed the *least* variable genes (CV was computed as mean/sd). Heatmaps from 1.2.x should be regenerated.
+- `STenrich(annot=, domain=)` now works; it failed in 1.2.1 and 1.2.2. A single-gene set no longer crashes it.
+- Objects returned by `gene_interpolation()` no longer fail `validObject()`.
+- `load_images()` matches images by normalized sample name across all directories and warns on unreadable files, instead of dropping samples.
+- `STplot_interpolation()` works with its default `genes = NULL`.
+- `STdiff()` gives a clear error for numeric or single-group `annot=`, and no longer emits dplyr's many-to-many warning.
+- `transform_data(method = 'sct')` errors now name the sample and its dimensions; invalid `cores=` is caught on every path.
+- `pseudobulk_samples()` drops constant genes with a warning instead of failing.
+- `SThet()` works on a row-subset `@spatial_meta`; `STlist()` accepts a Seurat object with `samples = NULL`; `filter_data()` can keep exactly one spot; `Seurat_FindVariableFeatures()` accepts non-`dgCMatrix` input; `STgradient()` no longer leaks `pval_comment` between genes.
+- All 14 documented examples now run.
+
+**Earlier releases:** 1.2.1 added C++ speedups and GSVA scoring for `STenrich`, domain-restricted enrichment, log distances in `STgradient`, and `spatial_metadata()`/`tissue_names()`. 1.2.0 introduced `STenrich`, `STgradient`, and `STdiff`. 1.1.0 changed `STlist` in ways incompatible with 1.0 objects.
 
 See [NEWS.md](NEWS.md) for the full list of changes.
 
