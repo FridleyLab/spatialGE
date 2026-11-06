@@ -100,7 +100,7 @@ CosMx (ccRCC) case studies</h3>
                         <h4 data-toc-skip class="author">Yonatan
 Mekonnen</h4>
             
-            <h4 data-toc-skip class="date">2026-11-04</h4>
+            <h4 data-toc-skip class="date">2026-11-05</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/FridleyLab/spatialGE/blob/HEAD/vignettes/vignette_stniche.Rmd" class="external-link"><code>vignettes/vignette_stniche.Rmd</code></a></small>
       <div class="hidden name"><code>vignette_stniche.Rmd</code></div>
@@ -170,8 +170,449 @@ niche, and does niche-level immune activity differ between immunotherapy
 <p>All data are downloaded automatically on first use (GEO for Visium;
 Zenodo and Springer for CosMx). Set <code>visium_root</code>,
 <code>cosmx_root</code> or <code>out_root</code> in the YAML header to
-reuse local copies. Only the analysis steps are echoed in this document;
-download and import code is hidden for readability.</p>
+reuse local copies. Download, extraction, and STlist construction are
+all shown in the chunks below so the required inputs and their on-disk
+layout are explicit. Their printed progress output is suppressed to keep
+the page readable; if you run this locally, set results=“asis” on the
+settings, build-visium, or build-cosmx chunks to see the download and
+per-sample progress messages.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">`%||%`</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">a</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0L</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">a</span>, <span class="st">""</span><span class="op">)</span><span class="op">)</span> <span class="va">b</span> <span class="kw">else</span> <span class="va">a</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">ensure_download</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">url</span>, <span class="va">dest</span>, <span class="va">min_bytes</span> <span class="op">=</span> <span class="fl">1e6</span>, <span class="va">retries</span> <span class="op">=</span> <span class="fl">2L</span>,</span>
+<span>                            <span class="va">referer</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">user_agent</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">dirname</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="va">min_bytes</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  [SKIP] "</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span>, <span class="st">" ("</span>,</span>
+<span>        <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span> <span class="op">/</span> <span class="fl">1024</span><span class="op">^</span><span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span>, <span class="st">" MB)\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.remove</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span></span>
+<span>  <span class="va">ua</span> <span class="op">&lt;-</span> <span class="va">user_agent</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="st">"R-spatialGE"</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">retries</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  [DOWNLOAD try "</span>, <span class="va">i</span>, <span class="st">"] "</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span>, <span class="st">" ...\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>    <span class="va">ok</span> <span class="op">&lt;-</span> <span class="cn">FALSE</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.which.html" class="external-link">Sys.which</a></span><span class="op">(</span><span class="st">"curl"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">extra</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>        <span class="st">"-L -sS -C - "</span>,</span>
+<span>        <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">referer</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"-e '%s' "</span>, <span class="va">referer</span><span class="op">)</span> <span class="kw">else</span> <span class="st">""</span>,</span>
+<span>        <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"-A '%s' "</span>, <span class="va">ua</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="va">ok</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>        <span class="fu"><a href="https://rdrr.io/r/base/system.html" class="external-link">system</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"curl %s -o %s '%s'"</span>,</span>
+<span>                       <span class="va">extra</span>, <span class="fu"><a href="https://rdrr.io/r/base/shQuote.html" class="external-link">shQuote</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span>, <span class="va">url</span><span class="op">)</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0L</span></span>
+<span>      <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">ok</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">ok</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>        <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="va">url</span>, <span class="va">dest</span>, mode <span class="op">=</span> <span class="st">"wb"</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>        <span class="cn">TRUE</span></span>
+<span>      <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="cn">FALSE</span>, warning <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">ok</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">dest</span><span class="op">)</span> <span class="op">&gt;=</span> <span class="va">min_bytes</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Failed to download: "</span>, <span class="va">url</span>, <span class="st">" -&gt; "</span>, <span class="va">dest</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">GEO_VISIUM_URL</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>  <span class="st">"https://ftp.ncbi.nlm.nih.gov/geo/series/GSE175nnn/"</span>,</span>
+<span>  <span class="st">"GSE175540/suppl/GSE175540_RAW.tar"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">ZENODO_COSMX_URL</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>  <span class="st">"https://zenodo.org/records/12730227/files/seurat_object.Rds?download=1"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">SPRINGER_CLINICAL_URL</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>  <span class="st">"https://static-content.springer.com/esm/"</span>,</span>
+<span>  <span class="st">"art%3A10.1186%2Fs13059-024-03435-z/MediaObjects/"</span>,</span>
+<span>  <span class="st">"13059_2024_3435_MOESM2_ESM.xlsx"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">SPRINGER_REFERER</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
+<span>  <span class="st">"https://genomebiology.biomedcentral.com/articles/10.1186/s13059-024-03435-z"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">data_root</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"spatial_data"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">data_root</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">visium_root</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">visium_root</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="st">""</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/path.expand.html" class="external-link">path.expand</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">visium_root</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">data_root</span>, <span class="st">"Visium"</span>, <span class="st">"GSE175540"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cosmx_root</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">cosmx_root</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="st">""</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/path.expand.html" class="external-link">path.expand</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">cosmx_root</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">data_root</span>, <span class="st">"CosMx"</span>, <span class="st">"CosMx_ccRCC"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">out_root</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">out_root</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="st">""</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/path.expand.html" class="external-link">path.expand</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">out_root</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"spatialGE_outputs"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out_root</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">run_visium</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">run_visium</span><span class="op">)</span></span>
+<span><span class="va">run_cosmx</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">run_cosmx</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="va">run_visium</span> <span class="op">||</span> <span class="va">run_cosmx</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">n_cores</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fu">parallel</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/parallel/detectCores.html" class="external-link">detectCores</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">visium_cfg</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">run_visium</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">gse_root</span> <span class="op">&lt;-</span> <span class="va">visium_root</span></span>
+<span></span>
+<span>  <span class="va">visium_ready</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.exists</a></span><span class="op">(</span><span class="va">gse_root</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^ffpe|^frozen"</span>,</span>
+<span>              <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.dirs</a></span><span class="op">(</span><span class="va">gse_root</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">visium_ready</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== Visium: auto-download from GEO ===\n"</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">gse_root</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="va">tarball</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">gse_root</span>, <span class="st">"GSE175540_RAW.tar"</span><span class="op">)</span></span>
+<span>    <span class="fu">ensure_download</span><span class="op">(</span><span class="va">GEO_VISIUM_URL</span>, <span class="va">tarball</span>, min_bytes <span class="op">=</span> <span class="fl">900e6</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  [EXTRACT] tar -xf ...\n"</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/system.html" class="external-link">system</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"tar -xf %s -C %s"</span>,</span>
+<span>                   <span class="fu"><a href="https://rdrr.io/r/base/shQuote.html" class="external-link">shQuote</a></span><span class="op">(</span><span class="va">tarball</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/shQuote.html" class="external-link">shQuote</a></span><span class="op">(</span><span class="va">gse_root</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  [FIX] Decompress spatial .gz ...\n"</span><span class="op">)</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">f_gz</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">gse_root</span>,</span>
+<span>                            pattern <span class="op">=</span> <span class="st">"\\.(csv|json|png)\\.gz$"</span>,</span>
+<span>                            full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/system.html" class="external-link">system</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"gunzip -kf %s"</span>, <span class="fu"><a href="https://rdrr.io/r/base/shQuote.html" class="external-link">shQuote</a></span><span class="op">(</span><span class="va">f_gz</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  [FIX] Restructure into per-sample folders ...\n"</span><span class="op">)</span></span>
+<span>    <span class="va">h5s</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">gse_root</span>, pattern <span class="op">=</span> <span class="st">"_feature_bc_matrix\\.h5$"</span>,</span>
+<span>                      full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">h5</span> <span class="kw">in</span> <span class="va">h5s</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">base_name</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_(filtered|raw)_feature_bc_matrix\\.h5$"</span>, <span class="st">""</span>,</span>
+<span>                       <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">h5</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="va">sample</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"^GSM\\d+_"</span>, <span class="st">""</span>, <span class="va">base_name</span><span class="op">)</span></span>
+<span>      <span class="va">sdir</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">gse_root</span>, <span class="va">sample</span><span class="op">)</span></span>
+<span>      <span class="va">spdir</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">sdir</span>, <span class="st">"spatial"</span><span class="op">)</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">spdir</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>      <span class="va">new_h5</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">sdir</span>, <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">h5</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">new_h5</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.rename</a></span><span class="op">(</span><span class="va">h5</span>, <span class="va">new_h5</span><span class="op">)</span></span>
+<span>      <span class="kw">for</span> <span class="op">(</span><span class="va">std</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"tissue_positions_list.csv"</span>, <span class="st">"scalefactors_json.json"</span>,</span>
+<span>                    <span class="st">"tissue_hires_image.png"</span>, <span class="st">"tissue_lowres_image.png"</span>,</span>
+<span>                    <span class="st">"TLS_annotation.csv"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>        <span class="va">src</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">gse_root</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">base_name</span>, <span class="st">"_"</span>, <span class="va">std</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="va">dst</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">spdir</span>, <span class="va">std</span><span class="op">)</span></span>
+<span>        <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">src</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">dst</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.rename</a></span><span class="op">(</span><span class="va">src</span>, <span class="va">dst</span><span class="op">)</span></span>
+<span>      <span class="op">}</span></span>
+<span>    <span class="op">}</span></span>
+<span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  [FIX] Prefix collisions ...\n"</span><span class="op">)</span></span>
+<span>    <span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.dirs</a></span><span class="op">(</span><span class="va">gse_root</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="va">sn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">sd</span><span class="op">)</span></span>
+<span>    <span class="va">colliders</span> <span class="op">&lt;-</span> <span class="va">sn</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">sn</span>, <span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">sn</span> <span class="op">!=</span> <span class="va">n</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="va">sn</span>, <span class="va">n</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">n</span> <span class="kw">in</span> <span class="va">colliders</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">old</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">gse_root</span>, <span class="va">n</span><span class="op">)</span></span>
+<span>      <span class="va">padded</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"_[^_]+$"</span>, <span class="st">"_"</span>, <span class="va">n</span><span class="op">)</span>,</span>
+<span>                       <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%02d"</span>, <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">"^.*_"</span>, <span class="st">""</span>, <span class="va">n</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="va">new</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">gse_root</span>, <span class="va">padded</span><span class="op">)</span></span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.exists</a></span><span class="op">(</span><span class="va">new</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.rename</a></span><span class="op">(</span><span class="va">old</span>, <span class="va">new</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="va">visium_ready</span> <span class="op">&lt;-</span> <span class="cn">TRUE</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  [DONE] Visium ready at "</span>, <span class="va">gse_root</span>, <span class="st">"\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">visium_ready</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Visium root not ready after download: "</span>, <span class="va">gse_root</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">ds_root</span>     <span class="op">&lt;-</span> <span class="va">gse_root</span></span>
+<span>  <span class="va">visium_mode</span> <span class="op">&lt;-</span> <span class="st">"GSE175540"</span></span>
+<span></span>
+<span>  <span class="va">out_dir_v</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out_root</span>, <span class="st">"spatialGE_out"</span>, <span class="st">"GSE175540"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out_dir_v</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Platform  : visium ("</span>, <span class="va">visium_mode</span>, <span class="st">")\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  Input   : "</span>, <span class="va">ds_root</span>,    <span class="st">"\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  Out dir : "</span>, <span class="va">out_dir_v</span>, <span class="st">"\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>  <span class="va">visium_cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ds_root <span class="op">=</span> <span class="va">ds_root</span>, out_dir <span class="op">=</span> <span class="va">out_dir_v</span>,</span>
+<span>                     mode <span class="op">=</span> <span class="va">visium_mode</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Platform  : visium (disabled)\n"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">cosmx_cfg</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">run_cosmx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">cosmx_fov</span> <span class="op">&lt;-</span> <span class="va">params</span><span class="op">$</span><span class="va">cosmx_fov</span></span>
+<span>  <span class="va">step123</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out_root</span>, <span class="st">"cosmx_step1_2_3"</span><span class="op">)</span></span>
+<span>  <span class="va">out_dir_c</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">out_root</span>, <span class="st">"spatialGE_out"</span>, <span class="st">"cosmx"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">step123</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">out_dir_c</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">cosmx_root</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, showWarnings <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">seu_path</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">cosmx_root</span>, <span class="st">"seurat_object.Rds"</span><span class="op">)</span></span>
+<span>  <span class="va">clin_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">cosmx_root</span>, <span class="st">"13059_2024_3435_MOESM2_ESM.xlsx"</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">seu_path</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">seu_path</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">500e6</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== CosMx: auto-download seurat_object.Rds from Zenodo ===\n"</span><span class="op">)</span></span>
+<span>    <span class="fu">ensure_download</span><span class="op">(</span><span class="va">ZENODO_COSMX_URL</span>, <span class="va">seu_path</span>, min_bytes <span class="op">=</span> <span class="fl">500e6</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">clin_path</span><span class="op">)</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">clin_path</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1000</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== CosMx: auto-download clinical xlsx from Springer ===\n"</span><span class="op">)</span></span>
+<span>    <span class="fu">ensure_download</span><span class="op">(</span><span class="va">SPRINGER_CLINICAL_URL</span>, <span class="va">clin_path</span>, min_bytes <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>                    referer <span class="op">=</span> <span class="va">SPRINGER_REFERER</span>, user_agent <span class="op">=</span> <span class="st">"Mozilla/5.0"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span></span>
+<span>  <span class="va">inputs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    clinical_xlsx <span class="op">=</span> <span class="va">clin_path</span>,</span>
+<span>    seurat_rds    <span class="op">=</span> <span class="va">seu_path</span></span>
+<span>  <span class="op">)</span></span>
+<span>  <span class="va">miss</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">inputs</span><span class="op">)</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/files.html" class="external-link">file.exists</a></span><span class="op">(</span><span class="va">inputs</span><span class="op">)</span><span class="op">]</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">miss</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"Missing CosMx inputs in "</span>, <span class="va">cosmx_root</span>, <span class="st">":\n  "</span>,</span>
+<span>         <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">miss</span>, collapse <span class="op">=</span> <span class="st">"\n  "</span><span class="op">)</span>,</span>
+<span>         <span class="st">"\nCheck network access, or set cosmx_root to a folder containing these files."</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Platform  : cosmx (enabled)\n"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  Input   : "</span>, <span class="va">cosmx_root</span>, <span class="st">"\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  Out dir : "</span>, <span class="va">out_dir_c</span>,  <span class="st">"\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>  <span class="va">cosmx_cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cosmx_root <span class="op">=</span> <span class="va">cosmx_root</span>, cosmx_fov <span class="op">=</span> <span class="va">cosmx_fov</span>,</span>
+<span>                    step123 <span class="op">=</span> <span class="va">step123</span>, out_dir <span class="op">=</span> <span class="va">out_dir_c</span>,</span>
+<span>                    inputs <span class="op">=</span> <span class="va">inputs</span><span class="op">)</span></span>
+<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Platform  : cosmx (disabled)\n"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">STs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">if</span> <span class="op">(</span><span class="va">run_visium</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== Building Visium STlist ("</span>, <span class="va">visium_cfg</span><span class="op">$</span><span class="va">mode</span>, <span class="st">") ===\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">sample_dirs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.dirs</a></span><span class="op">(</span><span class="va">visium_cfg</span><span class="op">$</span><span class="va">ds_root</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>                           full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="va">sample_dirs</span> <span class="op">&lt;-</span> <span class="va">sample_dirs</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">sample_dirs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">d</span>, pattern <span class="op">=</span> <span class="st">"_filtered_feature_bc_matrix\\.h5$"</span><span class="op">)</span><span class="op">)</span> <span class="op">&gt;</span> <span class="fl">0</span></span>
+<span>  <span class="op">}</span><span class="op">)</span><span class="op">]</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">sample_dirs</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"No Space-Ranger sample folders under "</span>, <span class="va">visium_cfg</span><span class="op">$</span><span class="va">ds_root</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Remove stale symlinks so the canonical files are read</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">d</span> <span class="kw">in</span> <span class="va">sample_dirs</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">rel</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"filtered_feature_bc_matrix.h5"</span>,</span>
+<span>                  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"spatial"</span>, <span class="st">"tissue_positions_list.csv"</span><span class="op">)</span>,</span>
+<span>                  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"spatial"</span>, <span class="st">"scalefactors_json.json"</span><span class="op">)</span>,</span>
+<span>                  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"spatial"</span>, <span class="st">"tissue_hires_image.png"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">fp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">d</span>, <span class="va">rel</span><span class="op">)</span></span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.readlink.html" class="external-link">Sys.readlink</a></span><span class="op">(</span><span class="va">fp</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">fp</span>, force <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span>  <span class="op">}</span></span>
+<span></span>
+<span>  <span class="va">sample_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">sample_dirs</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># One STlist per sample, then merge</span></span>
+<span>  <span class="va">per_sample</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">sample_dirs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">nm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">d</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"  building "</span>, <span class="va">nm</span>, <span class="st">" ... "</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span>    <span class="va">st_i</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/STlist.html">STlist</a></span><span class="op">(</span><span class="va">d</span>, samples <span class="op">=</span> <span class="va">nm</span>, cores <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>                     error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"FAILED\n"</span><span class="op">)</span>; <span class="cn">NULL</span> <span class="op">}</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">st_i</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
+<span>    <span class="va">st_i</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/filter_data.html">filter_data</a></span><span class="op">(</span><span class="va">st_i</span>, spot_minreads <span class="op">=</span> <span class="fl">500</span>, spot_mingenes <span class="op">=</span> <span class="fl">300</span><span class="op">)</span>,</span>
+<span>                     error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">st_i</span><span class="op">)</span></span>
+<span>    <span class="va">st_i</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/transform_data.html">transform_data</a></span><span class="op">(</span><span class="va">st_i</span>, method <span class="op">=</span> <span class="st">"log"</span>, cores <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>                     error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">st_i</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"ok\n"</span><span class="op">)</span></span>
+<span>    <span class="va">st_i</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">per_sample</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">sample_names</span></span>
+<span>  <span class="va">per_sample</span> <span class="op">&lt;-</span> <span class="va">per_sample</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">per_sample</span>, <span class="va">is.null</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span>  <span class="co"># Merge per-sample STlists into one</span></span>
+<span>  <span class="va">st_v</span> <span class="op">&lt;-</span> <span class="fu">methods</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/methods/new.html" class="external-link">new</a></span><span class="op">(</span><span class="st">"STlist"</span><span class="op">)</span></span>
+<span>  <span class="va">st_v</span><span class="op">@</span><span class="va">counts</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">st_v</span><span class="op">@</span><span class="va">tr_counts</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">st_v</span><span class="op">@</span><span class="va">spatial_meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">st_v</span><span class="op">@</span><span class="va">sample_meta</span>  <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="op">(</span>sample <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">nm</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">per_sample</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">per_sample</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="va">st_v</span><span class="op">@</span><span class="va">counts</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>       <span class="op">&lt;-</span> <span class="va">s</span><span class="op">@</span><span class="va">counts</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="va">st_v</span><span class="op">@</span><span class="va">tr_counts</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>    <span class="op">&lt;-</span> <span class="va">s</span><span class="op">@</span><span class="va">tr_counts</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="va">st_v</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">s</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="va">st_v</span><span class="op">@</span><span class="va">sample_meta</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">st_v</span><span class="op">@</span><span class="va">sample_meta</span>, <span class="va">s</span><span class="op">@</span><span class="va">sample_meta</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span></span>
+<span>  <span class="va">STs</span><span class="op">$</span><span class="va">visium</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>st      <span class="op">=</span> <span class="va">st_v</span>,</span>
+<span>                     smp1    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">st_v</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
+<span>                     out_dir <span class="op">=</span> <span class="va">visium_cfg</span><span class="op">$</span><span class="va">out_dir</span>,</span>
+<span>                     label   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"Visium ("</span>,</span>
+<span>                                      <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">st_v</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">)</span>, <span class="st">" samples)"</span><span class="op">)</span>,</span>
+<span>                     fov     <span class="op">=</span> <span class="cn">NA_character_</span>,</span>
+<span>                     mode    <span class="op">=</span> <span class="va">visium_cfg</span><span class="op">$</span><span class="va">mode</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">run_cosmx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== Building CosMx STlist ===\n"</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">suppressPackageStartupMessages</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat" class="external-link">Seurat</a></span><span class="op">)</span>; <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tibble.tidyverse.org/" class="external-link">tibble</a></span><span class="op">)</span>; <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stringr.tidyverse.org" class="external-link">stringr</a></span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Clinical sheet drives IO status</span></span>
+<span>  <span class="va">io_annot</span> <span class="op">&lt;-</span> <span class="fu">read_excel</span><span class="op">(</span><span class="va">cosmx_cfg</span><span class="op">$</span><span class="va">inputs</span><span class="op">[</span><span class="st">"clinical_xlsx"</span><span class="op">]</span>,</span>
+<span>                         sheet <span class="op">=</span> <span class="st">"Table S11"</span>, skip <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">select</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">7</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">mutate</span><span class="op">(</span>IO <span class="op">=</span> <span class="fu">if_else</span><span class="op">(</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">`Immunotherapy before Sample Collection`</span><span class="op">)</span> <span class="op">|</span></span>
+<span>        <span class="va">`Immunotherapy before Sample Collection`</span> <span class="op">==</span> <span class="st">"None"</span>,</span>
+<span>      <span class="st">"IO-naive"</span>, <span class="st">"IO-exposed"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">seu</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="va">cosmx_cfg</span><span class="op">$</span><span class="va">inputs</span><span class="op">[</span><span class="st">"seurat_rds"</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="va">seu</span><span class="op">$</span><span class="va">annotation</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="va">seu</span><span class="op">$</span><span class="va">annotation</span><span class="op">)</span></span>
+<span>  <span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">$</span><span class="va">fov</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">$</span><span class="va">fov</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">fov_annotation</span> <span class="op">&lt;-</span> <span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">count</span><span class="op">(</span><span class="va">Slide_name</span>, <span class="va">fov</span>, <span class="va">annotation</span>, name <span class="op">=</span> <span class="st">"n_cells"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">group_by</span><span class="op">(</span><span class="va">Slide_name</span>, <span class="va">fov</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">slice_max</span><span class="op">(</span><span class="va">n_cells</span>, n <span class="op">=</span> <span class="fl">1</span>, with_ties <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">ungroup</span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">rename</span><span class="op">(</span>FOV_majority <span class="op">=</span> <span class="va">annotation</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">io_map</span> <span class="op">&lt;-</span> <span class="va">io_annot</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">transmute</span><span class="op">(</span>Slide_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="va">`Tissue Slide`</span><span class="op">)</span>,</span>
+<span>              fov <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">FOV</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>              IO  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="va">IO</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">distinct</span><span class="op">(</span><span class="va">Slide_name</span>, <span class="va">fov</span>, .keep_all <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">design</span> <span class="op">&lt;-</span> <span class="va">fov_annotation</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">left_join</span><span class="op">(</span><span class="va">io_map</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Slide_name"</span>, <span class="st">"fov"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">arrange</span><span class="op">(</span><span class="va">Slide_name</span>, <span class="va">fov</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span> <span class="op">&lt;-</span> <span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">left_join</span><span class="op">(</span><span class="va">fov_annotation</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Slide_name"</span>, <span class="st">"fov"</span>, <span class="st">"FOV_majority"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>              by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Slide_name"</span>, <span class="st">"fov"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">left_join</span><span class="op">(</span><span class="va">io_map</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Slide_name"</span>, <span class="st">"fov"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Pick the counts assay</span></span>
+<span>  <span class="va">assay_use</span> <span class="op">&lt;-</span> <span class="op">{</span></span>
+<span>    <span class="va">found</span> <span class="op">&lt;-</span> <span class="cn">NA_character_</span></span>
+<span>    <span class="kw">for</span> <span class="op">(</span><span class="va">a</span> <span class="kw">in</span> <span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/ObjectAccess.html" class="external-link">Assays</a></span><span class="op">(</span><span class="va">seu</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">ok</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/AssayData.html" class="external-link">GetAssayData</a></span><span class="op">(</span><span class="va">seu</span>, assay <span class="op">=</span> <span class="va">a</span>, layer <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span>; <span class="cn">TRUE</span><span class="op">}</span>,</span>
+<span>                     error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>      <span class="kw">if</span> <span class="op">(</span><span class="va">ok</span><span class="op">)</span> <span class="op">{</span> <span class="va">found</span> <span class="op">&lt;-</span> <span class="va">a</span>; <span class="kw">break</span> <span class="op">}</span></span>
+<span>    <span class="op">}</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">found</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"No counts assay in Seurat object."</span><span class="op">)</span></span>
+<span>    <span class="va">found</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Using counts assay: "</span>, <span class="va">assay_use</span>, <span class="st">"\n"</span>, sep <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">counts_all</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/AssayData.html" class="external-link">GetAssayData</a></span><span class="op">(</span><span class="va">seu</span>, assay <span class="op">=</span> <span class="va">assay_use</span>, layer <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span>,</span>
+<span>    error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/AssayData.html" class="external-link">GetAssayData</a></span><span class="op">(</span><span class="va">seu</span>, assay <span class="op">=</span> <span class="va">assay_use</span>, slot <span class="op">=</span> <span class="st">"counts"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">counts_all</span><span class="op">)</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">seu</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span>      <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">counts_all</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">seu</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">counts_all</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">seu</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Coordinates from Seurat images</span></span>
+<span>  <span class="va">coords_all</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">im</span> <span class="kw">in</span> <span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/Images.html" class="external-link">Images</a></span><span class="op">(</span><span class="va">seu</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">ctr</span> <span class="op">&lt;-</span> <span class="va">seu</span><span class="op">@</span><span class="va">images</span><span class="op">[[</span><span class="va">im</span><span class="op">]</span><span class="op">]</span><span class="op">[[</span><span class="st">"centroids"</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">ctr</span><span class="op">)</span><span class="op">)</span> <span class="kw">next</span></span>
+<span>    <span class="va">tc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="fu">Seurat</span><span class="fu">::</span><span class="fu"><a href="https://satijalab.github.io/seurat-object/reference/GetTissueCoordinates.html" class="external-link">GetTissueCoordinates</a></span><span class="op">(</span><span class="va">ctr</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>,<span class="st">"y"</span>,<span class="st">"cell"</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">tc</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="kw">next</span></span>
+<span>    <span class="va">add</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>id   <span class="op">=</span> <span class="va">tc</span><span class="op">$</span><span class="va">cell</span>,</span>
+<span>                      xpos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">tc</span><span class="op">$</span><span class="va">x</span><span class="op">)</span>,</span>
+<span>                      ypos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">tc</span><span class="op">$</span><span class="va">y</span><span class="op">)</span>,</span>
+<span>                      stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="va">coords_all</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">coords_all</span><span class="op">)</span><span class="op">)</span> <span class="va">add</span></span>
+<span>                  <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">coords_all</span>,</span>
+<span>                             <span class="va">add</span><span class="op">[</span><span class="op">!</span><span class="va">add</span><span class="op">$</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">coords_all</span><span class="op">$</span><span class="va">id</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span></span>
+<span>  <span class="co"># Cell-type column</span></span>
+<span>  <span class="va">ct_col</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">cosmx_celltype_col</span> <span class="op"><a href="https://rdrr.io/r/base/Control.html" class="external-link">%||%</a></span> <span class="st">""</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">params</span><span class="op">$</span><span class="va">cosmx_celltype_col</span></span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nb_clus"</span>, <span class="st">"lasso_final"</span>, <span class="st">"annotation"</span>, <span class="st">"celltype"</span>, <span class="st">"cell_type"</span><span class="op">)</span>,</span>
+<span>              <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">ct_col</span><span class="op">)</span> <span class="op">||</span> <span class="op">!</span><span class="va">ct_col</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"No usable cell-type column. Set params$cosmx_celltype_col."</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">id_col</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"cell_ID"</span>, <span class="st">"cell_id"</span>, <span class="st">"cell"</span>, <span class="st">"barcode"</span>, <span class="st">"Barcode"</span>, <span class="st">"CellID"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span>  <span class="va">cell_ids</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">id_col</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span></span>
+<span>              <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">[[</span><span class="va">id_col</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="va">celltypes</span> <span class="op">&lt;-</span> <span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/transmute.html" class="external-link">transmute</a></span><span class="op">(</span></span>
+<span>      unique_fov  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">Slide_name</span>, <span class="st">"_"</span>, <span class="va">fov</span><span class="op">)</span>,</span>
+<span>      id          <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="va">cell_ids</span><span class="op">)</span>,</span>
+<span>      lasso_final <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">.data</span><span class="op">[[</span><span class="va">ct_col</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>    <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/distinct.html" class="external-link">distinct</a></span><span class="op">(</span><span class="va">unique_fov</span>, <span class="va">id</span>, .keep_all <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Which FOVs to build</span></span>
+<span>  <span class="va">requested</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">cosmx_fovs</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">cosmx_fovs</span><span class="op">)</span></span>
+<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
+<span>    <span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">cosmx_fov</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/chartr.html" class="external-link">tolower</a></span><span class="op">(</span><span class="va">raw</span><span class="op">)</span>, <span class="st">"all"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">design</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>        <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">FOV_majority</span> <span class="op">==</span> <span class="st">"Tumor"</span>, <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">IO</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>        <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/transmute.html" class="external-link">transmute</a></span><span class="op">(</span>fov_name <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">Slide_name</span>, <span class="st">"_fov"</span>, <span class="va">fov</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
+<span>        <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">fov_name</span><span class="op">)</span></span>
+<span>    <span class="op">}</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="va">raw</span>, <span class="st">","</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span>  <span class="va">requested</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">requested</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">requested</span><span class="op">)</span> <span class="op">&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nzchar</a></span><span class="op">(</span><span class="va">requested</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># One STlist per FOV, merged</span></span>
+<span>  <span class="va">st_per_fov</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">requested</span>, <span class="kw">function</span><span class="op">(</span><span class="va">fov_name</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">parts</span> <span class="op">&lt;-</span> <span class="fu">stringr</span><span class="fu">::</span><span class="fu"><a href="https://stringr.tidyverse.org/reference/str_match.html" class="external-link">str_match</a></span><span class="op">(</span><span class="va">fov_name</span>, <span class="st">"^(RCC\\d+)_fov(\\d+)$"</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">parts</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
+<span>    <span class="va">slide_name</span> <span class="op">&lt;-</span> <span class="va">parts</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">2</span><span class="op">]</span>; <span class="va">fov_int</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">parts</span><span class="op">[</span><span class="fl">1</span>, <span class="fl">3</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="va">cells_keep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">)</span><span class="op">[</span></span>
+<span>      <span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">$</span><span class="va">Slide_name</span> <span class="op">==</span> <span class="va">slide_name</span> <span class="op">&amp;</span> <span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">$</span><span class="va">fov</span> <span class="op">==</span> <span class="va">fov_int</span><span class="op">]</span></span>
+<span>    <span class="va">cells_keep</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">cells_keep</span>, <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">seu</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">cells_keep</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">10</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="va">counts_sub</span> <span class="op">&lt;-</span> <span class="va">counts_all</span><span class="op">[</span>, <span class="va">cells_keep</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
+<span>    <span class="va">id_for_key</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">seu</span><span class="op">@</span><span class="va">meta.data</span><span class="op">[</span><span class="va">cells_keep</span>, <span class="va">id_col</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">idx</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="va">id_for_key</span>, <span class="va">coords_all</span><span class="op">$</span><span class="va">id</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">idx</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="va">coords_sub</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>libname <span class="op">=</span> <span class="va">cells_keep</span>,</span>
+<span>                             xpos    <span class="op">=</span> <span class="va">coords_all</span><span class="op">$</span><span class="va">xpos</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span>,</span>
+<span>                             ypos    <span class="op">=</span> <span class="va">coords_all</span><span class="op">$</span><span class="va">ypos</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="va">ct_key</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">slide_name</span>, <span class="st">"_"</span>, <span class="va">fov_int</span><span class="op">)</span></span>
+<span>    <span class="va">ct</span>     <span class="op">&lt;-</span> <span class="va">celltypes</span><span class="op">[</span><span class="va">celltypes</span><span class="op">$</span><span class="va">unique_fov</span> <span class="op">==</span> <span class="va">ct_key</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"lasso_final"</span><span class="op">)</span><span class="op">]</span></span>
+<span>    <span class="va">cell_type_vec</span> <span class="op">&lt;-</span> <span class="va">ct</span><span class="op">$</span><span class="va">lasso_final</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="va">id_for_key</span>, <span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="va">ct</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span>    <span class="va">st</span> <span class="op">&lt;-</span> <span class="fu">methods</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/methods/new.html" class="external-link">new</a></span><span class="op">(</span><span class="st">"STlist"</span><span class="op">)</span></span>
+<span>    <span class="va">st</span><span class="op">@</span><span class="va">counts</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">counts_sub</span><span class="op">)</span>, <span class="va">fov_name</span><span class="op">)</span></span>
+<span>    <span class="va">sm</span>              <span class="op">&lt;-</span> <span class="va">coords_sub</span></span>
+<span>    <span class="va">sm</span><span class="op">$</span><span class="va">cell_type</span>    <span class="op">&lt;-</span> <span class="va">cell_type_vec</span></span>
+<span>    <span class="va">st</span><span class="op">@</span><span class="va">spatial_meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">sm</span><span class="op">)</span>, <span class="va">fov_name</span><span class="op">)</span></span>
+<span>    <span class="va">st</span><span class="op">@</span><span class="va">sample_meta</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span>sample <span class="op">=</span> <span class="va">fov_name</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/transform_data.html">transform_data</a></span><span class="op">(</span><span class="va">st</span>, method <span class="op">=</span> <span class="st">"sct"</span><span class="op">)</span></span>
+<span>  <span class="op">}</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">st_per_fov</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">requested</span></span>
+<span>  <span class="va">st_per_fov</span> <span class="op">&lt;-</span> <span class="va">st_per_fov</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">st_per_fov</span>, <span class="va">is.null</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span>  <span class="co"># Merge into one STlist</span></span>
+<span>  <span class="va">st_multi</span> <span class="op">&lt;-</span> <span class="fu">methods</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/methods/new.html" class="external-link">new</a></span><span class="op">(</span><span class="st">"STlist"</span><span class="op">)</span></span>
+<span>  <span class="va">st_multi</span><span class="op">@</span><span class="va">counts</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">st_multi</span><span class="op">@</span><span class="va">tr_counts</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">st_multi</span><span class="op">@</span><span class="va">spatial_meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="va">st_multi</span><span class="op">@</span><span class="va">sample_meta</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span>sample <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">nm</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">st_per_fov</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">s</span> <span class="op">&lt;-</span> <span class="va">st_per_fov</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="va">st_multi</span><span class="op">@</span><span class="va">counts</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>       <span class="op">&lt;-</span> <span class="va">s</span><span class="op">@</span><span class="va">counts</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="va">st_multi</span><span class="op">@</span><span class="va">tr_counts</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>    <span class="op">&lt;-</span> <span class="va">s</span><span class="op">@</span><span class="va">tr_counts</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="va">st_multi</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">s</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="va">st_multi</span><span class="op">@</span><span class="va">sample_meta</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="va">st_multi</span><span class="op">@</span><span class="va">sample_meta</span>, <span class="va">s</span><span class="op">@</span><span class="va">sample_meta</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
+<span></span>
+<span>  <span class="va">STs</span><span class="op">$</span><span class="va">cosmx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>st      <span class="op">=</span> <span class="va">st_multi</span>,</span>
+<span>                    smp1    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">st_multi</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span>
+<span>                    out_dir <span class="op">=</span> <span class="va">cosmx_cfg</span><span class="op">$</span><span class="va">out_dir</span>,</span>
+<span>                    label   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"CosMx ("</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">st_multi</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">)</span>,</span>
+<span>                                     <span class="st">" FOVs)"</span><span class="op">)</span>,</span>
+<span>                    fov     <span class="op">=</span> <span class="va">requested</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <table class="table">
 <caption>Datasets analysed.</caption>
 <thead><tr class="header">
@@ -244,7 +685,16 @@ these.</caption>
 gene sets below were chosen to cover the programmes that define lymphoid
 organisation (TLS, germinal centre, antigen presentation) and the
 inflammatory signalling that accompanies it (interferon, complement,
-NF-kB, cytokine pathways).</p>
+NF-kB, cytokine pathways). The two <code>build-*</code> chunks above
+show exactly how each <code>STlist</code> was assembled from disk: one
+Space Ranger folder per Visium section, and one expression plus metadata
+CSV pair per CosMx FOV. To use your own data, replace the paths in the
+<code>settings</code> chunk (<code>visium_root</code>,
+<code>cosmx_root</code>) with your folders; the required file layout per
+platform is visible in the <code>build-visium</code> and
+<code>build-cosmx</code> chunks. Every <code>STlist</code> must be
+transformed before <code>STniche</code>; the <code>filter_data</code>
+and <code>transform_data</code> calls are inside those same chunks.</p>
 <table class="table">
 <caption>Gene sets used to define niches.</caption>
 <colgroup>
@@ -315,7 +765,7 @@ first (kNN = 22) is the primary analysis used in all figures; the second
 serves as a sensitivity check. Each run starts from the same input
 object, so the niche labels stored in the STlist always correspond to
 the Zi matrix used alongside them.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">stniche_knns</span>      <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">stniche_knns</span><span class="op">)</span></span>
 <span><span class="va">stniche_ks</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">stniche_ks</span><span class="op">)</span></span>
 <span><span class="va">stniche_gene_sets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">params</span><span class="op">$</span><span class="va">stniche_gene_sets</span>,</span>
@@ -410,7 +860,7 @@ the niches are partly built from.</p>
 <div class="section level3">
 <h3 id="niche-maps">Niche maps<a class="anchor" aria-label="anchor" href="#niche-maps"></a>
 </h3>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span><span class="va">STs</span><span class="op">$</span><span class="va">visium</span><span class="op">$</span><span class="va">st</span>, type <span class="op">=</span> <span class="st">"clusters"</span>,</span>
 <span>                  samples <span class="op">=</span> <span class="va">FOVS_PLOT</span><span class="op">$</span><span class="va">visium</span>, overlay_samples <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>                  ptsize <span class="op">=</span> <span class="fl">0.9</span>, title <span class="op">=</span> <span class="st">"STniche niches - Visium"</span><span class="op">)</span></span>
@@ -425,7 +875,7 @@ STniche niches in section ffpe_c_02 (FFPE).
 STniche niches in section frozen_a_01 (fresh frozen).
 </p>
 </div>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span><span class="va">STs</span><span class="op">$</span><span class="va">cosmx</span><span class="op">$</span><span class="va">st</span>, type <span class="op">=</span> <span class="st">"clusters"</span>,</span>
 <span>                  samples <span class="op">=</span> <span class="va">FOVS_PLOT</span><span class="op">$</span><span class="va">cosmx</span>, overlay_samples <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>                  ptsize <span class="op">=</span> <span class="fl">0.9</span>, reverse_y <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -448,7 +898,7 @@ STniche niches in FOV RCC4_fov3 (IO-exposed).
 <p>High Zi marks locations where TLS-associated genes are <em>locally
 clustered</em>, which is the signal that lets STniche separate lymphoid
 aggregates from diffusely expressing tissue.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">nm</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">STs</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">Zi</span> <span class="op">&lt;-</span> <span class="fu">Zi_of</span><span class="op">(</span><span class="va">nm</span><span class="op">)</span></span>
 <span>  <span class="va">gs</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="st">"TLS_core"</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">Zi</span><span class="op">)</span><span class="op">)</span> <span class="st">"TLS_core"</span> <span class="kw">else</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">Zi</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
@@ -525,8 +975,8 @@ niche assigned to that cell type. Bright tiles therefore mark the
 dominant cell types of a niche, so a niche with a single bright column
 is a “pure” niche and one with many moderate tiles is a “mixed”
 niche.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">nm</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">STs</span><span class="op">)</span>, <span class="st">"cosmx"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">nm</span> <span class="kw">in</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">STs</span><span class="op">)</span>, <span class="st">"cosmx"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="kw">for</span> <span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="va">FOVS_PLOT</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">ht</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span><span class="va">STs</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">st</span>, samples <span class="op">=</span> <span class="va">s</span>,</span>
 <span>                       type <span class="op">=</span> <span class="st">"celltype_heatmap"</span>,</span>
@@ -565,8 +1015,8 @@ different samples (here IO-naive versus IO-exposed), which pooled
 summaries would hide. The bars are compositional: they describe shares
 of a niche, not enrichment relative to the whole tissue, so they should
 be read together with the heatmap and with the niche size.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">nm</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">STs</span><span class="op">)</span>, <span class="st">"cosmx"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">nm</span> <span class="kw">in</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">STs</span><span class="op">)</span>, <span class="st">"cosmx"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">p_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span><span class="va">STs</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">st</span>, type <span class="op">=</span> <span class="st">"celltype_composition"</span>,</span>
 <span>                         samples <span class="op">=</span> <span class="va">FOVS_PLOT</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>,</span>
 <span>                         title <span class="op">=</span> <span class="st">"Cell-type composition per cluster"</span><span class="op">)</span></span>
@@ -607,7 +1057,7 @@ through the gene-set programme they share most strongly. Link colour
 shows the shared programme, so flows of one colour indicate niches in
 different samples (FFPE versus frozen; IO-naive versus IO-exposed) that
 share the same dominant signal.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">for</span> <span class="op">(</span><span class="va">nm</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">STs</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">STs</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">st</span>, type <span class="op">=</span> <span class="st">"multi_sample_alluvial"</span>,</span>
 <span>                    samples <span class="op">=</span> <span class="va">FOVS_PLOT</span><span class="op">[[</span><span class="va">nm</span><span class="op">]</span><span class="op">]</span>, zi <span class="op">=</span> <span class="fu">Zi_of</span><span class="op">(</span><span class="va">nm</span><span class="op">)</span>,</span>
@@ -1020,7 +1470,7 @@ exposed FOVs; Wilcoxon test, Benjamini-Hochberg FDR).</caption>
 <div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <pre><code>R version 4.6.1 (2026-06-24)
 Platform: aarch64-apple-darwin23
@@ -1054,85 +1504,85 @@ loaded via a namespace (and not attached):
   [7] XML_3.99-0.25               fastDummies_1.7.6          
   [9] lifecycle_1.0.5             doParallel_1.0.17          
  [11] globals_0.20.0              lattice_0.23-1             
- [13] vroom_1.7.1                 hdf5r_1.3.16               
- [15] MASS_7.3-66                 magrittr_2.0.5             
- [17] plotly_4.12.1               sass_0.4.10                
- [19] rmarkdown_2.32              jquerylib_0.1.4            
- [21] yaml_2.3.12                 httpuv_1.6.17              
- [23] otel_0.2.0                  sctransform_0.4.3          
- [25] spam_2.11-4                 spatstat.sparse_3.2-0      
- [27] reticulate_1.47.0           DBI_1.3.0                  
- [29] cowplot_1.2.0               pbapply_1.7-5              
- [31] RColorBrewer_1.1-3          abind_1.4-8                
- [33] GenomicRanges_1.64.0        Rtsne_0.17                 
- [35] purrr_1.2.2                 BiocGenerics_0.58.1        
- [37] IRanges_2.46.0              S4Vectors_0.50.3           
- [39] ggrepel_0.9.8               irlba_2.4.1                
- [41] listenv_1.1.0               spatstat.utils_3.2-5       
- [43] GSVA_2.6.15                 goftest_1.2-3              
- [45] RSpectra_0.16-2             annotate_1.90.0            
- [47] spatstat.random_3.5-2       fitdistrplus_1.2-6         
- [49] parallelly_1.48.0           pkgdown_2.2.1              
- [51] DelayedMatrixStats_1.34.0   codetools_0.2-20           
- [53] DelayedArray_0.38.2         tidyselect_1.2.1           
- [55] shape_1.4.6.1               memuse_4.2-3               
- [57] farver_2.1.2                matrixStats_1.5.0          
- [59] stats4_4.6.1                spatstat.explore_3.8-3     
- [61] Seqinfo_1.2.0               jsonlite_2.0.0             
- [63] GetoptLong_1.1.1            progressr_1.1.0            
- [65] ggalluvial_0.12.6           ggridges_0.5.7             
- [67] survival_3.8-12             iterators_1.0.14           
- [69] systemfonts_1.3.2           foreach_1.5.2              
- [71] tools_4.6.1                 ragg_1.5.2                 
- [73] ica_1.0-3                   Rcpp_1.1.2                 
- [75] glue_1.8.1                  gridExtra_2.3.1            
- [77] SparseArray_1.12.3          xfun_0.62                  
- [79] MatrixGenerics_1.24.0       HDF5Array_1.40.0           
- [81] withr_3.0.3                 fastmap_1.2.0              
- [83] rhdf5filters_1.24.1         digest_0.6.39              
- [85] R6_2.6.1                    mime_0.13                  
- [87] textshaping_1.0.5           colorspace_2.1-4           
- [89] scattermore_1.2             tensor_1.5.1               
- [91] RSQLite_3.53.3              spatstat.data_3.1-9        
- [93] ggpolypath_0.4.0            h5mread_1.4.1              
- [95] generics_0.1.4              data.table_1.18.6.1        
- [97] FNN_1.1.4.1                 httr_1.4.9                 
- [99] htmlwidgets_1.6.4           S4Arrays_1.12.1            
-[101] uwot_0.2.5                  pkgconfig_2.0.3            
-[103] gtable_0.3.6                blob_1.3.0                 
-[105] lmtest_0.9-40               S7_0.2.2                   
-[107] SingleCellExperiment_1.34.0 XVector_0.52.0             
-[109] htmltools_0.5.9             dotCall64_1.2              
-[111] GSEABase_1.74.0             clue_0.3-68                
-[113] scales_1.4.0                Biobase_2.72.0             
-[115] png_0.1-9                   SpatialExperiment_1.22.0   
-[117] spatstat.univar_3.2-0       knitr_1.52                 
-[119] rstudioapi_0.19.0           tzdb_0.5.0                 
-[121] reshape2_1.4.5              rjson_0.2.23               
-[123] nlme_3.1-171                rhdf5_2.56.1               
-[125] cachem_1.1.0                zoo_1.9-1                  
-[127] GlobalOptions_0.1.4         KernSmooth_2.23-27         
-[129] parallel_4.6.1              miniUI_0.1.2               
-[131] AnnotationDbi_1.74.0        desc_1.4.3                 
-[133] pillar_1.11.1               vctrs_0.7.3                
-[135] RANN_2.6.3                  promises_1.5.0             
-[137] xtable_1.8-8                cluster_2.1.8.3            
-[139] evaluate_1.0.5              magick_2.9.1               
-[141] cli_3.6.6                   compiler_4.6.1             
-[143] rlang_1.3.0                 crayon_1.5.3               
-[145] future.apply_1.21.0         labeling_0.4.3             
-[147] mclust_6.1.3                plyr_1.8.9                 
-[149] fs_2.1.0                    stringi_1.8.9              
-[151] viridisLite_0.4.3           deldir_2.0-4               
-[153] BiocParallel_1.46.0         Biostrings_2.80.2          
-[155] spatstat.geom_3.8-3         Matrix_1.7-6               
-[157] RcppHNSW_0.7.0              hms_1.1.4                  
-[159] patchwork_1.3.2             sparseMatrixStats_1.24.0   
-[161] bit64_4.8.6                 Rhdf5lib_2.0.0             
-[163] KEGGREST_1.52.2             shiny_1.14.0               
-[165] SummarizedExperiment_1.42.0 ROCR_1.0-12                
-[167] memoise_2.0.1               igraph_2.3.4               
-[169] bslib_0.12.0                bit_4.6.0                  </code></pre>
+ [13] hdf5r_1.3.16                MASS_7.3-66                
+ [15] magrittr_2.0.5              plotly_4.12.1              
+ [17] sass_0.4.10                 rmarkdown_2.32             
+ [19] jquerylib_0.1.4             yaml_2.3.12                
+ [21] httpuv_1.6.17               otel_0.2.0                 
+ [23] sctransform_0.4.3           spam_2.11-4                
+ [25] spatstat.sparse_3.2-0       reticulate_1.47.0          
+ [27] DBI_1.3.0                   cowplot_1.2.0              
+ [29] pbapply_1.7-5               RColorBrewer_1.1-3         
+ [31] abind_1.4-8                 GenomicRanges_1.64.0       
+ [33] Rtsne_0.17                  purrr_1.2.2                
+ [35] BiocGenerics_0.58.1         IRanges_2.46.0             
+ [37] S4Vectors_0.50.3            ggrepel_0.9.8              
+ [39] irlba_2.4.1                 listenv_1.1.0              
+ [41] spatstat.utils_3.2-5        GSVA_2.6.15                
+ [43] goftest_1.2-3               RSpectra_0.16-2            
+ [45] spatstat.random_3.5-2       annotate_1.90.0            
+ [47] fitdistrplus_1.2-6          parallelly_1.48.0          
+ [49] pkgdown_2.2.1               DelayedMatrixStats_1.34.0  
+ [51] codetools_0.2-20            DelayedArray_0.38.2        
+ [53] tidyselect_1.2.1            shape_1.4.6.1              
+ [55] memuse_4.2-3                farver_2.1.2               
+ [57] matrixStats_1.5.0           stats4_4.6.1               
+ [59] spatstat.explore_3.8-3      Seqinfo_1.2.0              
+ [61] jsonlite_2.0.0              GetoptLong_1.1.1           
+ [63] progressr_1.1.0             ggalluvial_0.12.6          
+ [65] ggridges_0.5.7              survival_3.8-12            
+ [67] iterators_1.0.14            systemfonts_1.3.2          
+ [69] foreach_1.5.2               tools_4.6.1                
+ [71] ragg_1.5.2                  ica_1.0-3                  
+ [73] Rcpp_1.1.2                  glue_1.8.1                 
+ [75] gridExtra_2.3.1             SparseArray_1.12.3         
+ [77] xfun_0.62                   MatrixGenerics_1.24.0      
+ [79] HDF5Array_1.40.0            withr_3.0.3                
+ [81] fastmap_1.2.0               rhdf5filters_1.24.1        
+ [83] digest_0.6.39               R6_2.6.1                   
+ [85] mime_0.13                   textshaping_1.0.5          
+ [87] colorspace_2.1-4            scattermore_1.2            
+ [89] tensor_1.5.1                RSQLite_3.53.3             
+ [91] spatstat.data_3.1-9         ggpolypath_0.4.0           
+ [93] h5mread_1.4.1               generics_0.1.4             
+ [95] data.table_1.18.6.1         FNN_1.1.4.1                
+ [97] httr_1.4.9                  htmlwidgets_1.6.4          
+ [99] S4Arrays_1.12.1             uwot_0.2.5                 
+[101] pkgconfig_2.0.3             gtable_0.3.6               
+[103] blob_1.3.0                  lmtest_0.9-40              
+[105] S7_0.2.2                    SingleCellExperiment_1.34.0
+[107] XVector_0.52.0              htmltools_0.5.9            
+[109] dotCall64_1.2               GSEABase_1.74.0            
+[111] clue_0.3-68                 scales_1.4.0               
+[113] Biobase_2.72.0              png_0.1-9                  
+[115] SpatialExperiment_1.22.0    spatstat.univar_3.2-0      
+[117] knitr_1.52                  rstudioapi_0.19.0          
+[119] tzdb_0.5.0                  reshape2_1.4.5             
+[121] rjson_0.2.23                nlme_3.1-171               
+[123] rhdf5_2.56.1                cachem_1.1.0               
+[125] zoo_1.9-1                   GlobalOptions_0.1.4        
+[127] KernSmooth_2.23-27          parallel_4.6.1             
+[129] miniUI_0.1.2                AnnotationDbi_1.74.0       
+[131] desc_1.4.3                  pillar_1.11.1              
+[133] vctrs_0.7.3                 RANN_2.6.3                 
+[135] promises_1.5.0              xtable_1.8-8               
+[137] cluster_2.1.8.3             evaluate_1.0.5             
+[139] magick_2.9.1                cli_3.6.6                  
+[141] compiler_4.6.1              rlang_1.3.0                
+[143] crayon_1.5.3                future.apply_1.21.0        
+[145] labeling_0.4.3              mclust_6.1.3               
+[147] plyr_1.8.9                  fs_2.1.0                   
+[149] stringi_1.8.9               viridisLite_0.4.3          
+[151] deldir_2.0-4                BiocParallel_1.46.0        
+[153] Biostrings_2.80.2           spatstat.geom_3.8-3        
+[155] Matrix_1.7-6                RcppHNSW_0.7.0             
+[157] hms_1.1.4                   patchwork_1.3.2            
+[159] sparseMatrixStats_1.24.0    bit64_4.8.6                
+[161] Rhdf5lib_2.0.0              KEGGREST_1.52.2            
+[163] shiny_1.14.0                SummarizedExperiment_1.42.0
+[165] ROCR_1.0-12                 memoise_2.0.1              
+[167] igraph_2.3.4                bslib_0.12.0               
+[169] bit_4.6.0                  </code></pre>
 </div>
   </div>
 
@@ -1146,7 +1596,7 @@ loaded via a namespace (and not attached):
 
       <footer><div class="copyright">
   <p></p>
-<p>Developed by Oscar Ospina, Alex Soupir, Brooke Fridley.</p>
+<p>Developed by Oscar Ospina, Alex Soupir, Yonatan Ayalew Mekonnen, Brooke Fridley.</p>
 </div>
 
 <div class="pkgdown">
