@@ -1,6 +1,6 @@
 # spatialGE
 
-<img align="left" src="man/figures/logo.png" height="100" width="90" />
+<img align="left" src="man/figures/logo.png" height="100" width="90" alt="spatialGE logo" />
 
 An R package for visualizing and analyzing spatially-resolved transcriptomics data from spot-based
 platforms (e.g., 10X Visium) and imaging-based platforms (e.g., Xenium, CosMx). Data and results

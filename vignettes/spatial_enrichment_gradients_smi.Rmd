@@ -85,7 +85,7 @@ Data for each tissue slice is stored in separate folders. The structure of the f
 
 
 <p align="center">
-<img src="img/smi_dir_structure.png" height="250" width="550"/>
+<img src="img/smi_dir_structure.png" height="250" width="550" alt="CosMx-SMI directory structure"/>
 </p>
 
 
@@ -160,7 +160,7 @@ The algorithm in `STenrich` is depicted in the following diagram:
 
 
 <p align="center">
-<img src="img/diagram_stenrich.png" height="250" width="550"/>
+<img src="img/diagram_stenrich.png" height="250" width="550" alt="STenrich algorithm diagram"/>
 </p>
 
 
@@ -364,7 +364,7 @@ Since the tumor areas have been visually identified, it is possible now to ascer
 
 
 <p align="center">
-<img src="img/spatial_gradients.png" height="250" width="550"/>
+<img src="img/spatial_gradients.png" height="250" width="550" alt="STgradient algorithm diagram"/>
 </p>
 
 

@@ -97,7 +97,7 @@
       <h1 data-toc-skip>Detection of gene set spatial patterns and
 expression gradients in CosMx-SMI</h1>
             
-            <h4 data-toc-skip class="date">2026-11-06</h4>
+            <h4 data-toc-skip class="date">2026-11-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/FridleyLab/spatialGE/blob/main/vignettes/spatial_enrichment_gradients_smi.Rmd" class="external-link"><code>vignettes/spatial_enrichment_gradients_smi.Rmd</code></a></small>
       <div class="hidden name"><code>spatial_enrichment_gradients_smi.Rmd</code></div>
@@ -184,7 +184,7 @@ below are skipped rather than aborting the build:</p>
 <p>Data for each tissue slice is stored in separate folders. The
 structure of the files is shown below:</p>
 <p align="center">
-<img src="img/smi_dir_structure.png" height="250" width="550"></p>
+<img src="img/smi_dir_structure.png" height="250" width="550" alt="CosMx-SMI directory structure"></p>
 <p>The key files are shown enclosed in orange (Lung 5-1) and green (Lung
 6) boxes. The “_exprMat_file.csv” file of each sample contains the gene
 counts. The “_metadata_file.csv” contains the cell x, y coordinates for
@@ -268,7 +268,7 @@ set is concentrated in one or few areas of the tissue.</p>
 <p>The algorithm in <code>STenrich</code> is depicted in the following
 diagram:</p>
 <p align="center">
-<img src="img/diagram_stenrich.png" height="250" width="550"></p>
+<img src="img/diagram_stenrich.png" height="250" width="550" alt="STenrich algorithm diagram"></p>
 <p>The <code>STenrich</code> function is a modification of the method
 proposed by <span class="citation">Hunter et al. (2021)</span>. The
 steps in this modified version are as follows: First, Euclidean
@@ -544,7 +544,7 @@ domain 3. This test is performed by the <code>STgradient</code>
 function. The following diagram depicts the <code>STgradient</code>
 algorithm:</p>
 <p align="center">
-<img src="img/spatial_gradients.png" height="250" width="550"></p>
+<img src="img/spatial_gradients.png" height="250" width="550" alt="STgradient algorithm diagram"></p>
 <p>In <code>STgradient</code>, the spatial coordinates are used to
 calculate Euclidean distances of each cell to each of the other cells.
 The reference domain is the domain from which the distances will be
