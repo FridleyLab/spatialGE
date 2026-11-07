@@ -1,9 +1,7 @@
 url: https://fridleylab.github.io/spatialGE/
-template:
-  bootstrap: 5
+
 repo:
   url:
     home: https://github.com/FridleyLab/spatialGE
     source: https://github.com/FridleyLab/spatialGE/blob/main
     issue: https://github.com/FridleyLab/spatialGE/issues
-
