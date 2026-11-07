@@ -29,11 +29,36 @@ Seurat_FindVariableFeatures = function(object=NULL){
   loess.span=0.3
   clip.max='auto'
 
-  if (!inherits(x=object, 'Matrix')) {
-    object <- as(object = as.matrix(x = object), Class = 'Matrix')
-  }
-  if (!inherits(x = object, what = 'dgCMatrix')) {
-    object <- as.sparse(x = object)
+  # Coerce to a general, double, CSC matrix. SparseRowVar2()/SparseRowVarStd()
+  # take an Eigen::SparseMatrix<double> (src/seurat_helpers.cpp), so RcppEigen
+  # needs exactly that -- a dense dgeMatrix, a logical lgCMatrix and a symmetric
+  # dsCMatrix are all unacceptable.
+  #
+  # PROVENANCE. This file is vendored Seurat code, and the original line here was
+  # `object <- as.sparse(x = object)`, i.e. SeuratObject::as.sparse(). That
+  # function exists and is exported by SeuratObject, but SeuratObject is only in
+  # Suggests and is never imported, so the call was never resolvable from this
+  # package's namespace -- the vendored code came across without its dependency.
+  # It was not lost between 1.2.2 and 2.0.0: `main` carries the identical broken
+  # call, and as.sparse has never been defined anywhere in this repository. Any
+  # input that was not already a dgCMatrix failed with 'could not find function
+  # "as.sparse"'. It stayed invisible because every current caller happens to
+  # pass a dgCMatrix, and because 'as.sparse' was listed in
+  # utils::globalVariables() in R/globals.R, suppressing the one R CMD check NOTE
+  # that would have flagged it.
+  #
+  # Rather than take a hard SeuratObject dependency for this, the coercion is
+  # reproduced with Matrix. SeuratObject::as.sparse() is
+  # as(as(as(x, 'dMatrix'), 'generalMatrix'), 'CsparseMatrix'), and both inner
+  # steps are load-bearing: 'dMatrix' forces double (a logical sparse input
+  # otherwise stays lgCMatrix) and 'generalMatrix' forces general (a symmetric
+  # input otherwise stays dsCMatrix). The added as.matrix() branch covers
+  # data.frame input, which SeuratObject's chain errors on.
+  if(!inherits(x=object, what='dgCMatrix')){
+    if(!inherits(x=object, what='Matrix')){
+      object <- as.matrix(x = object)
+    }
+    object <- methods::as(methods::as(methods::as(object, 'dMatrix'), 'generalMatrix'), 'CsparseMatrix')
   }
   if (selection.method == "vst") {
     if (clip.max == 'auto') {

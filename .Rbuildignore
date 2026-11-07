@@ -1,3 +1,11 @@
+^renv$
+^renv\.lock$
+^\.Rprofile$
+^\.claude$
+^\.github$
+^dev$
+^plans$
+^tests/golden$
 ^LICENSE\.md$
 ^docs$
 ^pkgdown$
@@ -9,3 +17,6 @@
 ^vignettes/img/spatial_gradients\.png$
 ^vignettes/img/diagram_stenrich\.png$
 ^vignettes/img/smi_dir_structure\.png$
+^cran-comments\.md$
+^Rplots\.pdf$
+^_pkgdown\.yml$

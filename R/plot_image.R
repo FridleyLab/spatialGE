@@ -19,17 +19,13 @@
 #
 plot_image = function(x=NULL, samples=NULL){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # Define which samples to plot
-  if(is.null(samples)){
-    samples = names(x@spatial_meta)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@spatial_meta)[samples]
-    }
-    if(length(grep(paste0(samples, collapse='|'), names(x@spatial_meta))) == 0){
-      stop('The requested samples are not present in the STlist.')
-    }
-  }
+  samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='plain',
+                            char_transform='none', post_check='grep',
+                            message='The requested samples are not present in the STlist.')
 
   # Find which samples have images
   samples_tmp = samples

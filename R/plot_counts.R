@@ -34,7 +34,7 @@
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
 #' tryCatch({ # In case data is not available from network
 #'   download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-#'   #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#'   zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #'   unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #'   # Generate the file paths to be passed to the STlist function
 #'   count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
@@ -64,28 +64,26 @@ plot_counts = function(x=NULL, samples=NULL, data_type='tr', plot_type='density'
                        color_pal='okabeito', cvalpha=0.5, distrib_subset=0.5,
                        subset_seed=12345){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # To prevent NOTES in R CMD check
   . = NULL
 
   # Define samples to plot if NULL or numeric
-  if(is.null(samples)){
-    samples = names(x@counts)
-  } else if(is.numeric(samples)){
-    samples = names(x@counts)[samples]
-  }
+  samples = resolve_samples(x, samples, slot='counts', numeric_handling='plain',
+                            char_transform='none', post_check='none')
 
   # Check that transfromed counts are available if data_type='tr'
   if(data_type == 'tr'){
-    if(rlang::is_empty(x@tr_counts)){
-      stop('No transformed expression data in this STlist.')
-    }
+    assert_transformed(x, message='No transformed expression data in this STlist.')
   }
 
   # Loop through samples and make long data frame
   df_tmp = list()
   for(i in samples){
     if(data_type == 'tr'){
-      df_tmp[[i]] = as.matrix(x@tr_counts[[i]]) %>%
+      df_tmp[[i]] = as.matrix(sample_tr_counts(x, i)) %>%
         as.data.frame() %>%
         tidyr::pivot_longer(cols=dplyr::everything(.), names_to='libname', values_to='expr_values') %>%
         tibble::add_column(sample_name=i)
@@ -96,7 +94,7 @@ plot_counts = function(x=NULL, samples=NULL, data_type='tr', plot_type='density'
       p_title = 'Normalized expression distribution'
       ax_title = 'Normalized expression'
     } else{
-      df_tmp[[i]] = as.matrix(x@counts[[i]]) %>%
+      df_tmp[[i]] = as.matrix(sample_counts(x, i)) %>%
         as.data.frame() %>%
         tidyr::pivot_longer(cols=dplyr::everything(.), names_to='libname', values_to='expr_values') %>%
         tibble::add_column(sample_name=i)

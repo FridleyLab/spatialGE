@@ -24,7 +24,7 @@
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
 #' tryCatch({ # In case data is not available from network
 #'   download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-#'   #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#'   zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #'   unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #'   # Generate the file paths to be passed to the STlist function
 #'   count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
@@ -54,6 +54,9 @@
 #
 STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, color_pal='BuRd'){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # To prevent NOTES in R CMD check
   . = NULL
 
@@ -66,13 +69,8 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
   }
 
   # Test if no specific subject plot was requested.
-  if (is.null(samples)) {
-    samples = names(x@tr_counts)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@tr_counts)[samples]
-    }
-  }
+  samples = resolve_samples(x, samples, slot='tr_counts', numeric_handling='plain',
+                            char_transform='none', post_check='none')
 
   # If genes='top', get names of 10 genes with the highest standard deviation.
   if(length(genes) == 1 && genes == 'top'){
@@ -82,7 +80,7 @@ STplot_interpolation = function(x=NULL, genes=NULL, top_n=10, samples=NULL, colo
       if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
         x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
       }
-      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+      x@gene_meta[[i]] = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
         tibble::rownames_to_column(var='gene') %>%
         dplyr::select('gene', 'vst.variance.standardized') %>%
         dplyr::left_join(x@gene_meta[[i]], ., by='gene')

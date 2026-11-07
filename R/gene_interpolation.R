@@ -32,7 +32,7 @@
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
 #' tryCatch({ # In case data is not available from network
 #'   download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-#'   #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#'   zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #'   unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #'   # Generate the file paths to be passed to the STlist function
 #'   count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
@@ -62,6 +62,9 @@
 #
 gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores=NULL, verbose=TRUE){
 
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
+
   # To prevent NOTES in R CMD check
   . = NULL
 
@@ -71,35 +74,14 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
     cat('Gene interpolation started.\n')
   }
 
-  #suppressPackageStartupMessages(require('fields'))
-  #requireNamespace('fields')
-
-  # Resolution removed after implementation of `fields` interpolation
-  #res=0.5
-  # Covariance structure between spots/cells
-  # May later allow users to select Exponential or Mattern (both supported by fields)
-  #covstr = 'Exponential'
-  #covstr = 'Matern'
-  #smoothness = 0.5
-  # Specify number of spots in grid
-  #nxy = ceiling(sqrt(ngrid))
-
   top_n = as.integer(top_n)
-  #res = as.double(res)
 
   # Test that transformed counts are available
-  if(rlang::is_empty(x@tr_counts)) {
-    stop("There are not transformed counts in this STList.")
-  }
+  assert_transformed(x, message="There are not transformed counts in this STList.")
 
   # Test if no specific subject plot was requested.
-  if (is.null(samples)) {
-    samples = names(x@tr_counts)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@tr_counts)[samples]
-    }
-  }
+  samples = resolve_samples(x, samples, slot='tr_counts', numeric_handling='plain',
+                            char_transform='none', post_check='none')
 
   # Test that a gene name was entered.
   if(is.null(genes)) {
@@ -114,7 +96,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
       if(any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
         x@gene_meta[[i]] = x@gene_meta[[i]][, !grepl('vst.variance.standardized', colnames(x@gene_meta[[i]]))]
       }
-      x@gene_meta[[i]] = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+      x@gene_meta[[i]] = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
         tibble::rownames_to_column(var='gene') %>%
         dplyr::select('gene', 'vst.variance.standardized') %>%
         dplyr::left_join(x@gene_meta[[i]], ., by='gene')
@@ -123,6 +105,21 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
     }
     # Get unique genes from most variable.
     genes = unique(genes)
+  }
+
+  # Drop requested genes that are absent, and fail clearly if none survive.
+  # Previously an entirely absent gene set built empty kriging entries here and
+  # then failed much later inside the gstat formula with "object 'xpos' not
+  # found" -- an error that points at neither the gene nor this function.
+  present = Reduce(union, lapply(samples, function(s) sample_genes(x, s, 'tr_counts')))
+  missing_genes = setdiff(genes, present)
+  if(length(missing_genes) > 0){
+    message(paste0(paste(missing_genes, collapse=', '),
+                    ': Not present in the transformed counts. Skipping.\n'))
+  }
+  genes = intersect(genes, present)
+  if(length(genes) == 0){
+    raise_err(err_code='error0046')
   }
 
   # Test if list with kriging exists for each gene. If not create it.
@@ -140,20 +137,6 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
   # Store kriging type
   x@misc[['gene_krige']][['type']] = 'ordinary'
 
-  # Specify resolution if not input by user
-  # if(is.null(res)){
-  #   res = 0.5
-  # }
-  #x@misc[['gene_krige']][['res']] = res
-
-  # Give warning about kriging res < 0.5 for large matrices (e.g. Visium)
-  # sizes = lapply(x@spatial_meta[samples], nrow)
-  # if(res < 0.5 & (any(sizes > 1000))){
-  #   cat('Kriging at the requested resolution is computationally expensive. Setting to res=0.5\n')
-  #   res=0.5
-  # }
-  # rm(sizes) # Clean environment
-
   # Create lists to store prediction grids and borders.
   if(is.null(x@misc[['gene_krige']][['krige_border']])){
     x@misc[['gene_krige']][['krige_border']] = list()
@@ -165,7 +148,7 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
   # Generate combination of sample x gene to for.
   combo = tibble::tibble()
   for(i in samples){
-    subsetgenes_mask = genes %in% rownames(x@tr_counts[[i]])
+    subsetgenes_mask = genes %in% sample_genes(x, i, 'tr_counts')
     subsetgenes = genes[subsetgenes_mask]
     combo = dplyr::bind_rows(combo, expand.grid(i, subsetgenes))
 
@@ -193,85 +176,17 @@ gene_interpolation = function(x=NULL, genes='top', top_n=10, samples=NULL, cores
   # }
 
   # Define cores available
-  # Define cores available ### PARALLEL
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(unique(combo[[1]])))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
+  cores = resolve_cores(length(unique(combo[[1]])), cores, coerce='as_integer')
+  if(is.na(cores)){
+    stop('Could not recognize number of cores requested')
   }
 
   # Loop through combinations of samples
-  kriging_list = parallel::mclapply(seq_along(1:length(as.vector(unique(combo[[1]])))), function(i_combo){
+  kriging_list = sge_lapply(seq_along(1:length(as.vector(unique(combo[[1]])))), function(i_combo){
     i = as.vector(unique(combo[[1]]))[i_combo]
     genes_tmp = as.vector(unlist(combo[combo[[1]] == i, 2]))
-
-    # Process genes
-    kriging_res = list()
-    for(j in genes_tmp){
-      # Get transformed counts
-      gene_expr = data.frame(
-        position=names(unlist(x@tr_counts[[i]][rownames(x@tr_counts[[i]]) == j, ])),
-        expr_val=as.vector(unlist(x@tr_counts[[i]][rownames(x@tr_counts[[i]]) == j, ])))
-
-      # Match order of library names in counts data and coordinate data
-      gene_expr = gene_expr[match(x@spatial_meta[[i]][[1]], gene_expr[[1]]), ]
-      gene_geo_df = dplyr::bind_cols(x@spatial_meta[[i]][c('xpos', 'ypos')], gene_expr=as.numeric(gene_expr[[2]]))
-      gene_geo_df = as.data.frame(gene_geo_df)
-      sp::coordinates(gene_geo_df) = ~xpos+ypos
-
-      rm(gene_expr) # Clean env
-
-      # Create a grid with points in the middle of each coordinate
-      ny = range(sp::coordinates(gene_geo_df)[, 'ypos'])
-      ny = length(seq(ny[1], ny[2], by=100))
-      nx = range(sp::coordinates(gene_geo_df)[, 'xpos'])
-      nx = length(seq(nx[1], nx[2], by=100))
-      grid_sf = sf::st_make_grid(gene_geo_df, n=c(nx, ny), what="centers")
-
-      # Give hope to users...
-      if(verbose > 1L){
-        system(sprintf('echo "%s"', paste0("\tInterpolating ", j, ' in ', i, "....")))
-      }
-
-      # Perform kriging
-      suppressMessages({
-        krige_out = tryCatch({
-          dat_vgm = gstat::variogram(gene_expr~1, gene_geo_df) # Calculates sample variogram values
-          est_vgm = gstat::fit.variogram(dat_vgm, gstat::vgm('Exp')) # Fit variaogram
-          krige_pred = gstat::krige(gene_expr~1, gene_geo_df, grid_sf, model=est_vgm) # Predict values
-        },
-        error=function(err){return(err)}
-        )
-      })
-
-      # Compute surface if parameters available and save kriging values
-      # Record if kriging was successful
-      #if(any(class(cov_est) == 'simpleError') | !cov_est[['optimSuccess']]){
-      if(any(class(krige_out) == 'simpleError')){
-        kriging_res[[j]] = list(krige_out=NULL,
-                                success_or_not='error')
-      } else{
-        krige_tmp = as.data.frame(sf::st_coordinates(krige_out))
-        krige_tmp[['krige']] = krige_out[['var1.pred']]
-        kriging_res[[j]] = list(krige_out=krige_tmp)
-        rm(krige_tmp) # Clean env
-        if(any(class(krige_out) == 'simpleWarning')){
-          kriging_res[[j]][['success_or_not']] = 'warning'
-        } else{
-          kriging_res[[j]][['success_or_not']] = 'kriging_completed'
-        }
-      }
-      rm(krige_out) # Clean env
-    }
-
-    return(kriging_res)
-  }, mc.cores=cores, mc.preschedule=F)
+    interp_one_sample(sample_tr_counts(x, i), sample_spatial_meta(x, i), genes_tmp, i, verbose)
+  }, cores=cores, preschedule=F)
   #names(kriging_list) = paste(combo[[1]], combo[[2]], sep='&&')
   names(kriging_list) = as.vector(unique(combo[[1]]))
 

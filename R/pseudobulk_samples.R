@@ -23,7 +23,7 @@
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
 #' tryCatch({ # In case data is not available from network
 #'   download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-#'   #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#'   zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #'   unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #'   # Generate the file paths to be passed to the STlist function
 #'   count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
@@ -55,9 +55,7 @@
 pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
 
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    raise_err(err_code='error0018')
-  }
+  x = assert_stlist(x, err_code='error0018')
 
   # Stop function if only one sample provided.
   if(length(x@counts) < 4){
@@ -71,7 +69,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
 
   #Loop through count matrices, get gene-wise sums, and collate samples
   bulkcounts_tmp = lapply(1:length(x@counts), function(i){
-    bulk_expr = data.frame(V1=Matrix::rowSums(x@counts[[i]]), gene=rownames(x@counts[[i]]))
+    bulk_expr = data.frame(V1=Matrix::rowSums(sample_counts(x, i)), gene=sample_genes(x, i, 'counts'))
     rownames(bulk_expr) = NULL
     colnames(bulk_expr)[1] = names(x@counts)[i]
     return(bulk_expr)
@@ -113,7 +111,25 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
   rm(min_genes_pseudobulk) # Clean env
 
   # Get variable genes and subset
-  vargenes = sort(apply(tr_df, 2, sd), decreasing=T)
+  gene_sds = apply(tr_df, 2, sd)
+
+  # A gene whose pseudobulk total is identical across every sample carries no
+  # between-sample signal, and scale() maps its zero-sd column to all-NaN,
+  # which prcomp() then rejects outright ('cannot rescale a constant/zero
+  # column to unit variance'). Such genes are legitimate input -- an all-zero
+  # gene, or one saturating the same value everywhere -- so drop them instead
+  # of failing. Only reachable when max_var_genes >= the available gene count,
+  # since otherwise the descending sort pushes them past the cutoff anyway.
+  keep_sd = is.finite(gene_sds) & gene_sds > 0
+  if(any(!keep_sd)){
+    warning(paste0('Dropped ', sum(!keep_sd), ' gene(s) with zero variance across samples before the pseudobulk PCA.'))
+    gene_sds = gene_sds[keep_sd]
+  }
+  if(length(gene_sds) < 2){
+    raise_err(err_code='error0042')
+  }
+
+  vargenes = sort(gene_sds, decreasing=T)
   vargenes = as.vector(na.omit(names(vargenes[1:max_var_genes])))
   tr_df = tr_df[, match(vargenes, colnames(tr_df))]
   tr_df = scale(tr_df)
@@ -184,7 +200,7 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
 #' tryCatch({ # In case data is not available from network
 #'   download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-#'   #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#'   zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #'   unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #'   # Generate the file paths to be passed to the STlist function
 #'   count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
@@ -209,6 +225,9 @@ pseudobulk_samples = function(x=NULL, max_var_genes=5000, calc_umap=FALSE){
 #' @export pseudobulk_dim_plot
 #'
 pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='pca', pcx=1, pcy=2, ptsize=5){
+
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
 
   # Prepare meta data
   meta_df = prepare_pseudobulk_meta(x, plot_meta) %>%
@@ -304,7 +323,7 @@ pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='p
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
 #' tryCatch({ # In case data is not available from network
 #'   download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-#'   #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#'   zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #'   unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #'   # Generate the file paths to be passed to the STlist function
 #'   count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
@@ -329,6 +348,9 @@ pseudobulk_dim_plot = function(x=NULL, color_pal='muted', plot_meta=NULL, dim='p
 #' @export pseudobulk_heatmap
 #'
 pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_display_genes=30){
+
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
   # Prepare meta data
   meta_df = prepare_pseudobulk_meta(x, plot_meta)
 
@@ -358,7 +380,7 @@ pseudobulk_heatmap = function(x=NULL, color_pal='muted', plot_meta=NULL, hm_disp
   order_genes = sort(apply(hm_mtx, 1, function(i){
     mean_tmp = mean(unlist(i)) + 1e-20 # Add shift to avoid zero division
     sd_tmp = sd(unlist(i))
-    cv_tmp = mean_tmp/sd_tmp
+    cv_tmp = sd_tmp/mean_tmp
   }), decreasing=T)
 
   hm_mtx = hm_mtx[ names(order_genes)[1:hm_display_genes], ]

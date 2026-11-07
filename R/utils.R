@@ -22,6 +22,14 @@ count_cores = function(n){
       cores = ifelse(n > 0, n, 1)
     }
   }
+  # mclapply's internal .check_ncores() stops (or warns) when more than 2
+  # processes are requested and _R_CHECK_LIMIT_CORES_ is set (R CMD check
+  # sets this) -- clamp the auto-detected count so it never trips that check
+  # on a many-core machine, independent of how many units of work there are.
+  limit_cores = tolower(Sys.getenv('_R_CHECK_LIMIT_CORES_', ''))
+  if(nzchar(limit_cores) && limit_cores != 'false' && cores > 2){
+    cores = 2
+  }
   return(cores)
 }
 
@@ -37,6 +45,9 @@ count_cores = function(n){
 #
 #
 spatial_metadata = function(x){
+
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
   meta_res = list()
   for(i in seq(x@spatial_meta)){
     meta_res[[i]] = base::colnames(x@spatial_meta[[i]][, -c(1:3)])
@@ -59,6 +70,9 @@ spatial_metadata = function(x){
 #
 #
 tissue_names = function(x){
+
+  # Validate, and accept a Seurat object by coercing it (see assert_stlist).
+  x = assert_stlist(x)
   sample_res = names(x@counts)
 
   return(sample_res)
@@ -134,9 +148,7 @@ color_parse = function(color_pal=NULL, n_cats=NULL){
 #
 load_images = function(x=NULL, images=NULL){
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    stop("The input must be a STlist.")
-  }
+  x = assert_stlist(x)
 
   if(is.null(images)){
     stop("Please, provide a vector with images file paths.")
@@ -177,43 +189,23 @@ load_images = function(x=NULL, images=NULL){
 
 
 ##
-# @title create_listw
-# @param x an STlist
-#
-create_listw = function(x=NULL){
-  # Define cores available
-  cores = count_cores(length(x@spatial_meta))
-
-  # Create distance matrix based on the coordinates of each sampled location.
-  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
-    subj_dists = as.matrix(dist(x@spatial_meta[[i]][, c('ypos', 'xpos')]))
-    subj_dists[subj_dists == 0] = 0.0001
-    subj_dists_inv = 1/subj_dists
-    diag(subj_dists_inv) = 0
-    subj_dists_inv=spdep::mat2listw(subj_dists_inv, style='B')
-    return(subj_dists_inv)
-  }, mc.cores=cores, mc.preschedule=F)
-  names(listw_list) = names(x@spatial_meta)
-  return(listw_list)
-}
-
-
-##
 # @title create_listw_from_knn
 # @param x an STlist
 # @param ks
 #
 create_listw_from_knn = function(x=NULL, ks=NULL){
   # Define cores available
-  #cores = count_cores(length(x@spatial_meta))
   cores = 1
 
   # Create distance matrix based on the coordinates of each sampled location.
-  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
-    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
+  listw_list = sge_lapply(seq(names(x@spatial_meta)), function(i){
+    # See the note in create_listw_from_dist() below on remove_rownames().
+    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>%
+                             tibble::remove_rownames() %>%
+                             tibble::column_to_rownames('libname'))
     subj_listw = spdep::nb2listw(spdep::knn2nb(spdep::knearneigh(coords_mtx, k=ks, longlat=F)), style='B')
     return(subj_listw)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   names(listw_list) = names(x@spatial_meta)
   return(listw_list)
 }
@@ -226,21 +218,22 @@ create_listw_from_knn = function(x=NULL, ks=NULL){
 #
 create_listw_from_dist = function(x=NULL, cores=NULL){
   # Define cores available
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(x@spatial_meta))
-  } else{
-    cores = as.integer(cores)
-    if(is.na(cores)){
-      stop('Could not recognize number of cores requested')
-    }
+  cores = resolve_cores(length(x@spatial_meta), cores, coerce='as_integer')
+  if(is.na(cores)){
+    stop('Could not recognize number of cores requested')
   }
 
   # Create distance matrix based on the coordinates of each sampled location.
-  listw_list = parallel::mclapply(seq(names(x@spatial_meta)), function(i){
-    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>% tibble::column_to_rownames('libname'))
+  listw_list = sge_lapply(seq(names(x@spatial_meta)), function(i){
+    # remove_rownames() before column_to_rownames(): @spatial_meta is a plain
+    # data.frame, so any caller that row-subset it with base `[` leaves
+    # non-contiguous row names behind, which column_to_rownames() rejects with
+    # "`.data` must be a data frame without row names." Row names are not used
+    # here -- adj's dimnames are overwritten from libname below -- so this is
+    # output-neutral. Same footgun documented for STenrich()'s domain= path.
+    coords_mtx = as.matrix(x@spatial_meta[[i]][, c('libname', 'ypos', 'xpos')] %>%
+                             tibble::remove_rownames() %>%
+                             tibble::column_to_rownames('libname'))
     adj = as.matrix(stats::dist(coords_mtx))
     adj = adj/max(adj)
     diag(adj) = NA
@@ -265,7 +258,7 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
     class(subj_listw) = c("listw", "nb")
 
     return(subj_listw)
-  }, mc.cores=cores, mc.preschedule=F)
+  }, cores=cores, preschedule=F)
   names(listw_list) = names(x@spatial_meta)
   return(listw_list)
 }
@@ -294,7 +287,7 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
 #' tryCatch({ # In case data is not available from network
 #'   download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-#'   #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#'   zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #'   unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #'   # Generate the file paths to be passed to the STlist function
 #'   count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
@@ -321,9 +314,7 @@ create_listw_from_dist = function(x=NULL, cores=NULL){
 #
 get_gene_meta = function(x=NULL, sthet_only=FALSE){
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    stop("The input must be a STlist.")
-  }
+  x = assert_stlist(x)
   # Test is gene_meta is empty (no normalization performed on STlist)
   if(rlang::is_empty(x@gene_meta)){
     stop('No gene-level metadata available in this STlist.')
@@ -358,12 +349,21 @@ get_gene_meta = function(x=NULL, sthet_only=FALSE){
 }
 
 
+## Cache for raise_err()'s err.csv lookup table, populated lazily on first
+## use rather than in .onLoad -- under devtools::load_all() system.file()
+## resolves differently, and the csv is edited during development, so
+## reading it at package-load time would risk caching a stale/wrong path.
+.err_db_cache = new.env(parent=emptyenv())
+
 ##
 # @title raise_err
 #
 raise_err = function(err_code=NULL, samplename=NULL){
-  pkg_fp = list.files(system.file(package='spatialGE'), full.names=T, pattern='err\\.csv')
-  err_db = suppressWarnings(utils::read.csv(pkg_fp, header=F, quote="'"))
+  if(is.null(.err_db_cache$err_db)){
+    pkg_fp = list.files(system.file(package='spatialGE'), full.names=T, pattern='err\\.csv')
+    .err_db_cache$err_db = suppressWarnings(utils::read.csv(pkg_fp, header=F, quote="'"))
+  }
+  err_db = .err_db_cache$err_db
   str_to_print = err_db[[2]][ err_db[[1]] == err_code ]
   if(is.null(samplename)){
     stop(paste0('spatialGE exception: ', str_to_print), call.=F)
@@ -387,11 +387,11 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
 
   if(is(x, 'STlist')){
     # Identify variable genes (Seurat's VST)
-    vst_ls = parallel::mclapply(samples, function(i){
+    vst_ls = sge_lapply(samples, function(i){
       # Find tops variable genes using Seurat approach
       # First check if VST hasn't been calculated. If not, calculate
       if(!any(colnames(x@gene_meta[[i]]) == 'vst.variance.standardized')){
-        vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+        vst_tmp = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
           tibble::rownames_to_column(var='gene') %>%
           dplyr::select('gene', 'vst.variance.standardized') %>%
           dplyr::left_join(x@gene_meta[[i]], ., by='gene')
@@ -399,7 +399,7 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
       } else{
         return(NULL)
       }
-    }, mc.cores=cores)
+    }, cores=cores)
     names(vst_ls) = samples
 
     for(i in samples){
@@ -409,7 +409,7 @@ calculate_vst = function(x=NULL, samples=NULL, cores=NULL){
     }
     return(x)
   } else{
-    #vst_tmp = Seurat_FindVariableFeatures(x@counts[[i]]) %>%
+    #vst_tmp = Seurat_FindVariableFeatures(sample_counts(x, i)) %>%
     vst_tmp = Seurat_FindVariableFeatures(x) %>%
       tibble::rownames_to_column(var='gene') %>%
       dplyr::select('gene', 'vst.variance.standardized')

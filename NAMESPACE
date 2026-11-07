@@ -7,16 +7,23 @@ export(STenrich)
 export(STgradient)
 export(SThet)
 export(STlist)
+export(STlist_to_disk)
+export(STlist_to_memory)
+export(STniche)
 export(STplot)
 export(STplot_interpolation)
+export(as_Seurat)
 export(compare_SThet)
 export(distribution_plots)
 export(filter_data)
 export(gene_interpolation)
 export(get_gene_meta)
+export(is_backed)
 export(load_images)
 export(plot_counts)
 export(plot_image)
+export(plot_stniche)
+export(print.sge_manifest)
 export(pseudobulk_dim_plot)
 export(pseudobulk_heatmap)
 export(pseudobulk_samples)
@@ -24,30 +31,45 @@ export(spatial_metadata)
 export(summarize_STlist)
 export(tissue_names)
 export(transform_data)
+export(validate_store)
 import(Matrix)
 import(ggplot2)
 import(ggpolypath)
+importFrom(FNN,get.knn)
 importFrom(Rcpp,evalCpp)
+importFrom(circlize,colorRamp2)
 importFrom(grDevices,colorRampPalette)
 importFrom(magrittr,"%>%")
-importFrom(methods,as)
-importFrom(methods,is)
-importFrom(methods,new)
+importFrom(mclust,
+  Mclust,
+  mclustBIC
+)
+importFrom(methods,
+  .hasSlot,
+  as,
+  is,
+  new
+)
 importFrom(rlang,":=")
-importFrom(stats,IQR)
-importFrom(stats,as.dist)
-importFrom(stats,as.formula)
-importFrom(stats,complete.cases)
-importFrom(stats,cor.test)
-importFrom(stats,cutree)
-importFrom(stats,dist)
-importFrom(stats,hclust)
-importFrom(stats,lm)
-importFrom(stats,loess)
-importFrom(stats,na.omit)
-importFrom(stats,p.adjust)
-importFrom(stats,prcomp)
-importFrom(stats,quantile)
-importFrom(stats,sd)
-importFrom(stats,setNames)
-useDynLib(spatialGE)
+importFrom(stats,
+  IQR,
+  aggregate,
+  as.dist,
+  as.formula,
+  complete.cases,
+  cor,
+  cor.test,
+  cutree,
+  dist,
+  hclust,
+  lm,
+  loess,
+  median,
+  na.omit,
+  p.adjust,
+  prcomp,
+  quantile,
+  sd,
+  setNames
+)
+useDynLib(spatialGE, .registration=TRUE)

@@ -11,12 +11,12 @@
 # @param features_fp File path to the features.tsv.gz file.
 # @param barcodes_fp File path to the barcodes.tsv.gz file.
 # @param counts_fp File path to the matrix.mtx.gz file.
-# @param coords_fp File path to the tissue_positions_list.csv file.
+# @param coords_fp File path to the cells.parquet file.
 # @return a list with two objects: Xenium counts in `dgCMatrix` sparse format and
 # a data frames with spot coordinates.
 #
 #
-import_visium = function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL){
+import_xenium_mex = function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coords_fp=NULL){
   # Read in feature data
   features_df = data.table::fread(features_fp, header = F, check.names =F) %>%
     dplyr::rename("emsb" = 1,
@@ -32,13 +32,12 @@ import_visium = function(features_fp=NULL, barcodes_fp=NULL, counts_fp=NULL, coo
     dplyr::relocate(spot_n, .before = 1) %>%
     dplyr::rename("barcode" = 2)
 
-  # Read in coordinate data
-  coords_df = data.table::fread(coords_fp, header=F, check.names=F) %>%
-    dplyr::rename('barcode' = 1, 'intissue' = 2, 'array_row' = 3,
-                  'array_col' = 4, 'imagerow' = 5, 'imagecol' = 6) %>%
-    #dplyr::mutate(spotname = paste0("y", array_row, "x", array_col)) %>%
-    dplyr::filter(intissue == 1) %>%
-    dplyr::select(barcode, imagecol,imagerow)
+  # Read in coordinate data. Unlike Visium's tissue_positions_list.csv, Xenium's
+  # cells.parquet has no in-tissue flag or array row/col -- every cell is kept,
+  # and pixel position comes from the centroid columns.
+  coords_df = arrow::read_parquet(coords_fp) %>%
+    dplyr::select(barcode=cell_id, imagecol=x_centroid, imagerow=y_centroid) %>%
+    tibble::as_tibble()
 
   # Read in count data
   counts_df = data.table::fread(counts_fp, header=F, check.names = F, sep=" ", skip = 3) %>%
@@ -105,7 +104,7 @@ import_xenium_h5 = function(counts_fp=NULL, coords_fp=NULL){
   # `matrix`. 10X indicates their HDF5 outputs have one group named ('matrix')
   h5_group = names(h5_read)
   if(length(h5_group) > 1){
-    warning('There is more than one group in \"', h5_file, '\". Reading only the first group.')
+    warning('There is more than one group in \"', counts_fp, '\". Reading only the first group.')
   }
   if(h5_group[1] != 'matrix'){
     warning('The .h5 file group is not called \"matrix\". Is this a Xenium .h5 output?')

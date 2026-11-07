@@ -6,12 +6,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spatially-informed differential gene expression • spatialGE</title>
-<!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
-<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
-<link rel="apple-touch-icon" type="image/png" sizes="120x120" href="../apple-touch-icon-120x120.png">
-<link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
-<link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
+<!-- favicons --><link rel="icon" type="image/png" sizes="48x48" href="../favicon-48x48.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
 <script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
@@ -38,7 +37,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">spatialGE</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">1.2.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">2.0.0</span>
       </span>
     </div>
 
@@ -66,13 +65,23 @@
     <li>
       <a href="../articles/troubleshooting.html">Troubleshooting</a>
     </li>
+    <li>
+      <a href="../articles/vignette_stniche.html">Spatial niche detection with STniche</a>
+    </li>
   </ul>
 </li>
 <li>
   <a href="../news/index.html">Changelog</a>
 </li>
       </ul>
-<ul class="nav navbar-nav navbar-right"></ul>
+<ul class="nav navbar-nav navbar-right">
+<li>
+  <a href="https://github.com/FridleyLab/spatialGE" class="external-link">
+    <span class="fab fa-github fa-lg"></span>
+
+  </a>
+</li>
+      </ul>
 </div>
 <!--/.nav-collapse -->
   </div>
@@ -88,9 +97,9 @@
       <h1 data-toc-skip>Spatially-informed differential gene
 expression</h1>
             
-            <h4 data-toc-skip class="date">2025-04-07</h4>
+            <h4 data-toc-skip class="date">2026-11-07</h4>
       
-
+      <small class="dont-index">Source: <a href="https://github.com/FridleyLab/spatialGE/blob/main/vignettes/spatial_differential_expression.Rmd" class="external-link"><code>vignettes/spatial_differential_expression.Rmd</code></a></small>
       <div class="hidden name"><code>spatial_differential_expression.Rmd</code></div>
 
     </div>
@@ -147,9 +156,9 @@ same STlist will be used later to conduct differential expression
 analysis with <code>STdiff</code>.</p>
 <p>Load the <code>spatialGE</code> package:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="st">'spatialGE'</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="st"><a href="https://github.com/FridleyLab/spatialGE" class="external-link">'spatialGE'</a></span><span class="op">)</span></span></code></pre></div>
 <p>The <code>STlist</code> function takes data in several formats. The
-reader is encouraged to see the <code>STlist</code> reference (see <a href="https://fridleylab.github.io/spatialGE/reference/STlist.html" class="external-link">here</a>
+reader is encouraged to see the <code>STlist</code> reference (see <a href="https://fridleylab.github.io/spatialGE/reference/STlist.html">here</a>
 to learn about the different options to read ST data in
 <code>spatialGE</code>. In this guide, we provide the
 <code>STlist</code> function with comma-delimited files containing gene
@@ -160,15 +169,30 @@ GitHub repository</a>. Users are encouraged to download these files to
 familirize themselves with the data format.</p>
 <p>In this tutorial, data will be downloaded and deposited in a
 temporary directory. However, the download path can be changed within
-the following code block:</p>
+the following code block. If the download fails (e.g., no network or
+GitHub unreachable), a message is printed and all data-dependent chunks
+below are skipped rather than aborting the build:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">thrane_tmp</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">thrane_tmp</span>, recursive<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">thrane_tmp</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">'https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='</span>, </span>
-<span>              destfile<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">thrane_tmp</span>, <span class="st">'/'</span>, <span class="st">'melanoma_thrane.zip'</span><span class="op">)</span>, mode<span class="op">=</span><span class="st">'wb'</span><span class="op">)</span></span>
-<span><span class="va">zip_tmp</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">thrane_tmp</span>, pattern<span class="op">=</span><span class="st">'melanoma_thrane.zip$'</span>, full.names<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/unzip.html" class="external-link">unzip</a></span><span class="op">(</span>zipfile<span class="op">=</span><span class="va">zip_tmp</span>, exdir<span class="op">=</span><span class="va">thrane_tmp</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">data_ready</span> <span class="op">&lt;-</span> <span class="cn">TRUE</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>  <span class="va">thrane_tmp</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">thrane_tmp</span>, recursive<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">thrane_tmp</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="st">'https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='</span>, </span>
+<span>                destfile<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">thrane_tmp</span>, <span class="st">'/'</span>, <span class="st">'melanoma_thrane.zip'</span><span class="op">)</span>, mode<span class="op">=</span><span class="st">'wb'</span><span class="op">)</span></span>
+<span>  <span class="va">zip_tmp</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">thrane_tmp</span>, pattern<span class="op">=</span><span class="st">'melanoma_thrane.zip$'</span>, full.names<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/unzip.html" class="external-link">unzip</a></span><span class="op">(</span>zipfile<span class="op">=</span><span class="va">zip_tmp</span>, exdir<span class="op">=</span><span class="va">thrane_tmp</span><span class="op">)</span></span>
+<span><span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">data_ready</span> <span class="op">&lt;&lt;-</span> <span class="cn">FALSE</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Data download failed; data-dependent chunks will be skipped: "</span>,</span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in</span></span>
+<span><span class="co">#&gt; download.file("https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download=",</span></span>
+<span><span class="co">#&gt; : URL</span></span>
+<span><span class="co">#&gt; 'https://media.githubusercontent.com/media/FridleyLab/spatialGE_Data/refs/heads/main/melanoma_thrane.zip?download=true':</span></span>
+<span><span class="co">#&gt; status was 'SSL connect error'</span></span>
+<span><span class="co">#&gt; Data download failed; data-dependent chunks will be skipped: cannot open URL 'https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='</span></span></code></pre></div>
 <p>From the temporary directory, we can use R to generate the file paths
 to be passed to the <code>STlist</code> function:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -182,11 +206,7 @@ will also provide this file to specify sample names:</p>
 <span><span class="va">clin_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">thrane_tmp</span>, <span class="st">'/melanoma_thrane'</span><span class="op">)</span>, full.names<span class="op">=</span><span class="cn">TRUE</span>, pattern<span class="op">=</span><span class="st">'clinical'</span><span class="op">)</span></span></code></pre></div>
 <p>We can load the data into an STlist object with:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STlist.html">STlist</a></span><span class="op">(</span>rnacounts<span class="op">=</span><span class="va">count_files</span>, spotcoords<span class="op">=</span><span class="va">coord_files</span>, samples<span class="op">=</span><span class="va">clin_file</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Found matrix data</span></span>
-<span><span class="co">#&gt; Matching gene expression and coordinate data...</span></span>
-<span><span class="co">#&gt; Converting counts to sparse matrices</span></span>
-<span><span class="co">#&gt; Completed STlist!</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STlist.html">STlist</a></span><span class="op">(</span>rnacounts<span class="op">=</span><span class="va">count_files</span>, spotcoords<span class="op">=</span><span class="va">coord_files</span>, samples<span class="op">=</span><span class="va">clin_file</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p><em>Note</em>: If you receive a warning indicating that an input file
 has a incomplete final line, you can ignore it. Alternatively, modify
 the input files with a text editor by adding an empty line at the end of
@@ -194,16 +214,7 @@ the files.</p>
 <p>The <code>melanoma</code> object is an STlist that contains the count
 data, spot coordinates, and clinical meta data.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">melanoma</span></span>
-<span><span class="co">#&gt; Spatial Transcriptomics List (STlist).</span></span>
-<span><span class="co">#&gt; 4 spatial array(s):</span></span>
-<span><span class="co">#&gt;  ST_mel1_rep2 (293 ROIs|spots|cells x 16148 genes)</span></span>
-<span><span class="co">#&gt;  ST_mel2_rep1 (383 ROIs|spots|cells x 16831 genes)</span></span>
-<span><span class="co">#&gt;  ST_mel3_rep1 (256 ROIs|spots|cells x 15653 genes)</span></span>
-<span><span class="co">#&gt;  ST_mel4_rep2 (248 ROIs|spots|cells x 15991 genes)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; 9 variables in sample-level data:</span></span>
-<span><span class="co">#&gt;   patient, slice, gender, BRAF_status, NRAS_status, CDKN2A_status, survival, survival_months, RIN</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">melanoma</span></span></code></pre></div>
 <p>To normalize the ST data, the <code>transform_data</code> is
 used:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -239,14 +250,7 @@ expression and spatial coordinates from sample “ST_mel1_rep2”.</p>
 (<code>xpos</code>, <code>ypos</code>) and transformed expression of
 <em>MLANA</em> (<code>geneexpr</code>).</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">df_vgm</span><span class="op">)</span></span>
-<span><span class="co">#&gt;       xpos ypos geneexpr</span></span>
-<span><span class="co">#&gt; x7x15    7   15 0.000000</span></span>
-<span><span class="co">#&gt; x7x16    7   16 1.852142</span></span>
-<span><span class="co">#&gt; x7x17    7   17 1.789264</span></span>
-<span><span class="co">#&gt; x7x18    7   18 0.000000</span></span>
-<span><span class="co">#&gt; x8x13    8   13 0.000000</span></span>
-<span><span class="co">#&gt; x8x14    8   14 0.000000</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">df_vgm</span><span class="op">)</span></span></code></pre></div>
 <p>In a variogram, each point describes the variance in gene expression
 (semiovariance) with respect to the distance between spots. If spatial
 dependency is present trend should be observed wherein semiovariance
@@ -254,9 +258,8 @@ increases as the distance between spots increases. In other words,
 variance between close spots is lower than variance between distant
 spots. To calculate the variogram, the <code>geoR</code> package is
 used:</p>
-<pre><code><span><span class="co">#&gt; variog: computing omnidirectional variogram</span></span></code></pre>
 <p>Now, the variogram can be plotted:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">vgm</span>, pch<span class="op">=</span><span class="fl">16</span>, cex<span class="op">=</span><span class="fl">0.5</span>, ylab<span class="op">=</span><span class="st">'Semiovariance'</span>, xlab<span class="op">=</span><span class="st">'Distance'</span>, </span>
 <span>     main<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">'Variogram of '</span>, <span class="va">gene</span>, <span class="st">' expression'</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/text.html" class="external-link">text</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">14</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.65</span>, <span class="fl">2.1</span>, <span class="fl">0.65</span><span class="op">)</span>, </span>
@@ -268,7 +271,6 @@ used:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>h<span class="op">=</span><span class="fl">0.75</span>, col<span class="op">=</span><span class="st">'purple'</span>, lwd<span class="op">=</span><span class="fl">3</span>, lty<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/clip.html" class="external-link">clip</a></span><span class="op">(</span>x1<span class="op">=</span><span class="op">-</span><span class="fl">1</span>, x2<span class="op">=</span><span class="fl">12.1</span>, y1<span class="op">=</span><span class="op">-</span><span class="fl">1</span>, y2<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>v<span class="op">=</span><span class="fl">12</span>, col<span class="op">=</span><span class="st">'goldenrod1'</span>, lwd<span class="op">=</span><span class="fl">3</span>, lty<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span></code></pre></div>
-<p><img src="spatial_differential_expression_files/figure-html/vgm_plot-1.png" width="480" style="display: block; margin: auto;"></p>
 <p>We can see that variance is higher at longer distances. Note, that
 this relationship is disrupted at longer spot-to-spot distances (&gt; 15
 in this case). This disruption occurs because as spot-to-spot distances
@@ -295,28 +297,19 @@ and gaussian covariance structures, all of them defined in terms of the
 <em>nugget</em>, <em>sill</em>, and <em>range</em> parameters.</p>
 <p>Using the variogram calculated previously, the different covariance
 structures can be fitted and visualized with geoR like so:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Exponential covariance structure:</span></span>
 <span><span class="va">exp_model</span> <span class="op">&lt;-</span> <span class="fu">geoR</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/geoR/man/variofit.html" class="external-link">variofit</a></span><span class="op">(</span><span class="va">vgm</span>, fix.nugget<span class="op">=</span><span class="cn">FALSE</span>, cov.model<span class="op">=</span><span class="st">'exponential'</span>,</span>
 <span>                            ini.cov.pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">11</span><span class="op">)</span>, nugget<span class="op">=</span><span class="fl">0.7</span>, <span class="co"># Sill, range, and nugget specified here</span></span>
 <span>                            max.dist<span class="op">=</span><span class="fl">15</span><span class="op">)</span> <span class="co"># Maximum distance to which model will be fitted</span></span>
-<span><span class="co">#&gt; variofit: covariance model used is exponential </span></span>
-<span><span class="co">#&gt; variofit: weights used: npairs </span></span>
-<span><span class="co">#&gt; variofit: minimisation function used: optim</span></span>
 <span></span>
 <span><span class="va">sph_model</span> <span class="op">&lt;-</span> <span class="fu">geoR</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/geoR/man/variofit.html" class="external-link">variofit</a></span><span class="op">(</span><span class="va">vgm</span>, fix.nugget<span class="op">=</span><span class="cn">FALSE</span>, cov.model<span class="op">=</span><span class="st">'spherical'</span>,</span>
 <span>                            ini.cov.pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">11</span><span class="op">)</span>, nugget<span class="op">=</span><span class="fl">0.7</span>, </span>
 <span>                            max.dist<span class="op">=</span><span class="fl">15</span><span class="op">)</span></span>
-<span><span class="co">#&gt; variofit: covariance model used is spherical </span></span>
-<span><span class="co">#&gt; variofit: weights used: npairs </span></span>
-<span><span class="co">#&gt; variofit: minimisation function used: optim</span></span>
 <span></span>
 <span><span class="va">gau_model</span> <span class="op">&lt;-</span> <span class="fu">geoR</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/geoR/man/variofit.html" class="external-link">variofit</a></span><span class="op">(</span><span class="va">vgm</span>, fix.nugget<span class="op">=</span><span class="cn">FALSE</span>, cov.model<span class="op">=</span><span class="st">'gaussian'</span>,</span>
 <span>                            ini.cov.pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">11</span><span class="op">)</span>, nugget<span class="op">=</span><span class="fl">0.7</span>, </span>
 <span>                            max.dist<span class="op">=</span><span class="fl">15</span><span class="op">)</span></span>
-<span><span class="co">#&gt; variofit: covariance model used is gaussian </span></span>
-<span><span class="co">#&gt; variofit: weights used: npairs </span></span>
-<span><span class="co">#&gt; variofit: minimisation function used: optim</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">vgm</span>, pch<span class="op">=</span><span class="fl">16</span>, cex<span class="op">=</span><span class="fl">0.5</span>, ylab<span class="op">=</span><span class="st">'Semiovariance'</span>, xlab<span class="op">=</span><span class="st">'Distance'</span>,</span>
 <span>     main<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">'Variogram of '</span>, <span class="va">gene</span>, <span class="st">' expression with\nfitted covariance structures'</span><span class="op">)</span><span class="op">)</span></span>
@@ -334,7 +327,6 @@ structures can be fitted and visualized with geoR like so:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">exp_model</span>, col<span class="op">=</span><span class="fu"><a href="https://scales.r-lib.org/reference/alpha.html" class="external-link">alpha</a></span><span class="op">(</span><span class="st">'red'</span>, <span class="fl">0.7</span><span class="op">)</span>, lwd<span class="op">=</span><span class="fl">3</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">sph_model</span>, col<span class="op">=</span><span class="fu"><a href="https://scales.r-lib.org/reference/alpha.html" class="external-link">alpha</a></span><span class="op">(</span><span class="st">'blue'</span>, <span class="fl">0.7</span><span class="op">)</span>, lwd<span class="op">=</span><span class="fl">3</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">gau_model</span>, col<span class="op">=</span><span class="fu"><a href="https://scales.r-lib.org/reference/alpha.html" class="external-link">alpha</a></span><span class="op">(</span><span class="st">'orange'</span>, <span class="fl">0.7</span><span class="op">)</span>, lwd<span class="op">=</span><span class="fl">3</span><span class="op">)</span></span></code></pre></div>
-<p><img src="spatial_differential_expression_files/figure-html/vgm_model_plot-1.png" width="480" style="display: block; margin: auto;"></p>
 <p>In the case of <em>COL1A1</em> for sample “ST_mel1_rep2”, all models
 (exponential, spherical, and gaussian) fit well the variogram. Due to
 computational constraints, the <code>geoR</code> package is not used in
@@ -354,17 +346,17 @@ spatial dependency at all.</p>
 <code>STdiff</code> function can also use <em>non-spatial</em> mixed
 models to test for differentially expressed genes. In the
 <em>non-spatial</em> mixed models the the expression
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">y(s_i)</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">y(s_i)</annotation></semantics></math>
 of a gene in spot/cell
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
 is described as:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>μ</mi><mo>+</mo><mi>ε</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>μ</mi><mo>+</mo><mi>ε</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
 y(s_i) = μ + ε(s_i)
 </annotation></semantics></math></p>
 <p>where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>μ</mi><annotation encoding="application/x-tex">μ</annotation></semantics></math>
 is the average expression of the gene in the sample, and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ε</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">ε(s_i)</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ε</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">ε(s_i)</annotation></semantics></math>
 is the random error at spot/cell
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>.</p>
 <p>To reduce the number of false positives in differential expression
@@ -372,15 +364,15 @@ analysis of ST data, the <code>STdiff</code> function features a novel
 implementation of <em>spatial</em> mixed models with that expands the
 non-spatial case to include spatial covariance structures. In the
 <em>spatial</em> mixed models, the expression
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">y(s_i)</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">y(s_i)</annotation></semantics></math>
 of a gene in spot/cell
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
 is described as:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Y</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>=</mo><mi>μ</mi><mo>+</mo><mi>w</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><mi>ε</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Y</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>μ</mi><mo>+</mo><mi>w</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>ε</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
 Y(s_i) = μ + w(s_i) + ε(s_i) 
 </annotation></semantics></math></p>
 <p>where
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>w</mi><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">w(s_i)</annotation></semantics></math>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>w</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>s</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">w(s_i)</annotation></semantics></math>
 denotes the exponential spatial covariance of spot/cell
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>.</p>
 <p>In order to detect differentially expressed genes, groups of
@@ -399,16 +391,13 @@ the journal article describing the method for more details <span class="citation
 a spatial weight of 0.025 (<code>w=0.025</code>) will be used. The
 number of domains will be automatically defined by applying
 dynamicTreeClusters (<code>ks='dtc'</code>).</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">melanoma</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STclust.html">STclust</a></span><span class="op">(</span><span class="va">melanoma</span>, </span>
 <span>                    ks<span class="op">=</span><span class="st">'dtc'</span>, </span>
-<span>                    ws<span class="op">=</span><span class="fl">0.025</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span>
-<span><span class="co">#&gt; STclust started...</span></span>
-<span><span class="co">#&gt; Updating STlist with results...</span></span>
-<span><span class="co">#&gt; STclust completed in 0.03 min.</span></span></code></pre></div>
+<span>                    ws<span class="op">=</span><span class="fl">0.025</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p>Results of <code>STclust</code> domain detection can be plotted using
 the <code>STplot</code> function:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cluster_p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STplot.html">STplot</a></span><span class="op">(</span><span class="va">melanoma</span>, </span>
 <span>                    samples<span class="op">=</span><span class="st">'ST_mel1_rep2'</span>, </span>
 <span>                    ws<span class="op">=</span><span class="fl">0.025</span>, </span>
@@ -416,47 +405,20 @@ the <code>STplot</code> function:</p>
 <span>                    ptsize<span class="op">=</span><span class="fl">2</span>, color_pal<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">'#00BA38'</span>, <span class="st">'#EEBA38'</span>, <span class="st">'#619CFF'</span>, <span class="st">'#F8766D'</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cluster_p</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
-<p><img src="spatial_differential_expression_files/figure-html/plotclustspots_chunk-1.png" width="288" style="display: block; margin: auto;"></p>
 <p>With the domains identified, the <code>STdiff</code> function can be
 used. The following command tests for differentially expressed genes on
 the 1000 genes with the highest variation (as defined by
 <code>Seurat</code>’s function <code>FindVariableFeatures</code>).</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">deg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STdiff.html">STdiff</a></span><span class="op">(</span><span class="va">melanoma</span>, </span>
 <span>              samples<span class="op">=</span><span class="st">'ST_mel1_rep2'</span>, </span>
 <span>              w<span class="op">=</span><span class="fl">0.025</span>, k<span class="op">=</span><span class="st">'dtc'</span>, deepSplit<span class="op">=</span><span class="cn">FALSE</span>, </span>
 <span>              topgenes<span class="op">=</span><span class="fl">1000</span>,</span>
-<span>              sp_topgenes<span class="op">=</span><span class="fl">0.2</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span> <span class="co"># Test the 20% of the top differentially expressed genes (based on adjusted p-value)</span></span>
-<span><span class="co">#&gt; Testing STclust assignment (w=0.025, dtc deepSplit=False)...</span></span>
-<span><span class="co">#&gt;  Running non-spatial mixed models...</span></span>
-<span><span class="co">#&gt; Registered S3 methods overwritten by 'registry':</span></span>
-<span><span class="co">#&gt;   method               from </span></span>
-<span><span class="co">#&gt;   print.registry_field proxy</span></span>
-<span><span class="co">#&gt;   print.registry_entry proxy</span></span>
-<span><span class="co">#&gt;  Completed non-spatial mixed models (3.22 min).</span></span>
-<span><span class="co">#&gt;  Running spatial tests...</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;  Completed spatial mixed models (1.39 min).</span></span>
-<span><span class="co">#&gt; STdiff completed in 4.64 min.</span></span></code></pre></div>
+<span>              sp_topgenes<span class="op">=</span><span class="fl">0.2</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span> <span class="co"># Test the 20% of the top differentially expressed genes (based on adjusted p-value)</span></span></code></pre></div>
 <p>The output of <code>STdiff</code> is a list, where each element is a
 data frame containing the test results for each sample:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">deg</span><span class="op">[[</span><span class="st">'ST_mel1_rep2'</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3,000 × 9</span></span></span>
-<span><span class="co">#&gt;    sample  gene  avg_log2fc cluster_1 mm_p_val adj_p_val exp_p_val exp_adj_p_val</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> ST_mel… GNAS      -<span style="color: #BB0000;">0.715</span> 1         2.11<span style="color: #949494;">e</span><span style="color: #BB0000;">-15</span>  4.36<span style="color: #949494;">e</span><span style="color: #BB0000;">-14</span>   1.44<span style="color: #949494;">e</span><span style="color: #BB0000;">-9</span> 0.000<span style="text-decoration: underline;">000</span>005<span style="text-decoration: underline;">14</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> ST_mel… LYPL…     -<span style="color: #BB0000;">0.404</span> 1         1.60<span style="color: #949494;">e</span><span style="color: #BB0000;">- 9</span>  1.68<span style="color: #949494;">e</span><span style="color: #BB0000;">- 8</span>   3.36<span style="color: #949494;">e</span><span style="color: #BB0000;">-9</span> 0.000<span style="text-decoration: underline;">000</span>011<span style="text-decoration: underline;">0</span> </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> ST_mel… PCNA      -<span style="color: #BB0000;">0.746</span> 1         0   <span style="color: #949494;"> </span>     0   <span style="color: #949494;"> </span>      1.79<span style="color: #949494;">e</span><span style="color: #BB0000;">-8</span> 0.000<span style="text-decoration: underline;">000</span>054<span style="text-decoration: underline;">6</span> </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> ST_mel… METT…     -<span style="color: #BB0000;">0.730</span> 1         0   <span style="color: #949494;"> </span>     0   <span style="color: #949494;"> </span>      3.73<span style="color: #949494;">e</span><span style="color: #BB0000;">-7</span> 0.000<span style="text-decoration: underline;">000</span>912  </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> ST_mel… FASN      -<span style="color: #BB0000;">0.631</span> 1         8.95<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span>  9.69<span style="color: #949494;">e</span><span style="color: #BB0000;">- 9</span>   1.90<span style="color: #949494;">e</span><span style="color: #BB0000;">-6</span> 0.000<span style="text-decoration: underline;">003</span>82   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> ST_mel… RPS2…     -<span style="color: #BB0000;">0.739</span> 1         3.80<span style="color: #949494;">e</span><span style="color: #BB0000;">-14</span>  6.82<span style="color: #949494;">e</span><span style="color: #BB0000;">-13</span>   5.90<span style="color: #949494;">e</span><span style="color: #BB0000;">-6</span> 0.000<span style="text-decoration: underline;">011</span>6    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> ST_mel… EPHA2     -<span style="color: #BB0000;">0.466</span> 1         3.22<span style="color: #949494;">e</span><span style="color: #BB0000;">-12</span>  4.53<span style="color: #949494;">e</span><span style="color: #BB0000;">-11</span>   1.12<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 0.000<span style="text-decoration: underline;">021</span>3    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> ST_mel… IVNS…     -<span style="color: #BB0000;">0.683</span> 1         3.89<span style="color: #949494;">e</span><span style="color: #BB0000;">-14</span>  6.86<span style="color: #949494;">e</span><span style="color: #BB0000;">-13</span>   1.64<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 0.000<span style="text-decoration: underline;">030</span>5    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> ST_mel… B2M       -<span style="color: #BB0000;">0.426</span> 1         9.20<span style="color: #949494;">e</span><span style="color: #BB0000;">- 8</span>  7.67<span style="color: #949494;">e</span><span style="color: #BB0000;">- 7</span>   2.07<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 0.000<span style="text-decoration: underline;">038</span>1    </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> ST_mel… PRAME     -<span style="color: #BB0000;">0.656</span> 1         4.55<span style="color: #949494;">e</span><span style="color: #BB0000;">-12</span>  6.29<span style="color: #949494;">e</span><span style="color: #BB0000;">-11</span>   2.16<span style="color: #949494;">e</span><span style="color: #BB0000;">-5</span> 0.000<span style="text-decoration: underline;">039</span>1    </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2,990 more rows</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 1 more variable: comments &lt;chr&gt;</span></span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">deg</span><span class="op">[[</span><span class="st">'ST_mel1_rep2'</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <p>The columns <code>p_val</code> and <code>adj_p_val</code> are
 respectively the nominal and adjusted p-values resulting from the
 differential expression tests using the <em>non-spatial</em> models. The
@@ -469,7 +431,7 @@ models<a class="anchor" aria-label="anchor" href="#comparing-results-from-the-no
 </h3>
 <p>We can look at the -log10(p-values) to compare each spatial model to
 the non-spatial model:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># First load ggrepel to add gene names to plot</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="st"><a href="https://ggrepel.slowkow.com/" class="external-link">'ggrepel'</a></span><span class="op">)</span></span>
 <span></span>
@@ -488,9 +450,8 @@ the non-spatial model:</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">20</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">ylim</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">20</span><span class="op">)</span> <span class="op">+</span> <span class="co"># Restrict axes to ease visualization (very small p-values)</span></span>
 <span>  <span class="fu"><a href="https://ggrepel.slowkow.com/reference/geom_text_repel.html" class="external-link">geom_text_repel</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label<span class="op">=</span><span class="va">gene</span><span class="op">)</span>, size<span class="op">=</span><span class="fl">2</span>, show.legend<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p1</span></span></code></pre></div>
-<p><img src="spatial_differential_expression_files/figure-html/compare_pval_p-1.png" width="720" style="display: block; margin: auto;"></p>
 <p>When comparing the -log10(p-values) from the <em>non-spatial</em> and
 <em>spatial</em> models, it is possible to see that the p-values from
 the <em>non-spatial</em> model tended to provide smaller, more
@@ -521,34 +482,16 @@ analysis using tests commonly used in non-spatial single cell analysis.
 Specifically, the argument <code>test_type</code> can be set to
 “wilcoxon” or “t_test” to perform either Wilcoxon’s Rank tests or
 T-tests respectively:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">deg_wilcox</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STdiff.html">STdiff</a></span><span class="op">(</span><span class="va">melanoma</span>, </span>
 <span>                     samples<span class="op">=</span><span class="st">'ST_mel1_rep2'</span>, </span>
 <span>                     w<span class="op">=</span><span class="fl">0.025</span>, k<span class="op">=</span><span class="st">'dtc'</span>, deepSplit<span class="op">=</span><span class="cn">FALSE</span>, </span>
 <span>                     topgenes<span class="op">=</span><span class="fl">1000</span>,</span>
-<span>                     test_type<span class="op">=</span><span class="st">'wilcoxon'</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Testing STclust assignment (w=0.025, dtc deepSplit=False)...</span></span>
-<span><span class="co">#&gt;  Running Wilcoxon's tests...</span></span>
-<span><span class="co">#&gt;  Completed Wilcoxon's tests (0.46 min).</span></span>
-<span><span class="co">#&gt; STdiff completed in 0.46 min.</span></span></code></pre></div>
+<span>                     test_type<span class="op">=</span><span class="st">'wilcoxon'</span>, cores<span class="op">=</span><span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <p>No spatial tests are executed when Wilcoxon’s Rank tests or T-tests
 are requested.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">deg_wilcox</span><span class="op">[[</span><span class="st">'ST_mel1_rep2'</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3,000 × 6</span></span></span>
-<span><span class="co">#&gt;    sample       gene   avg_log2fc cluster_1 wilcox_p_val adj_p_val</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> ST_mel1_rep2 IGLL5       1.03  1             1.22<span style="color: #949494;">e</span><span style="color: #BB0000;">-15</span>  3.90<span style="color: #949494;">e</span><span style="color: #BB0000;">-14</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> ST_mel1_rep2 PCNA       -<span style="color: #BB0000;">0.746</span> 1             1.66<span style="color: #949494;">e</span><span style="color: #BB0000;">-15</span>  4.99<span style="color: #949494;">e</span><span style="color: #BB0000;">-14</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> ST_mel1_rep2 GNAS       -<span style="color: #BB0000;">0.715</span> 1             5.08<span style="color: #949494;">e</span><span style="color: #BB0000;">-15</span>  1.34<span style="color: #949494;">e</span><span style="color: #BB0000;">-13</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> ST_mel1_rep2 COL1A1      1.06  1             5.77<span style="color: #949494;">e</span><span style="color: #BB0000;">-14</span>  1.24<span style="color: #949494;">e</span><span style="color: #BB0000;">-12</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> ST_mel1_rep2 METTL9     -<span style="color: #BB0000;">0.730</span> 1             1.51<span style="color: #949494;">e</span><span style="color: #BB0000;">-13</span>  3.10<span style="color: #949494;">e</span><span style="color: #BB0000;">-12</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> ST_mel1_rep2 CPEB2      -<span style="color: #BB0000;">0.579</span> 1             1.45<span style="color: #949494;">e</span><span style="color: #BB0000;">-12</span>  2.56<span style="color: #949494;">e</span><span style="color: #BB0000;">-11</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> ST_mel1_rep2 SSFA2      -<span style="color: #BB0000;">0.612</span> 1             2.05<span style="color: #949494;">e</span><span style="color: #BB0000;">-12</span>  3.57<span style="color: #949494;">e</span><span style="color: #BB0000;">-11</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> ST_mel1_rep2 EPHA2      -<span style="color: #BB0000;">0.466</span> 1             4.10<span style="color: #949494;">e</span><span style="color: #BB0000;">-12</span>  6.94<span style="color: #949494;">e</span><span style="color: #BB0000;">-11</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> ST_mel1_rep2 STK32A     -<span style="color: #BB0000;">0.451</span> 1             9.61<span style="color: #949494;">e</span><span style="color: #BB0000;">-12</span>  1.53<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> ST_mel1_rep2 PEG10      -<span style="color: #BB0000;">0.469</span> 1             1.62<span style="color: #949494;">e</span><span style="color: #BB0000;">-11</span>  2.46<span style="color: #949494;">e</span><span style="color: #BB0000;">-10</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 2,990 more rows</span></span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">deg_wilcox</span><span class="op">[[</span><span class="st">'ST_mel1_rep2'</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 </details>
 </div>
 <div class="section level3">
@@ -559,19 +502,18 @@ are requested.</p>
 takes <code>STdiff</code> outputs and generates a volcano plot for each
 sample and cluster (or cluster pair if pairwise testing was
 requested).</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">vp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STdiff_volcano.html">STdiff_volcano</a></span><span class="op">(</span><span class="va">deg</span><span class="op">)</span></span></code></pre></div>
 <p>Now, the <code>ggpubr</code> package can be used to arrange all
 plots:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">ggpubr</span><span class="fu">::</span><span class="fu"><a href="https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html" class="external-link">ggarrange</a></span><span class="op">(</span>plotlist<span class="op">=</span><span class="va">vp</span>, ncol<span class="op">=</span><span class="fl">3</span>, common.legend<span class="op">=</span><span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="spatial_differential_expression_files/figure-html/volc_plots2-1.png" width="720" style="display: block; margin: auto;"></p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-ospina_2024" class="csl-entry">
 Ospina, Oscar E, Alex C Soupir, Roberto Manjarres-Betancur, Guillermo
 Gonzalez-Calderon, Xiaoqing Yu, and Brooke L Fridley. 2024. <span>“<span class="nocase">Differential gene expression analysis of spatial
@@ -579,9 +521,9 @@ transcriptomic experiments using spatial mixed models</span>.”</span>
 <em>Scientific Reports</em> 14: 10967. <a href="https://doi.org/10.1038/s41598-024-61758-0" class="external-link">https://doi.org/10.1038/s41598-024-61758-0</a>.
 </div>
 <div id="ref-ospina_2022" class="csl-entry">
-Ospina, Oscar E, Christopher M Wilson, Alex C Soupir, Anders Berglund,
-Inna Smalley, Kenneth Y Tsai, and Brooke L Fridley. 2022. <span>“<span class="nocase">spatialGE: quantification and visualization of the tumor
-microenvironment heterogeneity using spatial
+Ospina, Oscar E, Christopher M Wilson, Alex C Soupir, et al. 2022.
+<span>“<span class="nocase">spatialGE: quantification and visualization
+of the tumor microenvironment heterogeneity using spatial
 transcriptomics</span>.”</span> <em>Bioinformatics</em> 38: 2645–47. <a href="https://doi.org/10.1093/bioinformatics/btac145" class="external-link">https://doi.org/10.1093/bioinformatics/btac145</a>.
 </div>
 <div id="ref-thrane2018spatially" class="csl-entry">
@@ -592,15 +534,15 @@ Melanoma.”</span> <em>Cancer Research</em> 78: 5970–79.
 </div>
 </div>
 <details><summary><strong>Session Info</strong>
-</summary><div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+</summary><div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; R version 4.4.2 (2024-10-31)</span></span>
-<span><span class="co">#&gt; Platform: aarch64-apple-darwin20</span></span>
-<span><span class="co">#&gt; Running under: macOS Sequoia 15.3.2</span></span>
+<span><span class="co">#&gt; R version 4.6.1 (2026-06-24)</span></span>
+<span><span class="co">#&gt; Platform: aarch64-apple-darwin23</span></span>
+<span><span class="co">#&gt; Running under: macOS Tahoe 26.6.2</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Matrix products: default</span></span>
-<span><span class="co">#&gt; BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib </span></span>
-<span><span class="co">#&gt; LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0</span></span>
+<span><span class="co">#&gt; BLAS:   /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRblas.0.dylib </span></span>
+<span><span class="co">#&gt; LAPACK: /Library/Frameworks/R.framework/Versions/4.6/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; locale:</span></span>
 <span><span class="co">#&gt; [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8</span></span>
@@ -612,40 +554,27 @@ Melanoma.”</span> <em>Cancer Research</em> 78: 5970–79.
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt;  [1] ggrepel_0.9.5   lubridate_1.9.3 forcats_1.0.0   stringr_1.5.1  </span></span>
-<span><span class="co">#&gt;  [5] dplyr_1.1.4     purrr_1.0.2     readr_2.1.5     tidyr_1.3.1    </span></span>
-<span><span class="co">#&gt;  [9] tibble_3.2.1    ggplot2_3.5.1   tidyverse_2.0.0 spatialGE_1.2.0</span></span>
+<span><span class="co">#&gt; [1] spatialGE_2.0.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] tidyselect_1.2.1    khroma_1.13.0       farver_2.1.2       </span></span>
-<span><span class="co">#&gt;  [4] fastmap_1.2.0       digest_0.6.37       timechange_0.3.0   </span></span>
-<span><span class="co">#&gt;  [7] lifecycle_1.0.4     magrittr_2.0.3      compiler_4.4.2     </span></span>
-<span><span class="co">#&gt; [10] rlang_1.1.4         sass_0.4.9          tools_4.4.2        </span></span>
-<span><span class="co">#&gt; [13] utf8_1.2.4          yaml_2.3.10         ggsignif_0.6.4     </span></span>
-<span><span class="co">#&gt; [16] knitr_1.48          labeling_0.4.3      htmlwidgets_1.6.4  </span></span>
-<span><span class="co">#&gt; [19] bit_4.0.5           sp_2.1-4            RColorBrewer_1.1-3 </span></span>
-<span><span class="co">#&gt; [22] abind_1.4-5         registry_0.5-1      withr_3.0.1        </span></span>
-<span><span class="co">#&gt; [25] numDeriv_2016.8-1.1 desc_1.4.3          grid_4.4.2         </span></span>
-<span><span class="co">#&gt; [28] fansi_1.0.6         ggpubr_0.6.0        colorspace_2.1-1   </span></span>
-<span><span class="co">#&gt; [31] scales_1.3.0        MASS_7.3-61         ggpolypath_0.3.0   </span></span>
-<span><span class="co">#&gt; [34] cli_3.6.3           rmarkdown_2.28      crayon_1.5.3       </span></span>
-<span><span class="co">#&gt; [37] ragg_1.3.2          generics_0.1.3      rstudioapi_0.16.0  </span></span>
-<span><span class="co">#&gt; [40] tzdb_0.4.0          minqa_1.2.8         pbapply_1.7-2      </span></span>
-<span><span class="co">#&gt; [43] cachem_1.1.0        proxy_0.4-27        parallel_4.4.2     </span></span>
-<span><span class="co">#&gt; [46] vctrs_0.6.5         boot_1.3-31         Matrix_1.7-1       </span></span>
-<span><span class="co">#&gt; [49] carData_3.0-5       jsonlite_1.8.8      slam_0.1-52        </span></span>
-<span><span class="co">#&gt; [52] spaMM_4.5.0         car_3.1-2           hms_1.1.3          </span></span>
-<span><span class="co">#&gt; [55] rstatix_0.7.2       bit64_4.0.5         systemfonts_1.1.0  </span></span>
-<span><span class="co">#&gt; [58] jquerylib_0.1.4     splancs_2.01-45     glue_1.7.0         </span></span>
-<span><span class="co">#&gt; [61] ROI_1.0-1           pkgdown_2.1.1       nloptr_2.1.1       </span></span>
-<span><span class="co">#&gt; [64] cowplot_1.1.3       stringi_1.8.4       gtable_0.3.5       </span></span>
-<span><span class="co">#&gt; [67] munsell_0.5.1       pillar_1.9.0        htmltools_0.5.8.1  </span></span>
-<span><span class="co">#&gt; [70] R6_2.5.1            tcltk_4.4.2         textshaping_0.4.0  </span></span>
-<span><span class="co">#&gt; [73] vroom_1.6.5         evaluate_0.24.0     lattice_0.22-6     </span></span>
-<span><span class="co">#&gt; [76] highr_0.11          backports_1.5.0     broom_1.0.6        </span></span>
-<span><span class="co">#&gt; [79] bslib_0.8.0         Rcpp_1.0.13         gridExtra_2.3      </span></span>
-<span><span class="co">#&gt; [82] nlme_3.1-166        checkmate_2.3.2     geoR_1.9-4         </span></span>
-<span><span class="co">#&gt; [85] xfun_0.47           fs_1.6.4            pkgconfig_2.0.3</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] Matrix_1.7-6        gtable_0.3.6        jsonlite_2.0.0     </span></span>
+<span><span class="co">#&gt;  [4] dplyr_1.2.1         compiler_4.6.1      Rcpp_1.1.2         </span></span>
+<span><span class="co">#&gt;  [7] tidyselect_1.2.1    FNN_1.1.4.1         jquerylib_0.1.4    </span></span>
+<span><span class="co">#&gt; [10] systemfonts_1.3.2   scales_1.4.0        textshaping_1.0.5  </span></span>
+<span><span class="co">#&gt; [13] yaml_2.3.12         fastmap_1.2.0       lattice_0.23-1     </span></span>
+<span><span class="co">#&gt; [16] ggplot2_4.0.3       R6_2.6.1            generics_0.1.4     </span></span>
+<span><span class="co">#&gt; [19] ggpolypath_0.4.0    shape_1.4.6.1       knitr_1.52         </span></span>
+<span><span class="co">#&gt; [22] htmlwidgets_1.6.4   circlize_0.4.18     tibble_3.3.1       </span></span>
+<span><span class="co">#&gt; [25] desc_1.4.3          bslib_0.12.0        pillar_1.11.1      </span></span>
+<span><span class="co">#&gt; [28] RColorBrewer_1.1-3  rlang_1.3.0         cachem_1.1.0       </span></span>
+<span><span class="co">#&gt; [31] xfun_0.62           GlobalOptions_0.1.4 fs_2.1.0           </span></span>
+<span><span class="co">#&gt; [34] sass_0.4.10         S7_0.2.2            otel_0.2.0         </span></span>
+<span><span class="co">#&gt; [37] cli_3.6.6           pkgdown_2.2.1       magrittr_2.0.5     </span></span>
+<span><span class="co">#&gt; [40] digest_0.6.39       grid_4.6.1          rstudioapi_0.19.0  </span></span>
+<span><span class="co">#&gt; [43] mclust_6.1.3        lifecycle_1.0.5     vctrs_0.7.3        </span></span>
+<span><span class="co">#&gt; [46] evaluate_1.0.5      glue_1.8.1          farver_2.1.2       </span></span>
+<span><span class="co">#&gt; [49] ragg_1.5.2          colorspace_2.1-4    rmarkdown_2.32     </span></span>
+<span><span class="co">#&gt; [52] tools_4.6.1         pkgconfig_2.0.3     htmltools_0.5.9</span></span></code></pre></div>
 </details>
 </div>
   </div>
@@ -660,12 +589,12 @@ Melanoma.”</span> <em>Cancer Research</em> 78: 5970–79.
 
       <footer><div class="copyright">
   <p></p>
-<p>Developed by Oscar Ospina, Alex Soupir, Brooke Fridley.</p>
+<p>Developed by Oscar Ospina, Alex Soupir, Yonatan Ayalew Mekonnen, Brooke Fridley.</p>
 </div>
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
       </footer>

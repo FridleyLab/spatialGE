@@ -61,7 +61,9 @@ analysis with spatial linear models. If 0 (zero), no spatial models are fit. Def
 \code{pairwise=F}, meaning that DE genes are tested by comparing each cluster to the
 rest of the pooled cell/spots.}
 
-\item{verbose}{either logical or an integer (0, 1, or 2) to increase verbosity}
+\item{verbose}{output progress indicators. If \code{verbose=0}, no text is shown in console.
+Other values are 1 and 2 indicating increasing level of verbosity. Default is
+\code{verbose=1}}
 
 \item{cores}{Number of cores to use in parallelization. If \code{NULL}, the number of
 cores to use is detected automatically}

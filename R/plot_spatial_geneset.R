@@ -35,26 +35,21 @@ plot_spatial_geneset = function(x=NULL, genes=NULL, samples=NULL, color_pal='BuR
   }
 
   # Define which samples to plot
-  if(is.null(samples)){
-    samples = names(x@spatial_meta)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@spatial_meta)[samples]
-    }
-    if(length(grep(paste0(samples, collapse='|'), names(x@spatial_meta))) == 0){
-      stop('The requested samples are not present in the STList spatial metadata.')
-    }
-  }
+  samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='plain',
+                            char_transform='none', post_check='grep',
+                            message='The requested samples are not present in the STList spatial metadata.')
 
   # Test if no transformed counts are available
-  if(rlang::is_empty(x@tr_counts)){
-    stop('There are no transformed counts in the STlist.')
-  }
+  assert_transformed(x, message='There are no transformed counts in the STlist.')
+
+  # Union of genes across all requested gene sets, so each sample's counts
+  # are decompressed once at the smallest size that still covers every set.
+  wanted_genes = unique(unlist(genes))
 
   avg_expr = list()
   # Loop through samples
   for(i in samples){
-    counts = expandSparse(x@tr_counts[[i]])
+    counts = expandSparse(sample_tr_counts(x, i)[ sample_genes(x, i, 'tr_counts') %in% wanted_genes, , drop=FALSE])
     # Loop through gene sets
     avg_expr[[i]] = list()
     for(set in names(genes)){

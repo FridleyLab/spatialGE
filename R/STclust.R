@@ -40,7 +40,7 @@
 #' lk='https://github.com/FridleyLab/spatialGE_Data/raw/refs/heads/main/melanoma_thrane.zip?download='
 #' tryCatch({ # In case data is not available from network
 #'   download.file(lk, destfile=paste0(thrane_tmp, '/', 'melanoma_thrane.zip'), mode='wb')
-#'   #' zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
+#'   zip_tmp = list.files(thrane_tmp, pattern='melanoma_thrane.zip$', full.names=TRUE)
 #'   unzip(zipfile=zip_tmp, exdir=thrane_tmp)
 #'   # Generate the file paths to be passed to the STlist function
 #'   count_files <- list.files(paste0(thrane_tmp, '/melanoma_thrane'),
@@ -76,7 +76,6 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
 
   # Record time
   zero_t = Sys.time()
-  verbose = 1L
   if(verbose){
     cat(paste0('STclust started...\n'))
   }
@@ -105,93 +104,33 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
   }
 
   # Test if an STList has been input.
-  if(is.null(x) | !is(x, 'STlist')){
-    stop("The input must be a STlist.")
-  }
+  x = assert_stlist(x)
 
   # Check data has been normalized. Otherwise raise error
-  if(length(x@tr_counts) < 1){
-    raise_err(err_code='error0007')
-  }
+  assert_transformed(x, err_code='error0007')
 
   # Define samples using names (convert indexes to names if necessary)
-  if(is.null(samples)){
-    samples = names(x@spatial_meta)
-  } else{
-    if(is.numeric(samples)){
-      samples = as.vector(na.omit(names(x@spatial_meta)[samples]))
-    } else{
-      samples = samples[samples %in% names(x@spatial_meta)]
-    }
-    # Verify that sample names exist
-    if(length(samples) == 0 | !any(samples %in% names(x@spatial_meta))){
-      stop('None of the requested samples are present in the STlist.')
-    }
-  }
+  samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='na_omit',
+                            char_transform='exact', post_check='any_in',
+                            message='None of the requested samples are present in the STlist.')
 
   # Define number of cores for parallelization of tests
-  if(.Platform$OS.type == 'windows'){
-    cores = 1
-  }
-  if(is.null(cores)){
-    cores = count_cores(length(samples))
-  } else{
-    cores = ceiling(cores)
-  }
+  cores = resolve_cores(length(samples), cores, coerce='ceiling')
 
   # Identify variable genes (Seurat's VST)
   x = calculate_vst(x=x, samples=samples, cores=cores)
 
   # Subset variable genes
-  trcounts_df = parallel::mclapply(samples, function(i){
-    topgenenames_tmp = x@gene_meta[[i]] %>%
-      dplyr::arrange(dplyr::desc(vst.variance.standardized)) %>%
-      dplyr::slice_head(n=topgenes) %>%
-      dplyr::select(gene) %>%
-      unlist() %>%
-      as.vector()
-
-    # Get transformed counts
-    trcounts_df_tmp = x@tr_counts[[i]][rownames(x@tr_counts[[i]]) %in% topgenenames_tmp, ]
-
-    return(trcounts_df_tmp)
-  }, mc.cores=cores)
+  trcounts_df = sge_lapply(samples, function(i){
+    stclust_topgenes_one_sample(sample_gene_meta(x, i), sample_tr_counts(x, i), topgenes)
+  }, cores=cores)
   names(trcounts_df) = samples
 
   # Parallelize clustering
-  res_ls = parallel::mclapply(samples, function(i){
-    # Calculate scaled expression and spatial distance matrices
-    scaled_dists = calculate_dist_matrices(expr_dat=trcounts_df[[i]], coord_dat=x@spatial_meta[[i]], dist_metric=dist_metric)
-
-    # Calculate weighted distance matrices
-    weighted_dists = calculate_weighted_dist(scaled_dists=scaled_dists, ws=ws)
-
-    rm(scaled_dists) # Clean env
-
-    # Identify clustering method... ONLY HIERARCHICAL CLUSTERING IMPLEMENTED SO FAR
-    if(clmethod == 'hclust'){
-
-      # Apply dtc or split to k
-      if(as.character(ks[1]) == 'dtc'){
-        # Hierarchical clustering using DynamicTreeCLusters
-        hierclusters_ls = get_hier_clusters_dtc(weighted_dists=weighted_dists, ws=ws, deepSplit=deepSplit, linkage=linkage)
-      } else if(is.numeric(ks)){
-        # Hierarchical clustering using range of Ks
-        hierclusters_ls = get_hier_clusters_ks(weighted_dists=weighted_dists, ws=ws, ks=ks, linkage=linkage)
-      } else{
-        stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')
-      }
-
-    } else{
-      stop('Currently, only spatially-informed hierarchical clustering is supported.')
-    }
-
-    if(verbose > 1L){
-      system(sprintf('echo "%s"', paste0("\tClustering completed for ", i, "...")))
-    }
-
-    return(hierclusters_ls)
-  }, mc.cores=cores)
+  res_ls = sge_lapply(samples, function(i){
+    stclust_one_sample(trcounts_df[[i]], sample_spatial_meta(x, i), dist_metric, ws, clmethod,
+                       ks, deepSplit, linkage, verbose, i)
+  }, cores=cores)
   names(res_ls) = samples
 
   rm(trcounts_df) # Clean env
@@ -221,6 +160,93 @@ STclust = function(x=NULL, samples=NULL, ws=0.025, dist_metric='euclidean', link
 
 
 # Helpers ----------------------------------------------------------------------
+
+##
+# @title stclust_topgenes_one_sample: Subset a sample's counts to its top
+# variable genes
+# @description The per-sample unit of work dispatched by `STclust()`'s
+# "Subset variable genes" `sge_lapply` call, extracted so it is directly
+# callable/benchmarkable for one sample without going through the whole STlist.
+#
+# @param gene_meta_df the sample's gene metadata tibble (must contain
+# `gene` and `vst.variance.standardized` columns).
+# @param tr_counts_mat the sample's transformed count matrix.
+# @param topgenes the number of top variable genes to keep.
+# @return the transformed count matrix subset to the top variable genes.
+#
+stclust_topgenes_one_sample = function(gene_meta_df, tr_counts_mat, topgenes){
+  # To prevent NOTES in R CMD check
+  . = NULL
+
+  topgenenames_tmp = gene_meta_df %>%
+    dplyr::arrange(dplyr::desc(vst.variance.standardized)) %>%
+    dplyr::slice_head(n=topgenes) %>%
+    dplyr::select(gene) %>%
+    unlist() %>%
+    as.vector()
+
+  # Get transformed counts
+  trcounts_df_tmp = tr_counts_mat[rownames(tr_counts_mat) %in% topgenenames_tmp, ]
+
+  return(trcounts_df_tmp)
+}
+
+
+##
+# @title stclust_one_sample: Run spatially-weighted hierarchical clustering
+# for one sample
+# @description The per-sample unit of work dispatched by `STclust()`'s
+# "Parallelize clustering" `sge_lapply` call, extracted so it is directly
+# callable/benchmarkable for one sample without going through the whole STlist.
+#
+# @param trcounts_mat the sample's transformed counts, subset to top variable genes.
+# @param spatial_meta_df the sample's spatial metadata tibble.
+# @param dist_metric the distance metric, passed to `calculate_dist_matrices`.
+# @param ws vector of spatial weights.
+# @param clmethod the clustering method (only 'hclust' is currently supported).
+# @param ks the range of k values, or 'dtc' to apply `cutreeDynamic`.
+# @param deepSplit passed to `get_hier_clusters_dtc`.
+# @param linkage the linkage method, passed to `hclust`.
+# @param verbose either logical or an integer (0, 1, or 2); values > 1 print
+# a per-sample progress message.
+# @param sample_name the sample's name, used only in the progress message.
+# @return a list of data frames with cluster assignments, one per spatial weight.
+#
+stclust_one_sample = function(trcounts_mat, spatial_meta_df, dist_metric, ws, clmethod,
+                              ks, deepSplit, linkage, verbose, sample_name){
+  # Calculate scaled expression and spatial distance matrices
+  scaled_dists = calculate_dist_matrices(expr_dat=trcounts_mat, coord_dat=spatial_meta_df, dist_metric=dist_metric)
+
+  # Calculate weighted distance matrices
+  weighted_dists = calculate_weighted_dist(scaled_dists=scaled_dists, ws=ws)
+
+  rm(scaled_dists) # Clean env
+
+  # Identify clustering method... ONLY HIERARCHICAL CLUSTERING IMPLEMENTED SO FAR
+  if(clmethod == 'hclust'){
+
+    # Apply dtc or split to k
+    if(as.character(ks[1]) == 'dtc'){
+      # Hierarchical clustering using DynamicTreeCLusters
+      hierclusters_ls = get_hier_clusters_dtc(weighted_dists=weighted_dists, ws=ws, deepSplit=deepSplit, linkage=linkage)
+    } else if(is.numeric(ks)){
+      # Hierarchical clustering using range of Ks
+      hierclusters_ls = get_hier_clusters_ks(weighted_dists=weighted_dists, ws=ws, ks=ks, linkage=linkage)
+    } else{
+      stop('Enter a valid number of k values to evaluate or \'dtc\' to apply cutreeDynamic.')
+    }
+
+  } else{
+    stop('Currently, only spatially-informed hierarchical clustering is supported.')
+  }
+
+  if(verbose > 1L){
+    system(sprintf('echo "%s"', paste0("\tClustering completed for ", sample_name, "...")))
+  }
+
+  return(hierclusters_ls)
+}
+
 
 ##
 # calculate_dist_matrices: Calculate distance matrices and scale to 1
@@ -264,7 +290,16 @@ calculate_weighted_dist = function(scaled_dists=NULL, ws=NULL){
     weight_ls = c(weight_g, weight_d)
     dmxs = list(scaled_dists[[1]], scaled_dists[[2]])
 
-    # Apply weight element-wise
+    # Apply weight element-wise.
+    # NOTE: this allocates three n x n matrices per weight -- two scaled copies
+    # plus the sum, 384 MB per weight at 4,096 spots where only the result is
+    # needed. A C++ elementwise fusion was implemented and measured (3x less
+    # allocation) but reverted: the compiler contracted wa*a + wb*b into an FMA,
+    # moving the result by 1 ULP and failing the bit-exact golden gate, and it
+    # was not faster in the dev build. The plan's lower-triangle formulation is
+    # not possible here anyway because get_hier_clusters_dtc() passes the full
+    # matrix to dynamicTreeCut::cutreeDynamic(distM=). Revisit only with
+    # -ffp-contract=off and an optimized build if the allocation matters.
     weight_mtx = Reduce('+', Map('*', dmxs, weight_ls))
 
     return(weight_mtx)
@@ -326,12 +361,14 @@ get_hier_clusters_ks = function(weighted_dists=NULL, ws=NULL, ks=NULL, linkage=N
 
   grp_df_ls = lapply(1:length(ws), function(w){
     grp_df = tibble::tibble(libname=colnames(weighted_dists[[w]]))
+
+    # Run hierarchical clustering once per weight: weighted_dists[[w]] and
+    # linkage do not change across k, only the dendrogram cut does.
+    hierclusters = hclust(as.dist(weighted_dists[[w]]), method=linkage)
+
     for(k in ks){
       # Construct column name to be put in `spatial_meta` based on weight and k
       col_name = paste0('stclust_spw', ws[w], '_k', k)
-
-      # Run hierarchical clustering
-      hierclusters = hclust(as.dist(weighted_dists[[w]]), method=linkage)
 
       # Cut the dendrogram
       grp_df_tmp = cutree(hierclusters, k=k)
@@ -340,8 +377,9 @@ get_hier_clusters_ks = function(weighted_dists=NULL, ws=NULL, ks=NULL, linkage=N
 
       grp_df = grp_df %>% dplyr::left_join(., grp_df_tmp, by='libname')
 
-      rm(grp_df_tmp, hierclusters, col_name) # Clean env
+      rm(grp_df_tmp, col_name) # Clean env
     }
+    rm(hierclusters) # Clean env
     return(grp_df)
   })
 

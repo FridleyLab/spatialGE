@@ -31,16 +31,9 @@ plot_spatial_meta = function(x, samples=NULL, ks='dtc', ws=NULL, deepSplit=NULL,
   . = NULL
 
   # Define which samples to plot
-  if(is.null(samples)){
-    samples = names(x@spatial_meta)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@spatial_meta)[samples]
-    }
-    if(length(grep(paste0(samples, collapse='|'), names(x@spatial_meta))) == 0){
-      stop('The requested samples are not present in the STlist spatial metadata.')
-    }
-  }
+  samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='plain',
+                            char_transform='none', post_check='grep',
+                            message='The requested samples are not present in the STlist spatial metadata.')
 
   # Define columns to plot
   if(is.null(plot_meta)){

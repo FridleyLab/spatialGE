@@ -39,16 +39,9 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
   genes = unique(genes)
 
   # Define which samples to plot
-  if(is.null(samples)){
-    samples = names(x@spatial_meta)
-  } else{
-    if(is.numeric(samples)){
-      samples = names(x@spatial_meta)[samples]
-    }
-    if(length(grep(paste0(samples, collapse='|'), names(x@spatial_meta))) == 0){
-      stop('The requested samples are not present in the STList spatial metadata.')
-    }
-  }
+  samples = resolve_samples(x, samples, slot='spatial_meta', numeric_handling='plain',
+                            char_transform='none', post_check='grep',
+                            message='The requested samples are not present in the STList spatial metadata.')
 
   # Select appropriate slot to take counts from
   if(data_type == 'tr'){
@@ -79,9 +72,7 @@ plot_spatial_expression = function(x=NULL, genes=NULL, samples=NULL, color_pal='
       #   dplyr::left_join(x@spatial_meta[[i]] %>%
       #                      dplyr::select(libname, xpos, ypos), ., by='libname')
 
-      counts[[i]] = expandSparse(counts[[i]][rownames(counts[[i]]) %in% genes, , drop=FALSE]) %>%
-        t() %>%
-        as.data.frame() %>%
+      counts[[i]] = expandSparse(counts[[i]][rownames(counts[[i]]) %in% genes, , drop=FALSE], transpose=TRUE) %>%
         tibble::rownames_to_column(var='libname') %>%
         dplyr::left_join(x@spatial_meta[[i]] %>%
                            dplyr::select(libname, xpos, ypos), ., by='libname')
