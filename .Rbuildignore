@@ -19,3 +19,4 @@
 ^vignettes/img/smi_dir_structure\.png$
 ^cran-comments\.md$
 ^Rplots\.pdf$
+^_pkgdown\.yml$
