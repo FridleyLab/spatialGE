@@ -97,7 +97,7 @@
       <h1 data-toc-skip>Spatially-informed differential gene
 expression</h1>
             
-            <h4 data-toc-skip class="date">2026-11-07</h4>
+            <h4 data-toc-skip class="date">2026-11-10</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/FridleyLab/spatialGE/blob/main/vignettes/spatial_differential_expression.Rmd" class="external-link"><code>vignettes/spatial_differential_expression.Rmd</code></a></small>
       <div class="hidden name"><code>spatial_differential_expression.Rmd</code></div>
@@ -166,7 +166,12 @@ expression counts per spot and comma-delimited containing the spatial
 coordinates per spot. The example files in this tutorial can be
 downloaded from the <a href="https://github.com/FridleyLab/spatialGE_Data" class="external-link">spatialGE_Data
 GitHub repository</a>. Users are encouraged to download these files to
-familirize themselves with the data format.</p>
+familirize themselves with the data format. This is the <em>generic</em>
+input format (counts and coordinates per sample), which can be used for
+data from any platform; see <em>Loading data from other platforms</em>
+in
+<code><a href="../articles/basic_functions_vignette.html">vignette("basic_functions_vignette", package = "spatialGE")</a></code>,
+which also covers Xenium and CosMx-SMI.</p>
 <p>In this tutorial, data will be downloaded and deposited in a
 temporary directory. However, the download path can be changed within
 the following code block. If the download fails (e.g., no network or
@@ -468,10 +473,10 @@ approximately 18 minutes in a OS machine with a 6-cores Intel Core i7
 and 16GB memory. Should the user decide to disable spatial testing, the
 user only needs to set <code>sp_topgenes=0</code>. When running
 <em>spatial</em> tests with more genes, and samples assayed with more
-densely sampled technologies (e.g., Visium, CosMx-SMI), the user should
-consider running <code>STdiff</code> in a High-Performance Computing
-environment (HPC, or “cluster”), setting the number of cores to use via
-the <code>cores</code> parameter.</p>
+densely sampled technologies (e.g., Visium, Xenium, CosMx-SMI), the user
+should consider running <code>STdiff</code> in a High-Performance
+Computing environment (HPC, or “cluster”), setting the number of cores
+to use via the <code>cores</code> parameter.</p>
 <details><summary><strong>Does <code>spatialGE</code> support other differential
 expression test types? </strong>
 </summary><p>It has been shown above that accounting for spatial dependence

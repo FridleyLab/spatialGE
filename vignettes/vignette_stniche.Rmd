@@ -109,6 +109,9 @@ This vignette applies STniche to two technologies and uses each to answer a spec
 | GSE175540 (24 RCC sections, FFPE and fresh frozen) | Visium (spot level) | Do STniche niches recover pathologist-annotated tertiary lymphoid structures (TLS)? |
 | ccRCC tumour fields of view (FOVs) | CosMx (single-cell level) | Which cell types and immune programmes define each niche, and does niche-level immune activity differ between immunotherapy (IO)-naive and IO-exposed tumours? |
 
+To run STniche on your own data (Visium, Xenium, CosMx or any count matrix with coordinates), see
+[Using your own data](#using-your-own-data) at the end of this vignette.
+
 # Setup and data
 
 All data are downloaded automatically on first use (GEO for Visium; Zenodo and Springer for CosMx).
@@ -641,7 +644,7 @@ show_table(overview, caption = "Datasets analysed.", digits = 0)
 show_table(reps, caption = "Representative samples used in the figures. All niche statistics are computed on every sample; only plots are restricted to these.", digits = 0)
 ```
 
-# Running STniche
+# Running STniche {#running-stniche}
 
 STniche is run jointly on all samples of a platform, so niche labels (C1, C2, ...) are shared across
 samples and directly comparable. The ten gene sets below were chosen to cover the programmes that
@@ -738,6 +741,28 @@ if (!is.null(robust_tab))
              caption = "Agreement between niche assignments obtained with two neighbourhood sizes (1 = identical, 0 = chance).",
              digits = 2)
 ```
+
+# Reading the results
+
+`STniche()` returns the `STlist` with a niche label for every spot or cell in the `STniche_DTC` column of
+`@spatial_meta`. With `out_i = TRUE` (used above) it returns a list instead: the labelled `STlist` first,
+and the matrix of local Moran's Z values (gene sets x spots/cells) second. Pass that matrix to
+`plot_stniche()` as `zi` for the plot types that need it.
+
+`plot_stniche()` draws everything in this vignette through its `type` argument:
+
+| `type` | Shows | Needs | Used in |
+|:--|:--|:--|:--|
+| `"clusters"` | Niche map: each spot or cell coloured by niche | | Niche maps |
+| `"Zi"` | Local Moran's Z of one gene set (`gene_set`) | `zi` | Local Moran's Z of the TLS gene set |
+| `"niche_signature"` | Mean Zi of every gene set within each niche | `zi` | Gene-set signatures |
+| `"celltype_heatmap"` | Fraction of each niche's cells in each cell type | `cell_type` column | Cluster x cell-type heatmap |
+| `"celltype_composition"` | Stacked bars of cell-type make-up per niche | `cell_type` column | Cell-type composition per niche |
+| `"celltype_spatial"` | Map highlighting chosen cell types (`highlight_types`) | `cell_type` column | Spatial relationship between CD8 and M2 |
+| `"multi_sample_alluvial"` | Niche correspondence between samples through shared gene-set programmes | `zi`, two or more samples | Niche correspondence between samples |
+
+Use `samples` to restrict a plot to some samples, `overlay_samples = FALSE` to draw them separately, and
+`reverse_y = TRUE` for imaging-based platforms whose y axis runs top to bottom (CosMx here).
 
 # Spatial organisation of niches
 
@@ -1170,6 +1195,42 @@ if (exists("path_tab"))
              caption = sprintf("IO-naive versus IO-exposed CD8 T-cell niches (%d naive and %d exposed FOVs; Wilcoxon test, Benjamini-Hochberg FDR).",
                                sum(io == "IO-naive"), sum(io == "IO-exposed")),
              digits = 3)
+```
+
+# Using your own data {#using-your-own-data}
+
+STniche needs an `STlist` that has been filtered and transformed (`filter_data()`, `transform_data()`).
+How to create the `STlist` for each platform (Space Ranger folders for Visium, a Seurat object for
+Xenium or CosMx, or counts plus coordinates in the generic format) is described in
+`vignette("basic_functions_vignette", package = "spatialGE")`, section *Loading data from other
+platforms*. The chunks below show only the STniche-specific steps and are not run.
+
+For panel-based platforms such as Xenium, check that your gene sets are covered by the panel:
+
+```{r own-panel-check, echo=TRUE, eval=FALSE}
+panel <- rownames(st@counts[[1]])
+sapply(stniche_gene_sets, function(g) sprintf("%d of %d genes in panel", sum(g %in% panel), length(g)))
+```
+
+The cell-type plots (`"celltype_heatmap"`, `"celltype_composition"`, `"celltype_spatial"`) read a
+`cell_type` column in `@spatial_meta`. If you have cell-type labels, add them before plotting:
+
+```{r own-celltype, echo=TRUE, eval=FALSE}
+st@spatial_meta[["my_sample"]]$cell_type <- my_labels[match(st@spatial_meta[["my_sample"]]$libname,
+                                                            names(my_labels))]
+```
+
+Then run STniche and plot as in [Running STniche](#running-stniche), using `reverse_y = TRUE` for
+imaging-based platforms:
+
+```{r own-run, echo=TRUE, eval=FALSE}
+res <- STniche(x = st, gene_sets = stniche_gene_sets,
+               samples = names(st@spatial_meta),
+               ks = 2:10, knns = 22, out_i = TRUE, cores = n_cores)
+st  <- res[[1]]   # STlist with niche labels in @spatial_meta[[i]]$STniche_DTC
+zi  <- res[[2]]   # local Moran's Z matrix, passed to plot_stniche(zi = )
+
+plot_stniche(st, type = "clusters", reverse_y = TRUE)
 ```
 
 # Session information

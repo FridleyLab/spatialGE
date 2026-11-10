@@ -20,7 +20,7 @@ options(rmarkdown.html_vignette.check_title=F)
 
 The package ***`spatialGE`*** provides a collection of tools for the visualization of gene expression from spatially-resolved transcriptomic experiments. The data input methods have been designed so that any data can be analyzed as long as it contains gene expression counts per spot or cell, and the spatial coordinates of those spots or cells. Specialized data input options are available to allow interoperability with workflows such as [*Space Ranger*](https://support.10xgenomics.com/spatial-gene-expression/software/pipelines/latest/what-is-space-ranger).
 
-This tutorial covers basic analysis possible within spatialGE. Tutorials explaining more advanced spatial analyses and other data input types can be found in the documentation site of the [spatialGE GitHub repository](https://fridleylab.github.io/spatialGE/). A point-and-click, user-friendly interface is also available at https://spatialge.moffitt.org.
+This tutorial covers basic analysis possible within spatialGE. Tutorials explaining more advanced spatial analyses can be found in the documentation site of the [spatialGE GitHub repository](https://fridleylab.github.io/spatialGE/), including spatial differential expression (`STdiff`), gene set enrichment and gradients on CosMx-SMI data (`STenrich`, `STgradient`), and spatial niche detection (`STniche`; see `vignette("vignette_stniche", package = "spatialGE")`). Input formats other than Space Ranger folders (Xenium, CosMx-SMI, and the generic file format) are described in the section *Loading data from other platforms* below. A point-and-click, user-friendly interface is also available at https://spatialge.moffitt.org.
 
 ## Installation
 
@@ -159,6 +159,52 @@ cp2 <- distribution_plots(tnbc, plot_type='violin', plot_meta='total_counts')
 cp2[['total_counts']]
 ```
 
+<details>
+
+<summary>**Loading data from other platforms (Xenium, CosMx-SMI, generic format)**</summary>
+
+The same `STlist` function is used for every platform. Only the input changes:
+
+| Data | Input to `STlist` |
+|:--|:--|
+| 10X Visium | One Space Ranger folder per sample (as above) |
+| Xenium | A Seurat object created from the Xenium output folder |
+| CosMx-SMI | Flat files (`exprMat` and `metadata` csv files, see the CosMx-SMI tutorial), or a Seurat object |
+| Any other platform (generic format) | Counts and coordinates, as files or data frames |
+
+**Generic format.** Provide, for each sample, a counts table (genes in rows, spots or cells in columns,
+with gene names in the first column) and a coordinates table with one row per spot or cell. In the
+coordinates table, the first column holds the spot/cell IDs (matching the column names of the counts),
+followed by the y and x coordinates. See `?STlist` for all accepted forms. Files (csv/tsv) are used in the
+`STdiff` tutorial, and data frames in the simulation example at the end of this tutorial:
+
+```{r generic_format, eval=FALSE}
+# counts: genes x spots/cells; coords: columns libname, ypos, xpos
+my_stlist <- STlist(rnacounts=list(sample1=counts),
+                    spotcoords=list(sample1=coords),
+                    samples='sample1')
+```
+
+**Xenium.** Read the Xenium output folder with Seurat and pass the resulting object to `STlist`.
+For Seurat objects, `spatialGE` infers the platform from the image class, so imaging-based data is not
+treated as Visium:
+
+```{r xenium_input, eval=FALSE}
+library('Seurat')
+xen <- Seurat::LoadXenium('path/to/xenium_output_folder', fov='fov')
+
+xenium <- STlist(xen, samples='xenium_sample', cores=2)
+xenium <- filter_data(xenium, spot_minreads=20)  # cell-level threshold; adjust to the panel
+xenium <- transform_data(xenium, method='log', cores=2)
+```
+
+From here on, the functions in this and the other tutorials are used as for any other `STlist`.
+Because Xenium panels contain a few hundred genes, check that the genes in any gene set you test
+(`STenrich`, `STniche`) are present in `rownames(xenium@counts[[1]])`.
+
+</details>
+
+
 ## Exploring variation between spatial arrays
 
 The functions `pseudobulk_samples` and `pseudobulk_pca_plot` are the initial steps to obtain a quick snapshot of the variation in gene expression among samples. The function `pseudobulk_samples` creates (pseudo) "bulk" RNAseq data sets by combining all counts from each sample. Then, it log transforms the "pseudo bulk" RNAseq counts and runs a Principal Component Analysis (PCA). Note that the spatial coordinate information is not considered here, which is intended only as an exploratory analysis analysis. The `max_var_genes` argument is used to specify the maximum number of genes used for computation of PCA. The genes are selected based on their standard deviation across samples.
@@ -265,6 +311,8 @@ ggpubr::ggarrange(plotlist=cluster_p, nrow=2, ncol=2, legend='right')
 ```
 
 We can see that from `w=0` and `w=0.05`, we can only detect two tissue niches. At `w=0.025`, we gain higher resolution as one of the clusters is split and a third ('yellow') cluster appears, potentially indicating that an different transcriptional profile is present there. At `w=0.2`, the clusters seem too compact, indicating that the weight of spatial information is probably too high. We have used here the dynamic tree cuts (`dtc`) to automatically select the number of clusters, resulting in very coarse resolution tissue niches, however, users can define their own range of k to be evaluated, allowing further detection of tissue compartments.
+
+`STclust` defines tissue domains from transcriptomic and spatial distances. To instead detect niches defined by which gene sets are spatially concentrated together at each location (and, for single-cell data, which cell types they contain), see `STniche` in `vignette("vignette_stniche", package = "spatialGE")`.
 
 ## Association between spatial heterogeneity and sample-level variables
 

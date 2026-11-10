@@ -125,132 +125,71 @@
 <div class="section level2">
 <h2 id="spatial-niche-detection-with-stniche">Spatial niche detection with STniche<a class="anchor" aria-label="anchor" href="#spatial-niche-detection-with-stniche"></a>
 </h2>
-<p><code>STniche</code> detects niches, local microenvironments where particular cell types and molecular programs co-occur, in three steps:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Gene set scoring:</strong> each spot or cell receives an activity score for every gene set of interest.</li>
-<li>
-<strong>Spatial autocorrelation:</strong> a local Moran’s I statistic (reported as a Z-score, Zi) measures whether each gene set is spatially concentrated around that location.</li>
-<li>
-<strong>Clustering:</strong> Zi profiles are clustered with model-based clustering, and the number of niches is chosen by BIC.</li>
-</ol>
-<p>It works on spot-based (Visium) and single-cell (CosMx) data. When run on several samples at once, niche labels (C1, C2, …) are shared and directly comparable across samples.</p>
+<p><code>STniche</code> detects niches, local microenvironments where particular cell types and molecular programs co-occur, from spot-based (Visium) and single-cell (CosMx) data. Niche labels are shared across samples analyzed together, so they are directly comparable. <code>plot_stniche</code> visualizes the results.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/FridleyLab/spatialGE" class="external-link">spatialGE</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># gene_sets: a named list of character vectors, one per gene set</span></span>
-<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/STniche.html">STniche</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">stlist</span>, gene_sets <span class="op">=</span> <span class="va">gene_sets</span>,</span>
+<code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/STniche.html">STniche</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">stlist</span>, gene_sets <span class="op">=</span> <span class="va">gene_sets</span>,</span>
 <span>               samples <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">stlist</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">)</span>,</span>
-<span>               ks <span class="op">=</span> <span class="fl">10</span>, knns <span class="op">=</span> <span class="fl">22</span>, out_i <span class="op">=</span> <span class="cn">TRUE</span>, cores <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span>               ks <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="fl">10</span>, knns <span class="op">=</span> <span class="fl">22</span>, out_i <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">st</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>  <span class="co"># STlist with niche assignments</span></span>
-<span><span class="va">zi</span> <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span>  <span class="co"># Local Moran's Z (Zi) matrix</span></span></code></pre></div>
-<p><code>plot_stniche</code> visualizes the results through its <code>type</code> argument:</p>
+<span><span class="fu"><a href="reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span><span class="va">res</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, type <span class="op">=</span> <span class="st">"clusters"</span><span class="op">)</span></span></code></pre></div>
+<p>The method, all <code>plot_stniche</code> plot types, and worked Visium (GSE175540) and CosMx (ccRCC) examples are in the STniche vignette: <code><a href="articles/vignette_stniche.html">vignette("vignette_stniche", package = "spatialGE")</a></code>, also available under Tutorials below.</p>
+</div>
+<div class="section level2">
+<h2 id="supported-input">Supported input<a class="anchor" aria-label="anchor" href="#supported-input"></a>
+</h2>
 <table class="table">
 <colgroup>
 <col width="50%">
 <col width="50%">
 </colgroup>
 <thead><tr>
-<th><code>type</code></th>
-<th>Shows</th>
+<th>Platform</th>
+<th>How to load</th>
 </tr></thead>
 <tbody>
 <tr>
-<td><code>"clusters"</code></td>
-<td>Niche map of each sample</td>
+<td>10X Visium</td>
+<td>
+<code><a href="reference/STlist.html">STlist()</a></code> on one Space Ranger folder per sample</td>
 </tr>
 <tr>
-<td><code>"Zi"</code></td>
-<td>Local Moran’s Z of one gene set (requires <code>zi</code> and <code>gene_set</code>)</td>
+<td>Xenium</td>
+<td>Load with <code><a href="https://satijalab.org/seurat/reference/ReadXenium.html" class="external-link">Seurat::LoadXenium()</a></code>, then <code><a href="reference/STlist.html">STlist()</a></code> on the Seurat object</td>
 </tr>
 <tr>
-<td><code>"celltype_heatmap"</code></td>
-<td>Fraction of each niche’s cells belonging to each cell type</td>
+<td>CosMx</td>
+<td>
+<code><a href="reference/STlist.html">STlist()</a></code> on a Seurat object</td>
 </tr>
 <tr>
-<td><code>"celltype_composition"</code></td>
-<td>Stacked bars of cell-type composition per niche</td>
-</tr>
-<tr>
-<td><code>"multi_sample_alluvial"</code></td>
-<td>Niche correspondence between samples through shared gene-set programs (requires <code>zi</code>)</td>
+<td>Any other platform</td>
+<td>
+<code><a href="reference/STlist.html">STlist()</a></code> on a counts matrix plus a coordinates table (generic format)</td>
 </tr>
 </tbody>
 </table>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span><span class="va">st</span>, type <span class="op">=</span> <span class="st">"clusters"</span>, samples <span class="op">=</span> <span class="st">"sample1"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span><span class="va">st</span>, type <span class="op">=</span> <span class="st">"Zi"</span>, zi <span class="op">=</span> <span class="va">zi</span>, gene_set <span class="op">=</span> <span class="st">"TLS_core"</span>, samples <span class="op">=</span> <span class="st">"sample1"</span><span class="op">)</span></span></code></pre></div>
-<p>The STniche vignette applies these functions to two case studies: Visium sections from renal cell carcinoma (GSE175540), where niches are compared against pathologist-annotated tertiary lymphoid structures, and CosMx clear cell RCC fields of view, where niches are characterized by cell-type composition and immune signaling in IO-naive and IO-exposed tumors.</p>
+<code class="sourceCode R"><span><span class="co"># Generic format: counts (genes x spots/cells) and coordinates (libname, ypos, xpos)</span></span>
+<span><span class="va">st</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/STlist.html">STlist</a></span><span class="op">(</span>rnacounts  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>sample1 <span class="op">=</span> <span class="va">counts</span><span class="op">)</span>,</span>
+<span>             spotcoords <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>sample1 <span class="op">=</span> <span class="va">coords</span><span class="op">)</span>,</span>
+<span>             samples    <span class="op">=</span> <span class="st">"sample1"</span><span class="op">)</span></span></code></pre></div>
+<p>Step-by-step import instructions for each platform are in the <em>Basic functionality</em> tutorial (section <em>Loading data from other platforms</em>): <code><a href="articles/basic_functions_vignette.html">vignette("basic_functions_vignette", package = "spatialGE")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="whats-new-in-200">What’s new in 2.0.0<a class="anchor" aria-label="anchor" href="#whats-new-in-200"></a>
 </h2>
-<p><strong>New</strong></p>
 <ul>
 <li>
 <code>STniche</code> and <code>plot_stniche</code> for spatial niche detection on Visium and CosMx data.</li>
-<li>Subset an <code>STlist</code> by sample with <code>x[i]</code> (name, position, negative position, or logical); <code>length(x)</code> now returns the number of samples. <code>x[i, j]</code> and <code>x[[i]]</code> raise an error by design.</li>
-<li>Seurat v5 support (uses <code>DefaultAssay()</code>, sparse import) and <code><a href="reference/as_Seurat.html">as_Seurat()</a></code> for converting back.</li>
-<li>Optional on-disk (parquet) storage for data larger than memory: <code><a href="reference/STlist_to_disk.html">STlist_to_disk()</a></code>, <code><a href="reference/STlist_to_memory.html">STlist_to_memory()</a></code>, <code><a href="reference/is_backed.html">is_backed()</a></code>, <code><a href="reference/validate_store.html">validate_store()</a></code>. It adds capacity, not speed.</li>
-<li>Parallel processing on Windows (PSOCK backend; force it elsewhere with <code>options(spatialGE.psock = TRUE)</code>).</li>
+<li>Subset an <code>STlist</code> by sample with <code>x[i]</code>; <code>length(x)</code> returns the number of samples.</li>
+<li>Seurat v5 support, and <code><a href="reference/as_Seurat.html">as_Seurat()</a></code> for converting an <code>STlist</code> back to Seurat.</li>
+<li>Optional on-disk (parquet) storage for data larger than memory (<code><a href="reference/STlist_to_disk.html">STlist_to_disk()</a></code>, <code><a href="reference/STlist_to_memory.html">STlist_to_memory()</a></code>).</li>
+<li>Parallel processing on Windows.</li>
+<li>Large-data performance: <code>filter_data</code>, <code>STdiff</code>, <code>STgradient</code> and <code>SThet</code> now scale to Xenium- and CosMx-sized samples.</li>
 <li>
-<code><a href="reference/filter_data.html">filter_data()</a></code> now reports what it removed (<code>verbose = TRUE</code>), or that nothing was filtered.</li>
-<li>Scales to Xenium- and CosMx-sized samples (200 genes x 50,000 cells benchmark):
-<ul>
-<li>
-<code>filter_data</code> 27x faster, per-gene SD 42x, log transformation 33x (identical output).</li>
-<li>
-<code>STdiff</code> t-test/Wilcoxon 17-27x faster (default <code>mm</code> path unchanged).</li>
-<li>
-<code>STgradient</code> distances computed in O(n) memory (previously ~20 GB at 50,000 cells); output is bit-identical.</li>
-<li>
-<code>SThet</code> (default <code>k = NULL</code>) no longer builds a weights list (previously ~1.2 GB for 4,096 spots).</li>
+<code><a href="reference/filter_data.html">filter_data()</a></code> reports what it removed.</li>
 </ul>
-</li>
-</ul>
-<p><strong>Changes that may affect existing code</strong></p>
-<ul>
-<li>
-<code><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim()</a></code> returns <code>c(n_genes, n_spots)</code> for a single sample and <code>NULL</code> for multiple samples; use <code><a href="reference/summarize_STlist.html">summarize_STlist()</a></code> for per-sample dimensions.</li>
-<li>
-<code>STlist</code> objects are validated at construction.</li>
-<li>Unmatched genes, annotations, or domains now raise an error instead of being silently ignored (<code>SThet(genes=)</code>, <code>STgradient(annot=, ref=)</code>, <code>gene_interpolation(genes=)</code>). Partial matches give a message naming what was dropped.</li>
-<li>
-<code><a href="reference/STenrich.html">STenrich()</a></code> requires <code>annot</code> and <code>domain</code> together. In 1.2.x, passing only one silently ran the <em>unrestricted</em> analysis; regenerate those results.</li>
-<li>
-<code><a href="reference/transform_data.html">transform_data()</a></code> now populates <code>vst.variance.standardized</code> in <code>@gene_meta</code> (for <code>log</code> and <code>sct</code>), which now precedes <code>moran_i</code> and <code>geary_c</code>; select columns by name. Samples with fewer than 4 non-constant genes get a warning and no VST column, instead of failing.</li>
-<li>A Seurat object’s platform is now inferred from its image class (it was always assumed Visium), which affects <code><a href="reference/STgradient.html">STgradient()</a></code>’s default <code>nb_dist_thr</code> for Xenium/CosMx imports.</li>
-<li>
-<code>cores=</code> is now honored by <code><a href="reference/STlist.html">STlist()</a></code> and <code><a href="reference/transform_data.html">transform_data()</a></code>. Use <code>cores = 1</code> when exact <code>sct</code> reproducibility matters on large samples.</li>
-<li>Spots are now ordered deterministically by coordinates (the third coordinate column, normally <code>xpos</code> then <code>ypos</code>). Values are identical when matched by name, but column order of <code>@counts</code>/<code>@tr_counts</code> and row order of <code>@spatial_meta</code> can change; address spots by <code>libname</code>, not position.</li>
-<li>Some results depend on spot order by construction (as in 1.2.x, but now fixed by coordinates rather than file layout): <code><a href="reference/STenrich.html">STenrich()</a></code> p-values, <code>SThet(k=)</code> Moran’s I (up to ~0.02), <code>STgradient(distsumm = 'avg')</code> correlations (up to ~0.004), and density/jitter in <code><a href="reference/plot_counts.html">plot_counts()</a></code> and violin plots. For order-independent values, use <code><a href="reference/SThet.html">SThet()</a></code> without <code>k</code>, <code>distsumm = 'min'</code>, and a higher <code>reps</code> in <code><a href="reference/STenrich.html">STenrich()</a></code>.</li>
-<li>Negligible numeric shifts: <code><a href="reference/SThet.html">SThet()</a></code> default (~2e-15) and <code>gene_stdevs</code> (~1e-16). <code>@misc$sthet$listws</code> is no longer populated on the default path.</li>
-<li>Validation errors now carry the <code>spatialGE exception:</code> prefix; match on that rather than on exact wording.</li>
-</ul>
-<p><strong>Fixes</strong></p>
-<ul>
-<li>
-<code><a href="reference/pseudobulk_heatmap.html">pseudobulk_heatmap()</a></code> previously displayed the <em>least</em> variable genes (CV was computed as mean/sd). Heatmaps from 1.2.x should be regenerated.</li>
-<li>
-<code>STenrich(annot=, domain=)</code> now works; it failed in 1.2.1 and 1.2.2. A single-gene set no longer crashes it.</li>
-<li>Objects returned by <code><a href="reference/gene_interpolation.html">gene_interpolation()</a></code> no longer fail <code>validObject()</code>.</li>
-<li>
-<code><a href="reference/load_images.html">load_images()</a></code> matches images by normalized sample name across all directories and warns on unreadable files, instead of dropping samples.</li>
-<li>
-<code><a href="reference/STplot_interpolation.html">STplot_interpolation()</a></code> works with its default <code>genes = NULL</code>.</li>
-<li>
-<code><a href="reference/STdiff.html">STdiff()</a></code> gives a clear error for numeric or single-group <code>annot=</code>, and no longer emits dplyr’s many-to-many warning.</li>
-<li>
-<code>transform_data(method = 'sct')</code> errors now name the sample and its dimensions; invalid <code>cores=</code> is caught on every path.</li>
-<li>
-<code><a href="reference/pseudobulk_samples.html">pseudobulk_samples()</a></code> drops constant genes with a warning instead of failing.</li>
-<li>
-<code><a href="reference/SThet.html">SThet()</a></code> works on a row-subset <code>@spatial_meta</code>; <code><a href="reference/STlist.html">STlist()</a></code> accepts a Seurat object with <code>samples = NULL</code>; <code><a href="reference/filter_data.html">filter_data()</a></code> can keep exactly one spot; <code>Seurat_FindVariableFeatures()</code> accepts non-<code>dgCMatrix</code> input; <code><a href="reference/STgradient.html">STgradient()</a></code> no longer leaks <code>pval_comment</code> between genes.</li>
-<li>All 14 documented examples now run.</li>
-</ul>
-<p><strong>Earlier releases:</strong> 1.2.1 added C++ speedups and GSVA scoring for <code>STenrich</code>, domain-restricted enrichment, log distances in <code>STgradient</code>, and <code><a href="reference/spatial_metadata.html">spatial_metadata()</a></code>/<code><a href="reference/tissue_names.html">tissue_names()</a></code>. 1.2.0 introduced <code>STenrich</code>, <code>STgradient</code>, and <code>STdiff</code>. 1.1.0 changed <code>STlist</code> in ways incompatible with 1.0 objects.</p>
-<p>See <a href="NEWS.html">NEWS.md</a> for the full list of changes.</p>
+<p>Version 2.0.0 also includes behavior changes that may affect existing code (for example <code><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim()</a></code> on an <code>STlist</code>, errors for unmatched genes or domains, and the order of spots) and many bug fixes. These, together with earlier releases, are listed in <a href="NEWS.html">NEWS.md</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -263,7 +202,7 @@
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
 <ul>
-<li>Tutorials: <a href="https://fridleylab.github.io/spatialGE/" class="uri">https://fridleylab.github.io/spatialGE/</a>
+<li>Tutorials (basic functionality and data input, STdiff, STenrich/STgradient, STniche): <a href="https://fridleylab.github.io/spatialGE/" class="uri">https://fridleylab.github.io/spatialGE/</a>
 </li>
 <li>Source code: <a href="https://github.com/FridleyLab/spatialGE" class="external-link uri">https://github.com/FridleyLab/spatialGE</a>
 </li>

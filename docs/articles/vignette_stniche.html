@@ -100,7 +100,7 @@ CosMx (ccRCC) case studies</h3>
                         <h4 data-toc-skip class="author">Yonatan
 Mekonnen</h4>
             
-            <h4 data-toc-skip class="date">2026-11-07</h4>
+            <h4 data-toc-skip class="date">2026-11-10</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/FridleyLab/spatialGE/blob/main/vignettes/vignette_stniche.Rmd" class="external-link"><code>vignettes/vignette_stniche.Rmd</code></a></small>
       <div class="hidden name"><code>vignette_stniche.Rmd</code></div>
@@ -163,6 +163,9 @@ niche, and does niche-level immune activity differ between immunotherapy
 </tr>
 </tbody>
 </table>
+<p>To run STniche on your own data (Visium, Xenium, CosMx or any count
+matrix with coordinates), see <a href="#using-your-own-data">Using your
+own data</a> at the end of this vignette.</p>
 </div>
 <div class="section level2">
 <h2 id="setup-and-data">Setup and data<a class="anchor" aria-label="anchor" href="#setup-and-data"></a>
@@ -511,6 +514,88 @@ neighbourhood sizes (1 = identical, 0 = chance).</caption>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="section level2">
+<h2 id="reading-the-results">Reading the results<a class="anchor" aria-label="anchor" href="#reading-the-results"></a>
+</h2>
+<p><code><a href="../reference/STniche.html">STniche()</a></code> returns the <code>STlist</code> with a niche
+label for every spot or cell in the <code>STniche_DTC</code> column of
+<code>@spatial_meta</code>. With <code>out_i = TRUE</code> (used above)
+it returns a list instead: the labelled <code>STlist</code> first, and
+the matrix of local Moran’s Z values (gene sets x spots/cells) second.
+Pass that matrix to <code><a href="../reference/plot_stniche.html">plot_stniche()</a></code> as <code>zi</code> for
+the plot types that need it.</p>
+<p><code><a href="../reference/plot_stniche.html">plot_stniche()</a></code> draws everything in this vignette through
+its <code>type</code> argument:</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th align="left"><code>type</code></th>
+<th align="left">Shows</th>
+<th align="left">Needs</th>
+<th align="left">Used in</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><code>"clusters"</code></td>
+<td align="left">Niche map: each spot or cell coloured by niche</td>
+<td align="left"></td>
+<td align="left">Niche maps</td>
+</tr>
+<tr class="even">
+<td align="left"><code>"Zi"</code></td>
+<td align="left">Local Moran’s Z of one gene set
+(<code>gene_set</code>)</td>
+<td align="left"><code>zi</code></td>
+<td align="left">Local Moran’s Z of the TLS gene set</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>"niche_signature"</code></td>
+<td align="left">Mean Zi of every gene set within each niche</td>
+<td align="left"><code>zi</code></td>
+<td align="left">Gene-set signatures</td>
+</tr>
+<tr class="even">
+<td align="left"><code>"celltype_heatmap"</code></td>
+<td align="left">Fraction of each niche’s cells in each cell type</td>
+<td align="left">
+<code>cell_type</code> column</td>
+<td align="left">Cluster x cell-type heatmap</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>"celltype_composition"</code></td>
+<td align="left">Stacked bars of cell-type make-up per niche</td>
+<td align="left">
+<code>cell_type</code> column</td>
+<td align="left">Cell-type composition per niche</td>
+</tr>
+<tr class="even">
+<td align="left"><code>"celltype_spatial"</code></td>
+<td align="left">Map highlighting chosen cell types
+(<code>highlight_types</code>)</td>
+<td align="left">
+<code>cell_type</code> column</td>
+<td align="left">Spatial relationship between CD8 and M2</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>"multi_sample_alluvial"</code></td>
+<td align="left">Niche correspondence between samples through shared
+gene-set programmes</td>
+<td align="left">
+<code>zi</code>, two or more samples</td>
+<td align="left">Niche correspondence between samples</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>samples</code> to restrict a plot to some samples,
+<code>overlay_samples = FALSE</code> to draw them separately, and
+<code>reverse_y = TRUE</code> for imaging-based platforms whose y axis
+runs top to bottom (CosMx here).</p>
 </div>
 <div class="section level2">
 <h2 id="spatial-organisation-of-niches">Spatial organisation of niches<a class="anchor" aria-label="anchor" href="#spatial-organisation-of-niches"></a>
@@ -1130,9 +1215,44 @@ exposed FOVs; Wilcoxon test, Benjamini-Hochberg FDR).</caption>
 </div>
 </div>
 <div class="section level2">
+<h2 id="using-your-own-data">Using your own data<a class="anchor" aria-label="anchor" href="#using-your-own-data"></a>
+</h2>
+<p>STniche needs an <code>STlist</code> that has been filtered and
+transformed (<code><a href="../reference/filter_data.html">filter_data()</a></code>, <code><a href="../reference/transform_data.html">transform_data()</a></code>).
+How to create the <code>STlist</code> for each platform (Space Ranger
+folders for Visium, a Seurat object for Xenium or CosMx, or counts plus
+coordinates in the generic format) is described in
+<code><a href="../articles/basic_functions_vignette.html">vignette("basic_functions_vignette", package = "spatialGE")</a></code>,
+section <em>Loading data from other platforms</em>. The chunks below
+show only the STniche-specific steps and are not run.</p>
+<p>For panel-based platforms such as Xenium, check that your gene sets
+are covered by the panel:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">panel</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">st</span><span class="op">@</span><span class="va">counts</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">stniche_gene_sets</span>, <span class="kw">function</span><span class="op">(</span><span class="va">g</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%d of %d genes in panel"</span>, <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">g</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">panel</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">g</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The cell-type plots (<code>"celltype_heatmap"</code>,
+<code>"celltype_composition"</code>, <code>"celltype_spatial"</code>)
+read a <code>cell_type</code> column in <code>@spatial_meta</code>. If
+you have cell-type labels, add them before plotting:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">st</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">[[</span><span class="st">"my_sample"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">cell_type</span> <span class="op">&lt;-</span> <span class="va">my_labels</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/match.html" class="external-link">match</a></span><span class="op">(</span><span class="va">st</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">[[</span><span class="st">"my_sample"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">libname</span>,</span>
+<span>                                                            <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">my_labels</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<p>Then run STniche and plot as in <a href="#running-stniche">Running
+STniche</a>, using <code>reverse_y = TRUE</code> for imaging-based
+platforms:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STniche.html">STniche</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">st</span>, gene_sets <span class="op">=</span> <span class="va">stniche_gene_sets</span>,</span>
+<span>               samples <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">st</span><span class="op">@</span><span class="va">spatial_meta</span><span class="op">)</span>,</span>
+<span>               ks <span class="op">=</span> <span class="fl">2</span><span class="op">:</span><span class="fl">10</span>, knns <span class="op">=</span> <span class="fl">22</span>, out_i <span class="op">=</span> <span class="cn">TRUE</span>, cores <span class="op">=</span> <span class="va">n_cores</span><span class="op">)</span></span>
+<span><span class="va">st</span>  <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>   <span class="co"># STlist with niche labels in @spatial_meta[[i]]$STniche_DTC</span></span>
+<span><span class="va">zi</span>  <span class="op">&lt;-</span> <span class="va">res</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span>   <span class="co"># local Moran's Z matrix, passed to plot_stniche(zi = )</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/plot_stniche.html">plot_stniche</a></span><span class="op">(</span><span class="va">st</span>, type <span class="op">=</span> <span class="st">"clusters"</span>, reverse_y <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <pre><code>R version 4.6.1 (2026-06-24)
 Platform: aarch64-apple-darwin23

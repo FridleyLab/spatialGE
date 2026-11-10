@@ -185,21 +185,11 @@
 ## New features
 
 * **`STniche()` and `plot_stniche()` for spatial niche detection.** `STniche()`
-  identifies tissue niches, local microenvironments in which particular cell types
-  and molecular programmes co-occur, in three steps: each spot or cell is scored for
-  every supplied gene set; a local Moran's I statistic (reported as a Z-score, Zi)
-  measures whether each gene set is spatially concentrated around that location; and
-  the Zi profiles are clustered with model-based clustering, with the number of
-  niches chosen by BIC. It works on spot-based (Visium) and single-cell (CosMx) data.
-  When run on several samples at once, niche labels are shared, so they are directly
-  comparable across samples.
-
-  `plot_stniche()` visualizes the results through its `type` argument: `"clusters"`
-  (niche maps), `"Zi"` (local Moran's Z of one gene set), `"celltype_heatmap"` and
-  `"celltype_composition"` (cell-type make-up of each niche), and
-  `"multi_sample_alluvial"` (niche correspondence between samples through shared
-  gene-set programmes). The STniche vignette demonstrates the workflow on Visium
-  renal cell carcinoma sections (GSE175540) and CosMx clear cell RCC fields of view.
+  identifies tissue niches from gene-set scores, local Moran's I and model-based
+  clustering, on spot-based (Visium) and single-cell (CosMx) data; niche labels are
+  shared across samples analysed together. `plot_stniche()` draws the results. The
+  method, the `plot_stniche()` plot types and worked Visium and CosMx examples are in
+  the vignette: `vignette("vignette_stniche", package = "spatialGE")`.
 
 * **An `STlist` can now be subset by sample, and has a length.** `x[i]` returns a
   new, valid `STlist` holding only the selected spatial arrays, and `length(x)`
@@ -265,13 +255,20 @@
   is pulled directly. Output is unchanged -- the same `t.test`/`wilcox.test`
   calls on the same vectors. The default `mm` path is not affected.
 
-
 * Set the environment variable `SPATIALGE_CORES`, or the option
   `spatialGE.cores`, to force every parallelized call site to run serially and
   in-process without editing any code. Intended for profiling (`profvis` cannot
   see inside `parallel::mclapply`'s forks) and for debugging a worker that fails
   only under forking. The option takes precedence over the environment variable.
   This is a development aid and is deliberately not part of the documented API.
+
+## Documentation
+
+* New STniche vignette (`vignette_stniche`), with Visium (GSE175540) and CosMx (ccRCC)
+  case studies and a table of every `plot_stniche()` plot type.
+* The basic functionality tutorial (`basic_functions_vignette`) now has a section on loading
+  data from other platforms: Xenium (as a Seurat object), CosMx-SMI, and the generic
+  counts-plus-coordinates format. The other tutorials link to it and to the STniche vignette.
 
 ## Bug fixes
 
@@ -363,7 +360,6 @@
   invalid input as spatialGE errors naming the function and argument, instead of
   surfacing internal failures such as `object 'tr_results' not found` or
   `attempt to select less than one element in get1index`.
-
 
 * `STenrich(annot=, domain=)` now works. Domain-restricted gene set testing was
   announced in 1.2.1 but never functioned: restricting to a domain subsets the

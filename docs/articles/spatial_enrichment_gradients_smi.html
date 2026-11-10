@@ -97,7 +97,7 @@
       <h1 data-toc-skip>Detection of gene set spatial patterns and
 expression gradients in CosMx-SMI</h1>
             
-            <h4 data-toc-skip class="date">2026-11-07</h4>
+            <h4 data-toc-skip class="date">2026-11-10</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/FridleyLab/spatialGE/blob/main/vignettes/spatial_enrichment_gradients_smi.Rmd" class="external-link"><code>vignettes/spatial_enrichment_gradients_smi.Rmd</code></a></small>
       <div class="hidden name"><code>spatial_enrichment_gradients_smi.Rmd</code></div>
@@ -113,8 +113,11 @@ set level. Data from multiple spatial transcriptomics platforms can be
 analyzed, as long as gene expression counts per spot or cell are
 associated with spatial coordinates of those spots/cells. The
 <strong><em><code>spatialGE</code></em></strong> package is also
-compatible with outputs from the Visium workflow (i.e., Space Ranger) or
-the CosMx-SMI spatial single-cell platform.</p>
+compatible with outputs from the Visium workflow (i.e., Space Ranger),
+the CosMx-SMI spatial single-cell platform, and Xenium data (via
+Seurat). Input options, including the generic file format, are described
+in
+<code><a href="../articles/basic_functions_vignette.html">vignette("basic_functions_vignette", package = "spatialGE")</a></code>.</p>
 <p>In this tutorial, the functions <code>STenrich</code>,
 <code>STclust</code>, and <code>STgradient</code> will be used to test
 for spatial gene set enrichment and genes showing expression gradients
@@ -215,6 +218,12 @@ creation of an <strong><em>STlist</em></strong> (S4 class object), which
 stores raw and processed data. The STlist is created with the function
 <code>STlist</code>, which can take data in multiple formats (see <a href="https://fridleylab.github.io/spatialGE/reference/STlist.html">here</a>
 for more info or type <code><a href="../reference/STlist.html">?STlist</a></code> in the R console).</p>
+<p>Here, the CosMx-SMI flat files (counts and cell coordinates) are
+provided as file paths. A Seurat object can be used instead; see the
+STniche tutorial
+(<code><a href="../articles/vignette_stniche.html">vignette("vignette_stniche", package = "spatialGE")</a></code>),
+which builds an <code>STlist</code> per CosMx field of view from a
+Seurat object.</p>
 <p>To load the files into an STlist, please use these commands:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lung</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/STlist.html">STlist</a></span><span class="op">(</span>rnacounts<span class="op">=</span><span class="va">exprmats</span>, </span>
@@ -630,6 +639,16 @@ as and those for <strong>KRT6A</strong> and <strong>HLA-B</strong>
 (i.e., lower absolute Spearman’s coefficient), it can be seen that the
 genes <strong>NOTCH1</strong> and <strong>NOTCH3</strong> show evidence
 of expression gradients in FOVs ‘Lung6_fov_4’ and ‘Lung6_fov_6’.</p>
+</div>
+<div class="section level2">
+<h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<p><code>STenrich</code> and <code>STgradient</code> test gene sets and
+genes one at a time. To detect niches defined by the local co-occurrence
+of several gene sets (and the cell types they contain), see
+<code>STniche</code> in
+<code><a href="../articles/vignette_stniche.html">vignette("vignette_stniche", package = "spatialGE")</a></code>, which
+analyzes CosMx data from clear cell renal cell carcinoma.</p>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
