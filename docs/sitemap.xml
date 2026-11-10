@@ -17,7 +17,6 @@
 <url><loc>https://fridleylab.github.io/spatialGE/reference/STenrich.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/STgradient.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/SThet.html</loc></url>
-<url><loc>https://fridleylab.github.io/spatialGE/reference/SThet_invdist_test.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/STlist-class.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/STlist.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/STlist_to_disk.html</loc></url>
@@ -35,13 +34,11 @@
 <url><loc>https://fridleylab.github.io/spatialGE/reference/index.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/is_backed.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/load_images.html</loc></url>
-<url><loc>https://fridleylab.github.io/spatialGE/reference/old_SThet.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/plot_counts.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/plot_image.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/plot_stniche.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/pseudobulk_dim_plot.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/pseudobulk_heatmap.html</loc></url>
-<url><loc>https://fridleylab.github.io/spatialGE/reference/pseudobulk_pca_plot.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/pseudobulk_samples.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/show-STlist-method.html</loc></url>
 <url><loc>https://fridleylab.github.io/spatialGE/reference/spatial_metadata.html</loc></url>
