@@ -5,3 +5,16 @@ repo:
     home: https://github.com/FridleyLab/spatialGE
     source: https://github.com/FridleyLab/spatialGE/blob/main
     issue: https://github.com/FridleyLab/spatialGE/issues
+
+template:
+  bootstrap: 5
+
+articles:
+- title: "Tutorials"
+  navbar: ~
+  contents:
+  - basic_functions_vignette
+  - spatial_differential_expression
+  - spatial_enrichment_gradients_smi
+  - vignette_stniche
+  - troubleshooting
